@@ -98,6 +98,14 @@ watch        ─→ chokidar + 依赖图 → 增量重建计划（dmcc build -w 
 
 **后果**：`fe/packages/container` 角色逐步收敛为参考宿主；compiler 对 container-sdk 的依赖方式（peer / 预构建宿主页随包分发）在 A2.0 定案。内置宿主页定位为**最小宿主**：直开目标 app（可选 `path` 参数），不含应用列表/手机壳 UI——列表壳保留在 container demo。
 
+**A2.0 定案（2026-09-08，决策记录）**：container-sdk **预构建产物随 `@dimina/compiler` 包分发**，不采用 peer dependency。
+
+- **事实基础**：所有 `@dimina/*` workspace 包（common/render/service/components/container-sdk）均为 `private` 且无 version，不发布 registry——peer dependency 在发布形态上不成立（宿主无从安装）；唯一发布包是 `@dimina/compiler`（1.2.1），天然作为资产载体。
+- **自包含已验证**：container-sdk dist（index.js 129KB + pageFrame.js 441KB + index.css 76KB + pageFrame.css 31KB + service.js 171KB，合计 ~850KB / gzip ~210KB）零 `@dimina` 残留引用；`service.js` 为无 import 的独立 IIFE bundle（`new Worker` 目标）；生产构建 external 仅 `mitt` 一个（`vconsole` 仅 `import.meta.env.DEV` 动态 import，生产被 tree-shake）。
+- **离线模拟验证**（fe/ 工作区外裸目录）：compiler 包内 `sdk/` 静态资产 + `mitt` 依赖即可静态服务全部资源并完成浏览器解析链路（全部 HTTP 200）。
+- **落地形态**：compiler 包内置 `sdk/` 静态资产目录（构建时从 container-sdk 复制），`dmcc dev` 直接静态服务；`mitt` 列为 compiler 的 dependencies（宿主页运行时解析），dev 模式 vconsole 随包提供。产物版本随 compiler 发布锁定，无宿主导致的版本漂移。
+- **A2 前置依赖解除**：A2 子 Action 范围可直接引用 compiler 包内 `sdk/` 资产，无需处理 workspace 包安装。
+
 ### D3. 渲染层引入 target 抽象；rspack 至多存在于 lynx adapter 内部
 
 **理由**：若未来以 Lynx 原生渲染替代 WebView 渲染，被替换的只是「WebView + Vue render」一段：view/style 编译按 target 分叉（WXML → Lynx 模板源码 → rspeedy/rspack → `.lyx`），logic 层、modDefine 契约、service runtime、bridge 契约全部不动。rspack 的正确位置是 lynx target adapter 内部的实现细节（作为库调用），而非 DMCC 的架构基座。
@@ -212,7 +220,7 @@ A1（`compiler-hook-layer`）已交付并归档（`docs/actions/_archive/complet
 | 阶段 | 内容 | 验收标准 |
 | --- | --- | --- |
 | **A1 hook 层** | 把 Listr 任务树抽为可挂载生命周期（env → config → npm → [view ‖ logic ‖ style] → publish），不改任何行为 | 55 测试全绿；`build()` 公开行为与错误契约不变（`build-error-contract.spec.js` 重点回归）。**已完成（2026-09-08，`compiler-hook-layer` 归档）**：57 文件/360 用例全绿；产物字节一致（nomap/sourcemap 双模式 diff 空）；事件契约定稿见 §4.4 |
-| **A2.0 宿主资产分发定案** | 前置决策：container-sdk 预构建产物随 compiler 分发 vs peer dependency（已核实：其运行时依赖仅 mitt/vconsole，render/service/components 均为构建期打入 dist；该决策决定 dmcc dev 的离线可用性与版本耦合） | 决策记录补充到 D2；新 clone 示例在 `fe/` 工作区之外验证所选方案可行 |
+| **A2.0 宿主资产分发定案** | 前置决策：container-sdk 预构建产物随 compiler 分发 vs peer dependency（已核实：其运行时依赖仅 mitt/vconsole，render/service/components 均为构建期打入 dist；该决策决定 dmcc dev 的离线可用性与版本耦合） | 决策见 D2（A2.0 已定案）；新 clone 示例验证随包分发可行 |
 | **A2 dev server + L1** | `dmcc dev`：静态服务（服务最后成功发布快照）+ 内置宿主页 + 代理 + ws；logic 变更 → 页面 relaunch（复用 `appManager.restartMiniProgram`） | 示例 app 一条命令起预览（含 `fe/` 外新 clone 场景）；§4.2 L1 场景验收；dev server 与 ws 协议有 vitest 契约测试 |
 | **A3 HMR L2/L3** | CSS 热替换 + 模板热重挂；落点：`fe/packages/render` + `fe/packages/container-sdk`（dev-only 扩展，feature flag 隔离）；L3 回放按 §4.2 首选方案 | §4.2 L2/L3 场景验收（自动化 + 手工）；编译失败不中断运行实例（消融：注入失败用例验证旧产物保留） |
 | **A4 target 抽象** | view/style 输出按 target 分叉（先只有 `webview` 一个实现；服务于 G3 挂载面，为 C1 预留接入点） | 产物与现状逐字节一致（diff 验收） |
@@ -262,3 +270,4 @@ A1（`compiler-hook-layer`）已交付并归档（`docs/actions/_archive/complet
 | v0.3 | 2026-09-08 | 实施计划审查修复：A2.0 前置决策、reloadLevel 合成规则、L3 回放首选方案、dev 快照语义；文档审查修复：spec 数量 55、oxc_traverse 更正、D6/G4 口径同步、最小宿主定义、C1 前置 A4、fe 工作流非目标 |
 | v1.0 | 2026-09-08 | 定稿：动机/目标 G1–G4/决策 D1–D7/路线图经评审接受；gate A1 事件契约随 `compiler-hook-layer` 技术设计冻结生效 |
 | v1.1 | 2026-09-08 | A1 完成后回写：新增 §4.4 事件契约持久真源；§5 A1 行标注完成并链接归档；修订记录同步 |
+| v1.2 | 2026-09-08 | A2.0 定案回写：D2 增补决策记录（预构建 dist 随 compiler 包分发，含自包含/离线验证）；§5 A2.0 行标注已定案 |
