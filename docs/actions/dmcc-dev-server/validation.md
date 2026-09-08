@@ -113,3 +113,29 @@
 | Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
 
 实现说明：`handleProxyRequest(req, res, deps?)` 默认使用生产 `assertSafeTarget` / `forwardRequest`；仅契约测试注入依赖，生产路径仍强制 SSRF 校验。GET data 复刻既有 axios params 语义，序列化为 query string。
+
+### P-004（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `c0d65d3b`（P-003 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+新增依赖：`ws@8.21.3`（compiler `dependencies`；Node 无内置 ws server，见 technical-design §6）。
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增 server 规格 | `corepack pnpm --filter compiler exec vitest run __tests__/dev-server.spec.js` | 12/12 通过（真实 http/ws 客户端 + 真实 tmpdir 服务根） | `fe/packages/compiler/__tests__/dev-server.spec.js` | passed |
+| 静态服务 | GET `/` → 宿主页（含 sdk 引用 + appId 注入）；`/sdk/index.js` → sdk 资产；`/main/logic.js`、`/app-config.json` → serveRoot 产物；全部 `Cache-Control: no-cache` | 全部通过 | dev-server.spec.js | passed |
+| 安全 | 未知资源 404；路径穿越 `..%2F` 400；非白名单浏览器来源 403、localhost 来源放行 | 全部通过 | dev-server.spec.js | passed |
+| 快照语义 | 更新 serveRoot 后 GET 立即返回新内容（最后成功发布） | 通过 | dev-server.spec.js | passed |
+| pendingReload 关联（F-002） | setPendingReload + notifyBuildPublished → 推完整 reload 载荷并清空；无 pending → 不推；build:error → 清空 + 推 build:error；订阅校验 appId；ack 记录 | 全部通过 | dev-server.spec.js | passed |
+| 连续 reload | buildId 3/4 依次推送，宿主可去重 | 通过 | dev-server.spec.js | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 61 文件 / 409 用例全绿（既有 397 无回落） | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警（首轮 JSDoc @returns warning 已修复） | 终端日志 | passed |
+
+覆盖说明：
+
+- `createDevServer` 不依赖 lifecycle 具体实现——编排层（P-005）负责订阅 `bundle:published`/`build:error` 并调用 `notifyBuildPublished`/`notifyBuildError`，server 层只管理推送状态；pendingReload 由 set 注入（合成结果源自 dev-reload.js，P-001）。
+- 未覆盖：与真实 build/watch/lifecycle 的端到端联动（P-005 冒烟）；宿主页在真实浏览器中运行（A-004 冒烟记录）。

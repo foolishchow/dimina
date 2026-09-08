@@ -61,7 +61,8 @@
 		"postcss": "^8.5.26",
 		"postcss-selector-parser": "^7.1.5",
 		"sass": "^1.103.1",
-		"source-map-js": "^1.2.1"
+		"source-map-js": "^1.2.1",
+		"ws": "^8.21.3"
 	},
 	"publishConfig": {
 		"registry": "https://registry.npmjs.org/",
