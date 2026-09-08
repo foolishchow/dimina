@@ -115,6 +115,15 @@ client -> server: { type: 'ack', buildId }
 
 迁移 `fe/packages/server/security.js` 的纯函数（`assertSafeTarget` / `createSafeLookup` / `isAllowedBrowserOrigin` / `sanitizeRequestHeaders`）到 `src/common/dev-proxy.js`（源码级复制，保留原作者署名注释与单元测试口径）。`/proxy` 端点行为对齐现有 `createProxyApp`（method/responseType 校验、1–30s 超时、1MB/10MB 体积限制）。不依赖 express：dev server 用 Node `http` 原生实现路由（减少依赖面）。
 
+**已评估替代方案（2026-09-08 决策记录）**：[http-proxy](https://www.npmjs.com/package/http-proxy)（及 http-proxy-middleware）**不采用**。理由：
+
+- 语义不匹配：`/proxy` 是「SSRF 防护的 HTTP 客户端转发端点」（对齐既有 axios 式 server：请求体指定目标、responseType 变换 json/text/arraybuffer、结构化错误），http-proxy 是「流式连接反向代理」（浏览器直连目标），两者响应/错误/CORS 语义完全不同；强用反而增加复杂度且偏离 R-007 的对齐口径。
+- SSRF 防护代价：`assertSafeTarget` 的 DNS 逐 answer 校验是安全核心，http-proxy 不提供，仍需自写；而其内部连接/代理管理引入「校验后再次解析」的不透明风险面，违背不弱化防护。
+- 依赖面：existing 实现零新增依赖（node:http/https/dns/net + 已评估需自写），符合「减依赖面」约束；14 个契约 spec（dev-proxy.spec.js + dev-server.spec.js）已锁定当前实现的行为。
+- 若未来需要真正透明反代或 ws 连接升级代理（如 `/api/*` → 本地后端），作为独立需求评估，不替换本端点。
+
+**实现说明（P-003 定案）**：`handleProxyRequest(req, res, deps?)` 默认使用生产 `assertSafeTarget` / `forwardRequest`；契约测试经 DI 注入「已通过安全校验的本地目标」。GET `data` 复刻 axios `params` 语义序列化为 query string。
+
 ## 8. 端口与多实例（R-012）
 
 - `--port <n>` 默认 8080；占用冲突 → 明确错误 `端口 8080 已被占用，请用 --port`。
