@@ -28,5 +28,6 @@
 
 | Action | Status | Path | Summary | Updated |
 | --- | --- | --- | --- | --- |
-| `compiler-improvement` | `ready` | [README](compiler-improvement/README.md) | 编译器改造 umbrella（RFC v1.0 已定稿）：交付 A 轨道，治理 B/C 终局决策。 | 2026-09-08 |
+| `compiler-improvement` | `ready` | [README](compiler-improvement/README.md) | 编译器改造 umbrella（RFC v1.2 已定稿）：交付 A 轨道，治理 B/C 终局决策。 | 2026-09-08 |
 | `compiler-hook-layer` | `complete` | [README](_archive/complete/compiler-hook-layer/README.md) | Umbrella gate A1（事件契约已冻结 v1）：runBuild 生命周期驱动化交付，行为/产物零变化；A-001~A-009 全 passed，已归档。 | 2026-09-08 |
+| `dmcc-dev-server` | `draft` | [README](dmcc-dev-server/README.md) | Umbrella gate A2：`dmcc dev` 一条命令交付 dev 链路（watch + 静态服务 + 内置宿主页 + ws + 代理 + L1 relaunch）。A1/A2.0 前置已解除。 | 2026-09-08 |

@@ -20,7 +20,7 @@ C1 Lynx PoC（依赖 A4；可选，另立 RFC 后再 formalize）
 | --- | --- | --- | --- | --- |
 | A1 | Listr 任务树抽为可挂载生命周期，行为零变化 | `compiler-hook-layer` | 无（可最早开工） | **complete（2026-09-08）**；12 事件契约 v1 已冻结并回写 RFC §4.4；A2/A4 通过内部 `options.lifecycle` 接入，不得扩大为公开 exports |
 | A2.0 | container-sdk 资产分发决策（随包分发 vs peer dep） | 决策记录并入 RFC D2，不需独立子 Action | 无 | **complete（2026-09-08 定案：预构建 dist 随 compiler 包分发）**；依据：全部 `@dimina/*` workspace 包 private 不可发布 → peer dep 不成立；sdk dist 除 mitt 外自包含；离线模拟验证通过（见 RFC D2） |
-| A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 | pending |
+| A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 | pending；子 Action `ready` 后可开工（A1/A2.0 前置已解除） |
 | A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 | pending |
 | A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） | pending；依赖 A1 事件契约 v1 |
 | B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） | pending / deferred decision |
