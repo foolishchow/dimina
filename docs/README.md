@@ -20,6 +20,7 @@ Dimina（星河小程序）由 DMCC 编译器、逻辑层与渲染层运行时�
 | 查看 WebSocket API、事件与平台限制 | [WebSocket 能力](./websocket-architecture.md) | 对应平台的 Manager 与校验源码 |
 | 排查点击、长按或 `label` 激活的行为 | [触摸事件与手势](./touch-event-architecture.md) | `components` 的手势与组件源码 |
 | 参与前端框架开发 | [前端工程说明](../fe/README.md) | [贡献指南](../CONTRIBUTING.md) |
+| 跟踪进行中的工作单元 | [Action 状态表](./actions/STATUS.md) | [Action 说明](./actions/README.md) |
 
 ## 核心阅读路径
 
