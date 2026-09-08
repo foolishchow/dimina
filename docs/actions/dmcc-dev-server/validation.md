@@ -94,3 +94,22 @@
 
 - 脚本只复制 5 个运行时资产（js/css/service），d.ts 等开发期类型不随包——与 dev-host.js `SDK_ASSET_PATHS` 对齐。
 - 未覆盖：与 dev-server 路由（`/sdk/*` → dist/sdk/）的联调（P-004）；fe/ 外模拟靠 dist/sdk 的完整链路（P-007）。
+
+### P-003（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `e0f0f2d8`（P-002.5 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增代理规格 | `corepack pnpm --filter compiler exec vitest run __tests__/dev-proxy.spec.js` | 13/13 通过 | `fe/packages/compiler/__tests__/dev-proxy.spec.js` | passed |
+| 安全迁移 | 与既有 `fe/packages/server/security.test.js` 对齐：私网/回环/IPv4-mapped IPv6 拒绝、逐 DNS answer 校验、CORS 白名单、敏感请求头剥离 | 全部通过 | dev-proxy.spec.js | passed |
+| 合法转发 | DI 注入已通过安全校验的本地目标，Node http 实际转发 POST/GET/arraybuffer | method/body/query/二进制均通过 | dev-proxy.spec.js | passed |
+| 非法/SSRF | 非法 method/responseType、无效 JSON → 400；私网目标 → 403 且 forward 未调用；超时错误 → 504 | 全部通过 | dev-proxy.spec.js | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 60 文件 / 397 用例全绿（既有 384 无回落） | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+
+实现说明：`handleProxyRequest(req, res, deps?)` 默认使用生产 `assertSafeTarget` / `forwardRequest`；仅契约测试注入依赖，生产路径仍强制 SSRF 校验。GET data 复刻既有 axios params 语义，序列化为 query string。
