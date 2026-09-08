@@ -39,7 +39,7 @@
 ## Design inputs
 
 - [RFC §4.1 `dmcc dev` 形态](../../Compiler-Architecture-RFC.md)：watch → 静态服务（最后成功发布快照 + no-cache）→ 内置宿主页 → 代理 → ws 推送 `{ appId, changedStages, affectedPages, reloadLevel }`
-- [RFC §4.2 HMR Ladder](../../Compiler-Architecture-RFC.md)：L0 全量重启 / L1 页面 relaunch（本门交付）；reloadLevel 合成规则（logic → L1；配置 → L0；仅 style → L2 留待 A3，本门先报 L2 级别但宿主按刷新处理？——见 technical-design）
+- [RFC §4.2 HMR Ladder](../../Compiler-Architecture-RFC.md)：L0 全量重启 / L1 页面 relaunch（本门交付）；reloadLevel 合成规则（logic → L1；配置 → L0；仅 style → L2 留待 A3）。L2/L3 边界已定案：合成完整实现、宿主按刷新回退（见 technical-design §5）
 - [RFC §5 A2 验收](../../Compiler-Architecture-RFC.md)：一条命令起预览（含 fe/ 外新 clone）；L1 场景验收；dev server 与 ws 协议 vitest 契约测试
 - [A1 事件契约 §4.4](../../Compiler-Architecture-RFC.md)：`options.lifecycle` 注入点，`bundle:published` / `build:error` 事件驱动快照与推送
 - [A2.0 资产分发定案（RFC D2）](../../Compiler-Architecture-RFC.md)：container-sdk 预构建 dist 随 `@dimina/compiler` 包分发（`sdk/` 资产目录）
@@ -56,7 +56,7 @@
 ## Readiness gaps
 
 - 无已知阻塞；A1（事件契约）、A2.0（资产分发）两个门级前置均已解除。
-- 待评审冻结：reloadLevel 合成规则中 L2 级别在本门的回退语义（见 technical-design §L2 边界）。
+- 已冻结（2026-09-08 评审）：reloadLevel 合成规则中 L2/L3 级别的回退语义 —— 合成完整实现、宿主按刷新回退（technical-design §5），A3 只升级宿主执行端不改协议。
 
 ## Closure conditions
 

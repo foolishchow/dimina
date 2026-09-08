@@ -11,7 +11,8 @@
 | 合成规格 | `vitest run __tests__/dev-reload.spec.js` | spec 日志 |
 | 宿主页规格 | `vitest run __tests__/dev-host.spec.js` | spec 日志 |
 | 代理规格 | `vitest run __tests__/dev-proxy.spec.js` | spec 日志 |
-| dev server 契约 | `vitest run __tests__/dev-server.spec.js`（含 ws，mock 宿主） | spec 日志 |
+| dev server 契约 | `vitest run __tests__/dev-server.spec.js`（含 ws：起真实 dev server，用 `ws` 客户端 mock 宿主订阅；断言 reload 载荷形状、ack 时序、pendingReload 清空） | spec 日志 |
+| L1 载荷可观测（A-004） | 同一契约 spec 内：mock 宿主改页 js → 断言收到 `{ type:'reload', reloadLevel:'L1' , buildId }`；宿主页 `relaunch` 执行路径以代码路径审查（dev-host.js 中 `restartMiniProgram` 调用点）+ 浏览器冒烟记录 | spec 日志 + 冒烟记录 |
 | CLI 冒烟 | `node src/bin/index.js dev <tmpApp>` | 命令日志 + curl |
 | 失败注入 | 临时坏文件 → 观察 build:error 推送、旧产物保留、进程存活 | 冒烟日志 |
 | L1/L0 冒烟 | 改 js → 推 L1；改 app.json → 推 L0 | ws 观察日志 |

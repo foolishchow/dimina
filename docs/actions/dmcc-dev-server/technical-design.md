@@ -53,13 +53,25 @@ HTTP 语义：
 
 ## 4. reloadLevel 合成（R-003，dev-reload.js 纯函数）
 
-输入 = `createWatchBuildPlan` 结果（`stages` / `unknownKinds` / `affectedPages` / skip 标志）+ 变更文件。合成规则（对齐 §4.2，最破坏性优先）：
+输入 = 变更上下文 + watch 计划结果。**接口定案（评审 F-001 修复）**：现有 `createWatchBuildPlan`（`src/bin/watch.js`）返回 `{ skip, incremental, options }`，`stages` / `affectedEntries` 位于 `options` 内而非顶层。因此 `dev-reload.js` 的纯函数签名与实参来源为：
+
+```js
+// 返回 { reloadLevel, payload } | null（null = 不推送）
+synthesizeReloadLevel({ event, filePath, count, plan })
+// plan = createWatchBuildPlan 结果；内部取 plan.options.stages / plan.options.affectedEntries
+// 载荷字段名对外统一为 affectedPages（对齐 RFC §4.1 推送载荷），
+// 内部从 plan.options.affectedEntries 映射（同义、不新增字段名）
+```
+
+合成规则（对齐 §4.2，最破坏性优先）：
 
 | 输入特征 | reloadLevel | 说明 |
 | --- | --- | --- |
 | `plan.skip` | 不推送 | 输出目录/依赖图未收录文件 |
 | `count > 1`（合并）或 `unknownKinds.length > 0` | L0 | 无法安全推导，保守全量 |
 | 变更含 `.json`（app/project config、tabBar、分包结构） | L0 | §4.2 L0 |
+| `event !== 'change'`（add/unlink）且未能增量 | L0 | 结构性变更，保守全量（评审补充：矩阵补默认行） |
+| `plan.incremental` 为 false 的其他情况 | L0 | 非增量全量重建的兜底默认 |
 | `stages` 含 `logic` | **L1** | 本门交付的生效级别 |
 | `stages` 含 `view`（含 view+style） | L3 | 上报级别；本门宿主按刷新回退 |
 | 仅 `style` | L2 | 同上 |
@@ -87,6 +99,13 @@ server -> client: { type: 'build:start' } | { type: 'reload', appId, changedStag
 server -> client: { type: 'build:error', message }（失败信号，不触发 relaunch）
 client -> server: { type: 'ack', buildId }
 ```
+
+**载荷关联（评审 F-002 修复）**：`bundle:published` 事件载荷仅 `{ targetPath, useAppIdDir }`，不含 stages/affectedPages。因此 dev 侧维护**待推送上下文** `pendingReload`：
+
+- 调度 rebuild 时（`createWatchRebuildScheduler` 的 rebuild 回调内、调用 `build()` 之前），先用 `synthesizeReloadLevel` 计算结果存入 `pendingReload`，并自增 `buildId` 与该结果绑定。
+- `bundle:published` 事件触发时：若 `pendingReload` 非空，取出组装 `{ type:'reload', ...payload, buildId }` 推送，然后清空；若为空（如非 watch 触发的构建），不推送。
+- `build:error` 事件触发时：清空 `pendingReload`（丢弃本次失败对应的待推载荷），推送 `{ type:'build:error', message }`。
+- 调度器串行化（一次只跑一个 rebuild）保证「一个 rebuild 对应一个 pendingReload + 一个 bundle:published/build:error」关联安全，无并发竞态。
 
 - 编译失败：推送 `build:error`（不推 reload），运行实例不变（R-006）。
 - 连接断开：宿主页重连并请求当前 `buildId`，幂等（不重放旧 reload）。
