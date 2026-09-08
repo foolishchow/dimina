@@ -51,3 +51,24 @@
 
 - 矩阵全分支已锁定（14 用例）：skip/合并/配置json/未知kind/add-unlink/非增量兜底/logic/logic+style/style/view/view+style/防御空affectedPages/空stages/载荷字段映射。
 - 未覆盖：与 watch.js / ws / dev-server 集成后的 pendingReload 关联（P-004）；宿主页生成（P-002）；代理（P-003）。
+
+### P-002（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `1c428631`（P-001 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增规格 | `corepack pnpm --filter compiler exec vitest run __tests__/dev-host.spec.js` | 10/10 通过 | `fe/packages/compiler/__tests__/dev-host.spec.js` | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 59 文件 / 384 用例全绿（含新增 10；既有 374 无回落） | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 契约实现 | `src/common/dev-host.js`：`SDK_ASSET_PATHS` 冻结常量（index/pageFrame/css/service 路由）；`createHostPageHtml({ appId, wsPath })` 生成最小宿主页——createContainer + openApp({ destroy:true }) 直开目标 app、`?path=` 入口、resourceBaseUrl='/‘、getAppInfo 最小形态、ws 订阅订阅 + reload 分发（L0→reload / 其余→relaunch / build:error→日志）、title HTML 转义 + 脚本 JSON 字符串字面量安全注入 | — | 源码 diff 仅 2 个新文件 | passed |
+
+覆盖说明：
+
+- L1「当前页 relaunch」为语义近似（最小宿主不追踪导航栈，重进入口页 `?path=`）；已作注释明确，容器级精确当前页重进留待 A3/宿主页增强。
+- 安全注入验证：title（HTML 上下文）转义防标签注入；脚本内 appId 经 JSON.stringify 成字符串字面量（JS 上下文不参与 HTML 解析），两种上下文行为分开断言。
+- 未覆盖：与 dev-server 集成后的路由/ws 联调（P-004）；sdk 资产复制（P-002.5）；代理（P-003）。
