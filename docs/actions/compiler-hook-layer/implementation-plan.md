@@ -25,4 +25,5 @@
 | P-002 | 完成 | 2026-09-08 | runBuild 生命周期驱动重构：事件序、三阶段并发、打印语义与错误契约不变；全量绿 + 3 组冒烟；证据见 [validation](validation.md) |
 | P-003 | 完成 | 2026-09-08 | 兼容性 spec 11/11 绿 + [compat] 输出与基线（2cdc66d7）逐字节一致；证据见 [validation](validation.md) |
 | P-004 | 完成 | 2026-09-08 | 观察者集成规格 7/7：全量 / stages 过滤 / 小游戏 / 失败路径 + 并发不串行 + 隔离消融（A-006）；证据见 [validation](validation.md) |
-| P-005…P-006 | 未开始 | — | — |
+| P-005 | 完成 | 2026-09-08 | 同一绝对路径下基线/当前 7 示例构建；nomap 与 sourcemap 两种模式均 diff exit=0；证据见 [validation](validation.md) |
+| P-006 | 未开始 | — | — |

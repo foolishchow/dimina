@@ -96,6 +96,25 @@
 - A-006 消融已按口径执行：规格断言“移除隔离逻辑后 must 失败”——规格断言的是①抛错监听器不中断构建且计入计数（若无隔离机制，抛出将拒绝构建，断言失败）；②产物逐字节一致（隔离不可影响构建结果）。
 - 调试期间发现 vitest `mockRestore()` 会清空 spy 调用记录，断言必须在 restore 前保存副本；已在规格中固化，规避同类坑。
 
+### P-005（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Baseline | `2cdc66d7`（P-001/P-002 改造前） |
+| Current | `32b2bd4f` |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+| Path control | 基线与当前版本均依次解压到同一绝对路径 `/tmp/p005-work`，消除既有 `uuid(absoluteAssetDir)` 路径变量 |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| nomap 构建 | `/tmp/build-all.mjs`；基线与当前各构建 `examples/miniprogram` 7 个示例，`sourcemap=false` | 两边均 `apps=7 failed=0` | `/tmp/artifacts/p005/{baseline,current}` | passed |
+| nomap 产物 diff | `diff -r /tmp/artifacts/p005/baseline /tmp/artifacts/p005/current` | exit=0，0 行差异 | `/tmp/diff-p005-nomap.txt` | passed |
+| sourcemap 构建 | 同脚本，`sourcemap=true` | 两边均 `apps=7 failed=0` | `/tmp/artifacts/p005-map/{baseline,current}` | passed |
+| sourcemap 产物 diff | `diff -r /tmp/artifacts/p005-map/baseline /tmp/artifacts/p005-map/current` | exit=0，0 行差异 | `/tmp/diff-p005-map.txt` | passed |
+
+说明：此前在不同绝对路径 worktree 上的原始 diff（资源前缀及少量 minify 名称）经同一代码树重复构建确认可复现，根因为既有 `collectAssets()` 对绝对资源目录取哈希；不是本次改造差异。最终同一路径控制实验无差异，故不采用归一化结果替代字节 diff。
+
 ## 闭合判定（模板）
 
 - A-001~A-009 全部 passed（A-007 为 SHOULD 支撑项，失败需记录原因与影响）；
