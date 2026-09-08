@@ -271,7 +271,12 @@ client -> server: { type: 'ack', appId, buildId }
 
 按 [维护经验](./Experience-Review.md) 第 5、6 条要求，以下内容目前**仅为分析结论，未经本仓库实验证实**：
 
-1. 「L3 模板热重挂可在保留 service 状态下达成」——render 侧 remount + setData 回放的时序可行性待 A3 原型验证；不成立则 L3 降级为 L1。
+1. 「L3 模板热重挂可在保留 service 状态下达成」——render 侧 remount + setData 回放的时序可行性待 A3 原型验证；不成立则 L3 降级为 L1。**现状验证（2026-09-08，代码审计）**：
+   - **数据快照可行且有基础**：`runtime.setupData`（`fe/packages/render/src/core/runtime.js:632`）按 `pageId` 累积每页完整响应式状态；`updateModule`（:1400）把 `u/ub` 消息的 setData 写入 `setupData`，`preInitUpdates`（:634）处理先抵达的更新。remount 时无需 service 重发——「每页最近一次 setData 快照」已天然存在于 render 侧。
+   - **view 模块热替换当前不可直接完成**：`loader.createModule`（`loader.js:111-117`）对已存在 path 直接 return，无版本替换 API；新编译产物 `modDefine` 无法覆盖已有 `staticModules[path]`。需 A3 新增 `replaceModule(path, moduleInfo)`（含 usingComponents 递归、旧实例销毁）。
+   - **页面级 remount 当前无 API**：`firstRender`（`runtime.js:741-750`）只做**整 app** `unmount → createApp → mount`；无页面级实例管理。需 A3 新增页面级 remount（保留 app 与其余页面）。
+   - **组件副作用状态会重置**（onMounted/watch/canvas/scroll）：remount 后丢失——符合 L3 承诺「service 状态保留」，不承诺页面内部运行时副作用。
+   - **结论**：假设 1 **条件成立**——数据回放可行，但 A3 需先建两个 render 能力（模块热替换 + 页面级 remount）的原型；原型失败仍可降级 L1（A2 契约 §4.5 已把 L2/L3 定为上报级别）。
 2. 「rspack chunk 渲染 hook 无法干净产出 modDefine 格式」——基于公开资料与先例推断；若 C1 lynx 路线启动，应先做 50 行级 PoC 实测（模块 ID = 路径、跨包 require 保持字面量、modDefine 逐模块输出三点）。
 3. 「napi 多 worker 各自加载 Rust 库即可保住 JS 并行」——napi-rs 支持 worker env，但本仓库场景（阶段级大任务 + 共享只读数据）的实际调度行为待 B1 试点验证。
 4. Lynx 工具链（rspeedy）的 API 稳定性与平台覆盖——待 C1 立项时重新评估，本文不作为承诺。
@@ -293,3 +298,4 @@ client -> server: { type: 'ack', appId, buildId }
 | v1.1 | 2026-09-08 | A1 完成后回写：新增 §4.4 事件契约持久真源；§5 A1 行标注完成并链接归档；修订记录同步 |
 | v1.2 | 2026-09-08 | A2.0 定案回写：D2 增补决策记录（预构建 dist 随 compiler 包分发，含自包含/离线验证）；§5 A2.0 行标注已定案 |
 | v1.3 | 2026-09-08 | A2 完成后回写：新增 §4.5 dev server 契约（ws 协议 + reloadLevel 合成 + 宿主页语义）；§5 A2 行标注完成并链接归档；修订记录同步 |
+| v1.4 | 2026-09-08 | L3 可行性验证回写：§7 假设 1 更新为条件成立并附代码审计证据（setupData 数据回放可行；需 A3 新增模块热替换 / 页面级 remount）；§5 A3 行前置标注更新 |

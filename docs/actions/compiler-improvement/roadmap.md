@@ -21,7 +21,7 @@ C1 Lynx PoC（依赖 A4；可选，另立 RFC 后再 formalize）
 | A1 | Listr 任务树抽为可挂载生命周期，行为零变化 | `compiler-hook-layer` | 无（可最早开工） | **complete（2026-09-08）**；12 事件契约 v1 已冻结并回写 RFC §4.4；A2/A4 通过内部 `options.lifecycle` 接入，不得扩大为公开 exports |
 | A2.0 | container-sdk 资产分发决策（随包分发 vs peer dep） | 决策记录并入 RFC D2，不需独立子 Action | 无 | **complete（2026-09-08 定案：预构建 dist 随 compiler 包分发）**；依据：全部 `@dimina/*` workspace 包 private 不可发布 → peer dep 不成立；sdk dist 除 mitt 外自包含；离线模拟验证通过（见 RFC D2） |
 | A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 | **complete（2026-09-08）**；dev 契约定稿回写 RFC §4.5；A3 只升级宿主执行端不改协议 |
-| A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 | pending |
+| A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 | pending；假设 1 已条件通过（2026-09-08 代码审计：setupData 数据回放可行；需 A3 新增模块热替换 + 页面级 remount 原型，见 RFC §7.1） |
 | A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） | pending；依赖 A1 事件契约 v1 |
 | B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） | pending / deferred decision |
 | C1 | Lynx PoC | 先另立 RFC，再评估是否 formalize | A4；另立 RFC | optional / pending |
