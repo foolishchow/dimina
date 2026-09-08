@@ -16,15 +16,15 @@ C1 Lynx PoC（依赖 A4；可选，另立 RFC 后再 formalize）
 
 ## 门清单
 
-| 门 | 内容 | 子 Action 要求 | 就绪前置 |
-| --- | --- | --- | --- |
-| A1 | Listr 任务树抽为可挂载生命周期，行为零变化 | `compiler-hook-layer` | 无（可最早开工） |
-| A2.0 | container-sdk 资产分发决策（随包分发 vs peer dep） | 决策记录并入 RFC D2，不需独立子 Action | 无 |
-| A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 |
-| A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 |
-| A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） |
-| B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） |
-| C1 | Lynx PoC | 先另立 RFC，再评估是否 formalize | A4；另立 RFC |
+| 门 | 内容 | 子 Action 要求 | 就绪前置 | 状态 / 结论 |
+| --- | --- | --- | --- | --- |
+| A1 | Listr 任务树抽为可挂载生命周期，行为零变化 | `compiler-hook-layer` | 无（可最早开工） | **complete（2026-09-08）**；12 事件契约 v1 已冻结并回写 RFC §4.4；A2/A4 通过内部 `options.lifecycle` 接入，不得扩大为公开 exports |
+| A2.0 | container-sdk 资产分发决策（随包分发 vs peer dep） | 决策记录并入 RFC D2，不需独立子 Action | 无 | pending；A2 门级前置 |
+| A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 | pending |
+| A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 | pending |
+| A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） | pending；依赖 A1 事件契约 v1 |
+| B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） | pending / deferred decision |
+| C1 | Lynx PoC | 先另立 RFC，再评估是否 formalize | A4；另立 RFC | optional / pending |
 
 ## 治理规则
 

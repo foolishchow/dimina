@@ -179,13 +179,39 @@ export default {
 
 约束：hook 入参出参只含可序列化数据（字符串/Buffer/JSON），AST 不跨边界；hook 数量 ≤ 8 个；每个 hook 的执行时机与失败语义写入文档并配契约测试。
 
+### 4.4 构建生命周期事件契约（定稿 v1，2026-09-08）
+
+A1（`compiler-hook-layer`）已交付并归档（`docs/actions/_archive/complete/compiler-hook-layer/`）。以下为持久契约，A2/A4/A3 依赖本段：
+
+- **实现**：`fe/packages/compiler/src/common/lifecycle.js`（内部路径，不进入 `package.json` exports）。
+- **注入点**：`build(targetPath, workPath, useAppIdDir, options)` 的内部选项 `options.lifecycle`（`createLifecycle()` 实例；不属公开稳定契约）。未传入时内部自建。`build:start` 载荷剥离非序列化字段。
+- **事件表**（按序触发；init 系 → stage 系 → publish/结束系；`build:error` 仅失败路径并随后以同一错误对象 reject）：
+
+| 事件 | 载荷 | 备注 |
+| --- | --- | --- |
+| `build:start` | `{ workPath, targetPath, useAppIdDir, options }` | runBuild 进入、选项校验后 |
+| `config:collected` | `{ fileTypes, pagesCount, miniGame }` | |
+| `dist:prepared` | `{ seedPath }` | |
+| `config:compiled` | `{}` | seedPath 模式且 prepareConfig=false 时省略 |
+| `npm:built` | `{}` | seedPath 模式且 prepareNpm=false 时省略 |
+| `stage:before` | `{ stage, pages, sourcemap }` | 每启用阶段一次；view/style 在小游戏下省略 |
+| `stage:after` | `{ stage, compatibilityWarnings, durationMs }` | warnings 为本次新增（Set 差值） |
+| `stage:error` | `{ stage, error }` | 阶段失败；随后 build:error |
+| `bundle:published` | `{ targetPath, useAppIdDir }` | 全部 stage 完成后 |
+| `build:warning` | `{ message }` | 每条兼容性警告镜像 |
+| `build:end` | `{ result, isolatedListenerErrors }` | result 即 build() 返回值；隔离错误计数 |
+| `build:error` | `{ error, stage? }` | 随后 reject 同一错误对象 |
+
+- **语义**：每次 `build()` 独立实例（并发/AsyncLocalStorage 安全）；监听器按注册序依次 await；监听器错误隔离（`[lifecycle]` 前缀日志 + 计数，不中断事件流与构建、不改管网产物）；载荷浅冻结（ESM 严格模式下改动即抛错，被隔离）。
+- **测试**：契约由 `fe/packages/compiler/__tests__/lifecycle.spec.js`（单元）与 `lifecycle-integration.spec.js`（集成，含四场景 + 隔离消融）锁定。
+
 ## 5. 分阶段路线图（绞杀者模式）
 
 **A 轨道（主线：dev/HMR/统一，纯 JS）** 与 **B 轨道（长期：Rust 宿主，解耦可延后）** 并行推进，A 先行。
 
 | 阶段 | 内容 | 验收标准 |
 | --- | --- | --- |
-| **A1 hook 层** | 把 Listr 任务树抽为可挂载生命周期（env → config → npm → [view ‖ logic ‖ style] → publish），不改任何行为 | 55 测试全绿；`build()` 公开行为与错误契约不变（`build-error-contract.spec.js` 重点回归） |
+| **A1 hook 层** | 把 Listr 任务树抽为可挂载生命周期（env → config → npm → [view ‖ logic ‖ style] → publish），不改任何行为 | 55 测试全绿；`build()` 公开行为与错误契约不变（`build-error-contract.spec.js` 重点回归）。**已完成（2026-09-08，`compiler-hook-layer` 归档）**：57 文件/360 用例全绿；产物字节一致（nomap/sourcemap 双模式 diff 空）；事件契约定稿见 §4.4 |
 | **A2.0 宿主资产分发定案** | 前置决策：container-sdk 预构建产物随 compiler 分发 vs peer dependency（已核实：其运行时依赖仅 mitt/vconsole，render/service/components 均为构建期打入 dist；该决策决定 dmcc dev 的离线可用性与版本耦合） | 决策记录补充到 D2；新 clone 示例在 `fe/` 工作区之外验证所选方案可行 |
 | **A2 dev server + L1** | `dmcc dev`：静态服务（服务最后成功发布快照）+ 内置宿主页 + 代理 + ws；logic 变更 → 页面 relaunch（复用 `appManager.restartMiniProgram`） | 示例 app 一条命令起预览（含 `fe/` 外新 clone 场景）；§4.2 L1 场景验收；dev server 与 ws 协议有 vitest 契约测试 |
 | **A3 HMR L2/L3** | CSS 热替换 + 模板热重挂；落点：`fe/packages/render` + `fe/packages/container-sdk`（dev-only 扩展，feature flag 隔离）；L3 回放按 §4.2 首选方案 | §4.2 L2/L3 场景验收（自动化 + 手工）；编译失败不中断运行实例（消融：注入失败用例验证旧产物保留） |
@@ -235,3 +261,4 @@ export default {
 | v0.2 | 2026-09-08 | 按动机重排（dev/HMR/统一优先）；补目标 G1–G4、非目标、追溯表 |
 | v0.3 | 2026-09-08 | 实施计划审查修复：A2.0 前置决策、reloadLevel 合成规则、L3 回放首选方案、dev 快照语义；文档审查修复：spec 数量 55、oxc_traverse 更正、D6/G4 口径同步、最小宿主定义、C1 前置 A4、fe 工作流非目标 |
 | v1.0 | 2026-09-08 | 定稿：动机/目标 G1–G4/决策 D1–D7/路线图经评审接受；gate A1 事件契约随 `compiler-hook-layer` 技术设计冻结生效 |
+| v1.1 | 2026-09-08 | A1 完成后回写：新增 §4.4 事件契约持久真源；§5 A1 行标注完成并链接归档；修订记录同步 |

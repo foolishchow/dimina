@@ -115,8 +115,25 @@
 
 说明：此前在不同绝对路径 worktree 上的原始 diff（资源前缀及少量 minify 名称）经同一代码树重复构建确认可复现，根因为既有 `collectAssets()` 对绝对资源目录取哈希；不是本次改造差异。最终同一路径控制实验无差异，故不采用归一化结果替代字节 diff。
 
-## 闭合判定（模板）
+### P-006（2026-09-08）
 
-- A-001~A-009 全部 passed（A-007 为 SHOULD 支撑项，失败需记录原因与影响）；
-- 事件契约定稿结论回写 umbrella roadmap（A2/A4 依赖声明）；
-- 无未记录的未覆盖区域。
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit | `2d5c3c1e` |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 相关 spec | `vitest run __tests__/compile-cli-cache.spec.js __tests__/watch-scheduler.spec.js` | 2 文件 / 7 用例全绿 | 终端日志 | passed |
+| dmcc build 冒烟 | `node src/bin/index.js build -c examples/miniprogram/base -s /tmp/dmcc-build-out --no-app-id-dir` | exit=0；产物 main/ + 分包 logic.js 齐全；[compat] 警告语义不变 | 终端日志 + /tmp 产物树 | passed |
+| dmcc build -w 冒烟 | 后台起 watch，touch `pages/scroll-view/index.wxml` | 触发 `改动，重新编译` 并进入增量构建（初始化/收集配置…） | /tmp/dmcc-watch.log | passed |
+| pnpm compile 批量 | `corepack pnpm compile` 首次 + 二次 | 首次 7 应用全部构建成功（含 weui）；二次 0 编译任务（全部缓存命中）且 exit=0；compile-cache.json 更新（apps=7, version=2） | /tmp/pnpm-compile.log + public/compile-cache.json | passed |
+
+覆盖说明：`dmcc` bin 指向 `dist/bin/index.js`（发布产物），本验证走 `src/bin/index.js`（与 dist 同源、spec 同路径），dist 构建链路不在本 Action 范围。
+
+## 闭合判定（2026-09-08）
+
+- A-001~A-009 全部 passed（A-007 为 SHOULD 支撑项，已通过：冻结载荷被篡改后产物逐字节一致，见 P-004 隔离用例与 collectTree 断言）。
+- 事件契约定稿结论回写 umbrella roadmap（A2/A4 依赖声明）与 RFC §4.4（新增持久小节）。
+- 覆盖说明：A-009 的事件序列保证依赖 runBuild 共享路径（单次构建序列由 A-004 锁定），watch 冒烟确认重建进入完整 build；watch 级完整序列断言留待 A2 ws 契约测试。无未记录的未覆盖区域。

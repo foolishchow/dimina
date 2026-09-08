@@ -29,4 +29,4 @@
 | Action | Status | Path | Summary | Updated |
 | --- | --- | --- | --- | --- |
 | `compiler-improvement` | `ready` | [README](compiler-improvement/README.md) | 编译器改造 umbrella（RFC v1.0 已定稿）：交付 A 轨道，治理 B/C 终局决策。 | 2026-09-08 |
-| `compiler-hook-layer` | `in_progress` | [README](compiler-hook-layer/README.md) | Umbrella gate A1（事件契约已冻结 v1）：runBuild 任务树抽为内部可挂载构建生命周期，行为与产物零变化。P-001 实施中。 | 2026-09-08 |
+| `compiler-hook-layer` | `complete` | [README](_archive/complete/compiler-hook-layer/README.md) | Umbrella gate A1（事件契约已冻结 v1）：runBuild 生命周期驱动化交付，行为/产物零变化；A-001~A-009 全 passed，已归档。 | 2026-09-08 |
