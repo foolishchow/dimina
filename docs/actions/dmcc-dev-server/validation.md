@@ -139,3 +139,27 @@
 
 - `createDevServer` 不依赖 lifecycle 具体实现——编排层（P-005）负责订阅 `bundle:published`/`build:error` 并调用 `notifyBuildPublished`/`notifyBuildError`，server 层只管理推送状态；pendingReload 由 set 注入（合成结果源自 dev-reload.js，P-001）。
 - 未覆盖：与真实 build/watch/lifecycle 的端到端联动（P-005 冒烟）；宿主页在真实浏览器中运行（A-004 冒烟记录）。
+
+### P-005（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `432f1d4b`（P-004 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+| SDK source | `DIMINA_DEV_SDK_DIR=fe/packages/container-sdk/dist`（源码开发形态；发布形态由 `dist/sdk` 解析） |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| CLI 帮助 | `corepack pnpm --filter compiler exec node src/bin/index.js dev --help` | dev 子命令、work-path/target-path/port/no-app-id-dir/sourcemap 选项可见 | 终端日志 | passed |
+| 初始服务 | `node src/bin/index.js dev -c /tmp/dmcc-dev-app -p 18765 --no-app-id-dir` + `curl /` | preview URL 监听成功；GET `/` status=200，宿主页含 appId/createContainer | `/tmp/dmcc-dev.log` + `/tmp/host.html` | passed |
+| L1 | ws observer：修改 `pages/index/index.js` | reload `{ reloadLevel:'L1', changedStages:['logic'], buildId:1 }` | `/tmp/dev-observer.log` | passed |
+| L0 | ws observer：修改 `app.json` | reload `{ reloadLevel:'L0', changedStages:[], buildId:2 }` | 同上 | passed |
+| 失败保护 | ws observer：注入 JS 语法错误 | 收到 build:error；无失败 reload；dev 进程继续存活 | 同上 + dev log | passed |
+| 恢复 | ws observer：修复 JS | reload L1（buildId=4）；失败尝试消耗 buildId=3 但不推送，符合 pendingReload 清空语义 | 同上 | passed |
+| build 入口契约 | 既有 `dmcc build` 代码路径未改，dev 独立注册子命令 | 无既有 build 入口改动 | `src/bin/index.js` diff | passed |
+
+覆盖说明：
+
+- 观察者使用严格一次状态机，避免把收到 reload 再写回源文件造成正反馈；此前错误观察者导致 361 次重建，已作为测试方法修正，不是产品缺陷。
+- 未覆盖：真实浏览器执行宿主页的 container/relaunch 视觉结果（A-004 以 ws 载荷 + host 代码路径 + 后续浏览器冒烟覆盖）；入口全量/fe 外模拟（P-006/P-007）。

@@ -29,4 +29,5 @@
 | P-002.5 | 完成 | 2026-09-08 | copy-sdk-assets 脚本 + postbuild 接入：`pnpm build` 后 dist/sdk/ 5 资产齐备；证据见 [validation](validation.md) |
 | P-003 | 完成 | 2026-09-08 | dev-proxy security 迁移 + Node http `/proxy` 端点；13 用例绿；证据见 [validation](validation.md) |
 | P-004 | 完成 | 2026-09-08 | dev-server.js（静态服务 + sdk 路由 + ws + pendingReload）；12 用例绿 + 新增 ws 依赖；证据见 [validation](validation.md) |
-| P-005…P-007 | 未开始 | — | — |
+| P-005 | 完成 | 2026-09-08 | dev.js 编排 + CLI 挂载；端到端 L1/L0/build:error/recovery 冒烟通过；证据见 [validation](validation.md) |
+| P-006…P-007 | 未开始 | — | — |

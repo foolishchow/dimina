@@ -8,6 +8,7 @@ import pack from '../../package.json' with { type: 'json' }
 import build from '../index.js'
 import { createIgnoredPathMatcher, createWatchBuildPlan, createWatchRebuildScheduler, getPublishedOutputPath } from './watch.js'
 import { DependencyGraph } from '../common/dependency-graph.js'
+import { registerDevCommand } from './dev.js'
 
 program
 	.command('build')
@@ -85,6 +86,8 @@ program
 				})
 		}
 	})
+
+registerDevCommand(program)
 
 program
 	.name('dmcc')
