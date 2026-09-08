@@ -62,6 +62,40 @@
 - 契约未定义生命周期注入点；按 Execute 工作流在已批准设计内补齐 `options.lifecycle`（内部选项，不属公开稳定契勾，A-008 不涉此）。
 - 覆盖范围：P-002 未新增规格（时序断言归 P-004）；礼节性 3 组冒烟作为临时验证，不入库。
 
+### P-003（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `66fce46b` |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 兼容性系 spec | `corepack pnpm --filter compiler exec vitest run __tests__/compatibility.spec.js __tests__/compatibility-collection.spec.js __tests__/template-prefix.spec.js` | 11/11 通过 | 终端日志 | passed |
+| [compat] 输出逐字节比对 | 基线 worktree（2cdc66d7）与当前各构建一次 `base` 示例，捕捉 stderr，`diff` 为空 | 逐字节一致（`IDENTICAL`） | `/tmp/baseline-compat.log` vs `/tmp/current-compat.log` | passed |
+| build:warning 镜像 | `base` 示例构建：build:warning 事件 5 条，与 [compat] 打印 5 条一一对应（镜像在先、去重打印在后，语义不变） | passed | P-004 规格同样锁定（warnings.length > 0） | passed |
+
+### P-004（2026-09-08）
+
+| Field | Actual value |
+| --- | --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `66fce46b` |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增集成规格 | `__tests__/lifecycle-integration.spec.js` 单独运行 | 7/7 通过 | 规格文件 | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 57 文件 / 360 用例全租 | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 场景清单 | ①全量：契勾全事件序列 + start/collected/prepared/compiled/npm 次序；三阶段 stage:before 先于任意 stage:after（并发不串行）；每阶段 before<after；全部 after < bundle:published < build:end；build:warning≥1 且 message 为非空字符串；build:start 载荷 frozen、无 `lifecycle` 字段；bundle:published/stage:after/isolatedListenerErrors 载荷形状；build:end.result 严格等于 build() 返回 | ②stages 过滤：仅 logic 事件 | ③小游戏：仅 logic、config:collected.miniGame=true、path=game | ④失败：初始化失败 → start→build:error（同一 Error 对象、stage=null）；阶段失败 → stage:error(logic)→build:error（消息同，进程内同对象） | ⑤消融 A-006：抛错监听器下构建成功、公开返回值与产物逐字节一致、isolatedListenerErrors=1、日志统一前缀；冻结载荷篡改被隔离不影响构建 | 全部 passed | — | passed |
+
+覆盖说明：
+
+- A-006 消融已按口径执行：规格断言“移除隔离逻辑后 must 失败”——规格断言的是①抛错监听器不中断构建且计入计数（若无隔离机制，抛出将拒绝构建，断言失败）；②产物逐字节一致（隔离不可影响构建结果）。
+- 调试期间发现 vitest `mockRestore()` 会清空 spy 调用记录，断言必须在 restore 前保存副本；已在规格中固化，规避同类坑。
+
 ## 闭合判定（模板）
 
 - A-001~A-009 全部 passed（A-007 为 SHOULD 支撑项，失败需记录原因与影响）；
