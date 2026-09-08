@@ -40,6 +40,28 @@
 - R-005（隔离）已由 4 项规格锁定（同步/异步抛错、前缀日志、实例间隔离、冻结致隔离）；消融（A-006）留待 P-002 接入 runBuild 后按 A-006 口径执行——隔离逻辑在 P-001 仅存在于 lifecycle 模块内部，无法在不改规格的前提下“移除机制”进入构建路径，故此处不提前消融。
 - 未覆盖：与 `runBuild` 集成后的时序断言（P-004）、字节一致性（P-005）、入口回归（P-006）。
 
+### P-002（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `72650702` |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 全量回归 | `corepack pnpm --filter compiler test` | 56 文件 / 353 用例全绿 | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 小游戏冒烟 | 内置监听器构建 `examples/miniprogram/air-battle` | 事件序完全符合契勾：start→collected→prepared→config:compiled→npm:built→stage:before/after(logic)→published→end；air-battle 为小游戏仅 logic 阶段，符合 miniGame 分支 | 冒烟脚本（临时，已删） | passed |
+| 常规 app 冒烟 | 内置监听器构建 `examples/miniprogram/base` | 三阶段 stage:before 并行发出、stage:after 交错（logic→view→style 完成序不保证）；build:warning 逐条镜像（6 条，与 [compat] 打印去重后一致）；durationMs/compatibilityWarnings 载荷正常 | 同上 | passed |
+| 失败路径冒烟 | 指向不存在的 workPath | reject 同一 Error 对象；事件 build:error(stage=null)（storeInfo 失败无 stage 信息，符合设计） | 同上 | passed |
+| 契约实现 | `src/index.js`：声明式 phase 数组（initPhases 串行 / stage 并发）驱动 Listr（纯 UI）；每个阶段触发对应事件；谱留 `options.lifecycle` 注入点（内部选项，已从 build:start 载荷剥离非序列化字段）；Public API（build 签名/返回/错误契约）未变 | — | diff 仅 1 文件 | passed |
+
+与计划偏差：
+
+- 契约未定义生命周期注入点；按 Execute 工作流在已批准设计内补齐 `options.lifecycle`（内部选项，不属公开稳定契勾，A-008 不涉此）。
+- 覆盖范围：P-002 未新增规格（时序断言归 P-004）；礼节性 3 组冒烟作为临时验证，不入库。
+
 ## 闭合判定（模板）
 
 - A-001~A-009 全部 passed（A-007 为 SHOULD 支撑项，失败需记录原因与影响）；

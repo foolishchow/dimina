@@ -5,6 +5,7 @@ import { Worker } from 'node:worker_threads'
 import { Listr, PRESET_TIMER } from 'listr2'
 import { formatCompileProgress } from './common/compile-progress.js'
 import { DependencyGraph } from './common/dependency-graph.js'
+import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
 import { createDist, publishToDist } from './common/publish.js'
 import { artCode, resetAssetCache } from './common/utils.js'
 import { workerPool } from './common/worker-pool.js'
@@ -33,6 +34,8 @@ const MAX_WARNING_PROJECTS = 32
  * @param {Array<'view'|'logic'|'style'>} [options.stages] 仅运行指定编译阶段
  * @param {boolean} [options.prepareConfig] 是否重新生成配置产物
  * @param {boolean} [options.prepareNpm] 是否重新复制 miniprogram_npm 产物
+ * @param {object} [options.lifecycle] 内部选项：外部传入的生命周期实例
+ *   （createLifecycle() 创建，供测试与后续 dev server 挂监听）；不属于公开稳定契约
  */
 export default function build(targetPath, workPath, useAppIdDir = true, options = {}) {
 	return runWithCompilerContext(() => runBuild(targetPath, workPath, useAppIdDir, options))
@@ -53,140 +56,188 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 		&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
 		throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
 	}
-	const enabledStages = new Set(stages === undefined
-		? COMPILE_STAGE_ORDER
-		: COMPILE_STAGE_ORDER.filter(stage => stages.includes(stage)))
-	const shouldPrepareConfig = !seedPath || prepareConfig
-	const shouldPrepareNpm = !seedPath || prepareNpm
-	resetAssetCache()
-	if (!isPrinted) {
-		artCode()
-		isPrinted = true
-	}
-	const tasks = new Listr(
-		[
+	const lifecycle = options.lifecycle || createLifecycle()
+	// build:start 载荷需可序列化（R-006）：剥离可能为实例的 dependencyGraph 与 lifecycle
+	const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, ...serializableOptions } = options
+	try {
+		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_START, {
+			workPath,
+			targetPath,
+			useAppIdDir,
+			options: serializableOptions,
+		})
+
+		const enabledStages = new Set(stages === undefined
+			? COMPILE_STAGE_ORDER
+			: COMPILE_STAGE_ORDER.filter(stage => stages.includes(stage)))
+		const shouldPrepareConfig = !seedPath || prepareConfig
+		const shouldPrepareNpm = !seedPath || prepareNpm
+		resetAssetCache()
+		if (!isPrinted) {
+			artCode()
+			isPrinted = true
+		}
+
+		// 生命周期阶段函数：每个阶段完成自身工作后触发对应事件。
+		// Listr 仅承担进度 UI；阶段顺序与并发由以下声明数组表达。
+		const initPhases = [
 			{
-				title: '初始化项目',
-				task: (_, task) =>
-					task.newListr(
-						[
-							{
-								title: '收集配置信息',
-								task: (ctx) => {
-									ctx.storeInfo = storeInfo(workPath, { fileTypes, dependencyGraph })
-									ctx.dependencyGraph = new DependencyGraph(ctx.storeInfo.dependencyGraph)
-								},
-							},
-							{
-								title: '准备产物目录',
-								task: () => {
-									createDist(seedPath)
-								},
-							},
-							...(shouldPrepareConfig ? [{
-								title: '编译配置信息',
-								task: () => {
-									compileConfig()
-								},
-							}] : []),
-							...(shouldPrepareNpm ? [{
-								title: '构建 npm 包',
-								task: async (ctx) => {
-									const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), ctx.dependencyGraph)
-									await npmBuilder.buildNpmPackages()
-								},
-							}] : []),
-						],
-						{ concurrent: false },
-					),
-			},
-			{
-				title: `编译项目 · ${path.basename(path.resolve(workPath))}`,
-				task: (ctx, task) => {
+				title: '收集配置信息',
+				task: async (ctx) => {
+					ctx.storeInfo = storeInfo(workPath, { fileTypes, dependencyGraph })
+					ctx.dependencyGraph = new DependencyGraph(ctx.storeInfo.dependencyGraph)
 					const allPages = getPages()
-					const miniGame = isMiniGame()
-					ctx.allPages = allPages
-					ctx.pages = filterPagesByEntries(allPages, affectedEntries)
-					ctx.compatibilityWarnings = new Set()
-					const compileTasks = []
-
-					if (enabledStages.has('view') && !miniGame) {
-						compileTasks.push({
-							title: '编译视图',
-							rendererOptions: { outputBar: true, persistentOutput: false },
-							task: async (ctx, task) => {
-								// ddml, wxml
-								return runCompileInWorker('view', ctx, task, { sourcemap })
-							},
-						})
-					}
-					if (enabledStages.has('logic')) {
-						compileTasks.push({
-							title: '编译逻辑',
-							rendererOptions: { outputBar: true, persistentOutput: false },
-							task: async (ctx, task) => {
-								const sourcemapTargetPath = path.resolve(
-									process.cwd(),
-									targetPath,
-									useAppIdDir ? getAppId() : '',
-								)
-								return runCompileInWorker('logic', ctx, task, {
-									sourcemap,
-									pages: ctx.allPages,
-									sourcemapTargetPath,
-								})
-							},
-						})
-					}
-					if (enabledStages.has('style') && !miniGame) {
-						compileTasks.push({
-							title: '编译样式',
-							rendererOptions: { outputBar: true, persistentOutput: false },
-							task: async (ctx, task) => {
-								// ddss, wxss
-								// 主包添加 app 样式
-								const stylePages = {
-									...ctx.pages,
-									mainPages: [
-										{ path: 'app', id: getAppStyleScopeId() },
-										...ctx.pages.mainPages,
-									],
-								}
-								return runCompileInWorker('style', ctx, task, { sourcemap, pages: stylePages })
-							},
-						})
-					}
-
-					if (compileTasks.length > 0) {
-						return task.newListr(compileTasks, { concurrent: true })
-					}
+					await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
+						fileTypes: ctx.storeInfo.compilerOptions,
+						pagesCount: allPages.mainPages.length
+							+ Object.values(allPages.subPages).reduce((sum, item) => sum + item.info.length, 0),
+						miniGame: isMiniGame(),
+					})
 				},
 			},
 			{
-				title: '写入编译产物',
-				task: () => {
-					publishToDist(targetPath, useAppIdDir)
+				title: '准备产物目录',
+				task: async () => {
+					createDist(seedPath)
+					await lifecycle.emit(LIFECYCLE_EVENTS.DIST_PREPARED, { seedPath })
 				},
 			},
-		],
-		{
-			concurrent: false,
-			rendererOptions: {
-				collapseSubtasks: true,
-				formatOutput: 'truncate',
-				timer: PRESET_TIMER,
-			},
-			fallbackRendererOptions: { timer: PRESET_TIMER },
-		},
-	)
+			...(shouldPrepareConfig ? [{
+				title: '编译配置信息',
+				task: async () => {
+					compileConfig()
+					await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COMPILED, {})
+				},
+			}] : []),
+			...(shouldPrepareNpm ? [{
+				title: '构建 npm 包',
+				task: async (ctx) => {
+					const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), ctx.dependencyGraph)
+					await npmBuilder.buildNpmPackages()
+					await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
+				},
+			}] : []),
+		]
 
-	const context = await tasks.run()
-	printCompatibilityWarnings(workPath, context.compatibilityWarnings)
+		const tasks = new Listr(
+			[
+				{
+					title: '初始化项目',
+					task: (_, task) => task.newListr(initPhases, { concurrent: false }),
+				},
+				{
+					title: `编译项目 · ${path.basename(path.resolve(workPath))}`,
+					task: (ctx, task) => {
+						const allPages = getPages()
+						const miniGame = isMiniGame()
+						ctx.allPages = allPages
+						ctx.pages = filterPagesByEntries(allPages, affectedEntries)
+						ctx.compatibilityWarnings = new Set()
+						const compileTasks = []
+
+						if (enabledStages.has('view') && !miniGame) {
+							compileTasks.push(createStageTask('view', '编译视图', lifecycle, { sourcemap }))
+						}
+						if (enabledStages.has('logic')) {
+							const sourcemapTargetPath = path.resolve(
+								process.cwd(),
+								targetPath,
+								useAppIdDir ? getAppId() : '',
+							)
+							compileTasks.push(createStageTask('logic', '编译逻辑', lifecycle, {
+								sourcemap,
+								pages: ctx.allPages,
+								sourcemapTargetPath,
+							}))
+						}
+						if (enabledStages.has('style') && !miniGame) {
+							// ddss, wxss
+							// 主包添加 app 样式
+							const stylePages = {
+								...ctx.pages,
+								mainPages: [
+									{ path: 'app', id: getAppStyleScopeId() },
+									...ctx.pages.mainPages,
+								],
+							}
+							compileTasks.push(createStageTask('style', '编译样式', lifecycle, { sourcemap, pages: stylePages }))
+						}
+
+						if (compileTasks.length > 0) {
+							return task.newListr(compileTasks, { concurrent: true })
+						}
+					},
+				},
+				{
+					title: '写入编译产物',
+					task: async () => {
+						publishToDist(targetPath, useAppIdDir)
+						await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
+					},
+				},
+			],
+			{
+				concurrent: false,
+				rendererOptions: {
+					collapseSubtasks: true,
+					formatOutput: 'truncate',
+					timer: PRESET_TIMER,
+				},
+				fallbackRendererOptions: { timer: PRESET_TIMER },
+			},
+		)
+
+		const context = await tasks.run()
+		printCompatibilityWarnings(workPath, context.compatibilityWarnings)
+		const result = {
+			appId: getAppId(),
+			name: getAppName(),
+			path: getAppConfigInfo().entryPagePath || context.allPages.mainPages[0].path,
+			dependencyGraph: context.dependencyGraph.toJSON(),
+		}
+		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_END, {
+			result,
+			isolatedListenerErrors: lifecycle.isolatedListenerErrors.length,
+		})
+		return result
+	}
+	catch (error) {
+		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_ERROR, { error, stage: error?.stage ?? null })
+		throw error
+	}
+}
+
+/**
+ * 包装单个编译阶段：触发 stage:before / stage:after / stage:error 事件。
+ * 并发语义与进度 UI 与原实现一致（rendererOptions、worker 池均不变）。
+ */
+function createStageTask(stage, title, lifecycle, workerOptions = {}) {
 	return {
-		appId: getAppId(),
-		name: getAppName(),
-		path: getAppConfigInfo().entryPagePath || context.allPages.mainPages[0].path,
-		dependencyGraph: context.dependencyGraph.toJSON(),
+		title,
+		rendererOptions: { outputBar: true, persistentOutput: false },
+		task: async (ctx, task) => {
+			const pages = workerOptions.pages || ctx.pages
+			await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_BEFORE, {
+				stage,
+				pages,
+				sourcemap: !!workerOptions.sourcemap,
+			})
+			const warningsBefore = new Set(ctx.compatibilityWarnings)
+			const startedAt = Date.now()
+			try {
+				await runCompileInWorker(stage, ctx, task, workerOptions, lifecycle)
+				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
+					stage,
+					compatibilityWarnings: [...ctx.compatibilityWarnings].filter(warning =>
+						!warningsBefore.has(warning)),
+					durationMs: Date.now() - startedAt,
+				})
+			}
+			catch (error) {
+				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage, error })
+				throw error
+			}
+		},
 	}
 }
 
@@ -208,7 +259,7 @@ function filterPagesByEntries(pages, affectedEntries) {
 	}
 }
 
-function runCompileInWorker(script, ctx, task, options = {}) {
+function runCompileInWorker(script, ctx, task, options = {}, lifecycle = null) {
 	return workerPool.runWorker(() => new Promise((resolve, reject) => {
 		const worker = new Worker(
 			path.join(path.dirname(fileURLToPath(import.meta.url)), `core/${script}-compiler.js`),
@@ -248,6 +299,9 @@ function runCompileInWorker(script, ctx, task, options = {}) {
 			try {
 				for (const warning of message.compatibilityWarnings || []) {
 					ctx.compatibilityWarnings.add(warning)
+					if (lifecycle) {
+						await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_WARNING, { message: warning })
+					}
 				}
 
 				if (process.stdout.isTTY && message.completedTasks !== undefined) {
@@ -298,7 +352,7 @@ function runCompileInWorker(script, ctx, task, options = {}) {
 				const error = workerError || new Error(
 					code === 1
 						? 'Worker terminated due to reaching memory limit: JS heap out of memory'
-						: `Worker stopped with exit code ${code}`
+						: `Worker stopped with exit code ${code}`,
 				)
 				void handleError(error)
 			}
