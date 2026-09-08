@@ -31,4 +31,4 @@
 | P-004 | 完成 | 2026-09-08 | dev-server.js（静态服务 + sdk 路由 + ws + pendingReload）；12 用例绿 + 新增 ws 依赖；证据见 [validation](validation.md) |
 | P-005 | 完成 | 2026-09-08 | dev.js 编排 + CLI 挂载；端到端 L1/L0/build:error/recovery 冒烟通过；证据见 [validation](validation.md) |
 | P-006 | 完成 | 2026-09-08 | 入口回归：全量 61/409 绿 + dmcc build/-w + pnpm compile 缓存路径不变；证据见 [validation](validation.md) |
-| P-007 | 未开始 | — | — |
+| P-007 | 完成 | 2026-09-08 | fe/ 外模拟：tarball 离线安装裸项目 + dmcc dev 从包内 dist/sdk 服务资产；证据见 [validation](validation.md) |

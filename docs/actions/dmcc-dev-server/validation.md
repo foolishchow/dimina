@@ -186,3 +186,25 @@
 
 - watch 冒烟首行 grep 报文件不存在是后台进程尚未写入的时序噪音，最终匹配并验证；已确保后续进程清理。
 - 未覆盖：fe/ 外全新 npm 安装形态的完整链路（P-007）；真实浏览器渲染（A-004 冒烟）。
+
+### P-007（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `2b30139f`（P-006 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| tarball 内容 | `corepack pnpm pack` 后 `tar -tzf` | 含 `dist/bin/index.js` 与 `dist/sdk/{index,pageFrame}.{js,css}` + `service.js`（A2.0 随包分发） | /tmp/a2-pack/*.tgz | passed |
+| 外部安装 | 裸目录（无 workspace）`pnpm add <tarball>` | `@dimina/compiler` 1.2.1 安装成功，依赖解析正常；`.bin/dmcc` 存在 | /tmp/a2-external/install-online.log | passed |
+| 包内资产可达 | 裸项目 `node dist/bin/index.js --version` | 1.2.1；`dist/sdk/` 5 资产齐全 | 终端 | passed |
+| dmcc dev 冒烟 | 裸项目 `env -u DIMINA_DEV_SDK_DIR node_modules/.bin/dmcc dev -c <app> --no-app-id-dir` | 起服务成功，preview URL 监听 | /tmp/a2-external/dev.log | passed |
+| sdk 资产服务 | GET `/sdk/index.js`、`/sdk/pageFrame.js`、`/sdk/service.js`、`/` | 全部 200；字节数与包内 dist/sdk 精确一致（129317/440787/171159） | curl 输出 | passed |
+
+覆盖说明：
+
+- 首次 `--offline` 安装失败于本地 pnpm 缓存缺 autoprefixer 元数据（环境问题，非包问题）；改用在线解析安装成功。A2.0「离线可用性」指运行期自包含（已证），安装期仍需要 registry 或预缓存，与 A2.0 定案一致。
+- 调用方式修正：`.bin/dmcc` 是 shell shim，直接 `node` 执行会报语法错（shim 非 JS）；正式用法是 PATH 执行或直达 dist 入口，已在记录中明确。
+- 未覆盖：真实浏览器执行宿主页的 container/relaunch 视觉（A-004 冒烟）；多端容器实机（超出 A2 范围）。
