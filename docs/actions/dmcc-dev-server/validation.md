@@ -163,3 +163,26 @@
 
 - 观察者使用严格一次状态机，避免把收到 reload 再写回源文件造成正反馈；此前错误观察者导致 361 次重建，已作为测试方法修正，不是产品缺陷。
 - 未覆盖：真实浏览器执行宿主页的 container/relaunch 视觉结果（A-004 以 ws 载荷 + host 代码路径 + 后续浏览器冒烟覆盖）；入口全量/fe 外模拟（P-006/P-007）。
+
+### P-006（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `113582dd`（P-005 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 全量 spec | `corepack pnpm --filter compiler test` | 61 文件 / 409 用例全绿 | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| compat | `corepack pnpm --filter compiler sync:compat` | Already in sync；reference 文件零 diff | 终端日志 | passed |
+| dist 构建 | `corepack pnpm build`（compiler）→ `node dist/bin/index.js --version` | 1.2.1；新增 dev 入口随 dist 构建 | 终端日志 | passed |
+| dmcc build | `node dist/bin/index.js build -c examples/miniprogram/air-battle -s /tmp/p006-build-out --no-app-id-dir` | rc=0；main/app-config.json + main/logic.js 产物齐全 | 终端日志 + 产物树 | passed |
+| dmcc build -w | 临时 app 起 watch + 改 index.js | 触发 `改动，重新编译` 并进入增量构建 | /tmp/p006-watch.log | passed |
+| pnpm compile | 首次 + 二次 | 首次 7 示例全部构建（rc=0）；二次 0 编译任务（全部缓存命中）；compile-cache.json 正常（938KB） | /tmp/p006-pnpm-compile{,2}.log | passed |
+
+覆盖说明：
+
+- watch 冒烟首行 grep 报文件不存在是后台进程尚未写入的时序噪音，最终匹配并验证；已确保后续进程清理。
+- 未覆盖：fe/ 外全新 npm 安装形态的完整链路（P-007）；真实浏览器渲染（A-004 冒烟）。
