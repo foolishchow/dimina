@@ -1,12 +1,13 @@
 # DMCC Dev Server（A2）
 
 - Action: `dmcc-dev-server`
-- Status: `in_progress`
+- Status: `complete`
+- Archived: 2026-09-08
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审 pass；F-001..F-005 已修复）
-- Status authority: [Action Status](../STATUS.md)
-- 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A2）
-- 设计权威：[Compiler Architecture RFC](../../Compiler-Architecture-RFC.md) §4.1、§4.2、D2、§5-A2、G1（本文不重复，冲突时以 RFC 为准并回改本文）
+- Status authority: [Action Status](../../../STATUS.md)
+- 父 Action：[compiler-improvement](../../../compiler-improvement/README.md)（umbrella，gate A2）
+- 设计权威：[Compiler Architecture RFC](../../../../Compiler-Architecture-RFC.md) §4.1、§4.2、D2、§5-A2、G1（本文不重复，冲突时以 RFC 为准并回改本文）
 
 ## Background
 
@@ -39,11 +40,11 @@
 
 ## Design inputs
 
-- [RFC §4.1 `dmcc dev` 形态](../../Compiler-Architecture-RFC.md)：watch → 静态服务（最后成功发布快照 + no-cache）→ 内置宿主页 → 代理 → ws 推送 `{ appId, changedStages, affectedPages, reloadLevel }`
-- [RFC §4.2 HMR Ladder](../../Compiler-Architecture-RFC.md)：L0 全量重启 / L1 页面 relaunch（本门交付）；reloadLevel 合成规则（logic → L1；配置 → L0；仅 style → L2 留待 A3）。L2/L3 边界已定案：合成完整实现、宿主按刷新回退（见 technical-design §5）
-- [RFC §5 A2 验收](../../Compiler-Architecture-RFC.md)：一条命令起预览（含 fe/ 外新 clone）；L1 场景验收；dev server 与 ws 协议 vitest 契约测试
-- [A1 事件契约 §4.4](../../Compiler-Architecture-RFC.md)：`options.lifecycle` 注入点，`bundle:published` / `build:error` 事件驱动快照与推送
-- [A2.0 资产分发定案（RFC D2）](../../Compiler-Architecture-RFC.md)：container-sdk 预构建 dist 随 `@dimina/compiler` 包分发（`sdk/` 资产目录）
+- [RFC §4.1 `dmcc dev` 形态](../../../../Compiler-Architecture-RFC.md)：watch → 静态服务（最后成功发布快照 + no-cache）→ 内置宿主页 → 代理 → ws 推送 `{ appId, changedStages, affectedPages, reloadLevel }`
+- [RFC §4.2 HMR Ladder](../../../../Compiler-Architecture-RFC.md)：L0 全量重启 / L1 页面 relaunch（本门交付）；reloadLevel 合成规则（logic → L1；配置 → L0；仅 style → L2 留待 A3）。L2/L3 边界已定案：合成完整实现、宿主按刷新回退（见 technical-design §5）
+- [RFC §5 A2 验收](../../../../Compiler-Architecture-RFC.md)：一条命令起预览（含 fe/ 外新 clone）；L1 场景验收；dev server 与 ws 协议 vitest 契约测试
+- [A1 事件契约 §4.4](../../../../Compiler-Architecture-RFC.md)：`options.lifecycle` 注入点，`bundle:published` / `build:error` 事件驱动快照与推送
+- [A2.0 资产分发定案（RFC D2）](../../../../Compiler-Architecture-RFC.md)：container-sdk 预构建 dist 随 `@dimina/compiler` 包分发（`sdk/` 资产目录）
 - 现有实现事实：[source-audit](source-audit.md)
 
 ## Deliverables
@@ -64,3 +65,14 @@
 - [acceptance](acceptance.md) 全部 MUST 项通过并记录证据（[validation](validation.md)）；
 - dev server 与 ws 协议契约定稿结论回写 RFC（若 §4.1 措辞需补充）；
 - STATUS、路径、导航一致。
+
+## Closure decision（2026-09-08）
+
+- **终局决策**：`complete`，归档至 `docs/actions/_archive/complete/dmcc-dev-server/`。
+- **验收**：A-001~A-012 全部 `passed`（[acceptance](acceptance.md)），证据见 [validation](validation.md)（P-001…P-007）。
+- **实现提交**：`1c428631`（P-001）、`d3152ab8`（P-002）、`e0f0f2d8`（P-002.5）、`c0d65d3b`（P-003）、`432f1d4b`（P-004）、`113582dd`（P-005）、`2b30139f`（P-006）、`74d75bf9`（P-007）；最终状态 HEAD `74d75bf9`。
+- **持久发现回写**：RFC 新增 §4.5（dev server 契约：ws 协议 `/ws` 消息形状、reloadLevel 合成规则矩阵、快照语义、宿主页语义）作为 A3 依赖的持久真源；§5 A2 行标注完成；修订 v1.3。
+- **残余风险**：
+  - A-004 容器级 relaunch 视觉验证以 ws L1 载荷 + `dev-host.js` openApp(destroy) 代码路径审查覆盖（A-004 口径允许冒烟记录）；真实容器内 relaunch 完整视觉验证超出 A2 自动化范围，A3 宿主页增强时补足。
+  - `.bin/dmcc` 为 shell shim（PNPM 生成），直接 `node` 执行会报语法错——正式用法为 PATH 执行或直达 `dist/bin/index.js`。
+  - `--offline` 安装依赖本地缓存元数据（autoprefixer 为例）；A2.0「离线可用性」指运行期自包含（已证），安装期仍需 registry 或预缓存。

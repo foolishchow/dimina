@@ -213,6 +213,27 @@ A1（`compiler-hook-layer`）已交付并归档（`docs/actions/_archive/complet
 - **语义**：每次 `build()` 独立实例（并发/AsyncLocalStorage 安全）；监听器按注册序依次 await；监听器错误隔离（`[lifecycle]` 前缀日志 + 计数，不中断事件流与构建、不改管网产物）；载荷浅冻结（ESM 严格模式下改动即抛错，被隔离）。
 - **测试**：契约由 `fe/packages/compiler/__tests__/lifecycle.spec.js`（单元）与 `lifecycle-integration.spec.js`（集成，含四场景 + 隔离消融）锁定。
 
+### 4.5 dev server 契约（定稿 v1，2026-09-08）
+
+A2（`dmcc-dev-server`）已交付并归档（`docs/actions/_archive/complete/dmcc-dev-server/`）。以下为持久契约，A3（HMR L2/L3）依赖本段：
+
+- **命令**：`dmcc dev [workPath]`，选项 `-c/--work-path`、`-s/--target-path`（缺省临时目录）、`-p/--port`（缺省 8080）、`--no-app-id-dir`、`--sourcemap`。初始 build 失败非零退出且不起服务；watch 循环中失败只推 `build:error`，服务与在售快照保持。
+- **快照语义**：HTTP 静态服务 `targetPath`（publish 的 rename 原子性保证只暴露「最后一次成功发布」）；全部响应 `Cache-Control: no-cache`。路由：`/`（内置宿主页）、`/sdk/*`（container-sdk 预构建资产，A2.0 随包分发）、`/proxy`（SSRF 防护代理）、其余 → 产物。
+- **ws 协议**（`/ws`）：
+
+```
+client -> server: { type: 'subscribe', appId }
+server -> client: { type: 'subscribed', appId } | { type: 'error', message }
+server -> client: { type: 'reload', appId, changedStages, affectedPages, reloadLevel, buildId }
+server -> client: { type: 'build:error', message }
+client -> server: { type: 'ack', appId, buildId }
+```
+
+- `reloadLevel` 由 dmcc dev 侧合成（宿主只执行）；`buildId` 每次重建自增（失败构建消耗但不推送）。失败：清空 pendingReload + 推 `build:error`，不推 reload。
+- **reloadLevel 合成规则**（§4.2 最破坏性优先）：`plan.skip` → 不推；非增量（合并/配置 json/未知 kind/add-unlink）→ L0；含 `logic` → L1；含 `view` → L3；仅 `style` → L2；防御空 affectedPages → L1。L2/L3 为「上报级别」——本门宿主按刷新回退，A3 只升级宿主执行端，不改合成与协议。
+- **宿主页**（最小宿主）：`createContainer` + `openApp({ destroy: true })` 直开目标 app，`?path=` 入口，`resourceBaseUrl: '/'`；L0 → 整页重启，L1/L2/L3 → relaunch 回退；不追踪导航栈（重进入口页）。
+- **测试**：`dev-reload.spec.js`（14 用例矩阵）、`dev-host.spec.js`（10）、`dev-proxy.spec.js`（13，SSRF/合法/非法）、`dev-server.spec.js`（12，路由/快照/pendingReload/ws）。
+
 ## 5. 分阶段路线图（绞杀者模式）
 
 **A 轨道（主线：dev/HMR/统一，纯 JS）** 与 **B 轨道（长期：Rust 宿主，解耦可延后）** 并行推进，A 先行。
@@ -221,7 +242,7 @@ A1（`compiler-hook-layer`）已交付并归档（`docs/actions/_archive/complet
 | --- | --- | --- |
 | **A1 hook 层** | 把 Listr 任务树抽为可挂载生命周期（env → config → npm → [view ‖ logic ‖ style] → publish），不改任何行为 | 55 测试全绿；`build()` 公开行为与错误契约不变（`build-error-contract.spec.js` 重点回归）。**已完成（2026-09-08，`compiler-hook-layer` 归档）**：57 文件/360 用例全绿；产物字节一致（nomap/sourcemap 双模式 diff 空）；事件契约定稿见 §4.4 |
 | **A2.0 宿主资产分发定案** | 前置决策：container-sdk 预构建产物随 compiler 分发 vs peer dependency（已核实：其运行时依赖仅 mitt/vconsole，render/service/components 均为构建期打入 dist；该决策决定 dmcc dev 的离线可用性与版本耦合） | 决策见 D2（A2.0 已定案）；新 clone 示例验证随包分发可行 |
-| **A2 dev server + L1** | `dmcc dev`：静态服务（服务最后成功发布快照）+ 内置宿主页 + 代理 + ws；logic 变更 → 页面 relaunch（复用 `appManager.restartMiniProgram`） | 示例 app 一条命令起预览（含 `fe/` 外新 clone 场景）；§4.2 L1 场景验收；dev server 与 ws 协议有 vitest 契约测试 |
+| **A2 dev server + L1** | `dmcc dev`：静态服务（服务最后成功发布快照）+ 内置宿主页 + 代理 + ws；logic 变更 → 页面 relaunch（复用 `appManager.restartMiniProgram`）。**已完成（2026-09-08，`dmcc-dev-server` 归档）**：dev 一条命令起预览；L0/L1 生效、L2/L3 上报+刷新回退；ws 协议与合成契约定稿见 §4.5 | 示例 app 一条命令起预览（含 `fe/` 外新 clone 场景）；§4.2 L1 场景验收；dev server 与 ws 协议有 vitest 契约测试 |
 | **A3 HMR L2/L3** | CSS 热替换 + 模板热重挂；落点：`fe/packages/render` + `fe/packages/container-sdk`（dev-only 扩展，feature flag 隔离）；L3 回放按 §4.2 首选方案 | §4.2 L2/L3 场景验收（自动化 + 手工）；编译失败不中断运行实例（消融：注入失败用例验证旧产物保留） |
 | **A4 target 抽象** | view/style 输出按 target 分叉（先只有 `webview` 一个实现；服务于 G3 挂载面，为 C1 预留接入点） | 产物与现状逐字节一致（diff 验收） |
 | **B0 基线** | profile 现有编译（冷/热/批量），记录各阶段耗时，作为 B 轨道「不劣化」对照 | 报告入库附录 |
@@ -271,3 +292,4 @@ A1（`compiler-hook-layer`）已交付并归档（`docs/actions/_archive/complet
 | v1.0 | 2026-09-08 | 定稿：动机/目标 G1–G4/决策 D1–D7/路线图经评审接受；gate A1 事件契约随 `compiler-hook-layer` 技术设计冻结生效 |
 | v1.1 | 2026-09-08 | A1 完成后回写：新增 §4.4 事件契约持久真源；§5 A1 行标注完成并链接归档；修订记录同步 |
 | v1.2 | 2026-09-08 | A2.0 定案回写：D2 增补决策记录（预构建 dist 随 compiler 包分发，含自包含/离线验证）；§5 A2.0 行标注已定案 |
+| v1.3 | 2026-09-08 | A2 完成后回写：新增 §4.5 dev server 契约（ws 协议 + reloadLevel 合成 + 宿主页语义）；§5 A2 行标注完成并链接归档；修订记录同步 |
