@@ -29,3 +29,25 @@
 - A-001~A-012 全部 passed（A-010 为 SHOULD 支撑项，失败需记录原因与影响）；
 - ws 协议与 reloadLevel 合成契约定稿结论回写 RFC（§4.1/§4.2 若需补充）；
 - 无未记录的未覆盖区域。
+
+## 实际执行记录
+
+### P-001（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `d831ee8b`（promote 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增规格 | `corepack pnpm --filter compiler exec vitest run __tests__/dev-reload.spec.js` | 14/14 通过 | `fe/packages/compiler/__tests__/dev-reload.spec.js` | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 58 文件 / 374 用例全绿（含新增 14；既有 360 无回落） | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警（首轮 jsdoc @returns warning 已修复） | 终端日志 | passed |
+| 契约实现 | `src/common/dev-reload.js`：`synthesizeReloadLevel({ event, filePath, count, plan, appId, buildId })`；矩阵 skip→null / 非增量→L0 / logic→L1 / view→L3 / style→L2 / 防御→L1；affectedPages 由 plan.options.affectedEntries 映射；reloadLevel 字符串化（'L0'..'L3'）；未触碰 watch.js 接口 | — | 源码 diff 仅 2 个新文件 | passed |
+
+覆盖说明：
+
+- 矩阵全分支已锁定（14 用例）：skip/合并/配置json/未知kind/add-unlink/非增量兜底/logic/logic+style/style/view/view+style/防御空affectedPages/空stages/载荷字段映射。
+- 未覆盖：与 watch.js / ws / dev-server 集成后的 pendingReload 关联（P-004）；宿主页生成（P-002）；代理（P-003）。

@@ -1,7 +1,7 @@
 # DMCC Dev Server（A2）
 
 - Action: `dmcc-dev-server`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审 pass；F-001..F-005 已修复）
 - Status authority: [Action Status](../STATUS.md)
