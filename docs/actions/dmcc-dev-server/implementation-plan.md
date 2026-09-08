@@ -26,4 +26,5 @@
 | --- | --- | --- | --- |
 | P-001 | 完成 | 2026-09-08 | dev-reload.js 纯函数 + 14 用例矩阵绿；证据见 [validation](validation.md) |
 | P-002 | 完成 | 2026-09-08 | dev-host.js 宿主页模板 + sdk 路径常量 + 10 用例绿；证据见 [validation](validation.md) |
-| P-002.5…P-007 | 未开始 | — | — |
+| P-002.5 | 完成 | 2026-09-08 | copy-sdk-assets 脚本 + postbuild 接入：`pnpm build` 后 dist/sdk/ 5 资产齐备；证据见 [validation](validation.md) |
+| P-003…P-007 | 未开始 | — | — |

@@ -72,3 +72,25 @@
 - L1「当前页 relaunch」为语义近似（最小宿主不追踪导航栈，重进入口页 `?path=`）；已作注释明确，容器级精确当前页重进留待 A3/宿主页增强。
 - 安全注入验证：title（HTML 上下文）转义防标签注入；脚本内 appId 经 JSON.stringify 成字符串字面量（JS 上下文不参与 HTML 解析），两种上下文行为分开断言。
 - 未覆盖：与 dev-server 集成后的路由/ws 联调（P-004）；sdk 资产复制（P-002.5）；代理（P-003）。
+
+### P-002.5（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `d3152ab8`（P-002 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 构建 + 复制 | `corepack pnpm build`（compiler） | `[copy-sdk-assets] copied 5 assets`；`dist/sdk/` 含 index.js/css、pageFrame.js/css、service.js；check-package-exports 4 exports + CLI 正常 | `dist/sdk/` 目录 | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 59 文件 / 384 用例全绿 | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| compat | `corepack pnpm --filter compiler sync:compat` | Already in sync；`git diff --exit-code` 干净 | 终端日志 | passed |
+| 缺失边界 | 临时移除 container-sdk/dist 后执行复制脚本 | 明确报错 + exit=1（未静默忽略） | 终端观察（已恢复） | passed |
+| 发布形态 | `files:['dist']` 且 `dist/` 被 git 忽略；新脚本 `scripts/copy-sdk-assets.js` 被跟踪 | git status 仅期望变更 | 终端 | passed |
+
+覆盖说明：
+
+- 脚本只复制 5 个运行时资产（js/css/service），d.ts 等开发期类型不随包——与 dev-host.js `SDK_ASSET_PATHS` 对齐。
+- 未覆盖：与 dev-server 路由（`/sdk/*` → dist/sdk/）的联调（P-004）；fe/ 外模拟靠 dist/sdk 的完整链路（P-007）。
