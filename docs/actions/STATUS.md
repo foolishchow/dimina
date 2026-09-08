@@ -28,5 +28,5 @@
 
 | Action | Status | Path | Summary | Updated |
 | --- | --- | --- | --- | --- |
-| `compiler-improvement` | `draft` | [README](compiler-improvement/README.md) | 编译器改造 umbrella：交付 RFC A 轨道（dev 一体化 / HMR 分级 / 统一挂载面），治理 B/C 轨道终局决策。 | 2026-09-08 |
-| `compiler-hook-layer` | `draft` | [README](compiler-hook-layer/README.md) | Umbrella gate A1：把 runBuild 任务树抽为内部可挂载构建生命周期，行为与产物零变化。 | 2026-09-08 |
+| `compiler-improvement` | `ready` | [README](compiler-improvement/README.md) | 编译器改造 umbrella（RFC v1.0 已定稿）：交付 A 轨道，治理 B/C 终局决策。 | 2026-09-08 |
+| `compiler-hook-layer` | `ready` | [README](compiler-hook-layer/README.md) | Umbrella gate A1（事件契约已冻结 v1）：runBuild 任务树抽为内部可挂载构建生命周期，行为与产物零变化。 | 2026-09-08 |

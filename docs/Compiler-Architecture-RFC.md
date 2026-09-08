@@ -2,7 +2,7 @@
 
 | 项 | 内容 |
 | --- | --- |
-| 状态 | 草案（Draft v0.3），供评审 |
+| 状态 | 已定稿（Accepted v1.0，2026-09-08） |
 | 分支 | `feature/compiler-improve` |
 | 范围 | `fe/packages/compiler`（DMCC）及 dev 体验链路，不改变运行时产物契约 |
 | 关联文档 | [架构总览](./Architecture-Diagram.md) · [实现细节](./Architecture-Details.md) · [维护经验](./Experience-Review.md) · [Umbrella Action](./actions/compiler-improvement/README.md) |
@@ -234,3 +234,4 @@ export default {
 | v0.1 | 2026-09-08 | 初稿：动机/D1–D7/路线图 |
 | v0.2 | 2026-09-08 | 按动机重排（dev/HMR/统一优先）；补目标 G1–G4、非目标、追溯表 |
 | v0.3 | 2026-09-08 | 实施计划审查修复：A2.0 前置决策、reloadLevel 合成规则、L3 回放首选方案、dev 快照语义；文档审查修复：spec 数量 55、oxc_traverse 更正、D6/G4 口径同步、最小宿主定义、C1 前置 A4、fe 工作流非目标 |
+| v1.0 | 2026-09-08 | 定稿：动机/目标 G1–G4/决策 D1–D7/路线图经评审接受；gate A1 事件契约随 `compiler-hook-layer` 技术设计冻结生效 |

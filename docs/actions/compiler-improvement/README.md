@@ -1,14 +1,14 @@
 # Compiler Improvement（Umbrella）
 
 - Action: `compiler-improvement`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
 - 设计权威：[Compiler Architecture RFC](../../Compiler-Architecture-RFC.md)（本 Action 不复制架构决策；RFC 是唯一的动机/目标/手段真相源，两文冲突时以 RFC 为准并回改本 Action）
 
 ## Background
 
-编译器（DMCC）存在三个工程问题：dev 体验割裂（compile 与容器两个世界 + 写死目录约定）、热更新缺位（watch 只负责重编，无生效设计）、扩展点缺失（Listr 任务树硬编码，无统一挂载面）。已起草 RFC（含 D1–D7 决策、HMR 分级 L0–L4、A/B 双轨路线图），当前处于 Draft 评审中。
+编译器（DMCC）存在三个工程问题：dev 体验割裂（compile 与容器两个世界 + 写死目录约定）、热更新缺位（watch 只负责重编，无生效设计）、扩展点缺失（Listr 任务树硬编码，无统一挂载面）。已起草 RFC（含 D1–D7 决策、HMR 分级 L0–L4、A/B 双轨路线图），现已定稿（v1.0，2026-09-08）。
 
 ## Goal
 
@@ -45,11 +45,11 @@
 
 ## Readiness gaps
 
-阻塞 `ready` 的具体缺口：
+1. ~~RFC 未评审定稿~~——**已解除**：RFC 于 2026-09-08 定稿（v1.0）。
+2. **A2.0 资产分发决策未定**（container-sdk 预构建产物随 compiler 分发 vs peer dependency）——**门级前置**：阻塞 A2 系子 Action 的范围界定，不阻塞 A1。
+3. **L3 可行性假设未验证**（RFC §7 假设 1：render 侧快照回放的时序）——**门级前置**：不阻塞 A1/A2，必须在 A3 子 Action `ready` 前通过原型验证或明确降级。
 
-1. **RFC 未评审定稿**——RFC 处于 Draft，D1–D7 尚未获接受；定稿前任何子 Action 不得进入 `ready`。
-2. **A2.0 资产分发决策未定**（container-sdk 预构建产物随 compiler 分发 vs peer dependency）——阻塞 A2 系子 Action 的范围界定。
-3. **L3 可行性假设未验证**（RFC §7 假设 1：render 侧快照回放的时序）——不阻塞 A1/A2，但必须在 A3 子 Action `ready` 前通过原型验证或明确降级。
+伞级无阻塞项（后两项已按门级前置收敛到 roadmap 的就绪前置列），本 Action 进入 `ready`。
 
 ## Closure conditions
 

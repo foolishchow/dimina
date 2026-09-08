@@ -1,7 +1,7 @@
 # Compiler Hook Layer（A1）
 
 - Action: `compiler-hook-layer`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A1）
@@ -39,8 +39,10 @@
 
 ## Readiness gaps
 
-1. **父 Action readiness gap 1 未解除**（RFC v0.3 未定稿）——阻塞本 Action 进入 `ready`；不阻塞评审本文档。
-2. 事件命名与载荷字段在 [technical-design](technical-design.md) 中为**建议稿**，`ready` 前需随本文评审定稿（定稿后即为 A2/A4 依赖的内部契约）。
+无（2026-09-08 评审通过）：
+
+1. ~~父 Action readiness gap 1~~——已解除：RFC 于 2026-09-08 定稿（v1.0）。
+2. ~~事件命名与载荷为建议稿~~——已冻结：[technical-design](technical-design.md) 随本 Action 评审定稿（v1），即为本 Action 实现契约与 A2/A4 依赖契约；后续变更需同步更新本设计与 A2/A4 的依赖声明。
 
 ## Closure conditions
 

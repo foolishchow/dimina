@@ -1,6 +1,8 @@
 # Technical Design — compiler-hook-layer
 
-设计基线：`src/index.js` 当前实现（`runBuild` + `runCompileInWorker` + Listr 任务树）。本文是建议稿，随 Action 评审定稿后成为 A2/A4 的内部契约。
+> 契约状态：**已冻结（v1，2026-09-08）**。本设计是本 Action 的实现契约，也是 A2（dmcc dev 变更分类事件）与 A4（target 载荷扩展）的依赖契约；任何变更需同步更新两处依赖声明。
+
+设计基线：`src/index.js` 当前实现（`runBuild` + `runCompileInWorker` + Listr 任务树）。
 
 ## 1. 生命周期事件（建议稿）
 
