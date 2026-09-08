@@ -18,6 +18,28 @@
 
 每次实际验证附：日期、commit、Node/pnpm 版本、与计划偏差。
 
+## 实际执行记录
+
+### P-001（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `2cdc66d7` |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增规格 | `corepack pnpm --filter compiler exec vitest run __tests__/lifecycle.spec.js` | 12/12 通过 | `fe/packages/compiler/__tests__/lifecycle.spec.js` | passed |
+| 全量回归 | `corepack pnpm --filter compiler test` | 56 文件 / 353 用例全绿（含新增；错误契约用例的✖输出为预期） | 终端日志 | passed |
+| Lint | `corepack pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 契约实现 | `src/common/lifecycle.js`：事件常量表（12 事件，冻结）、`createLifecycle()`、注册序同步 await、错误隔离（`[lifecycle]` 前缀结构化日志 + `isolatedListenerErrors`）、浅冻结载荷；未触碰 `runBuild` 与任何既有文件 | — | 源码 diff 仅 2 个新文件 | passed |
+
+覆盖说明：
+
+- R-005（隔离）已由 4 项规格锁定（同步/异步抛错、前缀日志、实例间隔离、冻结致隔离）；消融（A-006）留待 P-002 接入 runBuild 后按 A-006 口径执行——隔离逻辑在 P-001 仅存在于 lifecycle 模块内部，无法在不改规格的前提下“移除机制”进入构建路径，故此处不提前消融。
+- 未覆盖：与 `runBuild` 集成后的时序断言（P-004）、字节一致性（P-005）、入口回归（P-006）。
+
 ## 闭合判定（模板）
 
 - A-001~A-009 全部 passed（A-007 为 SHOULD 支撑项，失败需记录原因与影响）；

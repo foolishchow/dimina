@@ -1,7 +1,7 @@
 # Compiler Hook Layer（A1）
 
 - Action: `compiler-hook-layer`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A1）
