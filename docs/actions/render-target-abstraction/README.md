@@ -1,8 +1,9 @@
 # Render Target Abstraction（A4）
 
 - Action: `render-target-abstraction`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-08
+- Promoted: 2026-09-08（Readiness 评审通过；F-A4-001..005 已修复）
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A4）
 - 设计权威：[Compiler Architecture RFC](../../Compiler-Architecture-RFC.md) §3 D3、§4.1、§5-A4、§4.4/§4.5（本文不重复，冲突时以 RFC 为准）
@@ -49,9 +50,9 @@
 
 ## Readiness gaps
 
-- 当前为 `draft`，尚未完成 Readiness Review。
+- Readiness 评审已通过（2026-09-08，verdict pass；F-A4-001..005 已修复）；已 promote `ready`，待授权实施。
 - A1/A2/A3 前置已完成；无外部全局阻塞。
-- 待评审冻结：target 仅通过 `options.target` 解析；CLI `--target` 只映射到该字段；adapter 为阶段级薄适配；非法 target 在 lifecycle 与任何目录副作用前失败；产物矩阵使用同绝对路径控制。
+- target 来源、阶段级 adapter、非法 target 前置失败顺序、同路径产物矩阵与 lifecycle 不增字段决策均已冻结。
 
 ## Closure conditions
 
