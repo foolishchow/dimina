@@ -51,7 +51,7 @@
 
 - 当前为 `draft`，尚未完成 Readiness Review。
 - A1/A2/A3 前置已完成；无外部全局阻塞。
-- 待评审冻结：target 参数的来源（build options/CLI）、非法 target 行为、adapter 接口最小字段，以及是否允许 lifecycle payload 记录 target。
+- 待评审冻结：target 仅通过 `options.target` 解析；CLI `--target` 只映射到该字段；adapter 为阶段级薄适配；非法 target 在 lifecycle 与任何目录副作用前失败；产物矩阵使用同绝对路径控制。
 
 ## Closure conditions
 

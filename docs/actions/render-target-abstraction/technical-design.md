@@ -23,15 +23,19 @@ future Lynx adapter: reserved only, outside A4
 
 ## 2. Target contract
 
-最小内部接口（名称可在实现中调整，但语义固定）：
+**参数来源（F-A4-001 定案）**：唯一内部来源是 `options.target`。CLI `--target <name>` 仅映射为该字段；未提供时 resolver 使用 `webview`；watch 增量沿用初始 options.target；`dmcc dev` 固定传入 `target:'webview'`。不存在另一套环境变量或隐式 target 优先级。
+
+A4 首版最小接口是**阶段级薄适配器**（F-A4-002 定案），匹配当前副作用型 worker API，而非虚构单模块 `{ code, map }` 接口：
 
 ```js
 {
   name: 'webview',
-  compileView(input, context) -> { code, map?, warnings? },
-  compileStyle(input, context) -> { code, map?, warnings? },
+  runViewStage: (ctx, progress) => Promise<void>,
+  runStyleStage: (ctx, progress) => Promise<void>,
 }
 ```
+
+其中 `webview` adapter 只包装现有 `view-compiler` / `style-compiler` worker 调用，保留 `pages/root/progress/sourcemap` 等阶段输入、现有 worker payload、目标目录写入和错误语义；adapter 返回 Promise，不接管发布。
 
 - resolver 只接受已注册 target；缺省为 `webview`；未知值抛结构化错误；
 - adapter 接收完整阶段输入，不进行逐模块跨层回调；
@@ -44,11 +48,32 @@ future Lynx adapter: reserved only, outside A4
 - `webview` adapter 默认路径与显式路径使用同一实现和同一选项；
 - 不把 target 写入 modDefine、模块 ID、文件命名或 app-config；
 - target 选择不改变 A2/A3 reloadLevel、ws、HMR 执行协议；
-- `stage` 生命周期 target 字段如需加入，只作为内部/可选诊断字段，并先验证既有观察者兼容性。
+- A4 首版不增加 target 到既有 lifecycle payload；target 仅在 resolver/adapter 内部诊断中记录（F-A4-005 定案）。
 
 ## 4. Failure and safety
 
-- resolver 失败：在 worker 启动前拒绝，目标目录不发布；
+**非法 target 顺序（F-A4-003 定案）**：
+
+```text
+读取 options.target
+→ resolveTarget()
+→ 非法 target 立即 reject（不触发 build:start）
+→ 不 resetAssetCache、不创建/清空/发布目标目录、不启动 worker
+→ 合法后才进入 lifecycle/build phases
+```
+
+错误形状固定为：
+
+```js
+{
+  name: 'InvalidTargetError',
+  code: 'DIMINA_INVALID_TARGET',
+  target,
+  message,
+}
+```
+
+- resolver 失败：在 worker 启动前拒绝，目标目录与既有内容不变；
 - adapter 抛错：沿现有 stage:error/build:error 错误契约传播；
 - adapter 输出非法：拒绝发布并提供 target/stage 诊断；
 - future adapter 不应通过 fallback 冒充 webview 成功；
