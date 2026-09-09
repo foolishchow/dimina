@@ -93,3 +93,23 @@
 
 - P-003 只交付 loader module replacement 事务；页面级 remount、快照回放、service 保留仍分别属于 P-004/P-005，未提前宣称 L3 完成。
 - `ContainerInstance.sendDevCommand` 已由 P-001 接通，但 A3 宿主页实际调用与 render `runtime.handleHmr` 接入留待 P-006。
+
+### P-004（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `c995f2ca`（P-003 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增 remount 规格 | `pnpm --filter render exec vitest run __tests__/hmr-remount.spec.js` | 2/2：当前页面 root key 递增提交；未挂载/非当前页面安全拒绝 | `fe/packages/render/__tests__/hmr-remount.spec.js` | passed |
+| render 全量 | `pnpm --filter render test` | 20 文件 / 210 用例全绿（既有 208 无回落） | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 契约实现 | `runtime.pageRenderVersion` + root vnode key；`runtime.remountPage(pageId)` 仅递增当前 page root key，不调用 `firstRender()`/`app.unmount()`；保留 Vue app、bridge/service，snapshot replay 留给 P-005 | — | `render/src/core/runtime.js` + `hmr-remount.spec.js` | passed |
+
+覆盖说明：
+
+- 本原型验证的是当前 render 架构下的页面 root remount 边界；当前 pageFrame 的 Vue app 只承载当前 page root，故 key 事务可避免整 app firstRender。
+- 未覆盖：setupData snapshot capture/replay、remount 期间 update queue、module replacement 与 remount 联动（P-005）；宿主 hmr 指令接入（P-006）。

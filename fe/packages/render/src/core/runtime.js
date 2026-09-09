@@ -20,6 +20,7 @@ import {
 	onUnmounted,
 	openBlock,
 	provide,
+	ref,
 	reactive,
 	renderList,
 	renderSlot,
@@ -627,6 +628,7 @@ class Runtime {
 		this.app = null
 		this.pageId = null
 		this.instance = new Map()
+		this.pageRenderVersion = ref(0)
 		this.moduleIds = new WeakMap()
 		this.moduleRootIds = new WeakMap()
 		this.setupData = new Map()
@@ -842,7 +844,7 @@ class Runtime {
 							})
 						},
 					}, {
-						default: () => h(_component_dd_page),
+						default: () => h(_component_dd_page, { key: that.pageRenderVersion.value }),
 						// fallback: () => h('div', 'Loading...'),
 					})
 				},
@@ -1395,6 +1397,23 @@ class Runtime {
 			components[`dd-${componentName}`] = componentOptions
 		}
 		return components
+	}
+
+	/**
+	 * dev-only P-004 页面级 remount 原型。
+	 * 只改变 page root key，保留 Vue app、service bridge 与其他容器状态；
+	 * snapshot capture/replay 由 P-005 负责，失败/不支持时由上层 fallback L1。
+	 * @param {string} pageId 当前页面 id
+	 * @returns {{ remounted: boolean, reason?: string }} 是否提交页面级 remount；
+	 *   不支持/非当前页面时携带 reason，不调用整 app firstRender。
+	 */
+	remountPage(pageId) {
+		if (!this.app) return { remounted: false, reason: 'app-not-mounted' }
+		if (!pageId || pageId !== this.pageId) {
+			return { remounted: false, reason: 'page-not-current' }
+		}
+		this.pageRenderVersion.value += 1
+		return { remounted: true }
 	}
 
 	updateModule(opts) {
