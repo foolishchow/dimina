@@ -22,7 +22,7 @@ C1 Lynx PoC（依赖 A4；可选，另立 RFC 后再 formalize）
 | A2.0 | container-sdk 资产分发决策（随包分发 vs peer dep） | 决策记录并入 RFC D2，不需独立子 Action | 无 | **complete（2026-09-08 定案：预构建 dist 随 compiler 包分发）**；依据：全部 `@dimina/*` workspace 包 private 不可发布 → peer dep 不成立；sdk dist 除 mitt 外自包含；离线模拟验证通过（见 RFC D2） |
 | A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 | **complete（2026-09-08）**；dev 契约定稿回写 RFC §4.5；A3 只升级宿主执行端不改协议 |
 | A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 | **complete（2026-09-08）**；Web 容器 dev-only 执行链完成（L2 CSS、L3 module replace/remount/replay、fallback L1）；契约与边界回写 RFC §4.2/§4.5 |
-| A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） | draft（2026-09-08）；首个 target 仅 webview，Lynx/rspack/C1 不在本门 |
+| A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） | **complete（2026-09-08）**；落地为 renderer 抽象（对齐微信 renderer 字段，无 CLI/API 覆盖）；阶段级 webview adapter；产物 diff=0；Lynx/rspack/native 未进入 |
 | B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） | pending / deferred decision |
 | C1 | Lynx PoC | 先另立 RFC，再评估是否 formalize | A4；另立 RFC | optional / pending |
 

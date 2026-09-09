@@ -258,7 +258,7 @@ client -> server: { type: 'ack', appId, buildId }
 | **A2.0 宿主资产分发定案** | 前置决策：container-sdk 预构建产物随 compiler 分发 vs peer dependency（已核实：其运行时依赖仅 mitt/vconsole，render/service/components 均为构建期打入 dist；该决策决定 dmcc dev 的离线可用性与版本耦合） | 决策见 D2（A2.0 已定案）；新 clone 示例验证随包分发可行 |
 | **A2 dev server + L1** | `dmcc dev`：静态服务（服务最后成功发布快照）+ 内置宿主页 + 代理 + ws；logic 变更 → 页面 relaunch（复用 `appManager.restartMiniProgram`）。**已完成（2026-09-08，`dmcc-dev-server` 归档）**：dev 一条命令起预览；L0/L1 生效、L2/L3 上报+刷新回退；ws 协议与合成契约定稿见 §4.5 | 示例 app 一条命令起预览（含 `fe/` 外新 clone 场景）；§4.2 L1 场景验收；dev server 与 ws 协议有 vitest 契约测试 |
 | **A3 HMR L2/L3** | CSS 热替换 + 模板热重挂；落点：`fe/packages/render` + `fe/packages/container-sdk`（dev-only 扩展，feature flag 隔离）；L3 回放按 §4.2 首选方案 | §4.2 L2/L3 场景验收（自动化 + 手工）；编译失败不中断运行实例（消融：注入失败用例验证旧产物保留） |
-| **A4 target 抽象** | view/style 输出按 target 分叉（先只有 `webview` 一个实现；服务于 G3 挂载面，为 C1 预留接入点） | 产物与现状逐字节一致（diff 验收） |
+| **A4 target 抽象** | view/style 输出按 target 分叉（先只有 `webview` 一个实现；服务于 G3 挂载面，为 C1 预留接入点）。**已完成（2026-09-08，`render-target-abstraction` 归档）**：落地为 renderer 抽象（对齐微信 `app.json.renderer`/`page.json.renderer` 字段，无 CLI/API 覆盖）；阶段级 webview adapter；产物逐字节一致（同路径 diff=0，nomap/sourcemap，7 示例）；logic/bridge/HMR/ws/native 零改动；Lynx/rspack 未进入 | 产物与现状逐字节一致（diff 验收）✅ |
 | **B0 基线** | profile 现有编译（冷/热/批量），记录各阶段耗时，作为 B 轨道「不劣化」对照 | 报告入库附录 |
 | **B1 sourcemap 试点** | `oxc_sourcemap` 替换 source-map-js 合并逻辑 | sourcemap 三组 spec 全绿；Harmony QuickJS attach 实机验证；`.map` 语义等价性抽查；耗时较 B0 基线不劣化（±5% 误差带） |
 | **B2 缓存 + 依赖图** | 指纹（blake3）与 DependencyGraph 下沉 Rust | 增量/全量/编译器热路径 spec 全绿；缓存版本号升级并验证旧缓存失效路径 |
@@ -315,3 +315,4 @@ client -> server: { type: 'ack', appId, buildId }
 | v1.4 | 2026-09-08 | L3 可行性验证回写：§7 假设 1 更新为条件成立并附代码审计证据（setupData 数据回放可行；需 A3 新增模块热替换 / 页面级 remount）；§5 A3 行前置标注更新 |
 | v1.5 | 2026-09-08 | dev/HMR 生效边界定稿：§4.1 增补三层分离说明（编译/编排容器无关，预览宿主 + HMR 生效端 Web 容器专属）；锁定 A3 落点（render + container-sdk dev-only）与 L2/L3 验收锚点（Web 容器内） |
 | v1.6 | 2026-09-08 | A3 L2/L3 实施完成回写：§4.2 增补实施结论（Web 容器 dev-only 执行链、L1 fallback、A2/原生边界与残余浏览器风险）；A3 Action 进入 Close 流程 |
+| v1.7 | 2026-09-08 | A4 实施完成回写：§5 A4 行标注完成（落地为 renderer 抽象，对齐微信 app.json/page.json renderer 字段，阶段级 webview adapter，产物 diff=0）；术语映射（RFC target↔实现 renderer）记录 |

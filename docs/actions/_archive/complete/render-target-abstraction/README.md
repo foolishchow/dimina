@@ -1,12 +1,13 @@
 # Render Target Abstraction（A4）
 
 - Action: `render-target-abstraction`
-- Status: `in_progress`
+- Status: `complete`
+- Archived: 2026-09-08
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审通过；F-A4-001..005 已修复）
-- Status authority: [Action Status](../STATUS.md)
-- 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A4）
-- 设计权威：[Compiler Architecture RFC](../../Compiler-Architecture-RFC.md) §3 D3、§4.1、§5-A4、§4.4/§4.5（本文不重复，冲突时以 RFC 为准）
+- Status authority: [Action Status](../../../STATUS.md)
+- 父 Action：[compiler-improvement](../../../compiler-improvement/README.md)（umbrella，gate A4）
+- 设计权威：[Compiler Architecture RFC](../../../../Compiler-Architecture-RFC.md) §3 D3、§4.1、§5-A4、§4.4/§4.5（本文不重复，冲突时以 RFC 为准）
 
 ## Background
 
@@ -34,10 +35,10 @@
 
 ## Design inputs
 
-- [RFC D3](../../Compiler-Architecture-RFC.md)：target 替换范围是 WebView + Vue render；logic/service/bridge/modDefine 不动。
-- [RFC §5 A4](../../Compiler-Architecture-RFC.md)：先只有 `webview` 实现，服务于 G3 挂载面并为 C1 预留接入点。
-- [A1 归档契约](../_archive/complete/compiler-hook-layer/technical-design.md)：stage lifecycle 为后续 target 接入的内部边界。
-- [Architecture-Diagram](../../Architecture-Diagram.md)：同一 DMCC 产物由不同容器加载，平台差异集中在运行时与资源加载。
+- [RFC D3](../../../../Compiler-Architecture-RFC.md)：target 替换范围是 WebView + Vue render；logic/service/bridge/modDefine 不动。
+- [RFC §5 A4](../../../../Compiler-Architecture-RFC.md)：先只有 `webview` 实现，服务于 G3 挂载面并为 C1 预留接入点。
+- [A1 归档契约](../compiler-hook-layer/technical-design.md)：stage lifecycle 为后续 target 接入的内部边界。
+- [Architecture-Diagram](../../../../Architecture-Diagram.md)：同一 DMCC 产物由不同容器加载，平台差异集中在运行时与资源加载。
 
 ## Deliverables
 
@@ -59,3 +60,12 @@
 - `webview` 默认/显式 target 产物与现状一致；
 - Lynx/rspack 未进入本 Action；
 - RFC/roadmap 回写、STATUS/导航/归档一致。
+
+## Closure decision（2026-09-08）
+
+- **终局决策**：`complete`，归档至 `docs/actions/_archive/complete/render-target-abstraction/`。
+- **验收**：A-001~A-010 全部 `passed`，证据见 [validation](validation.md)（P-001..P-007）。
+- **实现提交**：P-001 `57101579`+`d481b7cb`+`161a0f2d`（renderer 修订）、P-002 `9ed0fe0f`、P-003..P-007 `a059f065`。
+- **持久发现回写**：RFC §5 A4 行标注完成（落地 renderer 抽象，对齐微信 app.json/page.json renderer 字段）；revision v1.7；术语映射（RFC target↔实现 renderer）。
+- **设计修订记录**：用户决策撤销 options.target/CLI，改为对齐微信 `app.json.renderer`+`page.json.renderer`，无 CLI/API 覆盖（`161a0f2d`）。
+- **残余风险**：无重大残余；页面级混合 renderer 留待未来（届时需 RFC/容器配合）。

@@ -20,14 +20,16 @@
 
 每次实际验证附：日期、commit、Node/pnpm 版本、与计划偏差。
 
-## 闭合判定（模板）
+## 闭合判定（2026-09-08）
 
-- A-001~A-010 全部 passed；
-- 默认/显式 webview 产物矩阵 diff=0；
-- target-neutral 与 Web-only/native 边界有证据；
-- Lynx/rspack 未进入本 Action；
-- 持久发现回写 RFC 与 umbrella roadmap；
+- A-001~A-010 全部 passed（P-001..P-007 实施记录支撑）。
+- 产物零变化：基线 `5c1a6a3a` vs 当前 `a059f065`，同绝对路径 nomap/sourcemap、7 示例，diff exit=0 lines=0。
+- renderer-neutral 边界有证据（P-007 范围护栏：无 native/logic/service/bridge/HMR/ws/Lynx/rspack 改动）。
+- 无 CLI/API renderer 覆盖（dmcc dev help 无 renderer flag）。
+- 持久发现回写 RFC §5 A4 行（renderer 抽象落地）与 v1.7 术语映射。
 - 无未记录的未覆盖区域。
+
+Decision: **closable**（待 Close workflow 归档）。
 
 ## 实际执行记录
 
