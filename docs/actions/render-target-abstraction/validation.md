@@ -28,3 +28,25 @@
 - Lynx/rspack 未进入本 Action；
 - 持久发现回写 RFC 与 umbrella roadmap；
 - 无未记录的未覆盖区域。
+
+## 实际执行记录
+
+### P-001（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `6dc593fb`（promote 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| resolver 规格 | `vitest run __tests__/target-resolver.spec.js` | 2/2：缺省/显式 webview；未知 target 抛 `InvalidTargetError`（code/target/message） | `fe/packages/compiler/__tests__/target-resolver.spec.js` | passed |
+| 全量回归 | `pnpm --filter compiler test` | 62 文件 / 411 用例全绿（既有 409 无回落） | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 契约实现 | `src/common/targets.js`（DEFAULT_TARGET=webview、SUPPORTED_TARGETS、InvalidTargetError(code=DIMINA_INVALID_TARGET/target)、resolveTarget）；`runBuild` 在 lifecycle 前调用 resolveTarget；CLI `--target` 映射到 `options.target` 且 watch rebuild 继承；`dmcc dev` 固定 `target:'webview'` | — | 源码 diff 5 文件 | passed |
+
+覆盖说明：
+
+- target 校验位于 `runBuild` 顶部、lifecycle 创建前，满足 F-A4-003 的“pre-lifecycle、无目录副作用”顺序；非法 target 不会触发 `build:start`。
+- 未覆盖：view/style adapter 接线（P-002/P-003）、产物矩阵（P-005）、消融（P-007）。

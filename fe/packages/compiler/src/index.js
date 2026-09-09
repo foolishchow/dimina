@@ -6,6 +6,7 @@ import { Listr, PRESET_TIMER } from 'listr2'
 import { formatCompileProgress } from './common/compile-progress.js'
 import { DependencyGraph } from './common/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
+import { resolveTarget } from './common/targets.js'
 import { createDist, publishToDist } from './common/publish.js'
 import { artCode, resetAssetCache } from './common/utils.js'
 import { workerPool } from './common/worker-pool.js'
@@ -42,6 +43,9 @@ export default function build(targetPath, workPath, useAppIdDir = true, options 
 }
 
 async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) {
+	const target = resolveTarget(options.target)
+	// P-003 将 target 传入 view/style 阶段 adapter；P-001 只冻结解析与副作用顺序。
+	void target
 	const {
 		sourcemap = false,
 		fileTypes,

@@ -1,7 +1,7 @@
 # Render Target Abstraction（A4）
 
 - Action: `render-target-abstraction`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审通过；F-A4-001..005 已修复）
 - Status authority: [Action Status](../STATUS.md)

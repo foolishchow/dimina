@@ -39,7 +39,7 @@ export function registerDevCommand(program) {
 			const lifecycle = createLifecycle()
 			let buildResult
 			try {
-				buildResult = await build(targetPath, workPath, useAppIdDir, { sourcemap, lifecycle })
+				buildResult = await build(targetPath, workPath, useAppIdDir, { sourcemap, lifecycle, target: 'webview' })
 			}
 			catch (error) {
 				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
@@ -98,6 +98,7 @@ export function registerDevCommand(program) {
 
 					const result = await build(targetPath, workPath, useAppIdDir, {
 						sourcemap,
+						target: 'webview',
 						lifecycle,
 						...plan.options,
 					})
