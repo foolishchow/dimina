@@ -66,12 +66,22 @@ export function createHostPageHtml({ appId, wsPath }) {
 		}
 
 		function relaunchCurrentPage() {
-			// L1 页面 relaunch（App 状态重建 + 页面重进）；L2/L3 本门按刷新回退，
-			// 与 relaunch 同路径执行（technical-design §5 冻结方案）。
-			// 语义近似：最小宿主不追踪运行时导航栈，重进的是入口页（?path= 查询
-			// 参数页，缺省 app-config 的 entryPagePath），而非用户当前停留页；
-			// 容器级 restartMiniProgram 的精确当前页重进留待 A3/宿主页增强。
+			// A2 L1 fallback：App 状态重建 + 入口页重进。
 			void launch()
+		}
+
+		function dispatchHmr(message) {
+			const handleResult = (result) => {
+				if (result.status === 'fallback') relaunchCurrentPage()
+			}
+			const delivered = container.sendDevCommand('enableDevHmr', {})
+				&& container.sendDevCommand('hmr', {
+					level: message.reloadLevel,
+					changedStages: message.changedStages,
+					affectedPages: message.affectedPages,
+					buildId: message.buildId,
+				}, handleResult)
+			if (!delivered) relaunchCurrentPage()
 		}
 
 		function restartApp() {
@@ -104,8 +114,13 @@ export function createHostPageHtml({ appId, wsPath }) {
 				restartApp()
 			}
 			else if (message.type === 'reload') {
-				// L1（生效级别）与 L2/L3（回退级别）统一走 relaunch 路径
-				relaunchCurrentPage()
+				if (message.reloadLevel === 'L2' || message.reloadLevel === 'L3') {
+					dispatchHmr(message)
+				}
+				else {
+					// L1（A2 生效级别）保持原有 relaunch 路径。
+					relaunchCurrentPage()
+				}
 			}
 			else if (message.type === 'build:error') {
 				console.error('[dmcc-dev] build failed:', message.message)

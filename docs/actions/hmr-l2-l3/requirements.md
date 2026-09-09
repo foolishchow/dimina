@@ -53,6 +53,10 @@ view/style 构建失败、module replacement 失败、snapshot replay 失败或�
 
 若 Web 容器或浏览器不支持目标能力，可在运行时报告不支持并稳定回退 L1，不影响原生端。
 
+## R-013（MUST）Web 容器内部 envelope 与回传路径冻结
+
+A2 `/ws` reload 消息形状不得修改。Web 宿主到 render 的内部指令固定为 `enableDevHmr`（flag 注入）及 `hmr`（`{ level, changedStages, affectedPages, buildId }`）；render 回传固定为 `hmr:result`（`{ buildId, level, status: 'accepted'|'applied'|'fallback', reason? }`，`target:'container'`）。`fallback` 或发送失败必须进入 A2 L1，不得静默丢失。
+
 ## Non-scope
 
 编译器、dev server/ws 协议、原生容器、service 状态迁移、L4、生产 HMR、性能优化均不在本 Action 范围内。

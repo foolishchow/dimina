@@ -14,6 +14,7 @@
 | A-010 | R-010 | L2/L3 每个 MUST 场景均有可执行 Web 容器契约测试，而非只做代码审查 | new spec logs | pending |
 | A-011 | R-011 | 快速连续变更中旧 buildId 不覆盖新结果，合并/取消路径无泄漏 | stale-build integration spec | pending |
 | A-012 | R-012 | 不支持 L2/L3 能力时稳定报告并回退 L1，不影响 Web dev 其他功能 | capability/fallback spec | pending |
+| A-013 | R-013 | P-006a 内部 envelope 可端到端观察：宿主页发送 `enableDevHmr`/`hmr`，render/container-sdk 回传 `hmr:result` 三态；fallback 或发送失败触发 A2 L1；A2 `/ws` 形状不变 | dev-host string/integration spec + Bridge result callback spec + A2 protocol diff | pending |
 
 ## Closure evidence rule
 

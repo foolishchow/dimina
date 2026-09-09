@@ -31,15 +31,34 @@ class Render {
 		})
 		this.message.on('hmr', (body) => {
 			const result = handleHmrCommand(this.hmrState, body)
-			if (result.accepted) {
-				if (result.payload.level === 'L2') {
-					// L2：app 全局 + 受影响页面样式最终一致重载（不重启实例）
-					void applyStyleReloadBatch(styleRegistry, result.payload)
-				}
-				else {
-					// L3：module replace + remount + replay 事务在后续任务接入（P-003+）
-					runtime.handleHmr?.(result.payload)
-				}
+			if (!result.accepted) {
+				this.message.invoke({ type: 'hmr:result', target: 'container', body: {
+					buildId: body?.buildId,
+					level: body?.level,
+					status: 'fallback',
+					reason: result.reason,
+				} })
+				return
+			}
+			if (result.payload.level === 'L2') {
+				void applyStyleReloadBatch(styleRegistry, result.payload).then((items) => {
+					const failed = items.find(item => !item.applied)
+					this.message.invoke({ type: 'hmr:result', target: 'container', body: {
+						buildId: result.payload.buildId,
+						level: result.payload.level,
+						status: failed ? 'fallback' : 'applied',
+						reason: failed?.reason,
+					} })
+				})
+			}
+			else {
+				// P-006 当前不伪称 L3 已完成：runtime 事务接入/资源重载失败时明确 fallback。
+				this.message.invoke({ type: 'hmr:result', target: 'container', body: {
+					buildId: result.payload.buildId,
+					level: result.payload.level,
+					status: 'fallback',
+					reason: 'l3-runtime-integration-pending',
+				} })
 			}
 		})
 	}

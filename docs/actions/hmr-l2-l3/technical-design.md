@@ -23,7 +23,9 @@ Native containers / bridge contract / production path: untouched
 2. render 侧 HMR 事务仅在标志开启**且**收到显式 `hmr` 指令时可达；
 3. 原生四端与生产路径没有该消息类型与标志注入，天然隔离——不需要也不得依赖构建期 tree-shake 来移除能力。
 
-**HMR 指令通道（F-A2 定案）**：宿主页 ws client 收到 `reloadLevel ∈ {L2, L3}` 的 reload 消息后，调用 container-sdk 新增的 dev-only API `container.sendDevCommand({ type:'hmr', level, affectedPages, changedStages, buildId })`；container-sdk 经现有 bridge（`message.invoke({ target: 'render' })` 语义）转发到 pageFrame iframe；render `message.on('hmr')` 驱动 §2/§4 事务。该 API 仅在宿主页持有 ws 连接时被调用（即仅 dmcc dev 场景），不进入任何原生或生产调用图。
+**HMR 指令通道（F-A2 定案，P-006a 细化）**：宿主页 ws client 收到 `reloadLevel ∈ {L2, L3}` 的 reload 消息后，先调用 `container.sendDevCommand('enableDevHmr', {})`，再调用 `container.sendDevCommand('hmr', { level, affectedPages, changedStages, buildId })`；container-sdk 经现有 bridge（`target:'render'`）转发到 pageFrame iframe；render `message.on('enableDevHmr')` / `message.on('hmr')` 驱动 §2/§4 事务。该 API 仅在宿主页持有 ws 连接时被调用，不进入任何原生或生产调用图。
+
+**P-006a 内部 envelope 与回传（定稿）**：A2 的 ws reload envelope 不变；以上 `hmr` body 是 Web 容器内部 envelope，字段固定为 `{ level: 'L2'|'L3', changedStages: string[], affectedPages: string[], buildId: positive integer }`。render 完成或拒绝后经 bridge 回传 `{ type:'hmr:result', body:{ buildId, level, status:'accepted'|'applied'|'fallback', reason? }, target:'container' }`；宿主页只在 `status:'fallback'` 或 `sendDevCommand()` 返回 false 时执行 A2 L1 `openApp({ destroy:true })`。`buildId` 必须单调，回传仅供诊断/控制确认，不修改 A2 `/ws` 消息形状。
 
 Runtime flag stays off by default; no flag injection path exists outside `dmcc dev`.
 

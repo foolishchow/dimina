@@ -69,10 +69,14 @@ describe('createHostPageHtml — 宿主逻辑', () => {
 		expect(html).toContain("resourceBaseUrl: '/'")
 	})
 
-	it('ws 消息按 reloadLevel 分发：L0 → 整页重启，其余 → relaunch', () => {
+	it('ws 消息按 reloadLevel 分发：L0 → 整页重启，L1 → relaunch，L2/L3 → sendDevCommand', () => {
 		expect(html).toContain('message.reloadLevel === \'L0\'')
 		expect(html).toContain('window.location.reload()')
 		expect(html).toContain('relaunchCurrentPage()')
+		expect(html).toContain("message.reloadLevel === 'L2' || message.reloadLevel === 'L3'")
+		expect(html).toContain("container.sendDevCommand('enableDevHmr', {})")
+		expect(html).toContain("container.sendDevCommand('hmr'")
+		expect(html).toContain("result.status === 'fallback'")
 		expect(html).toContain("message.type === 'build:error'")
 	})
 

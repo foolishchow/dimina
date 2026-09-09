@@ -59,4 +59,22 @@ describe('Bridge.sendDevCommand（dev-only HMR 通道）', () => {
 		expect(bridge.sendDevCommand('hmr', {})).toBe(false)
 		expect(postMessage).not.toHaveBeenCalled()
 	})
+	it('记录 render 回传的 hmr:result（accepted/applied/fallback 可观察）', () => {
+		const { bridge } = createBridgeForTest()
+		const result = vi.fn()
+		bridge.sendDevCommand('hmr', { level: 'L3', buildId: 9, affectedPages: [] }, result)
+
+		bridge.messageInvoke('render', {
+			type: 'hmr:result',
+			target: 'container',
+			body: { buildId: 9, level: 'L3', status: 'fallback', reason: 'pending' },
+		})
+
+		expect(result).toHaveBeenCalledWith(expect.objectContaining({
+			buildId: 9,
+			level: 'L3',
+			status: 'fallback',
+			reason: 'pending',
+		}))
+	})
 })

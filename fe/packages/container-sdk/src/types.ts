@@ -203,7 +203,7 @@ export interface ContainerInstance {
 	 * dev-only（A3 HMR）：向栈顶小程序的当前页面渲染层转发 dev 指令。
 	 * 仅在 dmcc dev 场景由宿主页 ws 分发调用；无运行中实例时返回 false。
 	 */
-	sendDevCommand: (type: string, body?: Record<string, unknown>) => boolean
+	sendDevCommand: (type: string, body?: Record<string, unknown>, onResult?: (body: Record<string, unknown>) => void) => boolean
 }
 
 /**

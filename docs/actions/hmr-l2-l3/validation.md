@@ -16,6 +16,7 @@
 | stale build | 快速连续 view/style 更新 → 旧 buildId 丢弃 | 集成 spec |
 | production/native guard | 生产构建、原生路径与 flag off 检查 | build/test/source diff |
 | 全仓相邻回归 | `cd fe && pnpm --filter compiler test` + render/container-sdk suites | 退出码 + 用例数 |
+| P-006a 内部通道 | `dev-host.spec.js` 断言 L2/L3 调用 `sendDevCommand` 与 fallback；`dev-command.spec.ts` 模拟 render `hmr:result` 回传并断言宿主回调收到；git diff 确认 A2 `/ws` envelope 未变 | 三态/发送失败路径日志 + 协议 diff |
 
 ## 执行环境记录要求
 
@@ -51,6 +52,26 @@
 
 - flag 关闭拒绝 + 无消息类型注入即隔离 = A-001 的守卫层证据（宿主页接入在 P-006）。
 - 未覆盖：L2/L3 事务本体（P-002..P-005）；ContainerInstance.sendDevCommand 的端到端（jsdom 无真实 iframe，逻辑为薄封装，P-006 宿主接入冒烟覆盖）。
+
+### P-006a（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `474fb10a`（P-005 后；宿主分发改动工作区起点） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 宿主模板接入 | `vitest run __tests__/dev-host.spec.js` | 10/10；L0/L1 保持原路径，L2/L3 调用 `sendDevCommand('enableDevHmr')` + `sendDevCommand('hmr')`；`status:'fallback'` 或发送失败走 L1 | `fe/packages/compiler/__tests__/dev-host.spec.js` | passed |
+| render 回传 | `src/index.js` hmr 分支 | rejected → `hmr:result/fallback`；L2 style batch 全部 applied → applied，任一失败 → fallback；当前 L3 明确返回 `l3-runtime-integration-pending` fallback，不伪称 L3 完成 | `fe/packages/render/src/index.js` | passed |
+| container bridge 回传 | `vitest run __tests__/dev-command.spec.ts` | 5/5；Bridge `sendDevCommand` 支持 onResult，`target:'container'` 的 `hmr:result` 触发 callback；types/index 同步 | `fe/packages/container-sdk/__tests__/dev-command.spec.ts` | passed |
+| render 全量 | `pnpm --filter render test` | 20 文件 / 214 用例全绿 | 终端日志 | passed |
+| sdk 全量 + 类型 | `pnpm --filter fe-container-sdk test` + `typecheck` | 83 文件 / 312 用例全绿，TS 0 错误 | 终端日志 | passed |
+| compiler 相关 | `pnpm --filter compiler test` | 61 文件 / 409 用例全绿，A2 dev-host spec 10/10 | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+
+设计边界：P-006a 只完成内部 envelope、回传路径、宿主分发和失败回退闭环；L2 事务可执行，L3 需要 P-006 补“资源加载新 view → replaceModule → remountWithSnapshot”完整联动。A2 ws/reloadLevel 形状、dev-server/dev-reload/dev-proxy 未改。
 
 ### P-002（2026-09-08）
 

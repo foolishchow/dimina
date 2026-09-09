@@ -22,6 +22,8 @@ export class Bridge {
 	opts: BridgeOptions & { jscore: JSCore }
 	webview: WebView | null
 	jscore: JSCore
+	devCommandResultHandler?: (body: Record<string, unknown>) => void
+
 	parent: MiniApp | null
 	destroyed!: boolean
 	serviceResource!: boolean
@@ -76,7 +78,12 @@ export class Bridge {
 	 * @param {Record<string, unknown>} body 指令体
 	 * @returns {boolean} 是否送达（无 webview 或已销毁时 false）
 	 */
-	sendDevCommand(type: string, body: Record<string, unknown> = {}): boolean {
+	sendDevCommand(
+		type: string,
+		body: Record<string, unknown> = {},
+		onResult?: (body: Record<string, unknown>) => void,
+	): boolean {
+		if (onResult) this.devCommandResultHandler = onResult
 		if (this.destroyed || !this.webview) {
 			return false
 		}
@@ -201,7 +208,10 @@ export class Bridge {
 			}
 		}
 		else if (target === 'container') {
-			if (type === 'invokeAPI') {
+			if (type === 'hmr:result') {
+				this.devCommandResultHandler?.(body)
+			}
+			else if (type === 'invokeAPI') {
 				const { name, params } = body as { name: string, params?: Record<string, unknown> }
 				// parent 是 miniApp 对象；带上调用方 bridge，让 hideHomeButton 这类
 				// 作用于"调用页自身"的 API 能定位到正确的页面

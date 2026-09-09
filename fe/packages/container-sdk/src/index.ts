@@ -53,13 +53,13 @@ export function createContainer(options: CreateContainerOptions | Record<string,
 			 * dev-only（A3 HMR）：向栈顶小程序的当前页面渲染层转发 dev 指令。
 			 * 仅在 dmcc dev 场景由宿主页 ws 分发调用；无运行中实例时安全返回 false。
 			 */
-		sendDevCommand(type, body) {
+		sendDevCommand(type, body, onResult) {
 			const top = application.views[application.views.length - 1]
 			const bridge = top?.navigator.top
 			if (!bridge) {
 				return false
 			}
-			return bridge.sendDevCommand(type, body ?? {})
+			return bridge.sendDevCommand(type, body ?? {}, onResult)
 		},
 
 		registerExtModule(name, handler) {
