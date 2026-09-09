@@ -21,5 +21,6 @@
 
 | 任务 | 状态 | 日期 | 备注 |
 | --- | --- | --- | --- |
-| P-001 | 完成 | 2026-09-08 | target resolver/默认值/CLI 来源/非法 target 前置错误；2 用例绿 + 全量 62/411 绿；证据见 [validation](validation.md) |
-| P-002…P-007 | 未开始 | — | — |
+| P-001 | 完成 | 2026-09-08 | renderer 抽象（修订）：app.json/page.json renderer 字段解析、默认 webview、`DIMINA_INVALID_RENDERER` 前置校验，无 CLI/API 覆盖；6 用例绿 + 全量 62/415；证据见 [validation](validation.md) |
+| P-002 | 完成 | 2026-09-08 | renderer registry + webview 阶段级 adapter（runViewStage/runStyleStage）；9 用例绿 + 全量 63/418；证据见 [validation](validation.md) |
+| P-003…P-007 | 未开始 | — | — |

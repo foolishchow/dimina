@@ -50,3 +50,24 @@
 
 - target 校验位于 `runBuild` 顶部、lifecycle 创建前，满足 F-A4-003 的“pre-lifecycle、无目录副作用”顺序；非法 target 不会触发 `build:start`。
 - 未覆盖：view/style adapter 接线（P-002/P-003）、产物矩阵（P-005）、消融（P-007）。
+
+### P-002（2026-09-08）
+
+| Field | Actual value |
+| --- | --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `161a0f2d`（P-001 renderer 修订后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| registry 规格 | `vitest run __tests__/renderer-registry.spec.js` | 3/3：register/getRenderer、未注册 null、非法 name 拒绝 | `fe/packages/compiler/__tests__/renderer-registry.spec.js` | passed |
+| 契约实现 | `renderers.js`：registerRenderer/getRenderer + `_rendererRegistryForTest`（测试清理）；`index.js`：webviewRenderer 薄适配（runViewStage/runStyleStage 委托 runCompileInWorker），logic 保持 renderer-neutral；createStageTask 按 stage 选 adapter；A1 runCompileInWorker 内部协议不变 | — | 源码 diff | passed |
+| 真实构建冒烟 | `dist/bin/index.js build -c examples/miniprogram/air-battle --no-app-id-dir` | rc=0；main/app-config.json + logic.js 产物正常（view/style 经 adapter 路径） | 终端日志 + 产物树 | passed |
+| 全量回归 | `pnpm --filter compiler test` | 63 文件 / 418 用例全绿（含 registry 3 新用例；既有 415 无回落） | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 干净 | 终端日志 | passed |
+
+覆盖说明：
+
+- webview adapter 为纯委托（不复制编译逻辑）；既有 worker 仅被包装一次。
+- 未覆盖：产物逐字节一致性（P-005）、入口回归（P-006）、消融（P-007）。

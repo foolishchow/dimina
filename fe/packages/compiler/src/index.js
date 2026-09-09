@@ -6,7 +6,7 @@ import { Listr, PRESET_TIMER } from 'listr2'
 import { formatCompileProgress } from './common/compile-progress.js'
 import { DependencyGraph } from './common/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
-import { resolveProjectRenderers } from './common/renderers.js'
+import { getRenderer, registerRenderer, resolveProjectRenderers } from './common/renderers.js'
 import { createDist, publishToDist } from './common/publish.js'
 import { artCode, resetAssetCache } from './common/utils.js'
 import { workerPool } from './common/worker-pool.js'
@@ -18,6 +18,20 @@ let isPrinted = false
 const previousCompatibilityWarnings = new Map()
 const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
 const MAX_WARNING_PROJECTS = 32
+
+/**
+ * webview renderer 阶段级薄适配（A4 P-002）。
+ * 只包装既有 view/style worker 调用；logic 保持 renderer-neutral。
+ * runCompileInWorker 内部协议不变（A1 冻结契约）。
+ */
+const webviewRenderer = {
+	name: 'webview',
+	runViewStage: (ctx, task, workerOptions, lifecycle) =>
+		runCompileInWorker('view', ctx, task, workerOptions, lifecycle),
+	runStyleStage: (ctx, task, workerOptions, lifecycle) =>
+		runCompileInWorker('style', ctx, task, workerOptions, lifecycle),
+}
+registerRenderer(webviewRenderer)
 
 /**
  * 构建命令入口
@@ -61,7 +75,11 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 	// renderer 抽象（A4 P-001 修订）：校验项目声明的 renderer（app.json.renderer +
 	// 各 page.json.renderer），无 CLI/API 覆盖；当前仅 webview。在 lifecycle 前、
 	// 任何构建副作用之前失败（未知 renderer 不触发 build:start）。
-	resolveProjectRenderers(workPath)
+	const { appRenderer } = resolveProjectRenderers(workPath)
+	const activeRenderer = getRenderer(appRenderer)
+	if (!activeRenderer) {
+		throw new Error(`Renderer adapter not registered: ${appRenderer}`)
+	}
 	// build:start 载荷需可序列化（R-006）：剥离可能为实例的 dependencyGraph 与 lifecycle
 	const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, ...serializableOptions } = options
 	try {
@@ -141,7 +159,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 						const compileTasks = []
 
 						if (enabledStages.has('view') && !miniGame) {
-							compileTasks.push(createStageTask('view', '编译视图', lifecycle, { sourcemap }))
+							compileTasks.push(createStageTask('view', '编译视图', lifecycle, { sourcemap }, activeRenderer.name))
 						}
 						if (enabledStages.has('logic')) {
 							const sourcemapTargetPath = path.resolve(
@@ -165,7 +183,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 									...ctx.pages.mainPages,
 								],
 							}
-							compileTasks.push(createStageTask('style', '编译样式', lifecycle, { sourcemap, pages: stylePages }))
+							compileTasks.push(createStageTask('style', '编译样式', lifecycle, { sourcemap, pages: stylePages }, activeRenderer.name))
 						}
 
 						if (compileTasks.length > 0) {
@@ -216,7 +234,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
  * 包装单个编译阶段：触发 stage:before / stage:after / stage:error 事件。
  * 并发语义与进度 UI 与原实现一致（rendererOptions、worker 池均不变）。
  */
-function createStageTask(stage, title, lifecycle, workerOptions = {}) {
+function createStageTask(stage, title, lifecycle, workerOptions = {}, renderer = 'webview') {
 	return {
 		title,
 		rendererOptions: { outputBar: true, persistentOutput: false },
@@ -229,8 +247,16 @@ function createStageTask(stage, title, lifecycle, workerOptions = {}) {
 			})
 			const warningsBefore = new Set(ctx.compatibilityWarnings)
 			const startedAt = Date.now()
+			const runStage = stage === 'view' || stage === 'style'
+				? getRenderer(renderer)?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
+				: null
 			try {
-				await runCompileInWorker(stage, ctx, task, workerOptions, lifecycle)
+				if (runStage) {
+					await runStage(ctx, task, workerOptions, lifecycle)
+				}
+				else {
+					await runCompileInWorker(stage, ctx, task, workerOptions, lifecycle)
+				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,
 					compatibilityWarnings: [...ctx.compatibilityWarnings].filter(warning =>

@@ -18,6 +18,23 @@ const SUPPORTED_RENDERERS = Object.freeze([DEFAULT_RENDERER])
 const RENDERER_FIELD = 'renderer'
 const APP_CONFIG_FILE = 'app.json'
 
+/** renderer 注册表：adapter 由宿主（index.js）注入，避免本模块反向依赖编译编排。 */
+const rendererRegistry = new Map()
+
+/** 内部注册表（测试清理用；非公开契约）。 */
+export const _rendererRegistryForTest = rendererRegistry
+
+export function registerRenderer(renderer) {
+	if (!renderer || typeof renderer.name !== 'string' || !renderer.name) {
+		throw new TypeError('registerRenderer: renderer must have a non-empty name')
+	}
+	rendererRegistry.set(renderer.name, renderer)
+}
+
+export function getRenderer(name) {
+	return rendererRegistry.get(name) ?? null
+}
+
 export class InvalidRendererError extends TypeError {
 	constructor(renderer, context = '') {
 		const scope = context ? ` in ${context}` : ''
