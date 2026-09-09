@@ -32,6 +32,15 @@
 - A2 RFC §4.5 冻结 ws reload 载荷与 `reloadLevel`；A3 只消费，不修改消息形状、buildId 或 dev server 合成逻辑。
 - L3 假设 1 已条件通过：setupData 作为快照源可行；module replacement 与页面级 remount 是待验证新增能力。
 
+## Data function references（WXS）
+
+- `fe/packages/render/src/core/data-function.js`：setData 数据可含 **dataFunction proxy 引用**（引用 id 映射，模板内可调用）；快照若用 JSON/structuredClone 序列化会丢失函数导致模板函数失效——快照必须是 deepToRaw 式深拷贝并保留函数引用（见 technical-design §4）。
+
+## 生产 dist 与 dev 标志（F-A1 证据）
+
+- A2.0 定案：dmcc dev 服务 container-sdk **生产构建** dist（`sdk/pageFrame.js`）；vite build（mode=production）中 `import.meta.env.DEV`（pageFrame.ts:6 等）已固化为 `false`。
+- 结论：L2/L3 开关不能依赖构建期条件，必须是运行时 opt-in（宿主页 ws 就绪后经 bridge 注入；原生/生产无该消息类型天然隔离）。
+
 ## Audit conclusion
 
 L2 的 CSS 替换具备清晰的 `<link>` 资源切换落点；L3 的数据快照具备现成 render-side 状态源，但 module cache replacement 和 page-scoped remount 均不存在，必须先以原型验证事务边界和生命周期清理。任何原型失败都应落到 A2 L1，而不是修改原生容器或 service 协议。

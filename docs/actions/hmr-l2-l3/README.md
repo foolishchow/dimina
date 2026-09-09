@@ -38,9 +38,11 @@ render 代码审计已确认：`runtime.setupData` 已按 pageId 累积 setData 
 - `fe/packages/render/src/core/loader.js`：view module 替换/版本失效机制；
 - `fe/packages/render/src/core/runtime.js`：页面级 remount、snapshot capture/replay、生命周期保护；
 - `fe/packages/render/src/core/message.js` 或等价 Web render 消息入口：接收 dev-only HMR 指令；
-- `fe/packages/container-sdk/src/`：Web 容器 dev-only HMR 协调与 feature flag；
-- `fe/packages/render/__tests__/`、`fe/packages/container-sdk/__tests__/`：契约/生命周期测试；
-- A2 宿主页执行端的最小 dev-only 接入（如确有必要）。
+- `fe/packages/container-sdk/src/`：dev-only `sendDevCommand` API 与 bridge 转发、运行时 feature flag；
+- `fe/packages/compiler/src/common/dev-host.js`：宿主页 ws 分发 js 升级 L2/L3 执行端（**F-A5 定案**：该文件是 dev server 组成部分而非编译产物、非 ws 协议形状，允许修改；分发逻辑仅限调用 `container.sendDevCommand`）；
+- `fe/packages/render/__tests__/`、`fe/packages/container-sdk/__tests__/`：契约/生命周期测试。
+
+继续禁止：`fe/packages/compiler/src/common/dev-server.js`、`dev-reload.js`、`dev-proxy.js` 的任何修改，以及 §4.5 ws 消息形状与编译产物的任何变化。
 
 **必须不改**：
 
@@ -70,7 +72,11 @@ render 代码审计已确认：`runtime.setupData` 已按 pageId 累积 setData 
 
 - 当前为 `draft`，尚未完成 Readiness Review。
 - A2 已完成，RFC 假设 1 已条件通过；无全局前置阻塞。
-- **实施前需由 Readiness Review 冻结**：feature flag 名称/默认值、HMR 指令在 Web 容器内部的承载边界、页面级 remount 的事务提交点、L3 失败时的精确 L1 fallback。
+- 已冻结（2026-09-08 Readiness 评审修复 F-A1..F-A6）：
+  - **feature flag = 运行时 opt-in**（生产 dist 中 `import.meta.env.DEV` 固化为 false，构建期条件不可用；宿主页 ws 就绪后经 bridge 注入标志，原生/生产无该消息类型天然隔离，见 technical-design §1）；
+  - **HMR 指令通道 = 宿主页 ws → `container.sendDevCommand` → bridge(target:'render') → `message.on('hmr')`（technical-design §1）；
+  - L2 style registry 区分 `scope:'app'|'page'`（§2）；快照 = deepToRaw 式深拷贝保留 dataFunction 引用（§4）；
+  - `dev-host.js` 允许修改边界已明确（Scope）；页面级 remount 事务提交点与 L1 fallback 细节在 technical-design §4/§5，实施中原型验证。
 
 ## Closure conditions
 

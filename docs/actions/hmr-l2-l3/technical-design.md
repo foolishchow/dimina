@@ -1,29 +1,40 @@
 # Technical Design — hmr-l2-l3
 
-## 1. Boundary
+## 1. Boundary and HMR command channel
 
 ```text
 DMCC compiler / dev server / ws protocol  (unchanged, container-neutral)
-                         │ reloadLevel L2/L3
+                         │ reloadLevel L2/L3 (ws, main thread)
                          ▼
-Web host (container-sdk) ── Web render (Vue/runtime)
-                         │
-                         ├─ L2: stylesheet replacement
-                         └─ L3: module replacement → page remount → data replay
+Web host page (dev-host.js)          [main thread]
+   └─ container.sendDevCommand({ type:'hmr', level, affectedPages, buildId })
+        │ container-sdk bridge (target:'render')   ── F-A2 定案
+        ▼
+Web render runtime (pageFrame iframe) [Vue runtime]
+   ├─ L2: stylesheet replacement (scoped app/page)
+   └─ L3: module replacement → page remount → data replay
 
-Native containers / bridge / production path: untouched
+Native containers / bridge contract / production path: untouched
 ```
 
-Feature flag is off by default outside `dmcc dev` and must not alter the normal Web path when disabled.
+**Feature flag（F-A1 定案，运行时机制）**：dmcc dev 消费的是 container-sdk 的**生产构建 dist**（A2.0），`import.meta.env.DEV` 在该 dist 中已固化为 `false`，构建期条件不可用。因此 L2/L3 的开关是**运行时 opt-in**：
+
+1. 宿主页 ws 订阅成功后，经 bridge 向 render 注入 dev 标志（如 `enableDevHmr(buildId)` 消息）；
+2. render 侧 HMR 事务仅在标志开启**且**收到显式 `hmr` 指令时可达；
+3. 原生四端与生产路径没有该消息类型与标志注入，天然隔离——不需要也不得依赖构建期 tree-shake 来移除能力。
+
+**HMR 指令通道（F-A2 定案）**：宿主页 ws client 收到 `reloadLevel ∈ {L2, L3}` 的 reload 消息后，调用 container-sdk 新增的 dev-only API `container.sendDevCommand({ type:'hmr', level, affectedPages, changedStages, buildId })`；container-sdk 经现有 bridge（`message.invoke({ target: 'render' })` 语义）转发到 pageFrame iframe；render `message.on('hmr')` 驱动 §2/§4 事务。该 API 仅在宿主页持有 ws 连接时被调用（即仅 dmcc dev 场景），不进入任何原生或生产调用图。
+
+Runtime flag stays off by default; no flag injection path exists outside `dmcc dev`.
 
 ## 2. L2 CSS hot swap
 
-The current loader creates `<link rel="stylesheet">` for app/page CSS. A3 adds a Web dev-only style registry keyed by `{ appId, pagePath, buildId }`:
+The current loader creates `<link rel="stylesheet">` for both the global `app.css` and per-page CSS (`loader.js:21-23`). A3 adds a Web dev-only style registry keyed by `{ scope: 'app' | 'page', appId, pagePath?, buildId }`（F-A3 定案：`app.wxss` 变更影响所有页面，走 `scope:'app'` 替换；页面样式走 `scope:'page'`）:
 
-1. receive a successful style reload for the target page;
+1. receive a successful style reload with its scope and target;
 2. load the new CSS URL with a cache-busting buildId;
 3. wait for the new stylesheet to load;
-4. atomically remove/disable the prior target stylesheet;
+4. atomically remove/disable the prior stylesheet of the same scope+target;
 5. retain the prior stylesheet if loading fails.
 
 The operation must not call service restart, `firstRender`, page remount, or logic reload. If the browser cannot safely replace the stylesheet, report capability failure and use A2's L1 fallback policy only where the host explicitly chooses it; the normal L2 failure keeps the old CSS.
@@ -50,7 +61,7 @@ Normal `loadResource`/`createModule` behavior remains unchanged when the feature
 
 Current facts: `runtime.setupData` maps `pageId` to reactive data; `updateModule` applies full or path-based setData updates; `firstRender` only remounts the whole app. A3 introduces a page-scoped transaction:
 
-1. identify affected `pageId`/module path and capture a deep, serializable snapshot from the render-side data state;
+1. identify affected `pageId`/module path and capture a deep **raw copy** of the render-side data state（F-A4 定案：快照 = `deepToRaw` 式深拷贝，**保留函数引用与 WXS dataFunction proxy 引用**（见 `render/src/core/data-function.js` 的引用 id 映射），**不是 JSON/structuredClone 序列化**——序列化会丢失 dataFunction 导致模板函数失效）；
 2. freeze the target page's incoming update queue and retain updates arriving during the transaction;
 3. replace the view module in the dev-only loader registry;
 4. unmount only the target page subtree, preserving app/service and unrelated page instances;
@@ -58,7 +69,7 @@ Current facts: `runtime.setupData` maps `pageId` to reactive data; `updateModule
 6. replay the captured snapshot, then replay queued updates in order;
 7. commit the new page only after render and replay complete; otherwise rollback/fallback L1.
 
-The snapshot includes public setData state, not arbitrary Vue internals. `deepToRaw`/equivalent conversion must avoid retaining reactive proxies, DOM nodes, functions, canvas handles, or circular runtime objects.
+The snapshot includes public setData state, not arbitrary Vue internals. The raw-copy conversion must strip reactive proxies, DOM nodes, and canvas handles, and handle circular references; function references are intentionally preserved where they are legitimate setData values（dataFunction proxies 经引用 id 机制保持映射，回放后仍可被模板调用）。
 
 ## 5. Lifecycle and failure semantics
 

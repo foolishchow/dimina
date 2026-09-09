@@ -9,7 +9,7 @@
 | render 规格 | `cd fe && pnpm --filter render test` | 退出码 + 用例数 |
 | container-sdk 规格 | `cd fe && pnpm --filter fe-container-sdk test` | 退出码 + 用例数 |
 | L2/L3 契约 | 新增 render/container-sdk vitest specs | 测试日志 + 场景矩阵 |
-| flag off 回归 | 相同输入分别开启/关闭 dev-only flag | 产物/行为 diff |
+| flag 隔离回归 | 同一生产 dist：无 bridge 注入/无 hmr 指令时行为与现状一致（运行时 flag 未开启）；对照指令注入后事务可达 | 行为对照日志 + source diff |
 | L2 smoke | A2 dev + style 修改 → CSS 更新且实例不重启 | 浏览器/Web 容器日志 |
 | L3 smoke | A2 dev + view 修改 → module replace/remount/replay | 浏览器/Web 容器日志 |
 | fallback | 注入 module/replay/style 失败 → 旧实例保持 + L1 | 失败日志 + reload 观察 |

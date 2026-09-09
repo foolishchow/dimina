@@ -2,11 +2,11 @@
 
 ## R-001（MUST）Web 容器边界严格隔离
 
-所有 HMR 生效逻辑仅运行于 `fe/packages/render` + `fe/packages/container-sdk` 的 Web 容器 dev-only 路径，并由 feature flag 控制。原生四端、bridge 契约、生产路径和 DMCC 产物不变。
+所有 HMR 生效逻辑仅运行于 `fe/packages/render` + `fe/packages/container-sdk`（及宿主页 `dev-host.js` 的 ws 分发 js）的 Web 容器 dev-only 路径，并由**运行时 feature flag** 控制（生产 dist 中构建期条件不可用，见 technical-design §1）。原生四端、bridge 契约、生产路径和 DMCC 产物不变。
 
 ## R-002（MUST）L2 CSS hot swap
 
-仅 style 阶段成功构建后，Web 容器更新目标页面 CSS；不重启 service、不重建页面实例、不触发 L1 relaunch。样式编译失败时保留旧 CSS 和运行实例。
+仅 style 阶段成功构建后，Web 容器更新目标样式：页面级 CSS（`scope:'page'`）与 app 全局样式（`app.wxss` → `app.css`，`scope:'app'`，影响所有页面）均需支持；不重启 service、不重建页面实例、不触发 L1 relaunch。样式编译/加载失败时保留旧 CSS 和运行实例。
 
 ## R-003（MUST）L3 view module replacement
 

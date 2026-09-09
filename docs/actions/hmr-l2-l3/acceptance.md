@@ -2,8 +2,8 @@
 
 | ID | Requirement | Observable condition | Planned evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-001 | R-001 | HMR 代码只在 Web 容器 dev-only flag 开启时可达；flag off、生产构建、原生容器路径无行为变化 | flag guard spec + source diff | pending |
-| A-002 | R-002 | style reload 后目标 CSS 更新；service/page instance 不重启；CSS 加载失败保留旧 CSS | render/container-sdk integration spec | pending |
+| A-001 | R-001 | HMR 代码只在 Web 容器运行时 flag 开启后可达（bridge 注入 + `hmr` 指令驱动；生产 dist 无构建期条件依赖）；无注入/无指令、生产构建、原生容器路径无行为变化 | flag guard spec + source diff | pending |
+| A-002 | R-002 | style reload 后目标 CSS 更新：页面级（scope:page）与 app 全局（app.wxss→app.css，scope:app）均生效；service/page instance 不重启；CSS 加载失败保留旧 CSS | render/container-sdk integration spec（含两种 scope） | pending |
 | A-003 | R-003 | view reload 后目标 module 被替换并可渲染新模板；旧 module 不污染新结果；stale buildId 被拒 | loader contract spec | pending |
 | A-004 | R-004 | 仅目标页面 remount；service 与其他页面实例保持；不调用整 app firstRender（除 fallback） | page lifecycle spec | pending |
 | A-005 | R-005 | remount 后恢复最近 setData 快照；service 不重发数据；交易期间更新按序回放 | snapshot replay spec | pending |
