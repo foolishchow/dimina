@@ -1,12 +1,12 @@
 # Requirements — render-target-abstraction
 
-## R-001（MUST）显式 target 解析
+## R-001（MUST）renderer 字段解析
 
-compiler 的 target 由项目声明优先：默认读取 `app.json.renderer`（对齐微信 renderer 字段），`options.target` / CLI `--target` 显式值覆盖；两者皆缺省时默认 `webview`，显式 `webview` 与缺省语义一致。未知 target 在 lifecycle 与任何构建副作用前给出明确结构化错误，不静默回退；页面级 `page.json` renderer 覆盖首版不支持；watch 增量重建继承初始解析结果。
+compiler 识别项目声明的 renderer：`app.json.renderer`（全局）与各页面 `page.json.renderer`（页面级字段，对齐微信模型）；两者缺省均为 `webview`。当前仅支持 `webview`：未知 renderer（含微信 `skyline`、未来 lynx）在 lifecycle 与任何构建副作用前以结构化 `InvalidRendererError`（code `DIMINA_INVALID_RENDERER`）失败，不静默回退，不混编；页面级混合 renderer 留待未来。
 
-## R-002（MUST）view/style adapter 边界
+## R-002（MUST）view/style renderer 边界
 
-view 与 style 编译通过**阶段级** target adapter/接口调用。首个 `webview` adapter 只包装现有 view/style worker（保留阶段输入、worker payload、文件写入与错误语义），不假设单模块纯函数，也不复制或改变编译语义。
+view 与 style 编译通过**阶段级** renderer adapter/接口调用。首个 `webview` renderer 只包装现有 view/style worker（保留阶段输入、worker payload、文件写入与错误语义），不假设单模块纯函数，也不复制或改变编译语义。
 
 ## R-003（MUST）target-neutral 核心
 

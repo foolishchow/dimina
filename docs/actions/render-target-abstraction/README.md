@@ -14,7 +14,7 @@
 
 ## Goal
 
-引入显式 target 抽象，首个实现仅为 `webview`，并证明启用 target 参数不会改变现有 WebView 产物与行为。为未来 Lynx adapter 预留接入点，但本 Action 不实现 Lynx。
+引入 renderer 抽象，识别项目声明的 `renderer`（`app.json` 全局 + `page.json` 页面级，对齐微信模型），首个实现仅为 `webview`，且不暴露 renderer 选择能力。为未来 renderer adapter 预留接入点，但不实现 Lynx。
 
 ## Non-goals
 
@@ -26,9 +26,8 @@
 
 ## Scope
 
-- `fe/packages/compiler/src/`：target 类型/解析、view/style 编译调用边界；
-- `fe/packages/compiler/__tests__/`：target 选择、默认值、非法值、产物回归规格；
-- 必要时更新 A1 lifecycle `stage` payload 的内部 target 字段（不得改变既有默认产物）；
+- `fe/packages/compiler/src/`：renderer 声明解析、view/style 编译调用边界；
+- `fe/packages/compiler/__tests__/`：renderer 字段解析、默认值、未知值、产物回归规格；
 - 相关文档与构建配置。
 
 明确不改：`fe/packages/render`、`fe/packages/container-sdk` 的运行时行为；原生容器；A2/A3 dev server、reloadLevel 与 ws 消息形状。
@@ -42,10 +41,10 @@
 
 ## Deliverables
 
-- `webview` target 的显式声明、默认解析与非法 target 诊断；
-- view/style 编译 target adapter/接口（首个 adapter 保持现有实现）；
-- target-neutral 的 logic/service/bridge/modDefine 边界测试；
-- WebView target 默认与显式选择的产物一致性证据（默认、sourcemap、全示例）；
+- `webview` renderer 的声明解析（app + page 字段）与未知 renderer 诊断；
+- view/style 编译 renderer adapter/接口（首个 adapter 保持现有实现）；
+- renderer-neutral 的 logic/service/bridge/modDefine 边界测试；
+- 现有 WebView 产物一致的回归证据（默认构建、sourcemap、全示例）；
 - future adapter 接口文档，不包含 Lynx 实现。
 
 ## Readiness gaps

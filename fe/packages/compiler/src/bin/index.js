@@ -17,7 +17,6 @@ program
 	.option('-w, --watch', '启用监听文件改动')
 	.option('--no-app-id-dir', '产物根目录不包含appId')
 	.option('--sourcemap', '生成 sourcemap 文件用于调试')
-	.option('--target <name>', '编译 target（缺省 webview）')
 	.action(async (options) => {
 		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 		const targetPath = options.targetPath ? path.resolve(options.targetPath) : process.cwd()
@@ -26,10 +25,7 @@ program
 
 		let buildResult
 		try {
-			buildResult = await build(targetPath, workPath, useAppIdDir, {
-				sourcemap,
-				target: options.target,
-			})
+			buildResult = await build(targetPath, workPath, useAppIdDir, { sourcemap })
 		}
 		catch (error) {
 			throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
@@ -56,7 +52,6 @@ program
 					if (plan.skip) return
 					const result = await build(targetPath, workPath, useAppIdDir, {
 						sourcemap,
-						target: options.target,
 						...plan.options,
 					})
 					buildResult = result

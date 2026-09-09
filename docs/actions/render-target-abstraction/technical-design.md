@@ -21,20 +21,17 @@ logic/service/bridge/runtime/HMR protocol: target-neutral
 future Lynx adapter: reserved only, outside A4
 ```
 
-## 2. Target contract
+## 2. renderer contract（A4 P-001 修订）
 
-**参数来源（F-A4-001 修订，方案 A：对齐微信 `renderer`）**：target 由**项目声明优先、显式覆盖其次**确定。
+**来源（方案 A，对齐微信 renderer 配置模型）**：A4 **不暴露 renderer 选择能力**，无 CLI/API 覆盖。
 
-1. 若 `options.target` / CLI `--target` 显式提供，以显式值为准；
-2. 否则读取项目声明 `app.json.renderer`（对齐微信 app.json `renderer` 字段语义）；
-3. 两者皆缺省时使用 `webview`。
+1. 识别 `app.json.renderer`（全局声明）；
+2. 识别各页面 `page.json.renderer`（页面级字段，微信模型）；
+3. 两者缺省均为 `webview`；
+4. 当前仅支持 `webview`——未知 renderer（微信 `skyline`、未来 lynx）在 lifecycle 前以 `InvalidRendererError`（code `DIMINA_INVALID_RENDERER`，含声明上下文 app.json/page.json）失败，不静默当作 webview；
+5. 页面级混合 renderer 编译留待未来（届时需运行时/容器按页识别与 A2/A3 dev/HMR 扩展）。
 
-- `readAppRenderer(workPath)` 在 build 入口、lifecycle 前轻量读取 app.json，不经 storeInfo/env；
-- 小游戏（game.json）无 renderer 概念，缺省 `webview`；
-- 页面级 `page.json` `renderer` 覆盖**首版不支持**（编译期产物分叉不允许同包混合 target，留待后续）；
-- watch 增量沿用初始解析结果；`dmcc dev` 不再强制 webview，而是尊重项目声明（若项目声明未来 target，则明确失败而非静默覆盖）。
-
-A4 首版最小接口是**阶段级薄适配器**（F-A4-002 定案），匹配当前副作用型 worker API，而非虚构单模块 `{ code, map }` 接口：
+A4 首版最小接口是**阶段级薄适配器**（匹配当前副作用型 worker API）：
 
 ```js
 {
@@ -44,7 +41,7 @@ A4 首版最小接口是**阶段级薄适配器**（F-A4-002 定案），匹配�
 }
 ```
 
-其中 `webview` adapter 只包装现有 `view-compiler` / `style-compiler` worker 调用，保留 `pages/root/progress/sourcemap` 等阶段输入、现有 worker payload、目标目录写入和错误语义；adapter 返回 Promise，不接管发布。
+其中 `webview` renderer 只包装现有 `view-compiler` / `style-compiler` worker 调用，保留 `pages/root/progress/sourcemap` 等阶段输入、现有 worker payload、目标目录写入和错误语义；adapter 返回 Promise，不接管发布。
 
 - resolver 只接受已注册 target；缺省为 `webview`；未知值抛结构化错误；
 - adapter 接收完整阶段输入，不进行逐模块跨层回调；
