@@ -28,4 +28,5 @@
 | P-002 | 完成 | 2026-09-08 | L2 CSS hot swap（registry + cache-bust + 事务）；8 用例绿；证据见 [validation](validation.md) |
 | P-003 | 完成 | 2026-09-08 | L3 loader replaceModule 事务原型；6 用例绿；证据见 [validation](validation.md) |
 | P-004 | 完成 | 2026-09-08 | 页面级 remount 原型：root key 事务，不调用 firstRender；2 用例绿；证据见 [validation](validation.md) |
-| P-005…P-007 | 未开始 | — | — |
+| P-005 | 完成 | 2026-09-08 | setupData 快照捕获/回放 + remount update queue；6 用例绿；证据见 [validation](validation.md) |
+| P-006…P-007 | 未开始 | — | — |

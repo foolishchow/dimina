@@ -629,6 +629,7 @@ class Runtime {
 		this.pageId = null
 		this.instance = new Map()
 		this.pageRenderVersion = ref(0)
+		this.hmrRemountQueues = new Map()
 		this.moduleIds = new WeakMap()
 		this.moduleRootIds = new WeakMap()
 		this.setupData = new Map()
@@ -1416,7 +1417,63 @@ class Runtime {
 		return { remounted: true }
 	}
 
+	/**
+	 * 捕获 render 侧页面公开 data 快照。使用 deepToRaw 去除 Vue reactive 代理，
+	 * 再以自定义克隆保留函数/dataFunction 引用与循环引用。
+	 */
+	capturePageSnapshot(pageId) {
+		const data = this.setupData.get(pageId)
+		return data ? cloneSnapshot(deepToRaw(data)) : null
+	}
+
+	/** 将快照回放到页面 data；不触碰 service、不触发 firstRender。 */
+	replayPageSnapshot(pageId, snapshot) {
+		const data = this.setupData.get(pageId)
+		if (!data || !snapshot || typeof snapshot !== 'object') return false
+		for (const key of Object.keys(data)) delete data[key]
+		Object.assign(data, snapshot)
+		return true
+	}
+
+	beginHmrRemount(pageId) {
+		const queue = []
+		this.hmrRemountQueues.set(pageId, queue)
+		return queue
+	}
+
+	endHmrRemount(pageId) {
+		const queue = this.hmrRemountQueues.get(pageId) || []
+		this.hmrRemountQueues.delete(pageId)
+		for (const update of queue) this.updateModule(update)
+	}
+
+	/** P-005：捕获、页面 remount、Vue flush、快照回放、队列回放。 */
+	async remountPageWithSnapshot(pageId) {
+		const snapshot = this.capturePageSnapshot(pageId)
+		this.beginHmrRemount(pageId)
+		const result = this.remountPage(pageId)
+		if (!result.remounted) {
+			this.hmrRemountQueues.delete(pageId)
+			return result
+		}
+		try {
+			await nextTick()
+			this.replayPageSnapshot(pageId, snapshot)
+			this.endHmrRemount(pageId)
+			return { remounted: true, replayed: snapshot !== null }
+		}
+		catch (error) {
+			this.hmrRemountQueues.delete(pageId)
+			throw error
+		}
+	}
+
 	updateModule(opts) {
+		const queue = this.hmrRemountQueues.get(opts?.moduleId)
+		if (queue) {
+			queue.push({ ...opts, data: opts.data ? cloneSnapshot(deepToRaw(opts.data)) : opts.data })
+			return
+		}
 		const { moduleId, data, changes = [] } = opts
 		const setupData = this.setupData.get(moduleId)
 
@@ -3351,6 +3408,24 @@ class Runtime {
 		observer?.disconnect()
 		this.performanceObservers.delete(observerId)
 	}
+}
+
+function cloneSnapshot(value, seen = new WeakMap()) {
+	if (value === null || typeof value !== 'object') return value
+	if (typeof value === 'function') return value
+	if (seen.has(value)) return seen.get(value)
+	if (Array.isArray(value)) {
+		const clone = []
+		seen.set(value, clone)
+		value.forEach(item => clone.push(cloneSnapshot(item, seen)))
+		return clone
+	}
+	const clone = {}
+	seen.set(value, clone)
+	for (const [key, item] of Object.entries(value)) {
+		clone[key] = cloneSnapshot(item, seen)
+	}
+	return clone
 }
 
 export default new Runtime()

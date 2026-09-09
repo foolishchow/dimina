@@ -94,6 +94,26 @@
 - P-003 只交付 loader module replacement 事务；页面级 remount、快照回放、service 保留仍分别属于 P-004/P-005，未提前宣称 L3 完成。
 - `ContainerInstance.sendDevCommand` 已由 P-001 接通，但 A3 宿主页实际调用与 render `runtime.handleHmr` 接入留待 P-006。
 
+### P-005（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `85aa8835`（P-004 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| remount 事务规格 | `pnpm --filter render exec vitest run __tests__/hmr-remount.spec.js` | 6/6：deep snapshot、dataFunction/function identity、循环引用、快照回放不触碰 firstRender、remount 期间 updateModule queue 有序回放、未挂载/非当前页安全拒绝 | `fe/packages/render/__tests__/hmr-remount.spec.js` | passed |
+| render 全量 | `pnpm --filter render test` | 20 文件 / 214 用例全绿（既有 210 无回落） | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 契约实现 | `runtime.capturePageSnapshot` 使用 `deepToRaw` + `cloneSnapshot`（保函数/dataFunction 引用、处理循环）；`replayPageSnapshot` 写入新 data；`beginHmrRemount` 先建队列再递增 root key；`endHmrRemount` 按序重放；事务异常清理 queue | — | `render/src/core/runtime.js` + `hmr-remount.spec.js` | passed |
+
+覆盖说明：
+
+- P-005 完成数据层与队列时序，但真实 Vue remount 后 setupData 新实例的自动回放、渲染层 update queue 与 module replacement 联动仍需浏览器/运行时集成验证；这些交付在 P-006/A-003~A-007 中不能以单元测试替代。
+- 由于 `dataFunction` 是函数引用而非可 JSON 序列化值，快照明确采用 raw deep-copy，不使用 JSON/structuredClone。
+
 ### P-004（2026-09-08）
 
 | Field | Actual value |
