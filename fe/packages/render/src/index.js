@@ -1,6 +1,7 @@
 import './polyfills'
 import { callback } from '@dimina/common'
 import env from './core/env'
+import { createHmrState, enableDevHmr, handleHmrCommand } from './core/hmr'
 import loader from './core/loader'
 import message from './core/message'
 import runtime from './core/runtime'
@@ -17,6 +18,23 @@ class Render {
 		window.__callback = callback
 
 		this.init()
+		this.initHmr()
+	}
+
+	initHmr() {
+		// dev-only HMR（A3）：运行时 flag 由宿主页 ws 就绪后经 bridge 注入；
+		// 原生/生产路径无该消息类型，天然隔离（F-A1 定案）。
+		this.hmrState = createHmrState()
+		this.message.on('enableDevHmr', (body) => {
+			enableDevHmr(this.hmrState, body)
+		})
+		this.message.on('hmr', (body) => {
+			const result = handleHmrCommand(this.hmrState, body)
+			if (result.accepted) {
+				// L2 CSS / L3 remount 事务在后续任务接入（P-002+）
+				runtime.handleHmr?.(result.payload)
+			}
+		})
 	}
 
 	init() {

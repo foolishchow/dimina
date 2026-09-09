@@ -1,7 +1,7 @@
 # Web Container HMR L2/L3（A3）
 
 - Action: `hmr-l2-l3`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审 pass；F-A1..F-A6 + F-B1 已清）
 - Status authority: [Action Status](../STATUS.md)

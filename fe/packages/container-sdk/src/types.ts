@@ -199,6 +199,11 @@ export interface ContainerInstance {
 	registerApi: (name: string, handler: MiniAppApiHandler) => void
 	/** 可选注入根视图（宿主自定义首页，如应用列表页） */
 	setRootView: (view: ContainerView) => void
+	/**
+	 * dev-only（A3 HMR）：向栈顶小程序的当前页面渲染层转发 dev 指令。
+	 * 仅在 dmcc dev 场景由宿主页 ws 分发调用；无运行中实例时返回 false。
+	 */
+	sendDevCommand: (type: string, body?: Record<string, unknown>) => boolean
 }
 
 /**

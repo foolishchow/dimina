@@ -27,3 +27,27 @@
 - Web 容器边界、feature flag、原生/生产隔离均有证据；
 - 协议与架构发现回写 RFC §4.2/§7；
 - 无未记录的未覆盖区域。
+
+## 实际执行记录
+
+### P-001（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `ecdf3576`（promote 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom（sdk 测试） |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| render 新增规格 | `pnpm --filter render exec vitest run __tests__/hmr.spec.js` | 11/11（flag 关闭拒绝/开启接受/envelope 四类校验/stale 单调水位/乱序去重/enable 幂等） | `fe/packages/render/__tests__/hmr.spec.js` | passed |
+| sdk 新增规格 | `pnpm --filter fe-container-sdk exec vitest run __tests__/dev-command.spec.ts` | 4/4（target:render 转发/默认体/无 webview false/destroyed false） | `fe/packages/container-sdk/__tests__/dev-command.spec.ts` | passed |
+| render 全量 | `pnpm --filter render test` | 17 文件 / 194 用例全绿（既有无回落） | 终端日志 | passed |
+| sdk 全量 + 类型 | `pnpm --filter fe-container-sdk test` / `typecheck` | 83 文件 / 311 用例全绿；TS 0 错误（首轮两处类型缺口已修：ContainerInstance 接口声明 + spec 构造） | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警（首轮 JSDoc @returns 警告已修） | 终端日志 | passed |
+| 契约实现 | render：`src/core/hmr.js`（createHmrState/enableDevHmr/handleHmrCommand）+ `index.js` 接线（message.on enableDevHmr/hmr，accepted 后调 `runtime.handleHmr?.` 预留接入点）；sdk：`Bridge.sendDevCommand`（默认体 {}、destroyed/无 webview 返回 false）+ `ContainerInstance.sendDevCommand`（views 栈顶 → navigator.top）+ types 接口 | — | 源码 diff 5 文件 | passed |
+
+覆盖说明：
+
+- flag 关闭拒绝 + 无消息类型注入即隔离 = A-001 的守卫层证据（宿主页接入在 P-006）。
+- 未覆盖：L2/L3 事务本体（P-002..P-005）；ContainerInstance.sendDevCommand 的端到端（jsdom 无真实 iframe，逻辑为薄封装，P-006 宿主接入冒烟覆盖）。

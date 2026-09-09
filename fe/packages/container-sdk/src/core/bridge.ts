@@ -70,6 +70,21 @@ export class Bridge {
 	}
 
 	/**
+	 * dev-only（A3 HMR）：宿主页向渲染层转发 dev 指令（如 hmr/enableDevHmr）。
+	 * 仅在 dmcc dev 场景由宿主页 ws 分发调用；不进入原生/生产调用图。
+	 * @param {string} type render message.on 监听的消息类型
+	 * @param {Record<string, unknown>} body 指令体
+	 * @returns {boolean} 是否送达（无 webview 或已销毁时 false）
+	 */
+	sendDevCommand(type: string, body: Record<string, unknown> = {}): boolean {
+		if (this.destroyed || !this.webview) {
+			return false
+		}
+		this.webview.postMessage({ type, body, target: 'render' })
+		return true
+	}
+
+	/**
 	 * 消息中转
 	 * @param {*} msg
 	 */
