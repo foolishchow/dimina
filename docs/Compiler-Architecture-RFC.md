@@ -151,6 +151,18 @@ dmcc dev [workPath]
       └─ reloadLevel 由 dmcc dev 侧按 §4.2 合成规则计算，宿主页只负责执行
 ```
 
+**dev/HMR 生效边界（定稿，2026-09-08）**：`dmcc dev` 的预览与热更新**只在 Web 容器生效**。三层分离：
+
+| 层 | 容器相关性 | 说明 |
+| --- | --- | --- |
+| 编译 + 产物 | 容器无关 | 同一份 DMCC 产物四端共用（Harmony/Web 等），D6 冻结；dev server 只 watch + 增量编译 |
+| dev server 编排（静态服务/ws/代理/级别合成） | 容器无关 | 只编译 + 推送 `reloadLevel`，宿主只负责执行（§4.5） |
+| **预览宿主 + HMR 生效端** | **Web 容器专属** | 内置宿主页 = `createContainer`（container-sdk）；L0 整页重启、L1 relaunch（`container.openApp(destroy)`）、L2/L3（`fe/packages/render` + container-sdk）全在 Web 容器/WebView + Vue render 内 |
+
+- 依据：container-sdk =「Web 端小程序容器运行时 SDK」；render =「渲染线程 SDK」；§1.2 仅在 Web 容器（`render` + `container-sdk`）新增 dev-only 扩展能力（L2/L3 所需），**不改变四端原生容器行为**（Harmony QuickJS/WebView 等走同一产物但无 HMR）。
+- 含义：L2/L3 的实现落点被此边界锁死（`render` + `container-sdk` dev-only）；ws 协议（§4.5）是容器无关协议契约，未来 lynx target（A4/C1）理论上可复用同一 ws 通道，但当前唯一执行端是 Web 容器。
+- 对验收：L2/L3 场景验收锚点（首次/返回/快速切换/展开收起循环）在 **Web 容器内**执行；L0/L1 已由 A2 在 Web 容器交付（`appManager.restartMiniProgram` / `location.reload()`）。
+
 ### 4.2 热更新分级（HMR Ladder）
 
 按「改动付出多大代价生效」分级，**变更分类直接复用 `DependencyGraph` + `compile-stages`**：
@@ -299,3 +311,4 @@ client -> server: { type: 'ack', appId, buildId }
 | v1.2 | 2026-09-08 | A2.0 定案回写：D2 增补决策记录（预构建 dist 随 compiler 包分发，含自包含/离线验证）；§5 A2.0 行标注已定案 |
 | v1.3 | 2026-09-08 | A2 完成后回写：新增 §4.5 dev server 契约（ws 协议 + reloadLevel 合成 + 宿主页语义）；§5 A2 行标注完成并链接归档；修订记录同步 |
 | v1.4 | 2026-09-08 | L3 可行性验证回写：§7 假设 1 更新为条件成立并附代码审计证据（setupData 数据回放可行；需 A3 新增模块热替换 / 页面级 remount）；§5 A3 行前置标注更新 |
+| v1.5 | 2026-09-08 | dev/HMR 生效边界定稿：§4.1 增补三层分离说明（编译/编排容器无关，预览宿主 + HMR 生效端 Web 容器专属）；锁定 A3 落点（render + container-sdk dev-only）与 L2/L3 验收锚点（Web 容器内） |
