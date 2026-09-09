@@ -17,4 +17,20 @@
 
 ## Candidates
 
-当前没有候选条目。
+### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
+
+| Field | Value |
+| --- | --- |
+| 决策 | umbrella `compiler-improvement` 闭合时终局决策：**deferred** |
+| 依据 | A 轨道已交付全部必达目标（G1/G3）；B 轨道为解耦的长期轨道（RFC D4），无外部阻塞但无当前消费者 |
+| 再激活条件 | ① 性能/统一诉求有可量化目标（B0 基线先行）；② oxc napi 面确认可覆盖现有 JS 编排；③ D7 多线程陷阱有阶段性规避方案 |
+| 再激活方式 | 另立 B0 子 Action，前置为上述条件满足 |
+
+### C1（Lynx PoC）——deferred（2026-09-08）
+
+| Field | Value |
+| --- | --- |
+| 决策 | umbrella `compiler-improvement` 闭合时终局决策：**deferred** |
+| 依据 | A4 renderer 抽象已预留接入点；但 Lynx 需另立 RFC（RFC D3），当前无明确需求方与资源 |
+| 再激活条件 | ① 另立 Lynx RFC 并定稿；② wx 组件集子集范围确认；③ 业务侧有真实 Lynx 场景 |
+| 再激活方式 | 另立 C1 子 Action，前置为 RFC 定稿与业务需求确认 |

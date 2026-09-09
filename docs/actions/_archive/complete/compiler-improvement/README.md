@@ -1,10 +1,11 @@
 # Compiler Improvement（Umbrella）
 
 - Action: `compiler-improvement`
-- Status: `ready`
+- Status: `complete`
+- Archived: 2026-09-08
 - Updated: 2026-09-08
-- Status authority: [Action Status](../STATUS.md)
-- 设计权威：[Compiler Architecture RFC](../../Compiler-Architecture-RFC.md)（本 Action 不复制架构决策；RFC 是唯一的动机/目标/手段真相源，两文冲突时以 RFC 为准并回改本 Action）
+- Status authority: [Action Status](../../../STATUS.md)
+- 设计权威：[Compiler Architecture RFC](../../../../Compiler-Architecture-RFC.md)（本 Action 不复制架构决策；RFC 是唯一的动机/目标/手段真相源，两文冲突时以 RFC 为准并回改本 Action）
 
 ## Background
 
@@ -57,3 +58,12 @@
 - B/C 轨道有明确终局决策（`deferred` 记录或立项的子 Action 已闭合）。
 - 本 umbrella 的 MUST 验收全部通过并有证据。
 - STATUS、导航、归档位置一致。
+
+## Closure decision（2026-09-08）
+
+- **终局决策**：`complete`，归档至 `docs/actions/_archive/complete/compiler-improvement/`。
+- **验收**：A-001..A-009 全部 `passed`，均由子 Action P-001..P-007 实际执行证据支撑。
+- **A 轨道**：A1/A2.0/A2/A3/A4 全部 complete 并归档，产物全程 diff=0，RFC 回流 v1.0→v1.7。
+- **B/C 终局决策**：B0–B4（Rust 宿主）与 C1（Lynx PoC）均 **deferred**，再激活条件入 [TODO](../../../TODO.md)。
+- **实现提交**：全部子 Action 提交记录见各归档 Action 的 closure decision；umbrella 闭合提交为本次。
+- **残余风险**：各子 Action 残余（浏览器视觉工具缺失等）已分别记录在各自归档文档中；B/C deferred 再激活条件明确，无悬置项。

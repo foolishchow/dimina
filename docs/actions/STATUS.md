@@ -28,7 +28,7 @@
 
 | Action | Status | Path | Summary | Updated |
 | --- | --- | --- | --- | --- |
-| `compiler-improvement` | `ready` | [README](compiler-improvement/README.md) | 编译器改造 umbrella（RFC v1.3 已定稿）：交付 A 轨道（A1/A2.0/A2 已闭合），治理 B/C 终局决策。 | 2026-09-08 |
+| `compiler-improvement` | `complete` | [README](_archive/complete/compiler-improvement/README.md) | 编译器改造 umbrella：A 轨道（A1/A2.0/A2/A3/A4）全部 complete；B/C deferred。A-001~A-009 全 passed，已归档。 | 2026-09-08 |
 | `compiler-hook-layer` | `complete` | [README](_archive/complete/compiler-hook-layer/README.md) | Umbrella gate A1（事件契约已冻结 v1）：runBuild 生命周期驱动化交付，行为/产物零变化；A-001~A-009 全 passed，已归档。 | 2026-09-08 |
 | `dmcc-dev-server` | `complete` | [README](_archive/complete/dmcc-dev-server/README.md) | Umbrella gate A2：`dmcc dev` 交付 dev 链路（静态服务 + 宿主页 + ws + 代理 + L1 relaunch）；A-001~A-012 全 passed，已归档。 | 2026-09-08 |
 | `hmr-l2-l3` | `complete` | [README](_archive/complete/hmr-l2-l3/README.md) | Umbrella gate A3：Web 容器 dev-only L2 CSS 热替换 + L3 模板热重挂；A-001~A-013 全 passed，已归档。 | 2026-09-08 |

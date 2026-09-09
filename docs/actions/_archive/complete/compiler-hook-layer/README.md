@@ -5,7 +5,7 @@
 - Archived: 2026-09-08
 - Updated: 2026-09-08
 - Status authority: [Action Status](../../../STATUS.md)
-- 父 Action：[compiler-improvement](../../../compiler-improvement/README.md)（umbrella，gate A1）
+- 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A1）
 - 设计权威：[Compiler Architecture RFC](../../../../Compiler-Architecture-RFC.md) §5-A1、§4.3、D5、D6（本文不重复，冲突时以 RFC 为准并回改本文）
 
 ## Background
@@ -56,7 +56,7 @@
 - **终局决策**：`complete`，归档至 `docs/actions/_archive/complete/compiler-hook-layer/`。
 - **验收**：A-001~A-009 全部 `passed`（[acceptance](acceptance.md)），证据见 [validation](validation.md)（P-001…P-006）。
 - **实现提交**：`72650702`（P-001）、`66fce46b`（P-002）、`32b2bd4f`（P-004）、`2d5c3c1e`（P-003/P-005 证据）；最终状态 HEAD `2d5c3c1e`。
-- **持久发现回流**：事件契约定稿（12 事件、注入点 `options.lifecycle`、错误隔离语义）已回写 RFC（新增 §4.4）与 umbrella [roadmap](../../../compiler-improvement/roadmap.md)（A2/A4 依赖声明）。
+- **持久发现回流**：事件契约定稿（12 事件、注入点 `options.lifecycle`、错误隔离语义）已回写 RFC（新增 §4.4）与 umbrella [roadmap](../compiler-improvement/roadmap.md)（A2/A4 依赖声明）。
 - **残余风险**：
   - A-009（watch 重建事件序列）由 runBuild 共享路径保证（A-004 已锁定单次构建时序），CLI 无 `--lifecycle` 注入点，冒烟仅确认触发重建进入完整 build；如需 watch 级事件断言，留待 A2 dev server 的 ws 协议契约测试覆盖。
   - P-005 字节一致性在同绝对路径控制下完成；不同绝对路径会因既有 `collectAssets()` 的资源目录哈希产生可复现差异（已排除为重构影响）。

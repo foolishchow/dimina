@@ -1,6 +1,6 @@
 # Requirements — compiler-improvement (umbrella)
 
-需求从 [RFC §1.1 目标](../../Compiler-Architecture-RFC.md) 派生；RFC 变更时本文同步修订。
+需求从 [RFC §1.1 目标](../../../../Compiler-Architecture-RFC.md) 派生；RFC 变更时本文同步修订。
 
 ## R-001（MUST）dev 一体化
 

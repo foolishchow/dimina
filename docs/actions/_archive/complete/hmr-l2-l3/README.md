@@ -6,7 +6,7 @@
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审 pass；F-A1..F-A6 + F-B1 已清）
 - Status authority: [Action Status](../../../STATUS.md)
-- 父 Action：[compiler-improvement](../../../compiler-improvement/README.md)（umbrella，gate A3）
+- 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A3）
 - 设计权威：[Compiler Architecture RFC](../../../../Compiler-Architecture-RFC.md) §4.1、§4.2、§4.5、§7 假设 1、§5-A3（本文不重复，冲突时以 RFC 为准并回改本文）
 
 ## Background

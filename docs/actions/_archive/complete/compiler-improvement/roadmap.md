@@ -1,6 +1,6 @@
 # Roadmap — compiler-improvement (umbrella)
 
-门的定义、内容与验收细则以 [RFC §5](../../Compiler-Architecture-RFC.md) 为准；本文只记录顺序、依赖与子 Action 治理要求。
+门的定义、内容与验收细则以 [RFC §5](../../../../Compiler-Architecture-RFC.md) 为准；本文只记录顺序、依赖与子 Action 治理要求。
 
 ## 门与依赖
 
@@ -23,8 +23,8 @@ C1 Lynx PoC（依赖 A4；可选，另立 RFC 后再 formalize）
 | A2 | dev server + 内置宿主页 + 代理 + ws + L1 | `dmcc-dev-server` | A1、A2.0 | **complete（2026-09-08）**；dev 契约定稿回写 RFC §4.5；A3 只升级宿主执行端不改协议 |
 | A3 | L2 CSS 热替换 + L3 模板热重挂（render/container-sdk dev-only 扩展） | `hmr-l2-l3` | A2；L3 需先过 RFC 假设 1 验证 | **complete（2026-09-08）**；Web 容器 dev-only 执行链完成（L2 CSS、L3 module replace/remount/replay、fallback L1）；契约与边界回写 RFC §4.2/§4.5 |
 | A4 | view/style 按 target 分叉（首个实现 `webview`） | `render-target-abstraction` | A1（可与 A3 并行） | **complete（2026-09-08）**；落地为 renderer 抽象（对齐微信 renderer 字段，无 CLI/API 覆盖）；阶段级 webview adapter；产物 diff=0；Lynx/rspack/native 未进入 |
-| B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） | pending / deferred decision |
-| C1 | Lynx PoC | 先另立 RFC，再评估是否 formalize | A4；另立 RFC | optional / pending |
+| B0–B4 | Rust 宿主各步（见 RFC §5） | 每步独立子 Action；整轨可 `deferred` | B 轨道终局决策（R-009） | **deferred（2026-09-08）**；再激活条件见 [TODO](../../../TODO.md) |
+| C1 | Lynx PoC | 先另立 RFC，再评估是否 formalize | A4；另立 RFC | **deferred（2026-09-08）**；再激活条件见 [TODO](../../../TODO.md) |
 
 ## 治理规则
 

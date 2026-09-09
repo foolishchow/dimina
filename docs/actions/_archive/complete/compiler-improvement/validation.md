@@ -18,9 +18,11 @@
 
 每次记录实际验证时附：日期、commit、环境要点（Node/pnpm 版本、平台）、与计划的偏差。
 
-## 闭合判定（模板）
+## 闭合判定（2026-09-08）
 
-- 全部 MUST 验收通过并有证据；
-- SHOULD 项（A-003/A-004）通过或附降级决策；
-- B/C 终局决策落档；
+- 全部 MUST 验收通过并有证据（A-001..A-009 全 passed，均由子 Action P-001..P-007 实际执行证据支撑）；
+- SHOULD 项（A-003/A-004）通过：L2/L3 均以真实 HTTP/WS 冒烟 + render 事务规格交付；
+- B/C 终局决策落档：B0–B4 与 C1 均 deferred，再激活条件入 [TODO](../../../TODO.md)；
 - 无未记录的未覆盖区域。
+
+Decision: **closable**（待 Close workflow 归档）。
