@@ -73,8 +73,6 @@
 
 设计边界：P-006a 只完成内部 envelope、回传路径、宿主分发和失败回退闭环；L2 事务可执行，L3 需要 P-006 补“资源加载新 view → replaceModule → remountWithSnapshot”完整联动。A2 ws/reloadLevel 形状、dev-server/dev-reload/dev-proxy 未改。
 
-**P-006 时序修复（2026-09-08）**：发现 remount 后新页面 setup 会等待 `message.wait(pageId)`，而 service 不重发 firstRender；新增 render `message.resolveWait(pageId, snapshot)`（pendingWaitData/pendingWaiters）在 remount 后直接注入快照，避免 Suspense 永久挂起。新增 `message-hmr.spec.js` 3 用例验证已等待/尚未等待/多 waiter 三种时序。
-
 ### P-006（2026-09-08）
 
 | Field | Actual value |
@@ -95,6 +93,31 @@
 
 - 真实浏览器端 L3 视觉验证（快照回放后页面状态）仍属 A-004/A-007 冒烟口径，jsdom 集成测试锁定事务链路与回滚语义。
 - 测试方法修正：用例间 `vi.restoreAllMocks()` + 手动挂 `window.Module`（jsdom 无 env 初始化）——首轮 2 失败均为测试 harness 问题，非产品缺陷。
+
+### P-007（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `c26f0a1d`（P-006 时序修复后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS；真实 HTTP/WS；无 Playwright/Puppeteer |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| render 回归 | `pnpm --filter render test` | 22 文件 / 221 用例全绿 | 终端日志 | passed |
+| container-sdk 回归 | `pnpm --filter fe-container-sdk test` + `typecheck` | 83 文件 / 312 用例全绿；TS 0 errors | 终端日志 | passed |
+| compiler 回归 | `pnpm --filter compiler test` | 61 文件 / 409 用例全绿 | 终端日志 | passed |
+| Lint/compat | `pnpm lint` + `pnpm --filter compiler sync:compat` + diff | oxlint clean；compat 已同步 | 终端日志 | passed |
+| 生产构建 | render + container-sdk + compiler build | 全部成功；compiler `dist/sdk` 5 资产齐全 | `/tmp/p007-*-build.log` | passed |
+| Web dev 冒烟 | `node dist/bin/index.js dev -c <tmpApp> -p 18767 --no-app-id-dir`（不设 `DIMINA_DEV_SDK_DIR`）+ curl + ws observer | HTTP `/` 200（2737B），`/sdk/pageFrame.js` 200（449821B）；WS 顺序：L2(buildId=1) → L3(buildId=2) → build:error（无失败 reload，进程存活） | `/tmp/p007-dev.log` + WS 输出 | passed |
+| flag off | render `createHmrState()` + hmr.spec | 初始 `enabled=false`；无 `enableDevHmr` 注入时 hmr 被拒；生产 dist 不依赖 `import.meta.env.DEV` 开启 HMR | hmr.spec 11/11 + source audit | passed |
+| native scope | `git diff --name-only 8d705e76..HEAD` | 无 native/Harmony/android/ios/lynx 路径改动；A3 改动仅 render/container-sdk/compiler Web dev host | changed-path audit | passed |
+
+覆盖说明：
+
+- 真实 HTTP/WS 冒烟验证 dev server 与 A2 协议、L2/L3 dispatch 和失败保护；当前环境无 Playwright/Puppeteer，未进行真实浏览器 DOM/视觉与 container iframe relaunch 观察。P-006 集成 spec 已锁定 render 事务链，A-004 该边界作为残余风险保留。
+- 首轮 watcher 使用错误反馈回路导致重建循环，已改为一次性状态机后通过；不属于产品行为。
+- P-005 时序修复（`message.wait(pageId)` 由 render 侧 `resolveWait` 注入 snapshot）已纳入 P-006 回归。
 
 ### P-002（2026-09-08）
 

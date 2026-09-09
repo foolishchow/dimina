@@ -32,4 +32,4 @@
 | P-005 | 完成 | 2026-09-08 | setupData 快照捕获/回放 + remount update queue；6 用例绿；证据见 [validation](validation.md) |
 | P-006a | 完成 | 2026-09-08 | Web 容器内部 HMR envelope 与 render 回传路径冻结/接入；宿主 L2/L3 分发与 fallback；dev-host 10、sdk 5 用例绿；证据见 [validation](validation.md) |
 | P-006 | 完成 | 2026-09-08 | L3 资源联动（reloadViewModule→replaceModule→remountWithSnapshot）+ 动态 render；4 集成用例绿；P-006a 时序修复已追加；证据见 [validation](validation.md) |
-| P-007 | 未开始 | — | — |
+| P-007 | 完成 | 2026-09-08 | Web dmcc dev 真实 HTTP/WS 冒烟 + flag off/生产/native 范围护栏；全量回归；证据见 [validation](validation.md) |
