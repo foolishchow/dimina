@@ -1461,6 +1461,9 @@ class Runtime {
 		}
 		try {
 			await nextTick()
+			// 新 root setup 会等待 message.wait(pageId)。不重发 service firstRender，
+			// 由 render 侧把旧快照作为一次性 initial data 直接 resolve，避免 Suspense 挂起。
+			message.resolveWait(pageId, snapshot || {})
 			this.replayPageSnapshot(pageId, snapshot)
 			this.endHmrRemount(pageId)
 			return { remounted: true, replayed: snapshot !== null }

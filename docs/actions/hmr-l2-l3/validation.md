@@ -73,6 +73,8 @@
 
 设计边界：P-006a 只完成内部 envelope、回传路径、宿主分发和失败回退闭环；L2 事务可执行，L3 需要 P-006 补“资源加载新 view → replaceModule → remountWithSnapshot”完整联动。A2 ws/reloadLevel 形状、dev-server/dev-reload/dev-proxy 未改。
 
+**P-006 时序修复（2026-09-08）**：发现 remount 后新页面 setup 会等待 `message.wait(pageId)`，而 service 不重发 firstRender；新增 render `message.resolveWait(pageId, snapshot)`（pendingWaitData/pendingWaiters）在 remount 后直接注入快照，避免 Suspense 永久挂起。新增 `message-hmr.spec.js` 3 用例验证已等待/尚未等待/多 waiter 三种时序。
+
 ### P-006（2026-09-08）
 
 | Field | Actual value |
@@ -83,11 +85,11 @@
 
 | 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
 | --- | --- | --- | --- | --- |
-| L3 集成规格 | `vitest run __tests__/hmr-l3-integration.spec.js` | 4/4：cache-bust 重载+新 Module 捕获+replaceModule；applied 成功链；remount 失败 rollback→fallback；未受影响页 no-op applied | `fe/packages/render/__tests__/hmr-l3-integration.spec.js` | passed |
-| render 全量 | `pnpm --filter render test` | 21 文件 / 218 用例全绿（既有 214 无回落） | 终端日志 | passed |
+| L3 集成规格 | `vitest run __tests__/hmr-l3-integration.spec.js` + `message-hmr.spec.js` | 4/4 资源联动 + 3/3 remount initial-data resolve：cache-bust 重载+新 Module 捕获+replaceModule；applied 成功链；remount 失败 rollback→fallback；未受影响页 no-op；已等待/未等待/多 waiter 均可 resolve snapshot | `hmr-l3-integration.spec.js` + `message-hmr.spec.js` | passed |
+| render 全量 | `pnpm --filter render test` | 22 文件 / 221 用例全绿（既有 218 无回落，含 P-006 时序修复） | 终端日志 | passed |
 | sdk / compiler | `pnpm --filter fe-container-sdk test` / `--filter compiler test` | 83/312、61/409 全绿 | 终端日志 | passed |
 | Lint / 类型 | `pnpm lint` / sdk typecheck | oxlint 干净；TS 0 错误 | 终端日志 | passed |
-| 契约实现 | `loader.reloadViewModule`（resourceContext URL + `__dmcc_hmr` cache-bust + hmrCapture 捕获 window.Module 注册）；`createModule` 在 hmrCapture 命中时捕获新 moduleInfo 而非静默丢弃；`runtime.handleHmr`（L3：未受影响 no-op applied / reload→replace→remount→applied / 失败 rollback→fallback）；页面与组件 render 动态读 loader 当前模块（replacement 后新 render 生效）；render index L3 分支接 handleHmr 并回传三态 | — | 源码 diff 3 文件 + 1 spec | passed |
+| 契约实现 | `loader.reloadViewModule`（resourceContext URL + `__dmcc_hmr` cache-bust + hmrCapture 捕获 window.Module 注册）；`createModule` 在 hmrCapture 命中时捕获新 moduleInfo 而非静默丢弃；`runtime.handleHmr`（L3：未受影响 no-op applied / reload→replace→remount→applied / 失败 rollback→fallback）；页面与组件 render 动态读 loader 当前模块（replacement 后新 render 生效）；render index L3 分支接 handleHmr 并回传三态；`message.resolveWait` 在 remount 后向新 setup 注入 snapshot，避免 service 不重发 firstRender 导致 wait 永久挂起 | — | 源码 diff + 2 integration specs | passed |
 
 覆盖说明：
 

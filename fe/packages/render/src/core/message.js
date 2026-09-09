@@ -5,6 +5,8 @@ import { decodeDataFunctions } from './data-function'
 class Message {
 	constructor() {
 		this.event = mitt()
+		this.pendingWaitData = new Map()
+		this.pendingWaiters = new Map()
 		this.init()
 	}
 
@@ -17,7 +19,14 @@ class Message {
 			const decodedMsg = decodeDataFunctions(msg)
 			console.log('[system]', '[render]', 'receive msg: ', decodedMsg)
 			const { type, body } = decodedMsg
-			this.event.emit(type, body)
+			const waiters = this.pendingWaiters.get(type)
+			if (waiters?.length) {
+				this.pendingWaiters.delete(type)
+				for (const resolve of waiters) resolve(body?.data)
+			}
+			else {
+				this.event.emit(type, body)
+			}
 		}
 	}
 
@@ -52,12 +61,30 @@ class Message {
 	}
 
 	wait(eventName) {
+		if (this.pendingWaitData.has(eventName)) {
+			const data = this.pendingWaitData.get(eventName)
+			this.pendingWaitData.delete(eventName)
+			return Promise.resolve(data)
+		}
 		return new Promise((resolve) => {
-			this.on(eventName, (msg) => {
-				resolve(msg.data)
-				this.off(eventName)
-			})
+			const waiters = this.pendingWaiters.get(eventName) || []
+			waiters.push(resolve)
+			this.pendingWaiters.set(eventName, waiters)
 		})
+	}
+
+	/**
+	 * render 内部 P-005：向等待某 page/module initial data 的 setup 注入快照。
+	 * 若 setup 尚未注册 wait，暂存一次，避免 remount 时序丢失。
+	 */
+	resolveWait(eventName, data) {
+		const waiters = this.pendingWaiters.get(eventName)
+		if (waiters?.length) {
+			this.pendingWaiters.delete(eventName)
+			for (const resolve of waiters) resolve(data)
+			return
+		}
+		this.pendingWaitData.set(eventName, data)
 	}
 
 	waitAndSend(eventName, msg) {
