@@ -52,13 +52,14 @@ class Render {
 				})
 			}
 			else {
-				// P-006 当前不伪称 L3 已完成：runtime 事务接入/资源重载失败时明确 fallback。
-				this.message.invoke({ type: 'hmr:result', target: 'container', body: {
-					buildId: result.payload.buildId,
-					level: result.payload.level,
-					status: 'fallback',
-					reason: 'l3-runtime-integration-pending',
-				} })
+				void runtime.handleHmr?.(result.payload).then((outcome) => {
+					this.message.invoke({ type: 'hmr:result', target: 'container', body: {
+						buildId: result.payload.buildId,
+						level: result.payload.level,
+						status: outcome?.status || 'fallback',
+						reason: outcome?.reason,
+					} })
+				})
 			}
 		})
 	}

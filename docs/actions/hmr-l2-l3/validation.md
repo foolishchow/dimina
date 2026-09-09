@@ -73,6 +73,27 @@
 
 设计边界：P-006a 只完成内部 envelope、回传路径、宿主分发和失败回退闭环；L2 事务可执行，L3 需要 P-006 补“资源加载新 view → replaceModule → remountWithSnapshot”完整联动。A2 ws/reloadLevel 形状、dev-server/dev-reload/dev-proxy 未改。
 
+### P-006（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `46b91d6e`（P-006a 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| L3 集成规格 | `vitest run __tests__/hmr-l3-integration.spec.js` | 4/4：cache-bust 重载+新 Module 捕获+replaceModule；applied 成功链；remount 失败 rollback→fallback；未受影响页 no-op applied | `fe/packages/render/__tests__/hmr-l3-integration.spec.js` | passed |
+| render 全量 | `pnpm --filter render test` | 21 文件 / 218 用例全绿（既有 214 无回落） | 终端日志 | passed |
+| sdk / compiler | `pnpm --filter fe-container-sdk test` / `--filter compiler test` | 83/312、61/409 全绿 | 终端日志 | passed |
+| Lint / 类型 | `pnpm lint` / sdk typecheck | oxlint 干净；TS 0 错误 | 终端日志 | passed |
+| 契约实现 | `loader.reloadViewModule`（resourceContext URL + `__dmcc_hmr` cache-bust + hmrCapture 捕获 window.Module 注册）；`createModule` 在 hmrCapture 命中时捕获新 moduleInfo 而非静默丢弃；`runtime.handleHmr`（L3：未受影响 no-op applied / reload→replace→remount→applied / 失败 rollback→fallback）；页面与组件 render 动态读 loader 当前模块（replacement 后新 render 生效）；render index L3 分支接 handleHmr 并回传三态 | — | 源码 diff 3 文件 + 1 spec | passed |
+
+覆盖说明：
+
+- 真实浏览器端 L3 视觉验证（快照回放后页面状态）仍属 A-004/A-007 冒烟口径，jsdom 集成测试锁定事务链路与回滚语义。
+- 测试方法修正：用例间 `vi.restoreAllMocks()` + 手动挂 `window.Module`（jsdom 无 env 初始化）——首轮 2 失败均为测试 harness 问题，非产品缺陷。
+
 ### P-002（2026-09-08）
 
 | Field | Actual value |

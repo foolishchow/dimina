@@ -820,6 +820,7 @@ class Runtime {
 		const hasCustomTabBar = typeof customTabBarComponentName === 'string'
 			&& Object.prototype.hasOwnProperty.call(usingComponents || {}, customTabBarComponentName)
 		this.pageId = pageId
+		this.pagePath = path
 		const that = this
 		const rootCom = 'dd-page'
 		const sId = `data-v-${id}`
@@ -933,7 +934,8 @@ class Runtime {
 					components,
 					render: hasCustomTabBar
 						? function (...args) {
-							const pageVNode = pageRender.apply(this, args)
+							const currentPageRender = loader.getModuleByPath(path)?.moduleInfo?.render || pageRender
+							const pageVNode = currentPageRender.apply(this, args)
 							const CustomTabBar = resolveComponent(`dd-${customTabBarComponentName}`)
 							return h(Fragment, null, [pageVNode, h(CustomTabBar)])
 						}
@@ -1384,7 +1386,8 @@ class Runtime {
 					return templateData
 				},
 				render(...args) {
-					return markComponentHost(module.moduleInfo.render.apply(this, args), styleIsolation, id)
+					const currentPageRender = loader.getModuleByPath(resolvedComponentPath)?.moduleInfo?.render || module.moduleInfo.render
+					return markComponentHost(currentPageRender.apply(this, args), styleIsolation, id)
 				},
 			}
 			componentCache.set(cacheKey, componentOptions)
@@ -1465,6 +1468,30 @@ class Runtime {
 		catch (error) {
 			this.hmrRemountQueues.delete(pageId)
 			throw error
+		}
+	}
+
+	/** P-006：L3 资源联动（加载新 view -> replaceModule -> remount/replay）。 */
+	async handleHmr(payload) {
+		if (payload?.level !== 'L3') {
+			return { status: 'fallback', reason: 'unsupported-hmr-level' }
+		}
+		if (!Array.isArray(payload.affectedPages) || !payload.affectedPages.includes(this.pagePath)) {
+			return { status: 'applied', reason: 'current-page-not-affected' }
+		}
+
+		let transaction
+		try {
+			const nextModuleInfo = await loader.reloadViewModule(this.pagePath, payload.buildId)
+			transaction = loader.replaceModule(this.pagePath, nextModuleInfo, payload.buildId)
+			if (!transaction.committed) throw new Error(transaction.reason || 'module-replace-failed')
+			const remount = await this.remountPageWithSnapshot(this.pageId)
+			if (!remount.remounted) throw new Error(remount.reason || 'page-remount-failed')
+			return { status: 'applied' }
+		}
+		catch (error) {
+			transaction?.rollback?.()
+			return { status: 'fallback', reason: error.message || 'hmr-l3-failed' }
 		}
 	}
 

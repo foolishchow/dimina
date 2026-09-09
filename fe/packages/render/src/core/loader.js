@@ -6,6 +6,8 @@ class Loader {
 	constructor() {
 		this.staticModules = {}
 		this.lastHmrBuildId = 0
+		this.hmrCapture = null
+		this.resourceContext = null
 	}
 
 	async loadResource(opts) {
@@ -15,6 +17,7 @@ class Loader {
 			return true
 		}
 
+		this.resourceContext = { appId, root, baseUrl }
 		const filename = pagePath.replace(/\//g, '_')
 		const appStyleResourcePath = `${baseUrl}${appId}/main/app.css`
 		const styleResourcePath = `${baseUrl}${appId}/${root}/${filename}.css`
@@ -114,6 +117,34 @@ class Loader {
 	}
 
 	/**
+	 * dev-only：重新加载当前 app 的 view 脚本，捕获 window.Module 注册的新 moduleInfo。
+	 * @param {string} pagePath
+	 * @param {number} buildId
+	 * @returns {Promise<object>} 新注册的 moduleInfo；加载/注册失败时 reject。
+	 */
+	async reloadViewModule(pagePath, buildId) {
+		const context = this.resourceContext
+		if (!context) throw new Error('render resource context is unavailable')
+		if (!Number.isInteger(buildId) || buildId <= this.lastHmrBuildId) {
+			throw new Error('stale-build-id')
+		}
+		const filename = pagePath.replace(/\//g, '_')
+		const base = `${context.baseUrl}${context.appId}/${context.root}/${filename}.js`
+		const separator = base.includes('?') ? '&' : '?'
+		this.hmrCapture = { path: pagePath, moduleInfo: null }
+		try {
+			await this.loadScriptFile(`${base}${separator}__dmcc_hmr=${buildId}`)
+			window.modRequire(pagePath)
+			const nextModuleInfo = this.hmrCapture.moduleInfo
+			if (!nextModuleInfo) throw new Error('view module did not register during HMR load')
+			return nextModuleInfo
+		}
+		finally {
+			this.hmrCapture = null
+		}
+	}
+
+	/**
 	 * dev-only HMR：以事务方式替换已加载 view module。
 	 * 依赖解析全部成功后才提交缓存；调用方可在 remount/replay 失败时 rollback。
 	 * @param {string} path
@@ -178,7 +209,13 @@ class Loader {
 	createModule(moduleInfo) {
 		const { path, usingComponents, componentPlaceholder = {} } = moduleInfo
 		if (this.staticModules[path]) {
+			if (this.hmrCapture?.path === path) {
+				this.hmrCapture.moduleInfo = moduleInfo
+			}
 			return
+		}
+		if (this.hmrCapture?.path === path) {
+			this.hmrCapture.moduleInfo = moduleInfo
 		}
 
 		this.staticModules[path] = new Module(moduleInfo)
