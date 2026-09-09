@@ -1,4 +1,5 @@
 import message from './message'
+import { registerStyle, styleRegistry } from './hmr-style'
 import { Module } from './module'
 
 class Loader {
@@ -19,8 +20,8 @@ class Loader {
 		const viewResourcePath = `${baseUrl}${appId}/${root}/${filename}.js`
 
 		const results = await Promise.allSettled([
-			this.loadStyleFile(appStyleResourcePath),
-			this.loadStyleFile(styleResourcePath),
+			this.loadStyleFile(appStyleResourcePath, { scope: 'app', appId }),
+			this.loadStyleFile(styleResourcePath, { scope: 'page', appId, pagePath }),
 			this.loadScriptFile(viewResourcePath),
 		])
 
@@ -74,11 +75,19 @@ class Loader {
 		})
 	}
 
-	loadStyleFile(path) {
+	/**
+	 * @param {string} path
+	 * @param {{ scope: 'app'|'page', appId?: string, pagePath?: string }} [meta]
+	 *   dev HMR（A3）登记信息：供给 L2 热替换定位同资源旧 link。
+	 */
+	loadStyleFile(path, meta) {
 		return new Promise((resolve, reject) => {
 			const style = document.createElement('link')
 			style.rel = 'stylesheet'
 			style.href = path
+			if (meta) {
+				registerStyle(styleRegistry, { ...meta, url: path, el: style })
+			}
 			style.onload = () => {
 				resolve()
 			}

@@ -2,6 +2,7 @@ import './polyfills'
 import { callback } from '@dimina/common'
 import env from './core/env'
 import { createHmrState, enableDevHmr, handleHmrCommand } from './core/hmr'
+import { applyStyleReloadBatch, styleRegistry } from './core/hmr-style'
 import loader from './core/loader'
 import message from './core/message'
 import runtime from './core/runtime'
@@ -31,8 +32,14 @@ class Render {
 		this.message.on('hmr', (body) => {
 			const result = handleHmrCommand(this.hmrState, body)
 			if (result.accepted) {
-				// L2 CSS / L3 remount 事务在后续任务接入（P-002+）
-				runtime.handleHmr?.(result.payload)
+				if (result.payload.level === 'L2') {
+					// L2：app 全局 + 受影响页面样式最终一致重载（不重启实例）
+					void applyStyleReloadBatch(styleRegistry, result.payload)
+				}
+				else {
+					// L3：module replace + remount + replay 事务在后续任务接入（P-003+）
+					runtime.handleHmr?.(result.payload)
+				}
 			}
 		})
 	}

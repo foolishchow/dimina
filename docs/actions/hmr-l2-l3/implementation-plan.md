@@ -25,4 +25,5 @@
 | 任务 | 状态 | 日期 | 备注 |
 | --- | --- | --- | --- |
 | P-001 | 完成 | 2026-09-08 | 运行时 flag + HMR 指令通道落地；render 11 用例 + sdk 4 用例绿；证据见 [validation](validation.md) |
-| P-002…P-007 | 未开始 | — | — |
+| P-002 | 完成 | 2026-09-08 | L2 CSS hot swap（registry + cache-bust + 事务）；8 用例绿；证据见 [validation](validation.md) |
+| P-003…P-007 | 未开始 | — | — |

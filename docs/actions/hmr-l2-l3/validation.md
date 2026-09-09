@@ -51,3 +51,25 @@
 
 - flag 关闭拒绝 + 无消息类型注入即隔离 = A-001 的守卫层证据（宿主页接入在 P-006）。
 - 未覆盖：L2/L3 事务本体（P-002..P-005）；ContainerInstance.sendDevCommand 的端到端（jsdom 无真实 iframe，逻辑为薄封装，P-006 宿主接入冒烟覆盖）。
+
+### P-002（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `966fe3c3`（P-001 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增规格 | `pnpm --filter render exec vitest run __tests__/hmr-style.spec.js` | 8/8（key 语义/登记/未知资源拒绝/成功替换/cache-bust 两种拼接/失败回滚/超时/批量单项失败不阻断） | `fe/packages/render/__tests__/hmr-style.spec.js` | passed |
+| render 全量 | `pnpm --filter render test` | 18 文件 / 202 用例全绿（既有 194 无回落） | 终端日志 | passed |
+| sdk 全量 | `pnpm --filter fe-container-sdk test` | 83 文件 / 311 用例绿 | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警（两处 JSDoc 警告已修） | 终端日志 | passed |
+| 契约实现 | `src/core/hmr-style.js`（createStyleRegistry/styleKey/registerStyle/applyStyleReload/applyStyleReloadBatch + 单例 registry；load-or-keep 事务 + 10s 超时）；`loader.js` loadStyleFile(meta) 登记 app/page 两类资源；`index.js` hmr 分发 L2 → applyStyleReloadBatch | — | 源码 diff 4 文件 | passed |
+
+实现决策（代码注释记录）：registry key 不含 appId（pageFrame 单 app 帧，scope+pagePath 唯一）；L2 对 app + affectedPages 做最终一致重载，重载未变更资源无害。
+
+覆盖说明：
+
+- 未覆盖：真实浏览器 CSS 加载（jsdom 手动驱动 load/error；P-006 冒烟覆盖）；L3 事务（P-003+）。
