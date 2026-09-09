@@ -2,7 +2,7 @@
 
 ## R-001（MUST）显式 target 解析
 
-compiler 的唯一 target 来源是 `build(..., options)` 中的 `options.target`；未指定时默认 `webview`，显式 `webview` 与默认语义一致；未知 target 在 lifecycle 与任何构建副作用前给出明确结构化错误，不静默回退。CLI 的 `--target <name>` 只负责映射为 `options.target`；watch 增量重建继承初始 target；`dmcc dev` 本门固定使用 `webview`。
+compiler 的 target 由项目声明优先：默认读取 `app.json.renderer`（对齐微信 renderer 字段），`options.target` / CLI `--target` 显式值覆盖；两者皆缺省时默认 `webview`，显式 `webview` 与缺省语义一致。未知 target 在 lifecycle 与任何构建副作用前给出明确结构化错误，不静默回退；页面级 `page.json` renderer 覆盖首版不支持；watch 增量重建继承初始解析结果。
 
 ## R-002（MUST）view/style adapter 边界
 

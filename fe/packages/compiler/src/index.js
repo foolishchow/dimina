@@ -6,7 +6,7 @@ import { Listr, PRESET_TIMER } from 'listr2'
 import { formatCompileProgress } from './common/compile-progress.js'
 import { DependencyGraph } from './common/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
-import { resolveTarget } from './common/targets.js'
+import { DEFAULT_TARGET, readAppRenderer, resolveTarget } from './common/targets.js'
 import { createDist, publishToDist } from './common/publish.js'
 import { artCode, resetAssetCache } from './common/utils.js'
 import { workerPool } from './common/worker-pool.js'
@@ -43,9 +43,6 @@ export default function build(targetPath, workPath, useAppIdDir = true, options 
 }
 
 async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) {
-	const target = resolveTarget(options.target)
-	// P-003 将 target 传入 view/style 阶段 adapter；P-001 只冻结解析与副作用顺序。
-	void target
 	const {
 		sourcemap = false,
 		fileTypes,
@@ -61,6 +58,10 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 		throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
 	}
 	const lifecycle = options.lifecycle || createLifecycle()
+	// target 来源（F-A4-001 修订，方案 A）：options.target 显式覆盖优先，
+	// 否则取项目声明 app.json.renderer（对齐微信），缺省 webview；
+	// 在 lifecycle 前校验，非法 target 不触发 build:start 与任何副作用。
+	const target = resolveTarget(options.target ?? readAppRenderer(workPath) ?? DEFAULT_TARGET)
 	// build:start 载荷需可序列化（R-006）：剥离可能为实例的 dependencyGraph 与 lifecycle
 	const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, ...serializableOptions } = options
 	try {
@@ -140,7 +141,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 						const compileTasks = []
 
 						if (enabledStages.has('view') && !miniGame) {
-							compileTasks.push(createStageTask('view', '编译视图', lifecycle, { sourcemap }))
+							compileTasks.push(createStageTask('view', '编译视图', lifecycle, { sourcemap, target }))
 						}
 						if (enabledStages.has('logic')) {
 							const sourcemapTargetPath = path.resolve(
@@ -164,7 +165,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 									...ctx.pages.mainPages,
 								],
 							}
-							compileTasks.push(createStageTask('style', '编译样式', lifecycle, { sourcemap, pages: stylePages }))
+							compileTasks.push(createStageTask('style', '编译样式', lifecycle, { sourcemap, pages: stylePages, target }))
 						}
 
 						if (compileTasks.length > 0) {

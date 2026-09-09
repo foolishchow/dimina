@@ -23,7 +23,16 @@ future Lynx adapter: reserved only, outside A4
 
 ## 2. Target contract
 
-**参数来源（F-A4-001 定案）**：唯一内部来源是 `options.target`。CLI `--target <name>` 仅映射为该字段；未提供时 resolver 使用 `webview`；watch 增量沿用初始 options.target；`dmcc dev` 固定传入 `target:'webview'`。不存在另一套环境变量或隐式 target 优先级。
+**参数来源（F-A4-001 修订，方案 A：对齐微信 `renderer`）**：target 由**项目声明优先、显式覆盖其次**确定。
+
+1. 若 `options.target` / CLI `--target` 显式提供，以显式值为准；
+2. 否则读取项目声明 `app.json.renderer`（对齐微信 app.json `renderer` 字段语义）；
+3. 两者皆缺省时使用 `webview`。
+
+- `readAppRenderer(workPath)` 在 build 入口、lifecycle 前轻量读取 app.json，不经 storeInfo/env；
+- 小游戏（game.json）无 renderer 概念，缺省 `webview`；
+- 页面级 `page.json` `renderer` 覆盖**首版不支持**（编译期产物分叉不允许同包混合 target，留待后续）；
+- watch 增量沿用初始解析结果；`dmcc dev` 不再强制 webview，而是尊重项目声明（若项目声明未来 target，则明确失败而非静默覆盖）。
 
 A4 首版最小接口是**阶段级薄适配器**（F-A4-002 定案），匹配当前副作用型 worker API，而非虚构单模块 `{ code, map }` 接口：
 

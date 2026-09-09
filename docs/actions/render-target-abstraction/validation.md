@@ -10,7 +10,7 @@
 | 产物一致 | 同一绝对路径依次构建 default/explicit webview，nomap/sourcemap，全部 examples；两轮使用同一 Node/pnpm 与输入 | `diff -r` 为空 |
 | CLI/watch/dev | `dmcc build`、`dmcc build -w`、`dmcc dev` smoke | 命令日志 |
 | invalid target | `options.target`/`--target` unknown：在 build lifecycle、resetAssetCache、目录创建/清理和 worker 启动前失败 | 错误 `DIMINA_INVALID_TARGET` + 目标目录 unchanged |
-| target source | API `options.target`、CLI `--target`、watch inheritance、dev fixed webview | resolver/CLI integration log |
+| target source | 项目声明 `app.json.renderer`、API `options.target`、CLI `--target`、watch inheritance、dev respects declaration | resolver/CLI integration log |
 | lifecycle target | A4 首版不增加 target 字段；对既有 A1 observer payload 做 source/diff 检查 | decision record + clean diff |
 | ablation | 移除 resolver 或绕过 adapter 后目标规格失败；恢复后相同命令通过 | 前后日志 |
 | scope guard | git diff 检查无 Lynx/rspack/native/logic/service/bridge/HMR/ws 改动 | source diff |
