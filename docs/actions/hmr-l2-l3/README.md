@@ -70,7 +70,7 @@ render 代码审计已确认：`runtime.setupData` 已按 pageId 累积 setData 
 
 ## Readiness gaps
 
-- 当前为 `draft`，尚未完成 Readiness Review。
+- Readiness 评审已通过（2026-09-08，verdict pass；F-A1..F-A6 已修复、F-B1 已清）；状态待授权 promote `ready`。
 - A2 已完成，RFC 假设 1 已条件通过；无全局前置阻塞。
 - 已冻结（2026-09-08 Readiness 评审修复 F-A1..F-A6）：
   - **feature flag = 运行时 opt-in**（生产 dist 中 `import.meta.env.DEV` 固化为 false，构建期条件不可用；宿主页 ws 就绪后经 bridge 注入标志，原生/生产无该消息类型天然隔离，见 technical-design §1）；
