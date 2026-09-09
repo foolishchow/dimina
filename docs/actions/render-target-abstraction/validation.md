@@ -71,3 +71,44 @@
 
 - webview adapter 为纯委托（不复制编译逻辑）；既有 worker 仅被包装一次。
 - 未覆盖：产物逐字节一致性（P-005）、入口回归（P-006）、消融（P-007）。
+
+### P-003 / P-004 / P-005（2026-09-08）
+
+| Field | Actual value |
+| --- | --- | --- |
+| Date | 2026-09-08 |
+| Baseline | `5c1a6a3a`（A4 代码改前，A3 闭合后） |
+| Current | `9ed0fe0f`（P-002 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · 同绝对路径 `/tmp/a4-matrix` |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| P-003 产物契约不变 | view/style 经 adapter 的真实构建（air-battle）rc=0；compiler 全量 63/418 绿 | 既有 worker 仅被包装一次，逻辑 renderer-neutral | `pnpm --filter compiler test` | passed |
+| P-004 决策 | A4 首版不增加 renderer 字段到 A1 lifecycle payload；renderer 仅在声明解析/前端诊断使用 | 决策记录（implementation-plan / validation） | — | passed |
+| P-005 nomap | `diff -r out/baseline-nomap out/current-nomap`（同路径 git archive + 构建） | 7 示例，0 行差异（exit=0） | `/tmp/a4-diff-nomap.txt` | passed |
+| P-005 sourcemap | `diff -r out/baseline-map out/current-map` | 7 示例，0 行差异（exit=0） | `/tmp/a4-diff-map.txt` | passed |
+
+覆盖说明：
+
+- 同绝对路径控制消除了既有资源绝对路径哈希的假差异；基线/当前均 7/7 构建成功。
+- 未覆盖：P-006 入口回归（dmcc build/-w/dev/compile）、P-007 消融与范围护栏。
+
+### P-006 / P-007（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `9ed0fe0f`（P-002 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| dmcc build | `dist/bin/index.js build -c examples/miniprogram/base --no-app-id-dir` | rc=0 | 终端日志 | passed |
+| dev 无 CLI | `dist/bin/index.js dev --help` | 无 renderer flag（符合无 CLI 覆盖设计） | 终端 | passed |
+| pnpm compile | `corepack pnpm compile` | rc=0 | 终端日志 | passed |
+| compat | `sync:compat` + git diff | Already in sync；reference 零 diff | 终端 | passed |
+| renderer 前置消融 | `vitest run __tests__/target-renderer-integration.spec.js` | 3/3：默认/`renderer:webview` 构建成功；未知 renderer 在 lifecycle 前失败且目标目录未创建、app.json 未改动 | `target-renderer-integration.spec.js` | passed |
+| 全量 | `pnpm --filter compiler test` | 64 文件 / 421 用例全绿（含新增 integration 3） | 终端日志 | passed |
+| 范围护栏 | `git diff --name-only 5c1a6a3a..HEAD` | 无 native/harmony/android/ios/lynx 路径；A4 改动仅 `fe/packages/compiler`（renderers.js / index.js / 相关 spec） | source diff | passed |
+| Lint / build | `pnpm lint` / compiler build | oxlint 干净；dist build 成功 | 终端日志 | passed |
+
