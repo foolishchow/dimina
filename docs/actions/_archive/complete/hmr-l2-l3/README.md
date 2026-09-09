@@ -1,12 +1,13 @@
 # Web Container HMR L2/L3（A3）
 
 - Action: `hmr-l2-l3`
-- Status: `in_progress`
+- Status: `complete`
+- Archived: 2026-09-08
 - Updated: 2026-09-08
 - Promoted: 2026-09-08（Readiness 评审 pass；F-A1..F-A6 + F-B1 已清）
-- Status authority: [Action Status](../STATUS.md)
-- 父 Action：[compiler-improvement](../compiler-improvement/README.md)（umbrella，gate A3）
-- 设计权威：[Compiler Architecture RFC](../../Compiler-Architecture-RFC.md) §4.1、§4.2、§4.5、§7 假设 1、§5-A3（本文不重复，冲突时以 RFC 为准并回改本文）
+- Status authority: [Action Status](../../../STATUS.md)
+- 父 Action：[compiler-improvement](../../../compiler-improvement/README.md)（umbrella，gate A3）
+- 设计权威：[Compiler Architecture RFC](../../../../Compiler-Architecture-RFC.md) §4.1、§4.2、§4.5、§7 假设 1、§5-A3（本文不重复，冲突时以 RFC 为准并回改本文）
 
 ## Background
 
@@ -53,10 +54,10 @@ render 代码审计已确认：`runtime.setupData` 已按 pageId 累积 setData 
 
 ## Design inputs
 
-- [RFC §4.1 dev/HMR 生效边界](../../Compiler-Architecture-RFC.md)：编译/编排容器无关；预览宿主与 HMR 生效端 Web 容器专属。
-- [RFC §4.2 HMR Ladder](../../Compiler-Architecture-RFC.md)：L2 CSS、L3 模板 remount + service 状态保留、失败降级 L1。
-- [RFC §4.5 dev server 契约](../../Compiler-Architecture-RFC.md)：ws/reloadLevel 协议已冻结，A3 不改协议，只升级 Web 宿主执行端。
-- [RFC §7 假设 1](../../Compiler-Architecture-RFC.md)：setupData 快照回放条件成立；module replace 与页面级 remount 尚需原型。
+- [RFC §4.1 dev/HMR 生效边界](../../../../Compiler-Architecture-RFC.md)：编译/编排容器无关；预览宿主与 HMR 生效端 Web 容器专属。
+- [RFC §4.2 HMR Ladder](../../../../Compiler-Architecture-RFC.md)：L2 CSS、L3 模板 remount + service 状态保留、失败降级 L1。
+- [RFC §4.5 dev server 契约](../../../../Compiler-Architecture-RFC.md)：ws/reloadLevel 协议已冻结，A3 不改协议，只升级 Web 宿主执行端。
+- [RFC §7 假设 1](../../../../Compiler-Architecture-RFC.md)：setupData 快照回放条件成立；module replace 与页面级 remount 尚需原型。
 - [render source audit](source-audit.md)：现有 loader/runtime 数据流、模块缓存、firstRender 与 setData 路径。
 - A1/A2 归档 Action：事件契约与 dev server 契约为历史证据和接口输入，不重新定义。
 
@@ -71,13 +72,13 @@ render 代码审计已确认：`runtime.setupData` 已按 pageId 累积 setData 
 
 ## Readiness gaps
 
-- Readiness 评审已通过（2026-09-08，verdict pass；F-A1..F-A6 已修复、F-B1 已清）；已 promote `ready`，待授权实施。
+- Readiness 评审已通过（2026-09-08，verdict pass；F-A1..F-A6 已修复、F-B1 已清）；已 promote `ready`，实施已完成。
 - A2 已完成，RFC 假设 1 已条件通过；无全局前置阻塞。
 - 已冻结（2026-09-08 Readiness 评审修复 F-A1..F-A6）：
   - **feature flag = 运行时 opt-in**（生产 dist 中 `import.meta.env.DEV` 固化为 false，构建期条件不可用；宿主页 ws 就绪后经 bridge 注入标志，原生/生产无该消息类型天然隔离，见 technical-design §1）；
   - **HMR 指令通道 = 宿主页 ws → `container.sendDevCommand` → bridge(target:'render') → `message.on('hmr')`（technical-design §1）；
   - L2 style registry 区分 `scope:'app'|'page'`（§2）；快照 = deepToRaw 式深拷贝保留 dataFunction 引用（§4）；
-  - `dev-host.js` 允许修改边界已明确（Scope）；页面级 remount 事务提交点与 L1 fallback 细节在 technical-design §4/§5，实施中原型验证。
+  - `dev-host.js` 允许修改边界已明确（Scope）；页面级 remount 事务提交点与 L1 fallback 细节在 technical-design §4/§5，已完成并经 P-007 范围护栏验证。
 
 ## Closure conditions
 
@@ -86,3 +87,11 @@ render 代码审计已确认：`runtime.setupData` 已按 pageId 累积 setData 
 - L3 不可行时已以证据降级 L1，不得以未验证假设宣称完成；
 - 契约/架构发现回写 RFC §4.2/§7 与 umbrella roadmap；
 - STATUS、路径、导航、归档一致。
+
+## Closure decision（2026-09-08）
+
+- **终局决策**：`complete`，归档至 `docs/actions/_archive/complete/hmr-l2-l3/`。
+- **验收**：A-001~A-013 全部 `passed`（[acceptance](acceptance.md)），证据见 [validation](validation.md)（P-001…P-007，含 P-006a）。
+- **实现提交**：P-001 `966fe3c3`、P-002 `3c2a04c4`、P-003 `c995f2ca`、P-004 `85aa8835`、P-005 `474fb10a`、P-006a `46b91d6e`、P-006 `fd157447`、时序修复 `c26f0a1d`、P-007 `80307696`；最终闭合提交待生成。
+- **持久发现回写**：RFC §4.1 定稿 Web 容器边界，§4.2 回写 A3 实施结论与 L1 fallback；RFC §7 假设 1 保留条件成立判定；revision v1.6。
+- **残余风险**：真实浏览器 DOM/视觉与 container iframe relaunch 未在当前环境执行（无 Playwright/Puppeteer）；已有真实 HTTP/WS 冒烟、jsdom 事务规格、render/container-sdk 全量与生产/native 范围护栏，不阻塞本 Action 的自动化验收。

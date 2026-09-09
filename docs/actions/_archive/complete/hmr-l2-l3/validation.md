@@ -200,3 +200,12 @@
 
 - 本原型验证的是当前 render 架构下的页面 root remount 边界；当前 pageFrame 的 Vue app 只承载当前 page root，故 key 事务可避免整 app firstRender。
 - 未覆盖：setupData snapshot capture/replay、remount 期间 update queue、module replacement 与 remount 联动（P-005）；宿主 hmr 指令接入（P-006）。
+
+## 闭合判定（2026-09-08）
+
+- A-001~A-013 全部 passed；A-013 通过 dev-host/Bridge callback 规格与 P-007 协议冒烟。
+- Web 容器 dev-only 边界、运行时 flag、native/production guard 均有证据；A2 ws/reloadLevel/dev server 未修改。
+- L3 module replace/remount/snapshot/replay 事务与 fallback 有单元/集成证据；真实浏览器 DOM/视觉工具缺失已记录为残余风险，不以实现存在替代测试。
+- P-007 生产构建、真实 Web HTTP/WS 冒烟、flag off 与 native path audit 已通过；无未记录的未覆盖区域。
+
+Decision: **closable**（待 Close workflow 归档）。

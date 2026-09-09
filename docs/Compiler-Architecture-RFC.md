@@ -173,6 +173,8 @@ dmcc dev [workPath]
 | L1 | 页面 relaunch | `.js/.ts`（logic 阶段） | worker 重 eval logic → 当前页 relaunch，App 状态重建 | 容器支持 relaunch 消息 |
 | L2 | CSS 热替换 | `.wxss/.less/.scss/.sass`（仅 style 阶段） | 仅向渲染层推送页面 css 重载，**logic/页面实例不动** | render 侧支持样式热替换 |
 | L3 | 模板热重挂 | `.wxml`（仅 view 阶段） | 页面 view 模块重取 + remount，**service 侧状态保留** | render 侧支持页面级 remount + setData 状态回放 |
+
+**A3 实施结论（2026-09-08）**：Web 容器 dev-only 的 L2/L3 执行链已完成：运行时 flag/内部 envelope 与 `hmr:result` 回传、scope(app/page) CSS 事务、view module replacement、页面 root remount、setupData + initial-data wait 回放、update queue 与 L1 fallback 均有规格与真实 dev HTTP/WS 冒烟证据。A2 `/ws` 消息形状、reloadLevel 合成、编译产物和原生容器保持不变。真实浏览器 DOM/视觉验证工具未安装，作为残余风险记录，不改变“代码/协议/事务链已验证”的结论；若后续发现 render 生命周期时序不满足，必须沿既有 `hmr:result fallback` 路径降级 L1。
 | L4 | logic 状态保留热替换 | `.js` 改动保留 App/页面状态 | 状态快照/回放迁移 | 复杂度高，**明确不做**，留待外部贡献 |
 
 表后补充两条规则：
@@ -312,3 +314,4 @@ client -> server: { type: 'ack', appId, buildId }
 | v1.3 | 2026-09-08 | A2 完成后回写：新增 §4.5 dev server 契约（ws 协议 + reloadLevel 合成 + 宿主页语义）；§5 A2 行标注完成并链接归档；修订记录同步 |
 | v1.4 | 2026-09-08 | L3 可行性验证回写：§7 假设 1 更新为条件成立并附代码审计证据（setupData 数据回放可行；需 A3 新增模块热替换 / 页面级 remount）；§5 A3 行前置标注更新 |
 | v1.5 | 2026-09-08 | dev/HMR 生效边界定稿：§4.1 增补三层分离说明（编译/编排容器无关，预览宿主 + HMR 生效端 Web 容器专属）；锁定 A3 落点（render + container-sdk dev-only）与 L2/L3 验收锚点（Web 容器内） |
+| v1.6 | 2026-09-08 | A3 L2/L3 实施完成回写：§4.2 增补实施结论（Web 容器 dev-only 执行链、L1 fallback、A2/原生边界与残余浏览器风险）；A3 Action 进入 Close 流程 |
