@@ -73,3 +73,23 @@
 覆盖说明：
 
 - 未覆盖：真实浏览器 CSS 加载（jsdom 手动驱动 load/error；P-006 冒烟覆盖）；L3 事务（P-003+）。
+
+### P-003（2026-09-08）
+
+| Field | Actual value |
+| --- | --- |
+| Date | 2026-09-08 |
+| Source commit（实施前基线） | `3c2a04c4`（P-002 后） |
+| Environment | Node v22.23.2 · pnpm 12.2.0（corepack）· macOS · jsdom |
+
+| 验证项 | 命令 / 观察 | 结果 | 证据 | Result |
+| --- | --- | --- | --- | --- |
+| 新增模块替换规格 | `pnpm --filter render exec vitest run __tests__/hmr-module.spec.js` | 6/6：替换提交、stale buildId、rollback、依赖失败保护、placeholder fallback、参数校验 | `fe/packages/render/__tests__/hmr-module.spec.js` | passed |
+| render 全量 | `pnpm --filter render test` | 19 文件 / 208 用例全绿（既有 202 无回落） | 终端日志 | passed |
+| Lint | `pnpm lint` | oxlint 无告警 | 终端日志 | passed |
+| 契约实现 | `loader.replaceModule(path, nextModuleInfo, buildId)`：依赖验证成功后切换缓存，返回一次性 rollback；stale buildId 拒绝；失败不污染旧模块；保留既有 createModule path 已存在时直接 return 语义 | — | `render/src/core/loader.js` + `hmr-module.spec.js` | passed |
+
+覆盖说明：
+
+- P-003 只交付 loader module replacement 事务；页面级 remount、快照回放、service 保留仍分别属于 P-004/P-005，未提前宣称 L3 完成。
+- `ContainerInstance.sendDevCommand` 已由 P-001 接通，但 A3 宿主页实际调用与 render `runtime.handleHmr` 接入留待 P-006。

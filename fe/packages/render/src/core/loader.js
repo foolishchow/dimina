@@ -5,6 +5,7 @@ import { Module } from './module'
 class Loader {
 	constructor() {
 		this.staticModules = {}
+		this.lastHmrBuildId = 0
 	}
 
 	async loadResource(opts) {
@@ -110,6 +111,63 @@ class Loader {
 			}
 			document.head.append(script)
 		})
+	}
+
+	/**
+	 * dev-only HMR：以事务方式替换已加载 view module。
+	 * 依赖解析全部成功后才提交缓存；调用方可在 remount/replay 失败时 rollback。
+	 * @param {string} path
+	 * @param {object} nextModuleInfo
+	 * @param {number} buildId
+	 * @returns {{ committed: boolean, rollback: () => boolean, previous: Module|null }} 事务结果；
+	 *   committed=true 时缓存已切换，rollback 可恢复旧模块。
+	 */
+	replaceModule(path, nextModuleInfo, buildId) {
+		if (typeof path !== 'string' || path.length === 0 || !nextModuleInfo || nextModuleInfo.path !== path) {
+			return { committed: false, reason: 'invalid-module', rollback: () => false, previous: null }
+		}
+		if (!Number.isInteger(buildId) || buildId <= this.lastHmrBuildId) {
+			return { committed: false, reason: 'stale-build-id', rollback: () => false, previous: this.staticModules[path] || null }
+		}
+
+		const previous = this.staticModules[path] || null
+		try {
+			this.resolveComponents(nextModuleInfo)
+		}
+		catch (error) {
+			return { committed: false, reason: 'dependency-resolution-failed', error, rollback: () => false, previous }
+		}
+
+		const replacement = new Module(nextModuleInfo)
+		this.staticModules[path] = replacement
+		this.lastHmrBuildId = buildId
+		let active = true
+		return {
+			committed: true,
+			previous,
+			rollback: () => {
+				if (!active || this.staticModules[path] !== replacement) return false
+				if (previous) this.staticModules[path] = previous
+				else delete this.staticModules[path]
+				active = false
+				return true
+			},
+		}
+	}
+
+	resolveComponents(moduleInfo) {
+		const { usingComponents = {}, componentPlaceholder = {} } = moduleInfo
+		for (const [componentName, componentPath] of Object.entries(usingComponents)) {
+			try {
+				window.modRequire(componentPath)
+			}
+			catch (error) {
+				const placeholderName = componentPlaceholder[componentName]
+				const placeholderPath = placeholderName && usingComponents[placeholderName]
+				if (!placeholderPath) throw error
+				window.modRequire(placeholderPath)
+			}
+		}
 	}
 
 	/**
