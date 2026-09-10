@@ -63,7 +63,7 @@ pnpm compile ─→ src/bin/compile.js 批量编译 examples/miniprogram
 pnpm dev     ─→ concurrently[ proxy server + container(vite) dev ]
                 └─ container 消费 @dimina/fe-container-sdk 的 createContainer()
                    按 resourceBaseUrl 约定拉取 app-config.json / logic.js / 页面产物
-watch        ─→ chokidar + 依赖图 → 增量重建计划（dmcc build -w 已有，但无生效联动）
+watch        ─→ `@dimina/compiler/watch`（`createBuildWatcher`）+ 依赖图增量计划；`dmcc build -w` / `dmcc dev` 均为 API 消费者（CF-4，见 §4.6）
 ```
 
 关键事实：**`@dimina/fe-container-sdk` 本就是无 UI、可嵌入的容器运行时 SDK**，container 只是它的参考宿主——「合并」不需要重写容器，只需要把宿主页与资源服务内置到编译器。
@@ -248,6 +248,16 @@ client -> server: { type: 'ack', appId, buildId }
 - **宿主页**（最小宿主）：`createContainer` + `openApp({ destroy: true })` 直开目标 app，`?path=` 入口，`resourceBaseUrl: '/'`；L0 → 整页重启，L1/L2/L3 → relaunch 回退；不追踪导航栈（重进入口页）。
 - **测试**：`dev-reload.spec.js`（14 用例矩阵）、`dev-host.spec.js`（10）、`dev-proxy.spec.js`（13，SSRF/合法/非法）、`dev-server.spec.js`（12，路由/快照/pendingReload/ws）。
 
+### 4.6 watch API 契约（定稿 v1，2026-09-10）
+
+CF-4（`watch-api`）已交付并归档（`docs/actions/_archive/complete/watch-api/`）：将 chokidar 编排环从 CLI 提升为可编程 API，满足 **CLI ⊆ API**。
+
+- **公开入口**：`import { createBuildWatcher } from '@dimina/compiler/watch'`
+- **生命周期**：`start()` 执行初始 `build()`（失败则 throw、不听）；`autoListen` 默认 `true`；`false` 时须再调 `listen()`（`dmcc dev` 用此对齐 `build → server listen → watch`）；`stop()` 关闭 watcher 并 `waitForIdle`
+- **回调**：`onRebuild(change)` 在 rebuild **前**（CLI 日志）；`beforeBuild({ change, plan, appId })` 在 `build()` **前**（dev：`setPendingReload`）；`onError(error, change)` 不终止监听
+- **消费者**：`dmcc build -w`（`autoListen: true`）；`dmcc dev`（`autoListen: false` + `beforeBuild`）；plan/scheduler 位于 `src/common/watch-plan.js`，不公开再导出
+- **不变**：增量/合并/ignore 语义；A2/A3 ws 与 reloadLevel 协议
+
 ## 5. 分阶段路线图（绞杀者模式）
 
 **A 轨道（主线：dev/HMR/统一，纯 JS）** 与 **B 轨道（长期：Rust 宿主，解耦可延后）** 并行推进，A 先行。
@@ -316,3 +326,4 @@ client -> server: { type: 'ack', appId, buildId }
 | v1.5 | 2026-09-08 | dev/HMR 生效边界定稿：§4.1 增补三层分离说明（编译/编排容器无关，预览宿主 + HMR 生效端 Web 容器专属）；锁定 A3 落点（render + container-sdk dev-only）与 L2/L3 验收锚点（Web 容器内） |
 | v1.6 | 2026-09-08 | A3 L2/L3 实施完成回写：§4.2 增补实施结论（Web 容器 dev-only 执行链、L1 fallback、A2/原生边界与残余浏览器风险）；A3 Action 进入 Close 流程 |
 | v1.7 | 2026-09-08 | A4 实施完成回写：§5 A4 行标注完成（落地为 renderer 抽象，对齐微信 app.json/page.json renderer 字段，阶段级 webview adapter，产物 diff=0）；术语映射（RFC target↔实现 renderer）记录 |
+| v1.8 | 2026-09-10 | CF-4 watch-api 完成回写：新增 §4.6 watch API 契约（`@dimina/compiler/watch` / `createBuildWatcher` / autoListen·beforeBuild）；§2.2 watch 行更新为 API 消费者模型 |
