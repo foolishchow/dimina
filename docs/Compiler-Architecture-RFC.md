@@ -369,3 +369,4 @@ CF-3（`es-target-unification`，切片 **仅 logic**）已交付并归档（`do
 | v1.9 | 2026-09-10 | CF-1 compiler-configurable 完成回写：新增 §4.7 compile configuration 契约（`esTarget.{logic,view}` / mode preset / effectiveJsMinify）；§2.1 增补配置化与 diff=0 事实 |
 | v1.10 | 2026-09-10 | CF-2 platform-abstraction 完成回写：D6→D6:B（不变层/可变层）；新增 §4.8 platform 契约（缺省 native、dev 固定 web、sourcemapStrategy 标注） |
 | v1.11 | 2026-09-10 | CF-3 es-target-unification（仅 logic）完成回写：§4.7 接线更新；新增 §4.9 logic 车道收敛；明确不含 view 抬升 |
+| v1.12 | 2026-09-10 | umbrella `compiler-configuration` 闭合：CF-1..CF-4 全部 complete；配置化主线归档（view 抬升不在本 umbrella） |
