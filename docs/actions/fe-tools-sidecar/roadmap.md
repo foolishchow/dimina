@@ -24,7 +24,7 @@ TS-3 编排可选拆包 + web-container-sdk 深改（按需）
 
 | 门 | 内容 | 子 Action 要求 | 就绪前置 | 状态 |
 | --- | --- | --- | --- | --- |
-| TS-0 | 冻结 D-TS0-1..6；`tools/*` workspace | 决策已落 umbrella README | 无 | **已冻 + 已落地**（bootstrap / `feature/fe-tools-bootstrap`） |
+| TS-0 | 冻结 D-TS0-1..6；`tools/*` workspace | 决策已落 umbrella README | 无 | **已冻 + 已落地**（bootstrap → 长线 `feature/fe-tools-sidecar`） |
 | TS-1 | 整包复制改名接线冒烟（意图） | **不立子门**。由独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 交付；伞只把它当**前置**，不父子验收 | — | **前置已 complete** |
 | TS-2 | 在 `@dimina/bundler` 内切开 parse→IR→webview | `fe-tools-template`（未来） | bootstrap-copy complete；IR 草案 | pending |
 | TS-3 | 可选抽出薄编排包；sdk 仅在 `@dimina/web-container-sdk` 内深改 | 可选未来 Action | bootstrap-copy complete | pending / 可 deferred |

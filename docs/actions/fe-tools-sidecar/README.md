@@ -5,7 +5,7 @@
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[compiler-improvement](../_archive/complete/compiler-improvement/README.md)（已归档 A 轨道）、[compiler-configuration](../_archive/complete/compiler-configuration/README.md)（已归档 CF 门）、分支 `feature/compiler-improve` 上的私有演进
-- 工作分支（现行）：`feature/fe-tools-bootstrap`（bootstrap 已落地；伞文档同分支演进）
+- 工作分支（现行）：`feature/fe-tools-sidecar`（由 `feature/fe-tools-bootstrap` 改名延续；bootstrap 已落地；伞文档同分支演进）
 - 设计权威：本 umbrella 文档集（当前）；成熟后回写 `docs/` 专题或 RFC 附录。不替代上游产品权威。
 
 ## Background
@@ -18,7 +18,7 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已在 `feature/fe-tools-bootstrap` 落地；`git diff origin/main...HEAD -- fe/packages` 为空。伞仍为 `draft`，下一步主战场为 TS-2（IR / template）。
+**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支已由 `feature/fe-tools-bootstrap` **改名为** `feature/fe-tools-sidecar`；`git diff origin/main...HEAD -- fe/packages` 为空。伞仍为 `draft`，下一步主战场为 TS-2（IR / template）。
 
 ## Goal
 
@@ -47,7 +47,7 @@
 
 ## TS-0 冻结决策（2026-09-10）
 
-下列项视为 **TS-0 已拍板**。落地状态：决策 + workspace/双包/`dimina-cli` 已在 `feature/fe-tools-bootstrap` 由 bootstrap Action 实施；伞级 `ready`/TS-2+ 实施另授权。
+下列项视为 **TS-0 已拍板**。落地状态：决策 + workspace/双包/`dimina-cli` 已由 bootstrap Action 实施；现行长线分支为 **`feature/fe-tools-sidecar`**；伞级 `ready`/TS-2+ 实施另授权。
 
 ### D-TS0-1 终态 B
 
@@ -60,7 +60,7 @@
 | 角色 | 分支 / 标记 | 规则 |
 | --- | --- | --- |
 | 复制源 | `feature/compiler-improve` | 不可变 tag **`fe-tools-copy-source`**（`242b8622`；VENDOR.md 已写） |
-| 工作分支（现行） | **`feature/fe-tools-bootstrap`**（自已对齐 didi 的 **`origin/main`**） | `packages/*` 保持干净；tools + 伞文档同分支演进 |
+| 工作分支（现行） | **`feature/fe-tools-sidecar`**（自 `feature/fe-tools-bootstrap` 改名；源自已对齐 didi 的 **`origin/main`**） | `packages/*` 保持干净；tools + 伞文档同分支演进 |
 | 上游同步 | 工作分支定期 `merge origin/main`（`origin/main` 先追 didi） | 冲突应落在极少 `packages` 文件；tools 内副本单独追源（见 D-TS0-4） |
 
 **不采用**：在 `feature/compiler-improve` 上直接做整包复制再大规模还原 `packages`（等效终态但 git 更脏）。

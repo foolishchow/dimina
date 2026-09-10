@@ -40,7 +40,7 @@ parser / IR **不得**绑定 `platform: native|web`；renderer 选择后端（�
 
 实施复制前：对 `feature/compiler-improve` 打不可变 tag；工作在从已对齐的 `origin/main` 拉出的 `feature/fe-tools-bootstrap` 上进行（D-TS0-2/3；细节以 bootstrap Action D-BC 为准）。
 
-**落地备注（2026-09-10）**：tag `fe-tools-copy-source`、分支 `feature/fe-tools-bootstrap`、双包与冒烟已由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 完成；本条保留为历史前置说明，不再阻塞 TS-2。
+**落地备注（2026-09-10）**：tag `fe-tools-copy-source`、搬迁期分支名 `feature/fe-tools-bootstrap`（后改名为 **`feature/fe-tools-sidecar`**）、双包与冒烟已由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 完成；本条保留为历史前置说明，不再阻塞 TS-2。
 
 ## R-012（MUST）目标目录、包名与 bin
 

@@ -22,7 +22,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 [`fe-tools-bootstrap-copy`](_archive/complete/fe-tools-bootstrap-copy/README.md)（**`complete`**） |
-| 说明 | 候选条目保留指针；bootstrap 已归档；TS-0/1 已落地；下步 TS-2 IR / TS-4 同步节奏文档 |
+| 说明 | 候选条目保留指针；bootstrap 已归档；长线分支 **`feature/fe-tools-sidecar`**；下步 TS-2 IR / TS-4 同步节奏文档 |
 | 再激活 / 推进 | 伞：IR 草案 + 终态句成文 + CI 决策后再考虑 `ready`；TS-2 可先立独立 Action |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
