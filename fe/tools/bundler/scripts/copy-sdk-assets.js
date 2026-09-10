@@ -1,7 +1,8 @@
-// 把 container-sdk 预构建 dist 复制到 compiler 的 dist/sdk/（A2.0 定案：
+// 把 container-sdk 预构建 dist 复制到 bundler 的 dist/sdk/（A2.0 定案：
 // 预构建产物随 @dimina/bundler 包分发，files:['dist'] 发布形态下 sdk 资产随包）。
 //
-// 在 postbuild 中执行（vite build 先 emptyOutDir 清空 dist，随后复制）。
+// 在 postbuild 中执行：sync-dist-from-src 会清空并镜像 src→dist，随后本脚本
+// 写入 dist/sdk，再由 check-package-exports 校验（D-UV-2 顺序）。
 // container-sdk 将 mitt external（宿主侧解析）；dmcc 浏览器宿主无 bundler，
 // 须把 mitt ESM 一并放入 dist/sdk，并由宿主页 import map 映射 "mitt"。
 import fs from 'node:fs'

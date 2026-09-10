@@ -18,7 +18,7 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支已由 `feature/fe-tools-bootstrap` **改名为** `feature/fe-tools-sidecar`；`git diff origin/main...HEAD -- fe/packages` 为空。伞仍为 `draft`，下一步主战场为 TS-2（IR / template）。
+**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支已由 `feature/fe-tools-bootstrap` **改名为** `feature/fe-tools-sidecar`；`git diff origin/main...HEAD -- fe/packages` 为空。卫生门 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 已 `complete`（下线 Vite 自打包，镜像 `src`→`dist`）。伞仍为 `draft`，下一步主战场为 TS-2（IR / template）。
 
 ## Goal
 

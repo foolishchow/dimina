@@ -10,6 +10,8 @@
 
 根 `fe/package.json` 将 `@dimina/bundler` 列为 `workspace:*` devDependency，以便把 `dimina-cli` 链到 `fe/node_modules/.bin`（pnpm 不会给「无人依赖」的 workspace 包挂 bin）。
 
+自发布为 **ESM 目录镜像**（`src` → `dist` + sdk 资产复制），**不**使用 Vite/esbuild 等做 module graph bundling。单元测试仍可用 vitest。
+
 ```sh
 cd fe
 pnpm install

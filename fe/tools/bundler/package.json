@@ -20,7 +20,7 @@
 	},
 	"scripts": {
 		"prebuild": "node scripts/sync-compatibility-reference.js",
-		"build": "vite build",
+		"build": "node scripts/sync-dist-from-src.js",
 		"postbuild": "node scripts/copy-sdk-assets.js && node scripts/check-package-exports.js",
 		"sync:compat": "node scripts/sync-compatibility-reference.js",
 		"check:compat": "node scripts/sync-compatibility-reference.js --check",
