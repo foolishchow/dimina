@@ -95,7 +95,7 @@ web               es2023 + minify     es2023 + 不 minify
 | sourcemap | CLI flag→结构 | 无变化 |
 | esTarget | 硬编码→配置 | 无变化（per-stage 保持现值） |
 | mode | 新增 preset | dev 不 minify |
-| platform | 从 CF-1 接入 | 无变化 |
+| platform | 字段占位（枚举 CF-2 接入） | 无变化 |
 
 **不收敛**（保持 API-only，将来按需）：
 
