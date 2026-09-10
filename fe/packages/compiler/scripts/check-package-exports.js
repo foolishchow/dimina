@@ -4,6 +4,7 @@ import packageJson from '../package.json' with { type: 'json' }
 
 const publicEntries = [
 	'@dimina/compiler',
+	'@dimina/compiler/watch',
 	'@dimina/compiler/view-compiler',
 	'@dimina/compiler/logic-compiler',
 	'@dimina/compiler/style-compiler',

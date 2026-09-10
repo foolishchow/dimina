@@ -1,9 +1,10 @@
 # Watch API（CF-4：watch 从 CLI-only 提升为 API 能力）
 
 - Action: `watch-api`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-10
 - Promoted: 2026-09-10（Readiness Review pass；R1–R4 选 (a)，B 组默认全采纳，C/D 无异议）
+- Authorized: 2026-09-10（明确授权实施）
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-4）
 - 前置：无（独立；**实施顺序先于 CF-1**，避免 bin 上 watch 重构与 CLI flag 接入冲突）
@@ -79,7 +80,7 @@ await watcher.stop()
 
 无。Readiness Review 已于 2026-09-10 pass 并冻结 D1–D6 + D1a（见 technical-design）。
 
-- 状态：`ready`（可执行；**实施仍需明确授权**后方可进入 `in_progress`）
+- 状态：`in_progress`（已授权实施）
 - 残余风险：无已接受的时序窗口；dev 必须走 `autoListen: false`
 
 ## Closure conditions

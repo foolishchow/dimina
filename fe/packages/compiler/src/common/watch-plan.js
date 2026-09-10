@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { getCompileStagesForFiles } from '../common/compile-stages.js'
+import { getCompileStagesForFiles } from './compile-stages.js'
 
 const WATCH_FILE_EVENTS = new Set(['add', 'change', 'unlink'])
 

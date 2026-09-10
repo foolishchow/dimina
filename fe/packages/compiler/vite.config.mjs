@@ -16,6 +16,7 @@ export default defineConfig({
 			// Multiple entry points
 			entry: {
 				'index': resolve(import.meta.dirname, 'src/index.js'),
+				'watch': resolve(import.meta.dirname, 'src/common/watch-runner.js'),
 				'core/view-compiler': resolve(import.meta.dirname, 'src/core/view-compiler.js'),
 				'core/logic-compiler': resolve(import.meta.dirname, 'src/core/logic-compiler.js'),
 				'core/style-compiler': resolve(import.meta.dirname, 'src/core/style-compiler.js'),

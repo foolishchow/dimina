@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { DependencyGraph } from '../src/common/dependency-graph.js'
-import { createIgnoredPathMatcher, createWatchBuildPlan, createWatchRebuildScheduler, getPublishedOutputPath } from '../src/bin/watch.js'
+import { createIgnoredPathMatcher, createWatchBuildPlan, createWatchRebuildScheduler, getPublishedOutputPath } from '../src/common/watch-plan.js'
 
 describe('compiler watch scheduler', () => {
 	it('rebuilds for added, changed, and deleted files but ignores directory events', async () => {

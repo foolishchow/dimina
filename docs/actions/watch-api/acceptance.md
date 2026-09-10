@@ -20,4 +20,4 @@
 
 ## Status
 
-全部 `pending`：Action 已 `ready`，**尚未授权实施**；表结构供实施与验证填写。
+全部 `pending`：Action 为 `in_progress`；实现已落地，验收证据待写入 validation 后勾选.
