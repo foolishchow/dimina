@@ -4,8 +4,9 @@ import path from 'node:path'
 import process from 'node:process'
 import { program } from 'commander'
 import pack from '../../package.json' with { type: 'json' }
-import build from '../index.js'
 import { createBuildWatcher } from '../common/watch-runner.js'
+import { createBundler } from '../session/index.js'
+import { resolveBundlerConfig } from '../session/resolve.js'
 import { registerDevCommand } from './dev.js'
 
 const EVENT_LABELS = {
@@ -25,21 +26,21 @@ program
 	.option('--platform <name>', '运行时宿主平台：native | web（缺省 native）')
 	.action(async (options) => {
 		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
+		// argv defaults stay in bin (M-G1): resolve receives explicit values only
 		const targetPath = options.targetPath ? path.resolve(options.targetPath) : process.cwd()
-		const useAppIdDir = options.appIdDir !== false
-		const sourcemap = !!options.sourcemap
-		const minify = typeof options.minify === 'boolean' ? options.minify : undefined
-		const platform = typeof options.platform === 'string' ? options.platform : undefined
-		const buildOptions = {
-			mode: 'build',
-			sourcemap,
-			...(minify === undefined ? {} : { minify }),
-			...(platform === undefined ? {} : { platform }),
+		const cli = {
+			workPath,
+			targetPath,
+			useAppIdDir: options.appIdDir !== false,
+			sourcemap: !!options.sourcemap,
+			...(typeof options.minify === 'boolean' ? { minify: options.minify } : {}),
+			...(typeof options.platform === 'string' ? { platform: options.platform } : {}),
 		}
+		const resolved = resolveBundlerConfig({ command: 'build', cli })
 
 		if (!options.watch) {
 			try {
-				await build(targetPath, workPath, useAppIdDir, buildOptions)
+				await createBundler(resolved).build()
 			}
 			catch (error) {
 				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
@@ -47,11 +48,12 @@ program
 			return
 		}
 
+		// -w 临时保留旧接线（watch 循环在 O2 迁至 session.watch）
 		const watcher = createBuildWatcher({
-			targetPath,
-			workPath,
-			useAppIdDir,
-			options: buildOptions,
+			targetPath: resolved.targetPath,
+			workPath: resolved.workPath,
+			useAppIdDir: resolved.useAppIdDir,
+			options: { ...resolved.compile },
 			onRebuild: ({ event, filePath, count }) => {
 				const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
 				console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)

@@ -11,6 +11,7 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./watch": "./dist/watch.js",
+		"./session": "./dist/session/index.js",
 		"./view-compiler": "./dist/core/view-compiler.js",
 		"./logic-compiler": "./dist/core/logic-compiler.js",
 		"./style-compiler": "./dist/core/style-compiler.js"

@@ -1,7 +1,7 @@
 # FE Tools Bundler Session
 
 - Action: `fe-tools-bundler-session`
-- Status: `ready`
+- Status: `in_progress`（O1 build 已交付，O2/O3 待续）
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
 - 关系：独立架构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。与 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 无依赖（已 complete）。

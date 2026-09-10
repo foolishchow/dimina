@@ -5,6 +5,7 @@ import packageJson from '../package.json' with { type: 'json' }
 const publicEntries = [
 	'@dimina/bundler',
 	'@dimina/bundler/watch',
+	'@dimina/bundler/session',
 	'@dimina/bundler/view-compiler',
 	'@dimina/bundler/logic-compiler',
 	'@dimina/bundler/style-compiler',

@@ -39,6 +39,6 @@
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
 | `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（战略，draft）；长线分支 `feature/fe-tools-sidecar`；TS-0/1 已落地；编排轴见 bundler-session；下步另有 TS-2 IR。 | 2026-09-10 |
-| `fe-tools-bundler-session` | `ready` | [README](fe-tools-bundler-session/README.md) | 会话/编排门面（曾用名 bundler-core）；经 14 轮审查升级 ready：O1–O3 门映射、零循环拓扑（子路径 ./session 导出）、A-BS01..08/P-001..007 俱足；实施待授权。 | 2026-09-10 |
+| `fe-tools-bundler-session` | `in_progress` | [README](fe-tools-bundler-session/README.md) | 会话/编排门面（曾用名 bundler-core）；O1 build 已交付（session 模块 + ./session 子路径 + CLI one-shot 经 session；468 测试全绿 + 6 entries 验证）；O2 watch / O3 dev 待实施。 | 2026-09-10 |
 | `fe-tools-bundler-unvite` | `complete` | [README](_archive/complete/fe-tools-bundler-unvite/README.md) | 卫生：下线 Vite 自打包；镜像 dist + watch shim；A-UV01..09 / P-001..008（含 dimina-cli build/dev）；已归档。 | 2026-09-10 |
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
