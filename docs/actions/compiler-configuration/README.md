@@ -2,9 +2,9 @@
 
 - Action: `compiler-configuration`
 - Status: `draft`
-- Updated: 2026-09-08
+- Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
-- 设计权威：本 umbrella 的架构决策由子 Action 分别推动回写 RFC（D6:B 等）；本文不重复
+- 设计权威：本 umbrella 的架构决策由子 Action 分别推动回写 RFC（D6:B、esTarget 双字段等）；本文不重复
 
 ## Background
 
@@ -16,7 +16,7 @@
 
 1. 引入 platform 维度（运行时宿主环境：native/web），修订 D6 为 D6:B（产物分层）
 2. 建立统一编译配置框架（compile configuration），CLI ⊆ API 能力对齐
-3. ES target 从硬编码消除，值统一（独立验证产物变化）
+3. ES target 按双线程拆成 `esTarget.logic` / `esTarget.view`（CF-1）；logic 车道收敛与可选 view 抬升（CF-3），不强制两车道同值
 4. watch 从 CLI-only 提升为 API 能力，消除 dev/build 重复实现
 
 ## Non-goals
@@ -40,24 +40,26 @@
 **compile profile = f(platform, mode, override)**：
 
 ```text
-                    build              dev
-native            es2023 + minify     —
-web               es2023 + minify     es2023 + 不 minify
+minify ← mode（build=true / dev=false）
+esTarget.logic ← 缺省 es2023（QuickJS/JSC/Worker）
+esTarget.view  ← 缺省 es2020（WebView/Browser；抬升属 CF-3 可选）
 ```
+
+（platform 主要影响 sourcemap 策略等宿主语义，CF-2 接入；不把「单一全局 esTarget」绑死在 platform 上。）
 
 **D6:B 产物分层**：
 
 | 层 | 跨 platform × mode | 内容 |
 | --- | --- | --- |
 | 不变层 | 结构一致 | modDefine 注册调用结构、模块 ID、目录、app-config、警告 |
-| 可变层 | 由 compile profile 决定 | ES target、minify、sourcemap 策略 |
+| 可变层 | 由 compile profile 决定 | `esTarget.{logic,view}`、minify、sourcemap 策略 |
 
 ## Deliverables
 
 - platform 维度声明 + CLI `--platform` + D6:B RFC 回写
-- compile configuration 统一框架（CLI/API 收敛、mode preset、minify/sourcemap/esTarget 从框架读取）
+- compile configuration 统一框架（CLI/API 收敛、mode preset、minify/sourcemap/`esTarget.{logic,view}`）
 - dev 默认不 minify（行为变更，独立验证）
-- ES target 值统一（产物有意变化，独立验证 + 兼容性调研）
+- ES target 双字段 + logic 车道收敛；view 抬升可选且须 WebView 矩阵（CF-3）
 - watch API 化（消除 dev/build 重复，API 完备性）
 
 ## Umbrella 机制
@@ -68,34 +70,34 @@ web               es2023 + minify     es2023 + 不 minify
 
 | 门 | 内容 | 子 Action | 依赖 | 状态 |
 | --- | --- | --- | --- | --- |
-| CF-1 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap + platform 占位） | `compiler-configurable` | 无 | draft |
+| CF-1 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap + `esTarget.{logic,view}` + platform 占位） | `compiler-configurable` | 无（实施在 CF-4 后） | draft |
 | CF-2 | platform 维度接入（枚举注册进 config 框架/CLI/约束/D6:B） | `platform-abstraction` | CF-1 | draft |
-| CF-3 | ES target 值统一（es2020→es2023） | `es-target-unification` | CF-1 + Harmony WebView 调研 | draft |
+| CF-3 | logic 车道 ES 收敛；可选抬升 `esTarget.view`（须 WebView 矩阵） | `es-target-unification` | CF-1；（仅 view 抬升时）WebView 调研 | draft |
 | CF-4 | watch API 化（消除 CLI-only/重复） | `watch-api` | 无（实施先于 CF-1） | complete |
 
 依赖关系（修正后，2026-09-08 审查）：
 
 ```text
 CF-1 configurable → CF-2 platform（platform 接入已有 config 框架）
-CF-1 configurable → CF-3 es-target（值统一在 config 里改）
-CF-4 watch-api（独立，可并行）
+CF-1 configurable → CF-3 es-target（logic 收敛 / 可选 view 抬升）
+CF-4 watch-api（已 complete；实施先于 CF-1）
 ```
 
-执行建议（F-CF-002/003 审查修正后定稿）：
+执行建议（F-CF-002/003 审查修正后定稿；2026-09-10 修订 esTarget 双字段）：
 
 ```text
-Phase 1（串行，避免 bin 文件冲突）：
-  CF-4 watch-api          → 先抽离 bin watch 编排（稳定入口文件）
-  CF-1 compiler-configurable → 在稳定入口上接入 CLI flag + compile config（首版 core 框架，bin 接入在 CF-4 之后）
+Phase 1：
+  CF-4 watch-api          → complete
+  CF-1 compiler-configurable → 双字段 esTarget + minify/sourcemap 框架 + bin CLI
 
 Phase 2（依赖 CF-1）：
   CF-2 platform-abstraction → platform 枚举注册进 config
-  CF-3 es-target-unification → 值统一（外部依赖 Harmony 调研）
+  CF-3 es-target-unification → logic 车道收敛；view 抬升仅在 WebView 矩阵通过后
 ```
 ## Readiness gaps
 
 - 各子 Action 需分别 formalize 并通过 Readiness Review
-- CF-3 有外部依赖（Harmony WebView es2023 兼容性调研）
+- CF-3：若含 view 抬升，须 WebView（含 Harmony）兼容性调研；仅 logic 收敛则无此阻塞
 
 ## Closure conditions
 

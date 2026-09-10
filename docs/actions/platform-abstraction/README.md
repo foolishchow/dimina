@@ -16,12 +16,12 @@ CF-1（compiler-configurable）已建立统一编译配置框架（compile confi
 
 ## Goal
 
-将 platform 枚举（native/web）注册进 CF-1 的 compile configuration 框架，提供 CLI `--platform`，修订 D6 为 D6:B。**不改任何编译器内部行为**（ES target/minify 硬编码已在 CF-1 中收敛，本 Action 只接入 platform 语义）。
+将 platform 枚举（native/web）注册进 CF-1 的 compile configuration 框架，提供 CLI `--platform`，修订 D6 为 D6:B。**不改任何编译器内部行为**（minify/`esTarget.{logic,view}` 硬编码已在 CF-1 中收敛，本 Action 只接入 platform 语义）。
 
 ## Non-goals
 
 - 不改编译器内部行为（CF-1 已收敛）
-- 不做 ES target 值统一（CF-3）
+- 不抬高 `esTarget.view`、不强制 logic/view 同值（CF-3）
 - 不做 watch API 化（CF-4）
 - 不实现 Lynx（C1 deferred）
 - 不改 renderer 抽象（A4 已闭合）
