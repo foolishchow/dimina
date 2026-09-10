@@ -1,3 +1,8 @@
+import {
+	resolvePlatform,
+	sourcemapStrategyFor,
+} from './platforms.js'
+
 const DEFAULT_ES_TARGET = Object.freeze({
 	logic: 'es2023',
 	view: 'es2020',
@@ -44,9 +49,9 @@ function normalizeEsTarget(value, label = 'esTarget') {
 }
 
 /**
- * 合并 compile configuration（CF-1 冻结契约 v1）。
+ * 合并 compile configuration（CF-1 + CF-2）。
  *
- * 优先级：cli > apiOptions > mode preset > platform defaults（CF-1 空）> 内部缺省
+ * 优先级：cli > apiOptions > mode preset > platform defaults（仅派生 sourcemapStrategy）> 内部缺省
  *
  * @param {object} [input]
  * @param {'build'|'dev'} [input.mode]
@@ -61,10 +66,7 @@ export function resolveCompileConfig(input = {}) {
 		throw new TypeError(`Invalid mode: expected 'build' | 'dev', got ${JSON.stringify(mode)}`)
 	}
 
-	const platform = cli.platform ?? apiOptions.platform ?? input.platform
-	if (platform !== undefined && platform !== 'native' && platform !== 'web') {
-		throw new TypeError(`Invalid platform: expected 'native' | 'web' | undefined, got ${JSON.stringify(platform)}`)
-	}
+	const platform = resolvePlatform(cli.platform ?? apiOptions.platform ?? input.platform)
 
 	if (Object.hasOwn(apiOptions, 'esTarget')) {
 		normalizeEsTarget(apiOptions.esTarget, 'options.esTarget')
@@ -85,6 +87,7 @@ export function resolveCompileConfig(input = {}) {
 	return {
 		mode,
 		platform,
+		sourcemapStrategy: sourcemapStrategyFor(platform),
 		minify: !!minify,
 		sourcemap: !!sourcemap,
 		esTarget,

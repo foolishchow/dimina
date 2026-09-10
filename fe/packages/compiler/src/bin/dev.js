@@ -52,6 +52,7 @@ export function registerDevCommand(program) {
 				autoListen: false,
 				options: {
 					mode: 'dev',
+					platform: 'web',
 					sourcemap,
 					lifecycle,
 					...(minify === undefined ? {} : { minify }),

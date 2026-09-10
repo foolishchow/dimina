@@ -22,16 +22,19 @@ program
 	.option('--no-app-id-dir', '产物根目录不包含appId')
 	.option('--sourcemap', '生成 sourcemap 文件用于调试')
 	.option('--minify', '压缩产物（覆盖 mode 缺省；可用 --no-minify 关闭）')
+	.option('--platform <name>', '运行时宿主平台：native | web（缺省 native）')
 	.action(async (options) => {
 		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 		const targetPath = options.targetPath ? path.resolve(options.targetPath) : process.cwd()
 		const useAppIdDir = options.appIdDir !== false
 		const sourcemap = !!options.sourcemap
 		const minify = typeof options.minify === 'boolean' ? options.minify : undefined
+		const platform = typeof options.platform === 'string' ? options.platform : undefined
 		const buildOptions = {
 			mode: 'build',
 			sourcemap,
 			...(minify === undefined ? {} : { minify }),
+			...(platform === undefined ? {} : { platform }),
 		}
 
 		if (!options.watch) {

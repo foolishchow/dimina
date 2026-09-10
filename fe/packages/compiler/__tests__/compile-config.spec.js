@@ -5,12 +5,14 @@ import {
 	resolveCompileConfig,
 	splitBuildOptions,
 } from '../src/common/compile-config.js'
+import { InvalidPlatformError } from '../src/common/platforms.js'
 
 describe('resolveCompileConfig', () => {
-	it('uses build preset minify=true and default dual esTarget', () => {
+	it('uses build preset minify=true, default native platform, and dual esTarget', () => {
 		expect(resolveCompileConfig()).toEqual({
 			mode: 'build',
-			platform: undefined,
+			platform: 'native',
+			sourcemapStrategy: 'quickjs-attach',
 			minify: true,
 			sourcemap: false,
 			esTarget: { ...DEFAULT_ES_TARGET },
@@ -53,6 +55,28 @@ describe('resolveCompileConfig', () => {
 	it('hard-fails invalid mode', () => {
 		expect(() => resolveCompileConfig({ mode: 'prod' })).toThrow(/Invalid mode/)
 	})
+
+	it('defaults platform to native and derives sourcemapStrategy', () => {
+		expect(resolveCompileConfig({ apiOptions: { platform: 'web' } })).toMatchObject({
+			platform: 'web',
+			sourcemapStrategy: 'devtools-url',
+		})
+		expect(resolveCompileConfig({ cli: { platform: 'web' }, apiOptions: { platform: 'native' } }))
+			.toMatchObject({ platform: 'web', sourcemapStrategy: 'devtools-url' })
+	})
+
+	it('hard-fails invalid platform', () => {
+		expect(() => resolveCompileConfig({ apiOptions: { platform: 'ios' } }))
+			.toThrow(InvalidPlatformError)
+	})
+
+	it('does not let platform change minify or esTarget', () => {
+		const nativeCfg = resolveCompileConfig({ apiOptions: { platform: 'native' } })
+		const webCfg = resolveCompileConfig({ apiOptions: { platform: 'web' } })
+		expect(webCfg.minify).toBe(nativeCfg.minify)
+		expect(webCfg.esTarget).toEqual(nativeCfg.esTarget)
+		expect(webCfg.sourcemap).toBe(nativeCfg.sourcemap)
+	})
 })
 
 describe('effectiveJsMinify', () => {
@@ -67,6 +91,7 @@ describe('splitBuildOptions', () => {
 	it('peels config keys and keeps pipeline options', () => {
 		const { apiConfigInput, rest } = splitBuildOptions({
 			mode: 'dev',
+			platform: 'web',
 			minify: false,
 			sourcemap: true,
 			esTarget: { logic: 'es2023', view: 'es2020' },
@@ -75,11 +100,13 @@ describe('splitBuildOptions', () => {
 		})
 		expect(apiConfigInput).toMatchObject({
 			mode: 'dev',
+			platform: 'web',
 			minify: false,
 			sourcemap: true,
 		})
 		expect(rest.stages).toEqual(['logic'])
 		expect(rest.lifecycle).toBeTruthy()
 		expect(rest).not.toHaveProperty('minify')
+		expect(rest).not.toHaveProperty('platform')
 	})
 })

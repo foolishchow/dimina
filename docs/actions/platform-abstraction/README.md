@@ -1,9 +1,10 @@
 # Platform Abstraction（CF-2：platform 维度接入）
 
 - Action: `platform-abstraction`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-10
 - Promoted: 2026-09-10（Readiness Review pass；D-CF2-1..5 全按建议）
+- Authorized: 2026-09-10（明确授权实施）
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-2）
 - 前置：CF-1 `compiler-configurable`（**complete**；platform 字段占位已存在）
@@ -53,7 +54,7 @@ CF-1 已建立统一 compile configuration，`platform` 仅占位校验。`dmcc 
 
 无。前置 CF-1 complete；D-CF2-1..5 已冻。
 
-- 状态：`ready`（待明确授权实施）
+- 状态：`in_progress`（已授权实施）
 
 ## Closure conditions
 

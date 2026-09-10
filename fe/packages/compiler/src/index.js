@@ -7,6 +7,7 @@ import { formatCompileProgress } from './common/compile-progress.js'
 import { resolveCompileConfig } from './common/compile-config.js'
 import { DependencyGraph } from './common/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
+import { assertRendererSupportsPlatform } from './common/platforms.js'
 import { getRenderer, registerRenderer, resolveProjectRenderers } from './common/renderers.js'
 import { createDist, publishToDist } from './common/publish.js'
 import { artCode, resetAssetCache } from './common/utils.js'
@@ -44,7 +45,7 @@ registerRenderer(webviewRenderer)
  * @param {boolean} [options.minify] 是否压缩（覆盖 mode 缺省）
  * @param {boolean} [options.sourcemap] 是否生成 sourcemap
  * @param {{ logic?: string, view?: string }} [options.esTarget] 双线程 ES target（CF-1）
- * @param {'native'|'web'} [options.platform] platform 占位（CF-2 语义）
+ * @param {'native'|'web'} [options.platform] 运行时宿主（CF-2；缺省 native）
  * @param {{ template?: string[], style?: string[], viewScript?: string[] }} [options.fileTypes]
  *   自定义文件类型，在内置 wx/dd 类型基础上追加；template 为模板扩展名，style 为样式扩展名，
  *   viewScript 为视图脚本扩展名和内联标签名
@@ -75,7 +76,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 		&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
 		throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
 	}
-	// CF-1：在任何构建副作用前解析配置（非法 esTarget/mode 硬失败，不触发 build:start）
+	// CF-1/CF-2：在任何构建副作用前解析配置（非法 esTarget/mode/platform 硬失败，不触发 build:start）
 	const compileConfiguration = resolveCompileConfig({ apiOptions: options })
 	const { sourcemap } = compileConfiguration
 	const lifecycle = options.lifecycle || createLifecycle()
@@ -87,6 +88,8 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 	if (!activeRenderer) {
 		throw new Error(`Renderer adapter not registered: ${appRenderer}`)
 	}
+	// CF-2：renderer × platform 约束（webview 双平台可用；预留 unsupportedPlatforms）
+	assertRendererSupportsPlatform(activeRenderer, compileConfiguration.platform)
 	// build:start 载荷需可序列化（R-006）：剥离可能为实例的 dependencyGraph 与 lifecycle
 	const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, ...serializableOptions } = options
 	try {
