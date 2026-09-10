@@ -17,6 +17,14 @@
 
 ## Candidates
 
+### FE tools sidecar（旁路工具链）——已 formalize（2026-09-10）
+
+| Field | Value |
+| --- | --- |
+| 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁独立 Action [`fe-tools-bootstrap-copy`](fe-tools-bootstrap-copy/README.md)（**`ready`**，非子门） |
+| 说明 | 候选条目保留指针，避免与 STATUS 双源；**搬迁可单独授权实施**，不阻塞于伞 `ready` |
+| 再激活 / 推进 | bootstrap：授权 → 对齐 `origin/main` → tag/开分支实施；伞：IR/终态句/CI 等后再 `ready` |
+
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
 | Field | Value |

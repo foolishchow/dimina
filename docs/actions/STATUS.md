@@ -38,3 +38,5 @@
 | `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
+| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（战略）：终态 B；TS-0 冻结；TS-1 搬迁由独立 Action 前置，不立子门。 | 2026-09-10 |
+| `fe-tools-bootstrap-copy` | `ready` | [README](fe-tools-bootstrap-copy/README.md) | 独立搬迁：`feature/fe-tools-bootstrap` ← 对齐后的 `origin/main`；tag `fe-tools-copy-source`；G2 已冻；待授权实施。 | 2026-09-10 |
