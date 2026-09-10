@@ -14,7 +14,7 @@
  *
  * Intent: show ownership and call shape in code form so we can discuss line-by-line.
  * Anything that throws `draftTodo` is explicitly undecided or later.
- * Plugin / use(): NOT this Action’s primary delivery — OPEN / deferred.
+ * Plugin / use(): NOT this Action — session exposes NO use(); `api.plugins` reserved only.
  */
 
 /** @typedef {import('./config.draft.types.js').ResolvedBundlerInput} ResolvedBundlerInput */
@@ -44,20 +44,19 @@ const SERVER_KEYS = Object.freeze(['host', 'port'])
 // #2 config.draft ↔ ResolvedBundlerInput map
 // ---------------------------------------------------------------------------
 /*
-  config.draft.mjs          ResolvedBundlerInput           today CLI / API
+  api layer (config.draft)  ResolvedBundlerInput           today CLI / API
   ----------------------    ---------------------------    -----------------
   root                      workPath                       -c / workPath
   outDir                    targetPath (build only)        -s / targetPath
-  server.outDir (file)      targetPath (dev only, D-R1)    -s overrides
   useAppIdDir               useAppIdDir                    --no-app-id-dir
   compile.* (C1 only)       compile                        resolveCompileConfig
   fileTypes (top-level)     fileTypes                      build options.fileTypes
   server.host/port          server.host/port (dev)         --host / -p
   (no field)                command                        'build' | 'dev'
   (no field)                lifecycle                      test inject only
-  plugins                   — OPEN
+  plugins                   — reserved (api.plugins; not loaded)
 
-  D-R1  dev: file.outDir ignored for targetPath
+  D-R1  dev: targetPath ← cli/api targetPath | temp (NO file layer this Action)
   D-R2  dev: seeds mode=dev/platform=web; post-merge drift → hard-fail (C);
         other C1 still overridable; session.dev() uses Resolved as-is
   D-R3  Resolved.server = { host, port } only
@@ -121,10 +120,9 @@ export const STAGE_GRAPH_DRAFT = Object.freeze({
  * @typedef {object} PreviewAdapter
  * @property {(payload: object) => void} setPendingReload
  * @property {(opts: object) => Promise<void> | void} createServer
- * @property {(host: string, port: number) => Promise<void>} listen
+ * @property {(host: string, port: number) => Promise<{ port: number, host: string }>} listen
  * @property {() => void} [notifyBuildPublished]
  * @property {(err: Error) => void} [notifyBuildError]
- * @property {(msg: string) => void} [notifyBuildWarning]
  * @property {() => Promise<void> | void} [close]
  */
 
@@ -134,11 +132,25 @@ export const STAGE_GRAPH_DRAFT = Object.freeze({
 /*
   R1  One BundlerSession → at most one active watch/dev loop (`activeLoop`).
   R2  .build() may be called repeatedly on a session without watch (one-shot OK).
-  R3  After .watch() or .dev() has started, a second .watch()/.dev() throws until
-      the loop is released: watcher.stop() or devHandle.close() clears `activeLoop`.
+      Concurrent build×build is NOT guarded — semantics equal today's concurrent
+      default build() calls (lifecycle events interleave; ALS per-build safe).
+  R3  A watch handle OCCUPIES `activeLoop` from CREATION (before start()); a second
+      .watch()/.dev() throws until released via watcher.stop() (works even if never
+      started) or devHandle.close(). A FAILED watcher.start() does NOT auto-release
+      — caller may retry start() or call stop() to release.
   R4  .build() while watch/dev is active: throw (no parallel runBuild on same session).
-  R5  Plugin use(): deferred / not this Action’s primary delivery — probe always throws OPEN.
+  R5  Plugin use(): absent this Action — session exposes NO use() method; `api.plugins` reserved.
   R6  Session does not load config files; caller passes ResolvedBundlerInput.
+  R7  Startup-failure rollback (.dev()): if any internal step fails (watcher.start /
+      adapter.createServer / lifecycle wiring / listen), the session MUST roll back —
+      stop the started watcher, close the adapter, clear `activeLoop`, rethrow — and
+      remain reusable (activeLoop/resources). KNOWN LIMITATION (accepted 2026-09-10):
+      lifecycle has no off() (A1 v1); the 3 dev-registered listeners stay mounted
+      after rollback/close — harmless (dev-server close clears clients; broadcast
+      checks readyState) but they ACCUMULATE across dev cycles. Revisit if A1 adds
+      off(); dev should then unmount ONLY its own listeners.
+      Bare .watch() is exempt (start failure keeps started=false;
+      retry start() or stop() to release).
 */
 
 /**
@@ -164,6 +176,12 @@ export function createBundler(resolved) {
 		/** @internal probe */ _state: state,
 
 		/**
+		 * Read-only: this session's unique lifecycle (Background gap ③ — "lifecycle 非经会话暴露").
+		 * Mount listeners with on(); emit is NOT part of the promised surface (A1 internal).
+		 */
+		lifecycle: state.lifecycle,
+
+		/**
 		 * One-shot compile (O1). Meaningful product door with .watch (O2).
 		 * Real impl: today’s runBuild with lifecycle injected.
 		 */
@@ -183,7 +201,7 @@ export function createBundler(resolved) {
 
 		/**
 		 * Watch loop sharing this session’s lifecycle (O2).
-		 * Real impl: createBuildWatcher({ ..., lifecycle: state.lifecycle }).
+		 * Real impl: createBuildWatcher({ ..., options: { ..., lifecycle: state.lifecycle } }).
 		 * Returned handle: stop() ALWAYS clears activeLoop (bare watch + used by .dev).
 		 */
 		watch(watchOpts = {}) {
@@ -207,6 +225,10 @@ export function createBundler(resolved) {
 				...compileOverrides,
 				...pipelineExtras,
 				fileTypes: pipelineExtras.fileTypes ?? state.fileTypes,
+				// FORCED last — never allow overrides.lifecycle to win (same as build path).
+				// Real createBuildWatcher takes lifecycle via options.lifecycle (see bin/dev.js),
+				// NOT as a top-level param — so it must live inside `options`.
+				lifecycle: state.lifecycle,
 			}
 
 			const inner = createBuildWatcherDraft({
@@ -218,7 +240,6 @@ export function createBundler(resolved) {
 				onRebuild,
 				onError,
 				options: baseOptions,
-				lifecycle: state.lifecycle,
 			})
 
 			state.activeLoop = 'watch'
@@ -247,31 +268,27 @@ export function createBundler(resolved) {
 		 * D1a alignment checklist vs fe/tools/bundler/src/bin/dev.js:
 		 *  [x] autoListen:false → start() → createServer → lifecycle.on → listen → watcher.listen
 		 *  [x] beforeBuild → setPendingReload
-		 *  [x] lifecycle.on(BUNDLE_PUBLISHED | BUILD_ERROR | BUILD_WARNING)
+		 *  [x] lifecycle.on(BUNDLE_PUBLISHED | BUILD_ERROR) — today's dev.js has NO warning listener (L-G2)
 		 *  [x] default targetPath = OS temp when -s omitted (resolve D-R1)
-		 *  [ ] buildId counter for synthesizeReloadLevel (impl detail)
+		 *  [x] buildId counter for synthesizeReloadLevel — ADAPTER state (per .dev() call), NOT session base
 		 *  [ ] sdkRoot resolution stays in adapter / existing helper
 		 *  note: aligns with today’s bin/dev hard-coded mode/platform (D-R2/C)
 		 */
 		async dev(devOpts = {}) {
 			assertCanStartLoop(state, 'dev')
 
+			// M-C2: server comes ONLY from Resolved.server (D-R3) — no host/port override
+			// here; CLI --host/-p go through resolveBundlerConfig's cli layer.
 			const {
 				previewAdapter,
 				onError,
 				onRebuild,
-				host,
-				port,
 				...unknown
 			} = devOpts
 
 			void unknown
 
 			const adapter = previewAdapter ?? createWebPreviewAdapterDraft()
-			const serverCfg = {
-				...state.server,
-				...pickDefined({ host, port }),
-			}
 
 			const watcher = session.watch({
 				autoListen: false,
@@ -286,21 +303,42 @@ export function createBundler(resolved) {
 			})
 			state.activeLoop = 'dev'
 
-			const buildResult = await watcher.start()
+			// R7: startup-failure rollback — on any failure below, stop the started
+			// watcher, close the adapter, clear activeLoop, rethrow. Session stays
+			// reusable after rollback (activeLoop/resources).
+			// KNOWN LIMITATION (accepted): lifecycle has no off() (A1 v1); the 3
+			// listeners registered below stay mounted after rollback/close — harmless
+			// (dev-server close clears clients; broadcast checks readyState) but they
+			// accumulate across dev cycles.
+			try {
+				const buildResult = await watcher.start()
 
-			await adapter.createServer({
-				serveRoot: state.targetPath,
-				appId: buildResult.appId,
-				host: serverCfg.host,
-				port: serverCfg.port,
-			})
+				// host/port go to adapter.listen (real createDevServer does NOT take them);
+				// sdkRoot resolved inside adapter (resolveSdkRoot), not a session param
+				await adapter.createServer({
+					serveRoot: state.targetPath,
+					appId: buildResult.appId,
+				})
 
-			state.lifecycle.on('bundle:published', () => adapter.notifyBuildPublished?.())
-			state.lifecycle.on('build:error', ({ error }) => adapter.notifyBuildError?.(error))
-			state.lifecycle.on('build:warning', ({ message }) => adapter.notifyBuildWarning?.(message))
+				state.lifecycle.on('bundle:published', () => adapter.notifyBuildPublished?.())
+				state.lifecycle.on('build:error', ({ error }) => adapter.notifyBuildError?.(error))
+				// L-G2: NO build:warning listener — today's bin/dev.js mounts only the two above;
+				// real dev-server has no notifyBuildWarning method
 
-			await adapter.listen(serverCfg.host ?? '127.0.0.1', serverCfg.port ?? 8080)
-			await watcher.listen()
+				await adapter.listen(state.server?.host ?? '127.0.0.1', state.server?.port ?? 8080)
+				await watcher.listen()
+			}
+			catch (error) {
+				try {
+					await watcher.stop()
+					await adapter.close?.()
+				}
+				catch {
+					// best-effort cleanup; original error wins
+				}
+				state.activeLoop = null
+				throw error
+			}
 
 			return {
 				async close() {
@@ -315,13 +353,9 @@ export function createBundler(resolved) {
 			}
 		},
 
-		/**
-		 * Plugin API deferred — not this Action’s primary delivery.
-		 * Pipeline-as-plugins (app/page load, etc.) = later Action; see stages.draft.md.
-		 */
-		use(_plugin) {
-			draftTodo('plugins deferred — not fe-tools-bundler-session primary delivery')
-		},
+		// Plugin API intentionally absent this Action: session does NOT expose use().
+		// `api.plugins` is a reserved field only (resolve accepts but does not load).
+		// Pipeline-as-plugins (app/page load, etc.) = later Action; see stages.draft.md.
 	}
 
 	return session
@@ -360,16 +394,6 @@ function pickKeys(obj, keys) {
 	for (const key of keys) {
 		if (Object.hasOwn(obj, key)) {
 			out[key] = obj[key]
-		}
-	}
-	return out
-}
-
-function pickDefined(obj) {
-	const out = {}
-	for (const [k, v] of Object.entries(obj)) {
-		if (v !== undefined) {
-			out[k] = v
 		}
 	}
 	return out
@@ -455,7 +479,6 @@ function createWebPreviewAdapterDraft() {
 		},
 		notifyBuildPublished() {},
 		notifyBuildError() {},
-		notifyBuildWarning() {},
 		async close() {},
 	}
 }
@@ -469,7 +492,7 @@ function synthesizeReloadLevelDraft(_ctx) {
 // ---------------------------------------------------------------------------
 /*
   BundlerSession (this file)     = orchestration ENTRY
-  resolveBundlerConfig           = BEFORE session (config.draft P1–P6)
+  resolveBundlerConfig           = BEFORE session (config.draft P1–P3)
   runBuild / workers / renderer  = PIPELINE (see stages.draft.md)
   lifecycle                      = HOOK RAIL (A1); orthogonal — not primary plugin model
   preview adapter / dev-*        = PREVIEW; sequenced by .dev()

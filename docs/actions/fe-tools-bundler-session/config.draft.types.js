@@ -3,17 +3,21 @@
  *
  * Action: fe-tools-bundler-session
  * Used by: config.draft.mjs, resolve.draft.mjs, orchestrator.draft.mjs
+ *
+ * Scope note (2026-09-10): NO file/config-file layer this Action. The `api` layer
+ * describes programmatic options to resolveBundlerConfig, NOT an on-disk schema.
  */
 
 /**
- * @typedef {object} DiminaBundlerConfigDraft
+ * `api` layer (programmatic options). NOT an on-disk config file schema this Action.
+ * @typedef {object} DiminaBundlerApiLayerDraft
  * @property {string} [root]
- * @property {string} [outDir]  build default out; NOT used for dev targetPath (D-R1); API: use targetPath on dev (D-R4)
+ * @property {string} [outDir]  build default out; NOT used for dev targetPath (D-R4); API: use targetPath on dev
  * @property {boolean} [useAppIdDir]
  * @property {DiminaBundlerCompileDraft} [compile]
  * @property {DiminaBundlerFileTypesDraft} [fileTypes]
- * @property {DiminaBundlerPluginDraft[]} [plugins]  OPEN
- * @property {DiminaBundlerServerFileDraft} [server]
+ * @property {DiminaBundlerPluginDraft[]} [plugins]  RESERVED — not loaded this Action
+ * @property {DiminaBundlerServerApiDraft} [server]
  */
 
 /**
@@ -34,20 +38,21 @@
  */
 
 /**
+ * Plugin shape — RESERVED, not loaded this Action. `createBundler` does not expose `use()`;
+ * `api.plugins` accepted syntactically but not applied. Plugin API = separate Action.
+ *
  * @typedef {object} DiminaBundlerPluginDraft
  * @property {string} name
  * @property {(api: { on: (event: string, listener: Function) => void }) => void} apply
  */
 
 /**
- * On-disk `server` block (config file).
- * `outDir` here is ONLY a hint for resolve → targetPath on command:'dev'.
- * It does NOT appear on ResolvedBundlerInput.server (host/port only).
+ * `server` block on the api layer. host/port feed Resolved.server; no outDir
+ * (dev targetPath comes from api.targetPath or temp, NOT server.outDir — D-R1/D-R4).
  *
- * @typedef {object} DiminaBundlerServerFileDraft
+ * @typedef {object} DiminaBundlerServerApiDraft
  * @property {string} [host]
  * @property {number} [port]
- * @property {string} [outDir]  optional explicit dev output root → Resolved.targetPath
  */
 
 /**
@@ -62,12 +67,13 @@
  */
 
 /**
+ * Input of resolveBundlerConfig. Two layers only this Action: cli + api.
+ * NO configFile / fileConfig (file layer deferred — see requirements.md Non-requirements).
+ *
  * @typedef {object} ResolveBundlerConfigInput
  * @property {BundlerCommand} command
  * @property {object} [cli]  argv: prefer workPath/targetPath/useAppIdDir/host/port/compile flags
- * @property {object} [api]
- * @property {false|string|null} [configFile]  false=skip; string=path; null/undef=default discovery TBD
- * @property {DiminaBundlerConfigDraft} [fileConfig]  preloaded file object
+ * @property {DiminaBundlerApiLayerDraft} [api]  explicit programmatic options
  */
 
 /**

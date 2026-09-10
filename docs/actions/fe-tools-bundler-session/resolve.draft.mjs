@@ -1,5 +1,5 @@
 /**
- * @file Dimina bundler — **DRAFT** resolve / load probe (design only)
+ * @file Dimina bundler — **DRAFT** resolve probe (design only)
  *
  * Action: fe-tools-bundler-session
  * Status: NOT frozen · NOT imported by runtime · NOT an implementation
@@ -10,22 +10,28 @@
  *   ./stages.draft.md        — builtin pipeline inventory (no plugin API)
  *   ./config.draft.types.js  — shared typedefs (authoritative ResolvedBundlerInput)
  *
- * Review decisions (2026-09-10):
- *   D-R1  dev targetPath: top-level file.outDir does NOT participate;
- *         only cli/api targetPath or file.server.outDir; else OS temp
+ * Review decisions (2026-09-10, scope-boundary review):
+ *   D-R1  dev targetPath: cli.targetPath | api.targetPath | OS temp
+ *         (NO file layer this Action; api.outDir excluded on dev — use api.targetPath)
  *   D-R2  command:'dev' SEEDS mode:'dev' + platform:'web' as the lowest compile
- *         layer; file / api / cli may still set C1 keys in merge order.
+ *         layer; api / cli may still set C1 keys in merge order.
  *         After merge, resolve HARD-FAILS if final mode !== 'dev' OR platform !== 'web'
- *         (discussion 2026-09-10: strategy C). Other C1 keys (minify/sourcemap/esTarget)
- *         remain freely overridable. session.dev() does NOT re-force — uses Resolved as-is.
- *   D-R3  Resolved.server is host/port only; file.server.outDir → targetPath only
- *   D-R4  dev targetPath intentionally omits api.outDir (and file.outDir); API must
- *         use api.targetPath (or cli / file.server.outDir / temp) — decision 2026-09-10
+ *         (strategy C). Other C1 keys (minify/sourcemap/esTarget) remain freely
+ *         overridable. session.dev() does NOT re-force — uses Resolved as-is.
+ *   D-R3  Resolved.server is host/port only
+ *   D-R4  dev targetPath intentionally omits api.outDir — API must use api.targetPath
  *
- * Priority (ACCEPTED P1–P6):
- *   CLI argv > API explicit options > config file > built-in defaults / mode presets
+ * File layer (configFile / fileConfig): NOT in this Action. Today's bundler has no
+ * tool-config file layer (project.config.json is a mini-program project file read by
+ * env.storeInfo, not a bundler tool config). Introducing one is a separate concern and
+ * out of scope for a session/facade Action. See requirements.md Non-requirements.
  *
- * Real impl should reuse `resolveCompileConfig` for C1 keys (C7).
+ * Priority (ACCEPTED P1–P3 this Action; P4–P6 reserved for future file/plugin layers):
+ *   CLI argv > API explicit options > built-in defaults / mode presets
+ *
+ * Real impl should reuse `resolveCompileConfig` for C1 keys (C7 / R-BC7): resolveBundlerConfig
+ * does layer merge + priority only — NO C1 semantic normalization (minify/esTarget defaults,
+ * mode/platform legality) in this Action; that stays in resolveCompileConfig.
  */
 
 import os from 'node:os'
@@ -33,7 +39,6 @@ import path from 'node:path'
 
 /** @typedef {import('./config.draft.types.js').ResolveBundlerConfigInput} ResolveBundlerConfigInput */
 /** @typedef {import('./config.draft.types.js').ResolvedBundlerInput} ResolvedBundlerInput */
-/** @typedef {import('./config.draft.types.js').DiminaBundlerConfigDraft} DiminaBundlerConfigDraft */
 
 function draftTodo(message) {
 	throw new Error(`[resolve.draft] ${message}`)
@@ -50,7 +55,8 @@ const MODE_PRESETS = Object.freeze({
 })
 
 /**
- * Load + merge → ResolvedBundlerInput for createBundler(resolved).
+ * Resolve → ResolvedBundlerInput for createBundler(resolved).
+ * Two layers only this Action: cli (argv) + api (explicit programmatic options).
  *
  * @param {ResolveBundlerConfigInput} input
  * @returns {ResolvedBundlerInput}
@@ -64,40 +70,24 @@ export function resolveBundlerConfig(input) {
 	const cli = input.cli || {}
 	const api = input.api || {}
 
-	const file = loadConfigFileDraft({
-		configFile: input.configFile,
-		fileConfig: input.fileConfig,
-		cli,
-		api,
-	})
-
-	// Paths — CLI prefers workPath/targetPath; file uses root/outDir
-	const root = firstDefined(cli.workPath, api.workPath, api.root, file.root, '.')
+	// Paths — CLI prefers workPath/targetPath
+	const root = firstDefined(cli.workPath, api.workPath, api.root, '.')
 	const workPath = path.resolve(root)
 
 	const useAppIdDir = firstDefined(
 		cli.useAppIdDir,
 		api.useAppIdDir,
-		file.useAppIdDir,
 		true,
 	)
 
-	const targetPath = resolveTargetPath({
-		command,
-		cli,
-		api,
-		file,
-		workPath,
-	})
+	const targetPath = resolveTargetPath({ command, cli, api, workPath })
 
-	const fileCompile = pickKeys(file.compile, COMPILE_KEYS)
 	const apiCompile = pickCompileFromApi(api)
 	const cliCompile = pickCompileFromCli(cli)
 	const commandDefaults = commandCompileDefaults(command)
 
 	const mergedCompileInput = {
 		...commandDefaults,
-		...fileCompile,
 		...apiCompile,
 		...cliCompile,
 	}
@@ -105,12 +95,12 @@ export function resolveBundlerConfig(input) {
 	const compile = normalizeCompileDraft(mergedCompileInput)
 	assertDevCompileCompatible(command, compile)
 
-	const fileTypes = firstDefined(api.fileTypes, file.fileTypes, undefined)
+	const fileTypes = firstDefined(api.fileTypes, undefined)
 
 	/** @type {import('./config.draft.types.js').DiminaBundlerServerResolved | undefined} */
 	let server
 	if (command === 'dev') {
-		server = resolveServerDraft({ cli, api, file })
+		server = resolveServerDraft({ cli, api })
 	}
 
 	return {
@@ -125,31 +115,29 @@ export function resolveBundlerConfig(input) {
 }
 
 // ---------------------------------------------------------------------------
-// targetPath — D-R1
+// targetPath — D-R1 / D-R4
 // ---------------------------------------------------------------------------
 
 /**
- * build: cli.targetPath | api.targetPath | api.outDir | file.outDir | workPath
- * dev:   cli.targetPath | api.targetPath | file.server.outDir | OS temp
- *        *** file.outDir does NOT participate (D-R1) ***
- *        *** api.outDir does NOT participate (D-R4) — use api.targetPath ***
+ * build: cli.targetPath | api.targetPath | api.outDir | workPath (fallback)
+ * dev:   cli.targetPath | api.targetPath | OS temp (fallback)
+ *        *** api.outDir does NOT participate on dev (D-R4) — use api.targetPath ***
+ *
+ * M-G1 — argv defaults stay in bin: dimina-cli ALWAYS passes explicit cli.targetPath
+ * (build: options.targetPath ?? process.cwd(); dev: options.targetPath ?? mkdtempSync(...)).
+ * The fallbacks below (build→workPath, dev→temp) serve PURE-API callers only — relying
+ * on them from CLI wiring would change today's cwd-default behavior (R-BC3 violation).
+ *
+ * Relative-path note: explicit RELATIVE values resolve against workPath here; CLI always
+ * passes absolute (bin path.resolve) so no divergence — pure-API semantics only.
  */
-function resolveTargetPath({ command, cli, api, file, workPath }) {
+function resolveTargetPath({ command, cli, api, workPath }) {
 	let explicit
 	if (command === 'dev') {
-		explicit = firstDefined(
-			cli.targetPath,
-			api.targetPath,
-			file.server?.outDir,
-		)
+		explicit = firstDefined(cli.targetPath, api.targetPath)
 	}
 	else {
-		explicit = firstDefined(
-			cli.targetPath,
-			api.targetPath,
-			api.outDir,
-			file.outDir,
-		)
+		explicit = firstDefined(cli.targetPath, api.targetPath, api.outDir)
 	}
 
 	if (explicit !== undefined && explicit !== null && explicit !== '') {
@@ -157,6 +145,8 @@ function resolveTargetPath({ command, cli, api, file, workPath }) {
 	}
 
 	if (command === 'dev') {
+		// impl: fs.mkdtempSync(path.join(os.tmpdir(), 'dmcc-dev-')) — per-run unique dir,
+		// matching today's bin/dev.js; the fixed name below is PROBE-ONLY shorthand (L-F2)
 		return path.join(os.tmpdir(), 'dmcc-dev-DRAFT')
 	}
 
@@ -165,7 +155,7 @@ function resolveTargetPath({ command, cli, api, file, workPath }) {
 
 /**
  * D-R2: command:'dev' seeds mode+platform as the LOWEST compile layer.
- * file / api / cli may write the same values (or other C1 keys); after merge,
+ * api / cli may write the same values (or other C1 keys); after merge,
  * mode/platform MUST remain 'dev'/'web' or hard-fail (strategy C).
  * session.dev() consumes Resolved.compile as-is — no re-force.
  */
@@ -194,8 +184,7 @@ function assertDevCompileCompatible(command, compile) {
 }
 
 /** D-R3: host/port only on Resolved.server */
-function resolveServerDraft({ cli, api, file }) {
-	const fileServer = pickKeys(file.server, SERVER_RESOLVED_KEYS)
+function resolveServerDraft({ cli, api }) {
 	const apiServer = pickKeys(api.server, SERVER_RESOLVED_KEYS)
 	const cliServer = pickDefined({
 		host: cli.host,
@@ -205,67 +194,26 @@ function resolveServerDraft({ cli, api, file }) {
 	return pickKeys({
 		host: '127.0.0.1',
 		port: 8080,
-		...fileServer,
 		...apiServer,
 		...cliServer,
 	}, SERVER_RESOLVED_KEYS)
 }
 
 // ---------------------------------------------------------------------------
-// File load (P4)
-// ---------------------------------------------------------------------------
-
-function loadConfigFileDraft({ configFile, fileConfig, cli, api }) {
-	if (configFile === false) {
-		return {}
-	}
-	if (fileConfig && typeof fileConfig === 'object') {
-		assertKnownConfigKeys(fileConfig)
-		return fileConfig
-	}
-	if (typeof configFile === 'string') {
-		draftTodo(`load explicit configFile path: ${configFile}`)
-	}
-	const rootHint = firstDefined(cli.workPath, api.workPath, api.root, '.')
-	void rootHint
-	return {}
-}
-
-function assertKnownConfigKeys(file) {
-	const allowed = new Set([
-		'root',
-		'outDir',
-		'useAppIdDir',
-		'compile',
-		'fileTypes',
-		'server',
-		'plugins',
-	])
-	for (const key of Object.keys(file)) {
-		if (!allowed.has(key)) {
-			draftTodo(`config file unknown top-level key: ${key}`)
-		}
-	}
-	if (file.compile) {
-		for (const key of Object.keys(file.compile)) {
-			if (!COMPILE_KEYS.includes(key)) {
-				draftTodo(`compile unknown key: ${key} (C1)`)
-			}
-		}
-	}
-	if (file.server) {
-		const serverAllowed = new Set(['host', 'port', 'outDir'])
-		for (const key of Object.keys(file.server)) {
-			if (!serverAllowed.has(key)) {
-				draftTodo(`server unknown key: ${key}`)
-			}
-		}
-	}
-	void file.plugins
-}
-
-// ---------------------------------------------------------------------------
-// Compile normalize (stand-in for resolveCompileConfig)
+// Compile normalize — DESIGN-TIME SHAPE ONLY (R-BC7 / C7)
+// 本节为形状演示；实施时 resolveBundlerConfig 仅做层合并，C1 语义归一
+// (minify preset / esTarget 默认 / mode·platform 合法性) 交给 resolveCompileConfig。
+// 见 requirements.md R-BC7 与 acceptance.md A-BS07。
+//
+// 实施形状（M-B2，见 R-BC7）：直接调用现有函数，替代本节的 spread 演示：
+//   const compile = resolveCompileConfig({
+//     cli: pickCompileFromCli(cli),
+//     apiOptions: pickCompileFromApi(api),
+//     mode: seedMode,      // D-R2: command seed → input.mode（现有第三入口，天然最低层）
+//     platform: seedPlatform,
+//   })
+//   assertDevCompileCompatible(command, compile)  // D-R2 hard-fail 在归一结果上检查
+// runBuild 内部会再次 resolveCompileConfig({ apiOptions: options })——已归一值幂等。
 // ---------------------------------------------------------------------------
 
 function pickCompileFromCli(cli) {
@@ -322,6 +270,7 @@ function normalizeEsTargetDraft(value) {
 /*
   dimina-cli build [-w] [-c] [-s] [--platform] [--sourcemap] [--minify|--no-minify]
     // map --no-app-id-dir → cli.useAppIdDir = false
+    // bin ALWAYS passes targetPath explicitly (argv default: cwd) — M-G1
     resolved = resolveBundlerConfig({
       command: 'build',
       cli: { workPath, targetPath, useAppIdDir, platform, sourcemap, minify },
@@ -329,10 +278,11 @@ function normalizeEsTargetDraft(value) {
     createBundler(resolved).build() | .watch().start()
 
   dimina-cli dev [-c] [-s] [--host] [-p] ...
+    // bin passes targetPath explicitly when -s given; else bin-side mkdtempSync (M-G1)
     resolved = resolveBundlerConfig({ command: 'dev', cli: { workPath, targetPath?, host, port, ... } })
-    // targetPath = temp if -s omitted (ignores file.outDir) — D-R1
+    // targetPath = temp if -s omitted — D-R1
     // compile seeds mode=dev, platform=web; post-merge must stay so (D-R2/C hard-fail)
-    // targetPath: no api.outDir on dev (不加)
+    // targetPath: no api.outDir on dev — D-R4
     // server = { host, port } only — D-R3
     createBundler(resolved).dev()
 */

@@ -15,9 +15,9 @@ Action: **`fe-tools-bundler-session`** (renamed from `fe-tools-bundler-core`)
 
 | ID | Rule |
 | --- | --- |
-| D-R1 | dev `targetPath`: not `file.outDir`; use cli/api `targetPath` / `file.server.outDir` / temp |
+| D-R1 | dev `targetPath`: cli/api `targetPath` / temp（NO file layer this Action） |
 | D-R2 | `command:'dev'` seeds `mode`/`platform`; post-merge **must** stay `dev`+`web` else **hard-fail (C)**; other C1 free; session uses Resolved as-is |
-| D-R3 | `Resolved.server` = `{ host, port }` only |
+| D-R3 | `Resolved.server` = `{ host, port }` only — **唯一来源**；`.dev()` 无 host/port 覆盖入口（CLI `--host`/`-p` 走 cli 层） |
 | D-R4 | dev `targetPath` **omits** `api.outDir` — use `api.targetPath` |
 
 ## Session wiring (accepted for draft)
@@ -29,7 +29,7 @@ Action: **`fe-tools-bundler-session`** (renamed from `fe-tools-bundler-core`)
 | CLI `build -w` | **⊆ session** |
 | `createBuildWatcher` export | keep as low-level/compat; CLI must not use it |
 | Pipeline stages | stay in `runBuild`; see [stages.draft.md](./stages.draft.md) |
-| Plugin / `use` | **not** this Action’s primary delivery |
+| Plugin / `use` | **absent this Action** — session exposes NO `use()`; `api.plugins` reserved |
 
 ## Product doors (this Action)
 
