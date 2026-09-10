@@ -34,7 +34,7 @@
 | `hmr-l2-l3` | `complete` | [README](_archive/complete/hmr-l2-l3/README.md) | Umbrella gate A3：Web 容器 dev-only L2 CSS 热替换 + L3 模板热重挂；A-001~A-013 全 passed，已归档。 | 2026-09-08 |
 | `render-target-abstraction` | `complete` | [README](_archive/complete/render-target-abstraction/README.md) | Umbrella gate A4：renderer 抽象（对齐微信 app.json/page.json renderer），首个 `webview`，产物 diff=0；A-001~A-010 全 passed，已归档。 | 2026-09-08 |
 | `compiler-configuration` | `draft` | [README](compiler-configuration/README.md) | Umbrella：编译器配置化（D6:B 产物分层、compile profile、CLI⊆API）；子门 CF-1..CF-4。 | 2026-09-08 |
-| `platform-abstraction` | `draft` | [README](platform-abstraction/README.md) | CF-1：platform 维度声明（native/web 枚举、CLI --platform、D6:B 修订），缺省产物零变化。 | 2026-09-08 |
-| `compiler-configurable` | `draft` | [README](compiler-configurable/README.md) | CF-2：统一编译配置框架（CLI⊆API、mode preset、minify/sourcemap/esTarget 收敛）；dev 默认不 minify。 | 2026-09-08 |
-| `es-target-unification` | `draft` | [README](es-target-unification/README.md) | CF-3：ES target 值统一（es2020→es2023，产物有意变化）；外部依赖 Harmony WebView 兼容性调研。 | 2026-09-08 |
-| `watch-api` | `draft` | [README](watch-api/README.md) | CF-4：watch 从 CLI-only 提升为 API 能力，消除 bin/index.js 与 bin/dev.js 重复实现。 | 2026-09-08 |
+| `compiler-configurable` | `draft` | [README](compiler-configurable/README.md) | CF-1：统一编译配置框架（CLI⊆API、mode preset、minify/sourcemap/esTarget 收敛 + platform 占位）；dev 默认不 minify。无前置。 | 2026-09-08 |
+| `platform-abstraction` | `draft` | [README](platform-abstraction/README.md) | CF-2：platform 维度接入（native/web 注册进 config 框架、CLI --platform、D6:B 修订）。前置 CF-1。 | 2026-09-08 |
+| `es-target-unification` | `draft` | [README](es-target-unification/README.md) | CF-3：ES target 值统一（es2020→es2023，产物有意变化）；前置 CF-1 + Harmony WebView 兼容性调研。 | 2026-09-08 |
+| `watch-api` | `draft` | [README](watch-api/README.md) | CF-4：watch 从 CLI-only 提升为 API 能力，消除 bin/index.js 与 bin/dev.js 重复。独立，可与 CF-1 并行。 | 2026-09-08 |

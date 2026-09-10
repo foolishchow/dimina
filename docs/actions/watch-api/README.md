@@ -5,7 +5,7 @@
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-4）
-- 前置：无（可与 CF-1/CF-2 并行）
+- 前置：无（独立，可与 CF-1 compiler-configurable 并行）
 
 ## Background
 

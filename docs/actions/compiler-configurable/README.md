@@ -1,11 +1,11 @@
-# Compiler Configurable（CF-2：统一编译配置框架）
+# Compiler Configurable（CF-1：统一编译配置框架）
 
 - Action: `compiler-configurable`
 - Status: `draft`
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
-- 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-2）
-- 前置：CF-1 `platform-abstraction`（platform 维度已声明）
+- 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-1）
+- 前置：无（本门为最先落地的框架层）
 
 ## Background
 

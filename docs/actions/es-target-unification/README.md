@@ -5,7 +5,7 @@
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-3）
-- 前置：CF-2 `compiler-configurable`（ES target 已从 compile configuration 读取）
+- 前置：CF-1 `compiler-configurable`（ES target 已从 compile configuration 读取）
 
 ## Background
 

@@ -68,18 +68,30 @@ web               es2023 + minify     es2023 + 不 minify
 
 | 门 | 内容 | 子 Action | 依赖 | 状态 |
 | --- | --- | --- | --- | --- |
-| CF-1 | platform 维度声明（枚举/CLI/约束/D6:B） | `platform-abstraction` | 无 | draft |
-| CF-2 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap） | `compiler-configurable` | CF-1 | draft |
-| CF-3 | ES target 值统一（es2020→es2023） | `es-target-unification` | CF-2 + Harmony WebView 调研 | draft |
+| CF-1 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap + platform 占位） | `compiler-configurable` | 无 | draft |
+| CF-2 | platform 维度接入（枚举注册进 config 框架/CLI/约束/D6:B） | `platform-abstraction` | CF-1 | draft |
+| CF-3 | ES target 值统一（es2020→es2023） | `es-target-unification` | CF-1 + Harmony WebView 调研 | draft |
 | CF-4 | watch API 化（消除 CLI-only/重复） | `watch-api` | 无（可与 CF-1 并行） | draft |
 
-依赖关系：
+依赖关系（修正后，2026-09-08 审查）：
 
 ```text
-CF-1 platform → CF-2 configurable → CF-3 es-target
+CF-1 configurable → CF-2 platform（platform 接入已有 config 框架）
+CF-1 configurable → CF-3 es-target（值统一在 config 里改）
 CF-4 watch-api（独立，可并行）
 ```
 
+执行建议：
+
+```text
+Phase 1（可并行）：
+  CF-4 watch-api          → 消除 bin 重复（独立，改动面收敛）
+  CF-1 compiler-configurable → 统一配置框架（含 platform 字段占位）
+
+Phase 2（依赖 CF-1）：
+  CF-2 platform-abstraction → platform 枚举注册进 config
+  CF-3 es-target-unification → 值统一（外部依赖 Harmony 调研）
+```
 ## Readiness gaps
 
 - 各子 Action 需分别 formalize 并通过 Readiness Review
