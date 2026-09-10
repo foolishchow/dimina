@@ -7,7 +7,7 @@
 - Authorized: 2026-09-10（明确授权实施）
 - Archived: 2026-09-10
 - Status authority: [Action Status](../../../STATUS.md)
-- 父 Action：[compiler-configuration](../../../compiler-configuration/README.md)（umbrella，gate CF-1）
+- 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-1）
 - 前置：无（框架层；**实施在 CF-4 `watch-api` complete 之后**，于稳定 bin 上接 CLI flag）
 - 设计权威：[technical-design](technical-design.md)（已冻结 v1）
 

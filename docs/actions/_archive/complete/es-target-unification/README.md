@@ -7,7 +7,7 @@
 - Authorized: 2026-09-10（明确授权实施）
 - Archived: 2026-09-10
 - Status authority: [Action Status](../../../STATUS.md)
-- 父 Action：[compiler-configuration](../../../compiler-configuration/README.md)（umbrella，gate CF-3）
+- 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-3）
 - 前置：CF-1 `compiler-configurable`（**complete**）
 - 设计权威：[technical-design](technical-design.md)（**已冻结 v1 · 仅 logic**）
 

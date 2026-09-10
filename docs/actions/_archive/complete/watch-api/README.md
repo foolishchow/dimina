@@ -7,7 +7,7 @@
 - Authorized: 2026-09-10（明确授权实施）
 - Archived: 2026-09-10
 - Status authority: [Action Status](../../../STATUS.md)
-- 父 Action：[compiler-configuration](../../compiler-configuration/README.md)（umbrella，gate CF-4）
+- 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-4）
 - 前置：无（独立；实施顺序先于 CF-1）
 - 设计权威：[technical-design](technical-design.md)（已冻结 v1）
 
