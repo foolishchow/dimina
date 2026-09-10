@@ -4,7 +4,25 @@
 
 ## 编译工具
 
-星河小程序编译工具（DMCC）用于将小程序源码编译为星河小程序运行时所需的文件格式。
+星河小程序领域编译 + 预览 toolchain（`@dimina/bundler`，bin：`dimina-cli`）。**不是**通用 JS bundler。
+
+### 本仓库（pnpm workspace）内使用
+
+根 `fe/package.json` 将 `@dimina/bundler` 列为 `workspace:*` devDependency，以便把 `dimina-cli` 链到 `fe/node_modules/.bin`（pnpm 不会给「无人依赖」的 workspace 包挂 bin）。
+
+```sh
+cd fe
+pnpm install
+pnpm --filter @dimina/web-container-sdk build
+pnpm --filter @dimina/bundler build
+
+# 以下等价（需已 build；pnpm 会把 bin 链到 fe/node_modules/.bin）
+pnpm exec dimina-cli --version
+./node_modules/.bin/dimina-cli --version
+pnpm --filter @dimina/bundler exec dimina-cli --version
+
+pnpm exec dimina-cli dev -c ../examples/miniprogram/base --no-app-id-dir
+```
 
 ### 安装
 

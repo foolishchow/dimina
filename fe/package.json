@@ -29,6 +29,7 @@
     "lint:fix": "oxlint --fix"
   },
   "devDependencies": {
+    "@dimina/bundler": "workspace:*",
     "@vitest/coverage-v8": "^4.1.11",
     "archiver": "^8.0.0",
     "concurrently": "^10.0.5",
