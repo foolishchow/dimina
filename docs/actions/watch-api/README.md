@@ -5,7 +5,7 @@
 - Updated: 2026-09-08
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-4）
-- 前置：无（独立，可与 CF-1 compiler-configurable 并行）
+- 前置：无（独立，可与 CF-1 compiler-configurable 并行 formalize；**实施顺序建议先于 CF-1**，避免 bin/index.js 与 bin/dev.js 的 watch 重构和 CLI flag 接入冲突）
 
 ## Background
 
@@ -23,7 +23,7 @@
 
 - 不改 watch 行为语义（调度/合并/增量策略不变）
 - 不改 A2/A3 dev server/HMR/ws 协议
-- 不做配置框架（CF-2 范围）
+- 不改编译配置框架（CF-1 `compiler-configurable` 范围）
 - 不做性能优化
 
 ## Scope
@@ -43,7 +43,7 @@ const watcher = createBuildWatcher({
   targetPath,
   workPath,
   useAppIdDir,
-  options,           // build options（sourcemap/lifecycle/...）
+  options,           // build options（兼容现有 build() 签名；CF-1 完成后由 compile configuration 合并层承接）
   onRebuild,         // (result, change) => void
   onError,           // (error, change) => void
 })

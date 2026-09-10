@@ -15,7 +15,7 @@
 - `logic-compiler.js:443` — `es2020`（单模块 CJS 转换）
 - `view-compiler.js:330` — `es2020`（view bundle minify）
 
-CF-2 已将三处硬编码替换为从 compile configuration 读取（per-stage 保持现值）。本 Action 统一值为 es2023。
+CF-1（compiler-configurable）已将三处硬编码替换为从 compile configuration 读取（per-stage 保持现值）。本 Action 统一值为 es2023。
 
 ## Goal
 
@@ -25,7 +25,7 @@ CF-2 已将三处硬编码替换为从 compile configuration 读取（per-stage 
 
 - 不提升 web platform 的 ES target（将来按需，需独立兼容性验证）
 - 不做 ES target 按 platform 分叉（首版 native/web 都是 es2023）
-- 不改编译配置框架（CF-2 已落地）
+- 不改编译配置框架（CF-1 `compiler-configurable` 已落地）
 - 不做性能优化
 
 ## 外部依赖

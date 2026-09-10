@@ -29,7 +29,7 @@ CF-1（compiler-configurable）已建立统一编译配置框架（compile confi
 ## Scope
 
 - `fe/packages/compiler/src/common/platforms.js`（platform 枚举、resolvePlatform、InvalidPlatformError）
-- `fe/packages/compiler/src/common/compile-config.js`（platform 字段接入 CF-1 框架）
+- `fe/packages/compiler/src/common/compile-config.js`（platform 字段接入 CF-1 框架 + `sourcemapStrategy` 字段由 platform 派生，不改 sourcemap 生成逻辑）
 - `fe/packages/compiler/src/bin/index.js`（`dmcc build --platform <name>`）
 - `fe/packages/compiler/src/bin/dev.js`（dev 固定 platform=web）
 - `fe/packages/compiler/__tests__/`
@@ -38,8 +38,8 @@ CF-1（compiler-configurable）已建立统一编译配置框架（compile confi
 ## Deliverables
 
 - platform 枚举（native/web）+ resolvePlatform + CLI `--platform`
-- renderer × platform 约束校验（预留：lynx 不支持 web）
-- sourcemap 策略语义标注（quickjs-attach / devtools-url）
+- renderer × platform 约束校验（预留：lynx 不支持 web）；经 A4 renderer registry（`getRenderer`）读取当前 renderer
+- sourcemap 策略语义标注（`sourcemapStrategy` 字段：quickjs-attach / devtools-url，由 platform 派生，不改实际 sourcemap 行为）
 - D6:B 产物分层 RFC 回写
 - 缺省产物逐字节一致验证（diff=0）
 

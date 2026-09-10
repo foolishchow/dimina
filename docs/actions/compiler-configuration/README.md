@@ -81,12 +81,12 @@ CF-1 configurable → CF-3 es-target（值统一在 config 里改）
 CF-4 watch-api（独立，可并行）
 ```
 
-执行建议：
+执行建议（F-CF-002/003 审查修正后定稿）：
 
 ```text
-Phase 1（可并行）：
-  CF-4 watch-api          → 消除 bin 重复（独立，改动面收敛）
-  CF-1 compiler-configurable → 统一配置框架（含 platform 字段占位）
+Phase 1（串行，避免 bin 文件冲突）：
+  CF-4 watch-api          → 先抽离 bin watch 编排（稳定入口文件）
+  CF-1 compiler-configurable → 在稳定入口上接入 CLI flag + compile config（首版 core 框架，bin 接入在 CF-4 之后）
 
 Phase 2（依赖 CF-1）：
   CF-2 platform-abstraction → platform 枚举注册进 config

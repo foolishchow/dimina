@@ -44,7 +44,7 @@ web               es2023 + minify     es2023 + 不 minify
 
 ## Non-goals
 
-- 不新增 platform 枚举值（CF-1 已落地）
+- 不接入 platform 枚举（CF-2 `platform-abstraction` 范围；CF-1 只做字段占位）
 - 不统一 ES target 值（CF-3 独立处理产物变化）
 - 不做 watch API 化（CF-4）
 - 不新增配置文件（`dimina.config.js` 将来按需）
@@ -53,14 +53,27 @@ web               es2023 + minify     es2023 + 不 minify
 
 ## Scope
 
+**首版**（核心框架 + 硬编码消除，不动 CLI/bin）：
+
 - `fe/packages/compiler/src/common/compile-config.js`（新增：compile configuration 结构、合并链、mode preset）
 - `fe/packages/compiler/src/index.js`（options 合并进 config，传给 stage/worker）
 - `fe/packages/compiler/src/core/logic-compiler.js`（esTarget/minify 从 config 读取）
 - `fe/packages/compiler/src/core/view-compiler.js`（同上）
 - `fe/packages/compiler/src/core/style-compiler.js`（如涉及）
+- `fe/packages/compiler/__tests__/`（config 解析、CLI⊆API、dev minify 规格）
+
+**CLI 接入**（在 CF-4 `watch-api` 完成后，同一 bin 文件上接入，避免 merge 冲突）：
+
 - `fe/packages/compiler/src/bin/index.js`（`--minify`/`--no-minify`）
 - `fe/packages/compiler/src/bin/dev.js`（`--minify`；mode=dev preset）
-- `fe/packages/compiler/__tests__/`（config 解析、CLI⊆API、dev minify 规格）
+
+明确不改：
+- `fe/packages/render` / `fe/packages/container-sdk`（运行时行为）
+- renderer registry（A4 范围）
+- dev server / HMR / ws 协议（A2/A3 范围）
+- platform 枚举接入（CF-2 范围）
+- ES target 值统一（CF-3 范围）
+- watch 编排重构（CF-4 范围）
 
 ## Deliverables
 
