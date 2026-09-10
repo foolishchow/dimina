@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { Worker } from 'node:worker_threads'
 import { Listr, PRESET_TIMER } from 'listr2'
 import { formatCompileProgress } from './common/compile-progress.js'
+import { resolveCompileConfig } from './common/compile-config.js'
 import { DependencyGraph } from './common/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
 import { getRenderer, registerRenderer, resolveProjectRenderers } from './common/renderers.js'
@@ -39,7 +40,11 @@ registerRenderer(webviewRenderer)
  * @param {string} workPath 编译工作目录
  * @param {boolean} useAppIdDir 产物根目录是否包含 appId
  * @param {object} [options] 构建选项
+ * @param {'build'|'dev'} [options.mode] 编译 mode preset（CF-1；缺省 build）
+ * @param {boolean} [options.minify] 是否压缩（覆盖 mode 缺省）
  * @param {boolean} [options.sourcemap] 是否生成 sourcemap
+ * @param {{ logic?: string, view?: string }} [options.esTarget] 双线程 ES target（CF-1）
+ * @param {'native'|'web'} [options.platform] platform 占位（CF-2 语义）
  * @param {{ template?: string[], style?: string[], viewScript?: string[] }} [options.fileTypes]
  *   自定义文件类型，在内置 wx/dd 类型基础上追加；template 为模板扩展名，style 为样式扩展名，
  *   viewScript 为视图脚本扩展名和内联标签名
@@ -58,7 +63,6 @@ export default function build(targetPath, workPath, useAppIdDir = true, options 
 
 async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) {
 	const {
-		sourcemap = false,
 		fileTypes,
 		affectedEntries,
 		seedPath,
@@ -71,6 +75,9 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 		&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
 		throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
 	}
+	// CF-1：在任何构建副作用前解析配置（非法 esTarget/mode 硬失败，不触发 build:start）
+	const compileConfiguration = resolveCompileConfig({ apiOptions: options })
+	const { sourcemap } = compileConfiguration
 	const lifecycle = options.lifecycle || createLifecycle()
 	// renderer 抽象（A4 P-001 修订）：校验项目声明的 renderer（app.json.renderer +
 	// 各 page.json.renderer），无 CLI/API 覆盖；当前仅 webview。在 lifecycle 前、
@@ -159,7 +166,10 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 						const compileTasks = []
 
 						if (enabledStages.has('view') && !miniGame) {
-							compileTasks.push(createStageTask('view', '编译视图', lifecycle, { sourcemap }, activeRenderer.name))
+							compileTasks.push(createStageTask('view', '编译视图', lifecycle, {
+								sourcemap,
+								compileConfig: compileConfiguration,
+							}, activeRenderer.name))
 						}
 						if (enabledStages.has('logic')) {
 							const sourcemapTargetPath = path.resolve(
@@ -171,6 +181,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 								sourcemap,
 								pages: ctx.allPages,
 								sourcemapTargetPath,
+								compileConfig: compileConfiguration,
 							}))
 						}
 						if (enabledStages.has('style') && !miniGame) {
@@ -183,7 +194,11 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 									...ctx.pages.mainPages,
 								],
 							}
-							compileTasks.push(createStageTask('style', '编译样式', lifecycle, { sourcemap, pages: stylePages }, activeRenderer.name))
+							compileTasks.push(createStageTask('style', '编译样式', lifecycle, {
+								sourcemap,
+								pages: stylePages,
+								compileConfig: compileConfiguration,
+							}, activeRenderer.name))
 						}
 
 						if (compileTasks.length > 0) {
@@ -324,6 +339,7 @@ function runCompileInWorker(script, ctx, task, options = {}, lifecycle = null) {
 				storeInfo: ctx.storeInfo,
 				sourcemap: !!options.sourcemap,
 				sourcemapTargetPath: options.sourcemapTargetPath,
+				compileConfig: options.compileConfig,
 			})
 		// 接收 Worker 完成后的消息
 		worker.on('message', async (message) => {

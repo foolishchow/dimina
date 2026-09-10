@@ -6,6 +6,7 @@ import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
 import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from '../common/compatibility.js'
+import { effectiveJsMinify } from '../common/compile-config.js'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../common/utils.js'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../env.js'
 import { mergeSourcemap, remapSourcemap } from './sourcemap.js'
@@ -16,14 +17,27 @@ const processedModules = new Set()
 // 是否生成 sourcemap
 let enableSourcemap = false
 let sourcemapTargetPath = null
+/** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
+let activeCompileConfig = {
+	minify: true,
+	sourcemap: false,
+	esTarget: { logic: 'es2023', view: 'es2020' },
+}
 
 if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, sourcemapTargetPath: targetPath }) => {
+	parentPort.on('message', async ({ pages, storeInfo, sourcemap, sourcemapTargetPath: targetPath, compileConfig }) => {
 		try {
 			resetStoreInfo(storeInfo)
 			enableSourcemap = !!sourcemap
 			sourcemapTargetPath = targetPath || getTargetPath()
-
+			activeCompileConfig = {
+				minify: compileConfig?.minify !== false,
+				sourcemap: !!sourcemap,
+				esTarget: {
+					logic: compileConfig?.esTarget?.logic || 'es2023',
+					view: compileConfig?.esTarget?.view || 'es2020',
+				},
+			}
 			const progress = {
 				_completedTasks: 0,
 				get completedTasks() {
@@ -88,9 +102,10 @@ async function writeCompileRes(compileRes, root) {
 	}
 
 	/*
-	 * sourcemap 模式跳过 minify：
+	 * sourcemap 模式跳过最终 minify：
 	 * 当前 mergeSourcemap 只做单层行偏移拼接，
-	 * 若再对 bundle 整体 minify 则需用 remapping 串联两份 map，暂未实现
+	 * 若再对 bundle 整体 minify 则需用 remapping 串联两份 map，暂未实现。
+	 * CF-1：effectiveJsMinify = minify && !sourcemap
 	 */
 	if (enableSourcemap) {
 		const finalOutputDir = root
@@ -110,7 +125,7 @@ async function writeCompileRes(compileRes, root) {
 		fs.writeFileSync(`${outputDir}/logic.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
 		fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
 	}
-	else {
+	else if (effectiveJsMinify(activeCompileConfig)) {
 		let mergeCode = ''
 		for (const module of compileRes) {
 			const amdFormat = `modDefine('${module.path}', function(require, module, exports) {
@@ -119,10 +134,20 @@ ${module.code}
 			//TODO: 替换成 https://oxc.rs/docs/guide/usage/minifier.html
 			const { code: minifiedCode } = await transform(amdFormat, {
 				minify: true,
-				target: ['es2023'], // quickjs 支持版本
+				target: [activeCompileConfig.esTarget.logic],
 				platform: 'neutral',
 			})
 			mergeCode += minifiedCode
+		}
+		fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
+	}
+	else {
+		let mergeCode = ''
+		for (const module of compileRes) {
+			mergeCode += `modDefine('${module.path}', function(require, module, exports) {
+${module.code}
+});
+`
 		}
 		fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
 	}
@@ -440,6 +465,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 	try {
 		const esbuildOpts = {
 			format: 'cjs',
+			// CF-3: esTarget.logic — 本门保持 es2020 以保障缺省产物 diff=0
 			target: 'es2020',
 			platform: 'neutral',
 			loader: isTypeScript ? 'ts' : 'js',

@@ -9,6 +9,7 @@ import * as cheerio from 'cheerio'
 import { transform } from 'esbuild'
 import * as htmlparser2 from 'htmlparser2'
 import { checkTemplateCompatibility, getTemplateDirectiveName, takeCompatibilityWarnings } from '../common/compatibility.js'
+import { effectiveJsMinify } from '../common/compile-config.js'
 import { toMiniProgramModuleId } from '../common/path-utils.js'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../common/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../env.js'
@@ -213,12 +214,26 @@ const wxsFilePathMap = new Map()
 let wxsScannedWorkPath = null
 
 let enableSourcemap = false
+/** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
+let activeCompileConfig = {
+	minify: true,
+	sourcemap: false,
+	esTarget: { logic: 'es2023', view: 'es2020' },
+}
 
 if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap }) => {
+	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig }) => {
 		try {
 			resetStoreInfo(storeInfo)
 			enableSourcemap = !!sourcemap
+			activeCompileConfig = {
+				minify: compileConfig?.minify !== false,
+				sourcemap: !!sourcemap,
+				esTarget: {
+					logic: compileConfig?.esTarget?.logic || 'es2023',
+					view: compileConfig?.esTarget?.view || 'es2020',
+				},
+			}
 			wxsScannedWorkPath = null
 
 			const progress = {
@@ -325,12 +340,22 @@ async function compileML(pages, root, progress) {
 
 			let mergeRender = ''
 			try {
-				const { code: minifiedCode } = await transform(bundleSource, {
-					minify: true,
-					target: ['es2020'],
-					platform: 'browser',
-				})
-				mergeRender = minifiedCode
+				if (effectiveJsMinify(activeCompileConfig)) {
+					const { code: minifiedCode } = await transform(bundleSource, {
+						minify: true,
+						target: [activeCompileConfig.esTarget.view],
+						platform: 'browser',
+					})
+					mergeRender = minifiedCode
+				}
+				else {
+					const { code } = await transform(bundleSource, {
+						minify: false,
+						target: [activeCompileConfig.esTarget.view],
+						platform: 'browser',
+					})
+					mergeRender = code
+				}
 			}
 			catch (error) {
 				const location = error.errors?.[0]?.location

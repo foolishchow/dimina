@@ -34,7 +34,7 @@ function loadSass() {
 }
 
 if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap }) => {
+	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig }) => {
 		try {
 			resetStoreInfo(storeInfo)
 
@@ -45,15 +45,17 @@ if (!isMainThread) {
 				},
 				set completedTasks(value) {
 					this._completedTasks = value
-
 					parentPort.postMessage({ completedTasks: this._completedTasks })
 				},
 			}
 
-			await compileSS(pages.mainPages, null, progress, { sourcemap })
-
+			const styleOptions = {
+				sourcemap,
+				minify: compileConfig?.minify !== false,
+			}
+			await compileSS(pages.mainPages, null, progress, styleOptions)
 			for (const [root, subPages] of Object.entries(pages.subPages)) {
-				await compileSS(subPages.info, root, progress, { sourcemap })
+				await compileSS(subPages.info, root, progress, styleOptions)
 			}
 
 			// Worker 任务完成后清理缓存，释放内存
@@ -434,9 +436,12 @@ async function enhanceCSS(module, options = {}) {
 	let finalResult
 	try {
 		const postcssPlugins = [createExternalClassPlugin(moduleId), autoprefixerPlugin]
+		const shouldMinify = options.minify !== false
 		if (options.sourcemap) {
-			const cssnano = await loadCssnano()
-			postcssPlugins.push(cssnano())
+			if (shouldMinify) {
+				const cssnano = await loadCssnano()
+				postcssPlugins.push(cssnano())
+			}
 			finalResult = await postcss(postcssPlugins).process(scopedResult.code, {
 				from: undefined,
 				map: getPostcssMapOptions(true, scopedResult.map),
@@ -444,11 +449,16 @@ async function enhanceCSS(module, options = {}) {
 		}
 		else {
 			const prefixedResult = await postcss(postcssPlugins).process(scopedResult.code, { from: undefined })
-			const minifiedResult = await transform(prefixedResult.css, {
-				loader: 'css',
-				minify: true,
-			})
-			finalResult = { css: minifiedResult.code, map: null }
+			if (shouldMinify) {
+				const minifiedResult = await transform(prefixedResult.css, {
+					loader: 'css',
+					minify: true,
+				})
+				finalResult = { css: minifiedResult.code, map: null }
+			}
+			else {
+				finalResult = { css: prefixedResult.css, map: null }
+			}
 		}
 	}
 	catch (error) {

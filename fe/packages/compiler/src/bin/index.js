@@ -21,15 +21,22 @@ program
 	.option('-w, --watch', '启用监听文件改动')
 	.option('--no-app-id-dir', '产物根目录不包含appId')
 	.option('--sourcemap', '生成 sourcemap 文件用于调试')
+	.option('--minify', '压缩产物（覆盖 mode 缺省；可用 --no-minify 关闭）')
 	.action(async (options) => {
 		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 		const targetPath = options.targetPath ? path.resolve(options.targetPath) : process.cwd()
 		const useAppIdDir = options.appIdDir !== false
 		const sourcemap = !!options.sourcemap
+		const minify = typeof options.minify === 'boolean' ? options.minify : undefined
+		const buildOptions = {
+			mode: 'build',
+			sourcemap,
+			...(minify === undefined ? {} : { minify }),
+		}
 
 		if (!options.watch) {
 			try {
-				await build(targetPath, workPath, useAppIdDir, { sourcemap })
+				await build(targetPath, workPath, useAppIdDir, buildOptions)
 			}
 			catch (error) {
 				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
@@ -41,7 +48,7 @@ program
 			targetPath,
 			workPath,
 			useAppIdDir,
-			options: { sourcemap },
+			options: buildOptions,
 			onRebuild: ({ event, filePath, count }) => {
 				const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
 				console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)

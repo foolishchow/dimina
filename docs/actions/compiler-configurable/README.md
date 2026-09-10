@@ -1,9 +1,10 @@
 # Compiler Configurable（CF-1：统一编译配置框架）
 
 - Action: `compiler-configurable`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-10
 - Promoted: 2026-09-10（Readiness Review pass；D-CF1-1..4 全按建议）
+- Authorized: 2026-09-10（明确授权实施）
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-1）
 - 前置：无（框架层；**实施在 CF-4 `watch-api` complete 之后**，于稳定 bin 上接 CLI flag）
@@ -63,7 +64,7 @@ esTarget: { logic: 'es2023', view: 'es2020' }
 
 无。Readiness Review 已于 2026-09-10 pass 并冻结 D-CF1-1..4。
 
-- 状态：`ready`（可执行；**实施仍需明确授权**后方可进入 `in_progress`）
+- 状态：`in_progress`（已授权实施）
 
 ## Closure conditions
 

@@ -29,6 +29,7 @@ export function registerDevCommand(program) {
 		.option('-p, --port <number>', `端口（缺省 ${DEFAULT_PORT}）`)
 		.option('--no-app-id-dir', '产物根目录不包含appId')
 		.option('--sourcemap', '生成 sourcemap 文件用于调试')
+		.option('--minify', '压缩产物（覆盖 mode=dev 缺省；可用 --no-minify 关闭）')
 		.action(async (options) => {
 			const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 			const targetPath = options.targetPath
@@ -36,6 +37,7 @@ export function registerDevCommand(program) {
 				: fs.mkdtempSync(path.join(os.tmpdir(), 'dmcc-dev-'))
 			const useAppIdDir = options.appIdDir !== false
 			const sourcemap = !!options.sourcemap
+			const minify = typeof options.minify === 'boolean' ? options.minify : undefined
 			const port = options.port ? Number.parseInt(options.port, 10) : DEFAULT_PORT
 
 			const lifecycle = createLifecycle()
@@ -48,7 +50,12 @@ export function registerDevCommand(program) {
 				workPath,
 				useAppIdDir,
 				autoListen: false,
-				options: { sourcemap, lifecycle },
+				options: {
+					mode: 'dev',
+					sourcemap,
+					lifecycle,
+					...(minify === undefined ? {} : { minify }),
+				},
 				beforeBuild: ({ event, filePath, count, plan, appId }) => {
 					// F-002：build 前合成 reload 级别并注入 pendingReload（buildId 自增）
 					const payload = synthesizeReloadLevel({
