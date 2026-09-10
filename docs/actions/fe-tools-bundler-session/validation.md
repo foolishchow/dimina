@@ -19,7 +19,7 @@ Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`；�
 | P-001 | 单元/契约 | `vitest run --no-file-parallelism`（session / bin 相关） | **pass** — 479 tests / 71 suites 全绿（2026-09-10，30a52cd9） |
 | P-002 | CLI build | `node src/bin/index.js build -c examples/miniprogram/base -s <mktemp> --no-app-id-dir`；`-w` SIGINT 冒烟 | **pass** — one-shot exit 0 + 分包产物；`-w` 初始产物 2s + SIGINT 终止（与今日一致；30a52cd9） |
 | P-003 | CLI dev | `node src/bin/index.js dev -c examples/miniprogram/base -p <port>` → 从 stdout `preview at` 解析 appId，HTTP GET 200 | **pass** — preview URL 正确（127.0.0.1:41879）、HTTP 200（宿主页 3457B）、SIGINT 干净退出（30a52cd9） |
-| P-004 | diff 范围 | 对照 technical-design §4.5 目标文件清单 + `pnpm build`（postbuild check-package-exports 验 ./session entry） | **pass** — 新增 6（session×3 + sdk-root + 测试×2）修改 4（bin×2 / check-package-exports / package.json）`src/index.js` 零改动；**check-package-exports 验证 6 entries**（30a52cd9） |
+| P-004 | diff 范围 | 对照 technical-design §4.5 目标文件清单 + `pnpm build`（postbuild check-package-exports 验 ./session entry） | **pass** — 新增 6（session×3 + sdk-root + 测试×2）修改 6（bin×2 / check-package-exports / package.json / **既有测试×2 实现面断言更新**：platforms + watch-api-bin-contract，行为等价）；`src/index.js` 零改动；**check-package-exports 验证 6 entries**（30a52cd9） |
 | P-005 | 阶段清单 | 对照 stages.draft.md 与 src/index.js 阶段标题；允许 L-H1/L-H2 已记录近似偏差 | **pass** — 9 阶段标题逐一命中；`publishToDist` 参数名 / 标题后缀偏差已豁免 |
 | P-006 | C1 边界 | 审查 `resolveBundlerConfig`：无 MODE_PRESETS/DEFAULT_ES_TARGET/合法性 throw（D-R2/C 除外）；`compile-config.spec.js` 通过 | **pass** — resolve 仅层合并 + 委托 `resolveCompileConfig`（dd6668a4；D-R2 seed 经 `input.mode/platform`） |
 | P-007 | 启动失败回滚 | 注入 failing previewAdapter / 占用端口，验证 `.dev()` 失败后 session 可复用（R7 / A-BS08） | **pass** — A-BS08 ×2 测例（createServer/listen 注入失败 → 复用 build 成功）；消融 3 佐证（30a52cd9） |

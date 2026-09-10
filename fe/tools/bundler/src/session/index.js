@@ -154,7 +154,7 @@ export function createBundler(resolved) {
 			return {
 				start: (...args) => inner.start(...args),
 				listen: (...args) => inner.listen(...args),
-			async stop(...args) {
+				async stop(...args) {
 					try {
 						await inner.stop(...args)
 					}

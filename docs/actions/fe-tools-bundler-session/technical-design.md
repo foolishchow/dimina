@@ -192,11 +192,13 @@ bin/{index,dev}.js → session/{index,resolve}.js
   __tests__/bundler-session.spec.js       A-BS01/08·overrides·lifecycle 暴露（O1 起，O3 补 R7）
   __tests__/bin-session-contract.spec.js  A-BS02 grep+spawnSync（O1 起，O2 扩 -w）
 
-修改（4）：
+修改（6）：
   src/bin/index.js                        build/-w 经 session（O1/O2）
   src/bin/dev.js                          dev 经 session；resolveSdkRoot 改 re-import（O3）
   scripts/check-package-exports.js        +@dimina/bundler/session entry（O1）
   package.json                            exports +"./session"（O1）
+  __tests__/platforms.spec.js             dev 强制 web 断言改为指向 resolve.js D-R2 seed（实现面更新，行为等价；O3）
+  __tests__/watch-api-bin-contract.spec.js  断言从「bin 含 createBuildWatcher」演进为「bin 经 session」（实现面更新；O3）
 
 不动：
   src/index.js（M-K1/B：不 re-export、不委托，零改动）
