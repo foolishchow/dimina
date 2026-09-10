@@ -53,7 +53,8 @@
 - 视图层产物：按页面拆分的 `.js`（内含 Vue 渲染函数，同样 modDefine 格式）与 `.css`。
 - 包边界：主包 + 分包（含独立分包）各自产出 `logic.js`；跨包 `require` 按路径经运行时注册表解析，**不是**静态 chunk 语义。
 - 模块循环依赖按 CJS 语义保留（logic-compiler 中仅断回边、不断深链，有注释与测试锁定）。
-- sourcemap 模式下跳过 minify（单层行偏移拼接，服务于 Harmony QuickJS 断点调试）。
+- sourcemap 模式下跳过 minify（单层行偏移拼接，服务于 Harmony QuickJS 断点调试；CF-1 后由 `effectiveJsMinify` 显式化，见 §4.7）。
+- 编译策略经统一 compile configuration 合并（`mode` / `minify` / `sourcemap` / `esTarget.{logic,view}`）；缺省 build 与改造前产物逐字节一致（CF-1，见 §4.7）。
 
 ### 2.2 现有 dev 链路
 
@@ -258,6 +259,18 @@ CF-4（`watch-api`）已交付并归档（`docs/actions/_archive/complete/watch-
 - **消费者**：`dmcc build -w`（`autoListen: true`）；`dmcc dev`（`autoListen: false` + `beforeBuild`）；plan/scheduler 位于 `src/common/watch-plan.js`，不公开再导出
 - **不变**：增量/合并/ignore 语义；A2/A3 ws 与 reloadLevel 协议
 
+### 4.7 compile configuration 契约（定稿 v1，2026-09-10）
+
+CF-1（`compiler-configurable`）已交付并归档（`docs/actions/_archive/complete/compiler-configurable/`）：统一编译配置框架，满足 **CLI ⊆ API**，并按双线程拆分 ES target。
+
+- **模块**：`src/common/compile-config.js`（`resolveCompileConfig` / `effectiveJsMinify` / `splitBuildOptions`）
+- **合并优先级**：`cli > apiOptions > mode preset > 内部缺省`；`mode`: `'build' | 'dev'`（build 缺省 `minify: true`，dev 缺省 `false`）
+- **`esTarget`**：必须为 `{ logic, view }`；禁止顶层标量 / 未知键（硬失败）；缺字段填缺省 `logic: 'es2023'`、`view: 'es2020'`
+- **接线**：`build()` 在副作用前解析；经 worker `compileConfig` 下发；view 读 `esTarget.view`，logic **bundle** minify 读 `esTarget.logic`
+- **已知边界（归 CF-3）**：logic 单模块 CJS 变换仍硬编码 `es2020`，以保障缺省产物 diff=0
+- **CLI**：`--minify` / `--no-minify`；`dmcc dev` 默认 `mode: 'dev'`
+- **platform**：仅占位校验 `'native' | 'web'`，语义归 CF-2
+
 ## 5. 分阶段路线图（绞杀者模式）
 
 **A 轨道（主线：dev/HMR/统一，纯 JS）** 与 **B 轨道（长期：Rust 宿主，解耦可延后）** 并行推进，A 先行。
@@ -327,3 +340,4 @@ CF-4（`watch-api`）已交付并归档（`docs/actions/_archive/complete/watch-
 | v1.6 | 2026-09-08 | A3 L2/L3 实施完成回写：§4.2 增补实施结论（Web 容器 dev-only 执行链、L1 fallback、A2/原生边界与残余浏览器风险）；A3 Action 进入 Close 流程 |
 | v1.7 | 2026-09-08 | A4 实施完成回写：§5 A4 行标注完成（落地为 renderer 抽象，对齐微信 app.json/page.json renderer 字段，阶段级 webview adapter，产物 diff=0）；术语映射（RFC target↔实现 renderer）记录 |
 | v1.8 | 2026-09-10 | CF-4 watch-api 完成回写：新增 §4.6 watch API 契约（`@dimina/compiler/watch` / `createBuildWatcher` / autoListen·beforeBuild）；§2.2 watch 行更新为 API 消费者模型 |
+| v1.9 | 2026-09-10 | CF-1 compiler-configurable 完成回写：新增 §4.7 compile configuration 契约（`esTarget.{logic,view}` / mode preset / effectiveJsMinify）；§2.1 增补配置化与 diff=0 事实 |
