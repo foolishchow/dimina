@@ -72,7 +72,7 @@ esTarget.view  ← 缺省 es2020（WebView/Browser；抬升属 CF-3 可选）
 | --- | --- | --- | --- | --- |
 | CF-1 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap + `esTarget.{logic,view}` + platform 占位） | `compiler-configurable` | 无（实施在 CF-4 后） | complete |
 | CF-2 | platform 维度接入（枚举注册进 config 框架/CLI/约束/D6:B） | `platform-abstraction` | CF-1 | complete |
-| CF-3 | logic 车道 ES 收敛（本轮切片：仅 logic；view 抬升另议） | `es-target-unification` | CF-1 | in_progress |
+| CF-3 | logic 车道 ES 收敛（本轮切片：仅 logic；view 抬升另议） | `es-target-unification` | CF-1 | complete |
 | CF-4 | watch API 化（消除 CLI-only/重复） | `watch-api` | 无（实施先于 CF-1） | complete |
 
 依赖关系（修正后，2026-09-08 审查）：
@@ -96,8 +96,9 @@ Phase 2（依赖 CF-1）：
 ```
 ## Readiness gaps
 
-- 各子 Action 需分别 formalize 并通过 Readiness Review
-- CF-3：若含 view 抬升，须 WebView（含 Harmony）兼容性调研；仅 logic 收敛则无此阻塞
+- 子门 CF-1..CF-4 均已 complete 并归档
+- umbrella 自身闭合：确认 D6:B / 双字段 / platform / logic 收敛已回流 RFC 后，可授权升 `complete`
+- view 抬升若需要：另开 Action + WebView 矩阵（不在已归档 CF-3 切片内）
 
 ## Closure conditions
 

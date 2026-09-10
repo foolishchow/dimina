@@ -273,10 +273,10 @@ CF-1（`compiler-configurable`）已交付并归档（`docs/actions/_archive/com
 - **模块**：`src/common/compile-config.js`（`resolveCompileConfig` / `effectiveJsMinify` / `splitBuildOptions`）
 - **合并优先级**：`cli > apiOptions > mode preset > 内部缺省`；`mode`: `'build' | 'dev'`（build 缺省 `minify: true`，dev 缺省 `false`）
 - **`esTarget`**：必须为 `{ logic, view }`；禁止顶层标量 / 未知键（硬失败）；缺字段填缺省 `logic: 'es2023'`、`view: 'es2020'`
-- **接线**：`build()` 在副作用前解析；经 worker `compileConfig` 下发；view 读 `esTarget.view`，logic **bundle** minify 读 `esTarget.logic`
-- **已知边界（归 CF-3）**：logic 单模块 CJS 变换仍硬编码 `es2020`，以保障缺省产物 diff=0
+- **接线**：`build()` 在副作用前解析；经 worker `compileConfig` 下发；view 读 `esTarget.view`；logic **bundle minify** 与 **单模块 CJS** 均读 `esTarget.logic`（CF-3 已消除同车道硬编码漂移）
+- **双字段约束**：不要求 `esTarget.view === esTarget.logic`；view 缺省仍为 `es2020`（抬升属另切片，须 WebView 矩阵）
 - **CLI**：`--minify` / `--no-minify`；`dmcc dev` 默认 `mode: 'dev'`
-- **platform**：CF-1 占位；完整语义见 §4.8（CF-2）
+- **platform**：完整语义见 §4.8（CF-2）
 
 ### 4.8 platform 契约（定稿 v1，2026-09-10）
 
@@ -287,6 +287,15 @@ CF-2（`platform-abstraction`）已交付并归档（`docs/actions/_archive/comp
 - **元数据**：`sourcemapStrategy` = native→`quickjs-attach`，web→`devtools-url`（**不**改 map 生成）
 - **约束**：`assertRendererSupportsPlatform`（经 A4 `getRenderer`）；`webview` 双平台可用；renderer 可声明 `unsupportedPlatforms`
 - **行为中立**：platform 不改 minify / `esTarget` / sourcemap 生成；缺省产物 diff=0
+
+### 4.9 logic 车道 ES 收敛（定稿 v1，2026-09-10）
+
+CF-3（`es-target-unification`，切片 **仅 logic**）已交付并归档（`docs/actions/_archive/complete/es-target-unification/`）：
+
+- **改动**：`logic-compiler` 单模块 CJS `esbuild` `target` 改为 `activeCompileConfig.esTarget.logic`（与 bundle minify 同车道）
+- **不变**：`DEFAULT_ES_TARGET`；`view-compiler` 接线与 `esTarget.view` 缺省；不强制 logic===view
+- **不含**：抬高 `esTarget.view`（须另切片 + WebView 矩阵）
+- **验收注记**：`examples/miniprogram/base` 缺省 build 相对实施前基线产物 diff=0（含 logic）
 
 ## 5. 分阶段路线图（绞杀者模式）
 
@@ -359,3 +368,4 @@ CF-2（`platform-abstraction`）已交付并归档（`docs/actions/_archive/comp
 | v1.8 | 2026-09-10 | CF-4 watch-api 完成回写：新增 §4.6 watch API 契约（`@dimina/compiler/watch` / `createBuildWatcher` / autoListen·beforeBuild）；§2.2 watch 行更新为 API 消费者模型 |
 | v1.9 | 2026-09-10 | CF-1 compiler-configurable 完成回写：新增 §4.7 compile configuration 契约（`esTarget.{logic,view}` / mode preset / effectiveJsMinify）；§2.1 增补配置化与 diff=0 事实 |
 | v1.10 | 2026-09-10 | CF-2 platform-abstraction 完成回写：D6→D6:B（不变层/可变层）；新增 §4.8 platform 契约（缺省 native、dev 固定 web、sourcemapStrategy 标注） |
+| v1.11 | 2026-09-10 | CF-3 es-target-unification（仅 logic）完成回写：§4.7 接线更新；新增 §4.9 logic 车道收敛；明确不含 view 抬升 |
