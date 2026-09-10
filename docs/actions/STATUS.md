@@ -36,5 +36,5 @@
 | `compiler-configuration` | `draft` | [README](compiler-configuration/README.md) | Umbrella：编译器配置化；CF-1/CF-2/CF-4 complete，CF-3 ready（仅 logic）。 | 2026-09-10 |
 | `compiler-configurable` | `complete` | [README](_archive/complete/compiler-configurable/README.md) | CF-1：统一 compile config + 双字段 esTarget；A-001~A-009 全 passed（含 A-006 消融）；已归档。 | 2026-09-10 |
 | `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
-| `es-target-unification` | `ready` | [README](es-target-unification/README.md) | CF-3：仅 logic 车道收敛；D-CF3-1..5 已冻；待授权实施。 | 2026-09-10 |
+| `es-target-unification` | `in_progress` | [README](es-target-unification/README.md) | CF-3：仅 logic；已授权实施；D-CF3-1..5 已冻。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |

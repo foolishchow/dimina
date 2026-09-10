@@ -465,8 +465,8 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 	try {
 		const esbuildOpts = {
 			format: 'cjs',
-			// CF-3: esTarget.logic — 本门保持 es2020 以保障缺省产物 diff=0
-			target: 'es2020',
+			// CF-3：与 bundle minify 同读 esTarget.logic（消除同车道硬编码漂移）
+			target: activeCompileConfig.esTarget.logic,
 			platform: 'neutral',
 			loader: isTypeScript ? 'ts' : 'js',
 		}
@@ -669,3 +669,16 @@ function resolveModuleIdToExistingPath(moduleId) {
 }
 
 export { compileJS, buildJSByPath }
+
+/** 测试专用：覆盖 worker 消息下发的 compileConfig（非公开契约）。 */
+export function _setActiveCompileConfigForTest(config) {
+	activeCompileConfig = {
+		minify: config?.minify !== false,
+		sourcemap: !!config?.sourcemap,
+		esTarget: {
+			logic: config?.esTarget?.logic || 'es2023',
+			view: config?.esTarget?.view || 'es2020',
+		},
+	}
+}
+

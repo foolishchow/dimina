@@ -1,9 +1,10 @@
 # ES Target Unification（CF-3：logic 车道收敛）
 
 - Action: `es-target-unification`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-10
 - Promoted: 2026-09-10（Readiness Review pass；切片 **仅 logic**；D-CF3-1..5 全按建议）
+- Authorized: 2026-09-10（明确授权实施）
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-3）
 - 前置：CF-1 `compiler-configurable`（**complete**）；CF-2 非硬前置（正交，已 complete）
@@ -55,7 +56,7 @@
 
 无。切片已冻为仅 logic；前置 CF-1 complete。
 
-- 状态：`ready`（待明确授权实施）
+- 状态：`in_progress`（已授权实施）
 
 ## Closure conditions
 
