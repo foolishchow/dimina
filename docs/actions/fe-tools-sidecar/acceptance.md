@@ -19,3 +19,5 @@
 
 - 消融：子门对「修复机制」类交付按 Experience-Review §6 执行；纯搬迁/文档门可不消融但须说明。
 - 视觉/真机：编排冒烟以 Web 预览为准；不强制三端。
+- **TS-1 前置已由** [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) **交付**：A-001 / A-003 / A-006 / A-007（packages diff）/ A-009 / A-010 的证据见该 Action validation；伞表仍 `pending` 直至 TS-4/伞闭合时统一勾选。A-004 / A-005 属 TS-2。A-002 须持续保持（根 `fe` 对 `@dimina/bundler` 的 workspace 依赖不算 `packages/*` 反向依赖）。
+- 「子门」措辞：TS-1 不立子门；TS-2+ 可为独立 Action。

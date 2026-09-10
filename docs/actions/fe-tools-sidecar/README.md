@@ -5,6 +5,7 @@
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[compiler-improvement](../_archive/complete/compiler-improvement/README.md)（已归档 A 轨道）、[compiler-configuration](../_archive/complete/compiler-configuration/README.md)（已归档 CF 门）、分支 `feature/compiler-improve` 上的私有演进
+- 工作分支（现行）：`feature/fe-tools-bootstrap`（bootstrap 已落地；伞文档同分支演进）
 - 设计权威：本 umbrella 文档集（当前）；成熟后回写 `docs/` 专题或 RFC 附录。不替代上游产品权威。
 
 ## Background
@@ -17,12 +18,14 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
+**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已在 `feature/fe-tools-bootstrap` 落地；`git diff origin/main...HEAD -- fe/packages` 为空。伞仍为 `draft`，下一步主战场为 TS-2（IR / template）。
+
 ## Goal
 
-1. 建立 `fe/tools` 旁路战略与 TS-0 冻结约定（终态 B、命名、依赖方向）；与独立搬迁 Action 对齐但不父子绑定；
-2. **搬迁冒烟本身**由 [`fe-tools-bootstrap-copy`](../fe-tools-bootstrap-copy/README.md) 独立交付（本伞 TS-1 仅记意图/前置）；
-3. 在 tools 内再改造：**dev 编排**、**模板管线**（parser → IR → wxml→vue）、按需深改私有 sdk；
-4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面；
+1. 建立 `fe/tools` 旁路战略与 TS-0 冻结约定（终态 B、命名、依赖方向）；与独立搬迁 Action 对齐但不父子绑定 — **约定已冻；落地已由 bootstrap 完成**；
+2. **搬迁冒烟本身**由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 独立交付（本伞 TS-1 仅记意图/前置）— **前置已 complete**；
+3. 在 tools 内再改造：**dev 编排**、**模板管线**（parser → IR → wxml→vue）、按需深改私有 sdk — **未开始（TS-2+）**；
+4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面 — **本分支 packages 已干净；同步节奏成文属 TS-4**；
 5. 不向 didi 推送本伞交付物。
 
 ## Non-goals
@@ -36,29 +39,28 @@
 
 | 区域 | 态度 |
 | --- | --- |
-| `fe/tools/*` | **主战场** |
-| `fe/pnpm-workspace.yaml` | 增加 `tools/*` |
+| `fe/tools/*` | **主战场**（已有 bundler + web-container-sdk） |
+| `fe/pnpm-workspace.yaml` | **已含** `tools/*` |
 | `fe/packages/*` | **与 upstream 同构**（终态 B）；不作私有改造主战场 |
-| `feature/compiler-improve` | **复制源快照**（tag 后只读取向） |
-| `docs/actions/` | 本 umbrella；搬迁由独立 Action `fe-tools-bootstrap-copy` 交付（非子门） |
+| `feature/compiler-improve` / tag `fe-tools-copy-source` | **复制源快照**（只读取向） |
+| `docs/actions/` | 本 umbrella；搬迁已归档至 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) |
 
 ## TS-0 冻结决策（2026-09-10）
 
-下列项视为 **TS-0 已拍板**（实施仍待 umbrella/`ready` 与授权；此处冻结「怎么做」而非授权开工）。
+下列项视为 **TS-0 已拍板**。落地状态：决策 + workspace/双包/`dimina-cli` 已在 `feature/fe-tools-bootstrap` 由 bootstrap Action 实施；伞级 `ready`/TS-2+ 实施另授权。
 
 ### D-TS0-1 终态 B
 
 `fe/packages/*` 与 didi main 同构（无私有 improve 长期 diff）。私有能力只存在于 `fe/tools/*`。操作上以已对齐的 **`origin/main`** 为对照 tip（remote 名 `upstream` = didi）。
 
-**可检查句（草案，可在 ready 前微调）**：工作分支上，`git diff origin/main...HEAD -- fe/packages` 为空，或仅含成文白名单且带撤出日期（测前 `origin/main` ≡ `upstream/main`）。
+**可检查句（草案，可在 ready / TS-4 前微调）**：工作分支上，`git diff origin/main...HEAD -- fe/packages` 为空，或仅含成文白名单且带撤出日期（测前 `origin/main` ≡ `upstream/main`）。**本分支实测已为空。**
 
 ### D-TS0-2 分支策略
 
 | 角色 | 分支 / 标记 | 规则 |
 | --- | --- | --- |
-| 复制源 | `feature/compiler-improve` | 不可变 tag **`fe-tools-copy-source`**（以 bootstrap Action D-BC-2 为准）；之后 improve 默认不再堆 sidecar 大改 |
-| 工作分支（搬迁） | 由独立 Action 冻结为 **`feature/fe-tools-bootstrap`**（自已对齐 didi 的 **`origin/main`**） | `packages/*` 保持干净；tools + bootstrap 文档；伞文档 MAY 同分支演进 |
-| 工作分支（伞长期，可选） | 可继续沿用 `feature/fe-tools-bootstrap`，或日后另开；**不再建议**抢先占用未交付的 `feature/fe-tools-sidecar` 名 | 与 bootstrap 闭合后再定 |
+| 复制源 | `feature/compiler-improve` | 不可变 tag **`fe-tools-copy-source`**（`242b8622`；VENDOR.md 已写） |
+| 工作分支（现行） | **`feature/fe-tools-bootstrap`**（自已对齐 didi 的 **`origin/main`**） | `packages/*` 保持干净；tools + 伞文档同分支演进 |
 | 上游同步 | 工作分支定期 `merge origin/main`（`origin/main` 先追 didi） | 冲突应落在极少 `packages` 文件；tools 内副本单独追源（见 D-TS0-4） |
 
 **不采用**：在 `feature/compiler-improve` 上直接做整包复制再大规模还原 `packages`（等效终态但 git 更脏）。
@@ -69,7 +71,7 @@
   - `fe/packages/compiler/**`  
   - `fe/packages/container-sdk/**`  
   （含该快照上已有的 dmcc/HMR/entryPath/`NODE_ENV`/菜单等私有改动）
-- **元数据**：每个 tools 包内保留 `VENDOR.md`（或等价）：源 tag、源路径、复制日期、同步责任说明。
+- **元数据**：每个 tools 包内保留 `VENDOR.md`（或等价）：源 tag、源路径、复制日期、同步责任说明 — **已落地**。
 
 ### D-TS0-4 目标包名与目录（npm / workspace / 磁盘）
 
@@ -89,6 +91,7 @@
 - 依赖：`@dimina/web-container-sdk` → `@dimina/bundler`（及 mitt 等）按需；**禁止** `packages/*` → `@dimina/bundler` / `@dimina/web-container-sdk`。
 - 干净 `@dimina/compiler` / `@dimina/fe-container-sdk` 仍供产品/上游同构面使用；**本旁路预览链默认走私有 `@dimina/bundler` + `@dimina/web-container-sdk`**。
 - 编排（原 `dmcc dev`）第一期可留在 `@dimina/bundler` 的 `dimina-cli` 子命令内；若日后抽出薄包，再建 `tools/dev-server`（非本冻结项）。
+- 根 `fe/package.json` 以 `workspace:*` 依赖 `@dimina/bundler`，以便 `pnpm exec dimina-cli` 链接 bin（不反向污染 `packages/*`）。
 
 ### D-TS0-5 启动策略（相对「薄 depend 再拷」）
 
@@ -106,7 +109,7 @@ fe/tools/
   web-container-sdk/       → @dimina/web-container-sdk
 ```
 
-`pnpm-workspace.yaml`：`packages/*` + `tools/*`。不采用 bundler 目录下再嵌套第二 workspace 包作为首刀。
+`pnpm-workspace.yaml`：`packages/*` + `tools/*`。不采用 bundler 目录下再嵌套第二 workspace 包作为首刀。**已落地。**
 
 ## ~~目录布局候选~~（已收束为 D-TS0-4 / D-TS0-6）
 
@@ -123,39 +126,40 @@ fe/tools/
 
 ## Deliverables（伞级）
 
-- workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter；
-- `dimina-cli` 冷启动冒烟（base 示例或成文替身）；
-- `packages/*` 满足终态 B 可检查句；
-- 后续子门：编排拆分、template IR、文档/CI；
-- VENDOR 元数据与同步说明；`@dimina/bundler` description 含领域 bundler 释义。
+- ~~workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter~~ — **bootstrap 已交付**；
+- ~~`dimina-cli` 冷启动冒烟~~ — **bootstrap 已交付**；
+- `packages/*` 满足终态 B 可检查句 — **本分支已满足；TS-4 补同步节奏成文**；
+- 后续：template IR（TS-2）、编排拆分（TS-3 可选）、CI；
+- ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义。
 
 ## Umbrella 机制
 
-- **TS-1 不立子门**：复制冒烟由独立 Action `fe-tools-bootstrap-copy` 完成并可单独闭合/归档。  
-- TS-2+ 再 formalize 子 Action（或继续独立 Action）；发现回流本 README / roadmap。  
+- **TS-1 不立子门**：复制冒烟由独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 完成并已归档。  
+- TS-2+ 再 formalize 独立 Action（或子门）；发现回流本 README / roadmap。  
 - 闭合：TS-0 冻结有效；TS-1 前置 Action complete；TS-2..TS-4 complete 或书面 deferred。
 
 ## Roadmap（摘要）
 
 详见 [roadmap](roadmap.md)。
 
-| 门 | 意图 |
-| --- | --- |
-| TS-0 | 冻结项 D-TS0-1..6（已写入）+ workspace glob 实施 |
-| TS-1 | 意图：复制改名接线冒烟 → **前置**独立 Action `fe-tools-bootstrap-copy`（非子门） |
-| TS-2 | tools 内模板管线切开（parse / IR / webview） |
-| TS-3 | 编排可选拆包与 sdk 深改边界 |
-| TS-4 | 终态 B 门禁闭环与同步节奏 |
+| 门 | 意图 | 现状 |
+| --- | --- | --- |
+| TS-0 | 冻结项 D-TS0-1..6 + workspace | **决策已冻；落地完成** |
+| TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
+| TS-2 | tools 内模板管线切开（parse / IR / webview） | pending |
+| TS-3 | 编排可选拆包与 sdk 深改边界 | pending / 可 deferred |
+| TS-4 | 终态 B 门禁闭环与同步节奏成文 | packages 已干净；文档 pending |
 
 ## Readiness gaps
 
 1. ~~复制源 / 目标包名 / 分支 / 目录 / bin~~ — **已冻**（D-TS0-2..6）。  
-2. **最小 IR 形状**未起草（阻塞 TS-2 `ready`）。  
-3. **终态 B 可检查句**需在 `ready` 前写成 STATUS/验收可引用的最终句（D-TS0-1 草案已有）。  
+2. **最小 IR 形状**未起草（阻塞 TS-2 / `fe-tools-template` `ready`）。  
+3. **终态 B 可检查句**需在伞 `ready` / TS-4 前写成 STATUS/验收可引用的最终句（D-TS0-1 草案已有；本分支实测已满足草案句）。  
 4. **CI**：tools 独立 job 与否。  
-5. **tag 名**实施时敲定并写入 VENDOR.md。
+5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md）。  
+6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。
 
-伞级在 B 判定句（gap 3）补齐前可维持 `draft`；**不授权伞级实施**。独立搬迁 Action 可单独授权，不阻塞于本伞 `ready`。
+伞级在 B 判定句（gap 3）与 IR（gap 2）补齐前可维持 `draft`；**不授权伞级大实施**。TS-2 可另立独立 Action，不阻塞于伞 `ready`。
 
 ## Closure conditions
 
