@@ -33,8 +33,8 @@
 | `dmcc-dev-server` | `complete` | [README](_archive/complete/dmcc-dev-server/README.md) | Umbrella gate A2：`dmcc dev` 交付 dev 链路（静态服务 + 宿主页 + ws + 代理 + L1 relaunch）；A-001~A-012 全 passed，已归档。 | 2026-09-08 |
 | `hmr-l2-l3` | `complete` | [README](_archive/complete/hmr-l2-l3/README.md) | Umbrella gate A3：Web 容器 dev-only L2 CSS 热替换 + L3 模板热重挂；A-001~A-013 全 passed，已归档。 | 2026-09-08 |
 | `render-target-abstraction` | `complete` | [README](_archive/complete/render-target-abstraction/README.md) | Umbrella gate A4：renderer 抽象（对齐微信 app.json/page.json renderer），首个 `webview`，产物 diff=0；A-001~A-010 全 passed，已归档。 | 2026-09-08 |
-| `compiler-configuration` | `draft` | [README](compiler-configuration/README.md) | Umbrella：编译器配置化；`esTarget.{logic,view}`；CF-1/CF-4 complete，CF-2 ready，CF-3 draft。 | 2026-09-10 |
+| `compiler-configuration` | `draft` | [README](compiler-configuration/README.md) | Umbrella：编译器配置化；`esTarget.{logic,view}`；CF-1/CF-2/CF-4 complete，CF-3 draft。 | 2026-09-10 |
 | `compiler-configurable` | `complete` | [README](_archive/complete/compiler-configurable/README.md) | CF-1：统一 compile config + 双字段 esTarget；A-001~A-009 全 passed（含 A-006 消融）；已归档。 | 2026-09-10 |
-| `platform-abstraction` | `in_progress` | [README](platform-abstraction/README.md) | CF-2：已授权实施；D-CF2-1..5 已冻。 | 2026-09-10 |
+| `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
 | `es-target-unification` | `draft` | [README](es-target-unification/README.md) | CF-3：logic 车道 ES 收敛；不强制与 view 同值；可选抬升 view（须 WebView 矩阵）。前置 CF-1。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |

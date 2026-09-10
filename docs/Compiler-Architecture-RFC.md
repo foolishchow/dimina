@@ -127,11 +127,18 @@ watch        ─→ `@dimina/compiler/watch`（`createBuildWatcher`）+ 依赖�
 
 **后果**：插件 API 成为需要承诺稳定性的公开契约，需版本化与文档；在明确插件作者群体（dimina 团队 / lynx adapter / 宿主 App）后再冻结对外版本。
 
-### D6. 产物契约冻结
+### D6. 产物契约冻结（D6:B，2026-09-10）
 
-**理由**：四端容器、运行时与既有回归测试共同锁定的行为边界。改造期间 `modDefine` 格式、模块 ID 规则、输出目录结构（`main/`、`{root}/`、`app-config.json`）、兼容性警告语义一个字节不变（sourcemap 文件的例外口径见 G4）。
+**理由**：四端容器、运行时与既有回归测试共同锁定的行为边界。改造须区分**不变层**与**可变层**，避免把 compile profile 的合法差异误判为契约破坏。
 
-**后果**：55 个既有 spec 全程作为行为护栏；新增能力（hook、dev、target）的测试按 [维护经验](./Experience-Review.md) 第 6 条执行消融实验。
+| 层 | 跨 platform × mode | 内容 |
+| --- | --- | --- |
+| **不变层** | 结构一致 | `modDefine` 注册调用结构、模块 ID 规则、输出目录（`main/`、`{root}/`）、`app-config.json`、兼容性警告语义 |
+| **可变层** | 由 compile profile 决定 | `esTarget.{logic,view}`、minify、`sourcemap` 开关、以及策略标注 `sourcemapStrategy`（`quickjs-attach` / `devtools-url`） |
+
+**CF-2 注记**：`platform`（`native`/`web`）已接入 compile configuration，并派生 `sourcemapStrategy` 元数据；本门 **不** 因 platform 改变变换或 map 生成，故缺省 build 相对改造前仍可要求产物逐字节一致。未来若可变层真正按 platform 分叉，须按 profile 验收，不再要求跨 platform 字节恒等。
+
+**后果**：既有 spec 全程作为不变层护栏；新增能力的测试按 [维护经验](./Experience-Review.md) 第 6 条执行消融实验。sourcemap 文件的例外口径见 G4。
 
 ### D7. 若启动 B 轨道：JS 单线程陷阱必须在架构第一天规避
 
@@ -156,7 +163,7 @@ dmcc dev [workPath]
 
 | 层 | 容器相关性 | 说明 |
 | --- | --- | --- |
-| 编译 + 产物 | 容器无关 | 同一份 DMCC 产物四端共用（Harmony/Web 等），D6 冻结；dev server 只 watch + 增量编译 |
+| 编译 + 产物 | 容器无关 | 同一份 DMCC 产物四端共用（Harmony/Web 等），D6:B 不变层冻结；dev server 只 watch + 增量编译 |
 | dev server 编排（静态服务/ws/代理/级别合成） | 容器无关 | 只编译 + 推送 `reloadLevel`，宿主只负责执行（§4.5） |
 | **预览宿主 + HMR 生效端** | **Web 容器专属** | 内置宿主页 = `createContainer`（container-sdk）；L0 整页重启、L1 relaunch（`container.openApp(destroy)`）、L2/L3（`fe/packages/render` + container-sdk）全在 Web 容器/WebView + Vue render 内 |
 
@@ -269,7 +276,17 @@ CF-1（`compiler-configurable`）已交付并归档（`docs/actions/_archive/com
 - **接线**：`build()` 在副作用前解析；经 worker `compileConfig` 下发；view 读 `esTarget.view`，logic **bundle** minify 读 `esTarget.logic`
 - **已知边界（归 CF-3）**：logic 单模块 CJS 变换仍硬编码 `es2020`，以保障缺省产物 diff=0
 - **CLI**：`--minify` / `--no-minify`；`dmcc dev` 默认 `mode: 'dev'`
-- **platform**：仅占位校验 `'native' | 'web'`，语义归 CF-2
+- **platform**：CF-1 占位；完整语义见 §4.8（CF-2）
+
+### 4.8 platform 契约（定稿 v1，2026-09-10）
+
+CF-2（`platform-abstraction`）已交付并归档（`docs/actions/_archive/complete/platform-abstraction/`）：将 `native`/`web` 注册进 compile configuration。
+
+- **解析**：未指定 → `native`；非法值 → `InvalidPlatformError`（`build:start` 前）
+- **CLI / API**：`dmcc build --platform <native|web>` 与 `options.platform` 等价；`dmcc dev` 固定 `platform: 'web'`（不暴露 `--platform`）
+- **元数据**：`sourcemapStrategy` = native→`quickjs-attach`，web→`devtools-url`（**不**改 map 生成）
+- **约束**：`assertRendererSupportsPlatform`（经 A4 `getRenderer`）；`webview` 双平台可用；renderer 可声明 `unsupportedPlatforms`
+- **行为中立**：platform 不改 minify / `esTarget` / sourcemap 生成；缺省产物 diff=0
 
 ## 5. 分阶段路线图（绞杀者模式）
 
@@ -341,3 +358,4 @@ CF-1（`compiler-configurable`）已交付并归档（`docs/actions/_archive/com
 | v1.7 | 2026-09-08 | A4 实施完成回写：§5 A4 行标注完成（落地为 renderer 抽象，对齐微信 app.json/page.json renderer 字段，阶段级 webview adapter，产物 diff=0）；术语映射（RFC target↔实现 renderer）记录 |
 | v1.8 | 2026-09-10 | CF-4 watch-api 完成回写：新增 §4.6 watch API 契约（`@dimina/compiler/watch` / `createBuildWatcher` / autoListen·beforeBuild）；§2.2 watch 行更新为 API 消费者模型 |
 | v1.9 | 2026-09-10 | CF-1 compiler-configurable 完成回写：新增 §4.7 compile configuration 契约（`esTarget.{logic,view}` / mode preset / effectiveJsMinify）；§2.1 增补配置化与 diff=0 事实 |
+| v1.10 | 2026-09-10 | CF-2 platform-abstraction 完成回写：D6→D6:B（不变层/可变层）；新增 §4.8 platform 契约（缺省 native、dev 固定 web、sourcemapStrategy 标注） |
