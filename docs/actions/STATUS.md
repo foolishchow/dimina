@@ -34,7 +34,7 @@
 | `hmr-l2-l3` | `complete` | [README](_archive/complete/hmr-l2-l3/README.md) | Umbrella gate A3：Web 容器 dev-only L2 CSS 热替换 + L3 模板热重挂；A-001~A-013 全 passed，已归档。 | 2026-09-08 |
 | `render-target-abstraction` | `complete` | [README](_archive/complete/render-target-abstraction/README.md) | Umbrella gate A4：renderer 抽象（对齐微信 app.json/page.json renderer），首个 `webview`，产物 diff=0；A-001~A-010 全 passed，已归档。 | 2026-09-08 |
 | `compiler-configuration` | `draft` | [README](compiler-configuration/README.md) | Umbrella：编译器配置化；`esTarget.{logic,view}`；CF-4 complete，CF-1..CF-3 draft。 | 2026-09-10 |
-| `compiler-configurable` | `draft` | [README](compiler-configurable/README.md) | CF-1：formalize 已补（requirements/design/acceptance）；`esTarget.{logic,view}`；待 Readiness。实施在 CF-4 后。 | 2026-09-10 |
+| `compiler-configurable` | `ready` | [README](compiler-configurable/README.md) | CF-1：Readiness pass（D-CF1-1..4）；`esTarget.{logic,view}` 已冻；待授权实施。 | 2026-09-10 |
 | `platform-abstraction` | `draft` | [README](platform-abstraction/README.md) | CF-2：platform 维度接入（native/web 注册进 config 框架、CLI --platform、D6:B 修订）。前置 CF-1。 | 2026-09-08 |
 | `es-target-unification` | `draft` | [README](es-target-unification/README.md) | CF-3：logic 车道 ES 收敛；不强制与 view 同值；可选抬升 view（须 WebView 矩阵）。前置 CF-1。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |

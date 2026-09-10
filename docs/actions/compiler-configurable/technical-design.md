@@ -1,6 +1,6 @@
 # Technical Design — compiler-configurable
 
-> 契约状态：**草案（待 Readiness Review 冻结）**。依据 2026-09-10 README：`esTarget.{logic,view}` 双字段；实施在 CF-4 complete 之后。
+> 契约状态：**已冻结（v1，2026-09-10）**。Readiness Review verdict `pass`：D-CF1-1..4 全按建议。实施在 CF-4 complete 之后；变更需同步 requirements / acceptance / README。
 
 设计基线（2026-09-10）：
 
@@ -12,6 +12,15 @@
 | `style-compiler` | `minify: true`（无 JS esTarget） |
 | CLI | `--sourcemap`；无 minify flag |
 | watch | `createBuildWatcher({ options })` 透传（CF-4） |
+
+## 0. 冻结决策（D-CF1-1..4）
+
+| ID | 决策点 | 冻结值 |
+| --- | --- | --- |
+| D-CF1-1 | 非法 `esTarget`（顶层标量、非对象等） | **硬失败**；缺字段填缺省；未知键硬失败 |
+| D-CF1-2 | mode 字段 | `options.mode`: `'build' \| 'dev'`（缺省 build） |
+| D-CF1-3 | logic 单模块 CJS `es2020` | **本门不接线**；归 CF-3 同车道收敛 |
+| D-CF1-4 | Acceptance / 消融 | A-001..A-009 采纳；A-006 须可消融 |
 
 ## 1. 配置结构
 
@@ -29,7 +38,7 @@
 }
 ```
 
-**禁止**顶层标量 `esTarget`。非法形状（标量、缺字段）在合并期诊断并失败或规范化（Readiness 冻结：建议规范化+警告 vs 硬失败——默认 **硬失败未知键/标量 esTarget**，缺字段填缺省）。
+**禁止**顶层标量 `esTarget`。非法形状（标量、非对象、未知键）合并期 **硬失败**（D-CF1-1）；`logic`/`view` 缺字段填内部缺省。
 
 ## 2. 合并链
 
@@ -65,7 +74,7 @@ sourcemap 跳过最终 minify：保留现逻辑，改为显式 `effectiveMinify 
 
 `createBuildWatcher({ options })`：调用方传入已含 minify/sourcemap/esTarget 的 options；runner 不解析 profile。
 
-mode 注入：`build()` 缺省 mode=build；`dmcc dev` 与 watcher 传入 `mode: 'dev'`（经 options 或显式 `compileMode`——Readiness 冻结字段名，建议 `options.mode`）。
+mode 注入：`build()` 缺省 `mode: 'build'`；`dmcc dev` / watcher 传入 `options.mode: 'dev'`（D-CF1-2）。
 
 ## 5. 文件落地
 

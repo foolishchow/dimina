@@ -20,4 +20,4 @@
 
 ## Status
 
-全部 `pending`：Action 仍为 `draft`；formalize 文档已补，待 Readiness Review。
+全部 `pending`：Action 已 `ready`，**尚未授权实施**；表结构供实施与验证填写。
