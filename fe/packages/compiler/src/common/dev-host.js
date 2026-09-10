@@ -14,6 +14,8 @@ export const SDK_ASSET_PATHS = Object.freeze({
 	pageFrameJs: '/sdk/pageFrame.js',
 	pageFrameCss: '/sdk/pageFrame.css',
 	serviceJs: '/sdk/service.js',
+	/** container-sdk 将 mitt external；dmcc 宿主以 import map 提供浏览器可解析路径 */
+	mittJs: '/sdk/mitt.js',
 })
 
 /**
@@ -37,18 +39,42 @@ export function createHostPageHtml({ appId, wsPath }) {
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 	<title>dmcc dev · ${escapeHtml(appId)}</title>
 	<link rel="stylesheet" href="${SDK_ASSET_PATHS.indexCss}">
+	<style>
+		/* 宿主页自身 reset：SDK style.css 不含 html/body/#app 布局，缺省会留下 UA margin，
+		   且 #app 高度为 0，绝对定位容器看起来像「样式没加载」。 */
+		html, body, #app {
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: #000;
+		}
+	</style>
+	<script type="importmap">
+	{
+		"imports": {
+			"mitt": "${SDK_ASSET_PATHS.mittJs}"
+		}
+	}
+	</script>
 </head>
 <body>
 	<div id="app"></div>
 	<script type="module">
-		import { createContainer } from '${SDK_ASSET_PATHS.indexJs}'
+		import { createContainer, createDefaultShell } from '${SDK_ASSET_PATHS.indexJs}'
 
 		const params = new URLSearchParams(window.location.search)
 		const appId = params.get('appId') || ${JSON.stringify(appId)}
 		const entryPath = params.get('path') || undefined
+		const mount = document.getElementById('app')
+		// 最小宿主也需要状态栏几何：不接 shell 时导航栏 padding 仍按刘海区预留，
+		// 但矩形全 0、无状态栏节点，上沿会像缺样式的空白条。
+		const shell = createDefaultShell({ mount })
 
 		const container = createContainer({
-			mount: document.getElementById('app'),
+			mount,
+			shell,
 			// dev server 把产物与 sdk 资产都挂在站点根路径下，资源引用（/main/... 等）
 			// 相对根即可命中。
 			resourceBaseUrl: '/',
@@ -129,6 +155,33 @@ export function createHostPageHtml({ appId, wsPath }) {
 	</script>
 </body>
 </html>`
+}
+
+/**
+ * 生成渲染层 iframe 文档（对齐 container 参考宿主的 pageFrame.html，指向随包 sdk 资产）。
+ * @returns {string}
+ */
+export function createPageFrameHtml() {
+	return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+	<title>pageFrame</title>
+	<link rel="stylesheet" href="${SDK_ASSET_PATHS.pageFrameCss}">
+	<script type="importmap">
+	{
+		"imports": {
+			"mitt": "${SDK_ASSET_PATHS.mittJs}"
+		}
+	}
+	</script>
+</head>
+<body class="dd-page">
+	<script type="module" src="${SDK_ASSET_PATHS.pageFrameJs}"></script>
+</body>
+</html>
+`
 }
 
 function escapeHtml(value) {

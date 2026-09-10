@@ -408,7 +408,10 @@ export class MiniApp {
 	}
 
 	getEntryPagePath(): string {
-		return this.appInfo.pagePath || this.appConfig?.app?.entryPagePath || ''
+		return this.appInfo.pagePath
+			|| this.appConfig?.app?.entryPagePath
+			|| this.appConfig?.app?.pages?.[0]
+			|| ''
 	}
 
 	/**
@@ -831,7 +834,9 @@ export class MiniApp {
 
 			const entryPagePath = this.runtimeType === 'game'
 				? (this.appConfig!.app.entryPagePath || 'game')
-				: (this.appInfo.pagePath || this.appConfig!.app.entryPagePath)
+				: (this.appInfo.pagePath
+					|| this.appConfig!.app.entryPagePath
+					|| this.appConfig!.app.pages?.[0])
 			// navigateToMiniProgram 允许省略 path。配置加载后把真实入口回填到实例元数据，
 			// 让后续 restart/referrer/宿主读取都看到实际页面，而不是永久保留空字符串。
 			if (!this.appInfo.pagePath) {

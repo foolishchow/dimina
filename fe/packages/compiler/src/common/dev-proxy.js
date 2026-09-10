@@ -171,8 +171,11 @@ export function isAllowedBrowserOrigin(origin, configuredOrigins = '') {
 	try {
 		const parsed = new URL(origin)
 		const hostname = normalizeHostname(parsed.hostname)
-		return ['http:', 'https:'].includes(parsed.protocol)
-			&& ['localhost', '127.0.0.1', '::1'].includes(hostname)
+		if (!['http:', 'https:'].includes(parsed.protocol)) return false
+		if (['localhost', '127.0.0.1', '::1'].includes(hostname)) return true
+		// 局域网预览：Origin 为私网/链路本地 IP 时允许（配合 dmcc dev --host 0.0.0.0）
+		if (net.isIP(hostname) && !isPublicAddress(hostname)) return true
+		return false
 	}
 	catch {
 		return false

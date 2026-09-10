@@ -37,10 +37,13 @@ describe('dev-proxy — security 纯函数（迁移自 fe/packages/server/securi
 		await expect(assertSafeTarget('http://user:pw@example.com', async () => [])).rejects.toMatchObject({ code: 'DIMINA_UNSAFE_TARGET' })
 	})
 
-	it('CORS 来源只允许回环或显式白名单', () => {
+	it('CORS 来源允许回环、私网 IP 或显式白名单', () => {
 		expect(isAllowedBrowserOrigin('http://localhost:5173')).toBe(true)
 		expect(isAllowedBrowserOrigin('https://127.0.0.1:4173')).toBe(true)
+		expect(isAllowedBrowserOrigin('http://192.168.2.124:8080')).toBe(true)
+		expect(isAllowedBrowserOrigin('http://10.0.0.8:8080')).toBe(true)
 		expect(isAllowedBrowserOrigin('https://evil.example')).toBe(false)
+		expect(isAllowedBrowserOrigin('https://8.8.8.8')).toBe(false)
 		expect(isAllowedBrowserOrigin('https://dev.example', 'https://dev.example')).toBe(true)
 		expect(isAllowedBrowserOrigin(null)).toBe(true)
 	})

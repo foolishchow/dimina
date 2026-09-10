@@ -59,6 +59,10 @@
 
 .dimina-native-view--instage {
 	transform: translate(0, 0) !important;
+	// transform 会让子树里的 position:fixed 改相对本容器定位；若不裁剪，
+	// 底部菜单 translateY(100%)「藏」在容器外仍会抬高文档可滚动高度，
+	// 页面一滑就能看到未打开的 dimina-mini-app-menu。
+	overflow: hidden;
 }
 
 .dimina-native-view--slide-out {

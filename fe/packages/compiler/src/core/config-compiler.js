@@ -48,6 +48,11 @@ function compileConfig() {
 	// 把 tabBar 图标复制到产物目录并改写 iconPath
 	processTabBarIcons(app)
 
+	// 微信 app.json 通常无 entryPagePath；入口为 pages[0]。容器冷启动依赖该字段。
+	if (!app.entryPagePath && Array.isArray(app.pages) && app.pages.length > 0) {
+		app.entryPagePath = app.pages[0]
+	}
+
 	const compileResInfo = {
 		app,
 		modules: getPageConfigInfo(),

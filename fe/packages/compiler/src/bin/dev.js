@@ -27,6 +27,7 @@ export function registerDevCommand(program) {
 		.option('-c, --work-path <path>', '小程序工程根（app.json 所在目录），缺省为当前目录')
 		.option('-s, --target-path <path>', '产物快照目录（仅暴露最后一次成功发布），缺省使用系统临时目录')
 		.option('-p, --port <number>', `端口（缺省 ${DEFAULT_PORT}）`)
+		.option('--host <addr>', '监听地址（缺省 127.0.0.1；局域网访问用 0.0.0.0）')
 		.option('--no-app-id-dir', '产物根目录不包含appId')
 		.option('--sourcemap', '生成 sourcemap 文件用于调试')
 		.option('--minify', '压缩产物（覆盖 mode=dev 缺省；可用 --no-minify 关闭）')
@@ -39,6 +40,7 @@ export function registerDevCommand(program) {
 			const sourcemap = !!options.sourcemap
 			const minify = typeof options.minify === 'boolean' ? options.minify : undefined
 			const port = options.port ? Number.parseInt(options.port, 10) : DEFAULT_PORT
+			const host = typeof options.host === 'string' && options.host ? options.host : '127.0.0.1'
 
 			const lifecycle = createLifecycle()
 			let buildIdCounter = 0
@@ -101,8 +103,12 @@ export function registerDevCommand(program) {
 				devServer.notifyBuildError(payload.error?.message || 'build failed')
 			})
 
-			const { port: actualPort, host } = await devServer.listen(port, '127.0.0.1')
-			console.log(`[dmcc-dev] preview at http://${host}:${actualPort}?appId=${buildResult.appId}`)
+			const { port: actualPort, host: boundHost } = await devServer.listen(port, host)
+			const previewHost = boundHost === '0.0.0.0' ? '127.0.0.1' : boundHost
+			console.log(`[dmcc-dev] preview at http://${previewHost}:${actualPort}?appId=${buildResult.appId}`)
+			if (boundHost === '0.0.0.0') {
+				console.log(`[dmcc-dev] listening on 0.0.0.0:${actualPort} (LAN: http://<your-lan-ip>:${actualPort}?appId=${buildResult.appId})`)
+			}
 			console.log(`[dmcc-dev] watching ${workPath}`)
 
 			await watcher.listen()

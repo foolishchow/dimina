@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SDK_ASSET_PATHS, createHostPageHtml } from '../src/common/dev-host.js'
+import { SDK_ASSET_PATHS, createHostPageHtml, createPageFrameHtml } from '../src/common/dev-host.js'
 
 // dmcc-dev-server 契约 v1 §3：内置宿主页生成（占位替换 / sdk 资产引用 / 宿主逻辑）。
 
@@ -11,6 +11,7 @@ describe('SDK_ASSET_PATHS', () => {
 			pageFrameJs: '/sdk/pageFrame.js',
 			pageFrameCss: '/sdk/pageFrame.css',
 			serviceJs: '/sdk/service.js',
+			mittJs: '/sdk/mitt.js',
 		})
 		expect(Object.isFrozen(SDK_ASSET_PATHS)).toBe(true)
 	})
@@ -41,8 +42,19 @@ describe('createHostPageHtml — 占位替换与资源引用', () => {
 	})
 
 	it('引用 sdk 预构建资产（index.js 入口 + index.css 样式）', () => {
-		expect(html).toContain(`import { createContainer } from '${SDK_ASSET_PATHS.indexJs}'`)
+		expect(html).toContain(`import { createContainer, createDefaultShell } from '${SDK_ASSET_PATHS.indexJs}'`)
 		expect(html).toContain(`<link rel="stylesheet" href="${SDK_ASSET_PATHS.indexCss}">`)
+	})
+
+	it('宿主页自带 html/body/#app reset，并接入 createDefaultShell', () => {
+		expect(html).toContain('html, body, #app')
+		expect(html).toContain('createDefaultShell({ mount })')
+		expect(html).toContain('shell,')
+	})
+
+	it('提供 mitt import map（sdk external 依赖的浏览器解析）', () => {
+		expect(html).toContain('type="importmap"')
+		expect(html).toContain(`"mitt": "${SDK_ASSET_PATHS.mittJs}"`)
 	})
 
 	it('HTML 上下文（title）转义，脚本字符串上下文（JSON 字面量）安全注入', () => {
@@ -61,7 +73,7 @@ describe('createHostPageHtml — 宿主逻辑', () => {
 	const html = createHostPageHtml({ appId: 'wx_test_app', wsPath: '/ws' })
 
 	it('经公开 API 直开目标 app（openApp + ?path= 入口）', () => {
-		expect(html).toContain('import { createContainer } from')
+		expect(html).toContain('import { createContainer, createDefaultShell } from')
 		expect(html).toContain("params.get('appId')")
 		expect(html).toContain("params.get('path')")
 		expect(html).toContain('container.openApp({')
@@ -83,5 +95,14 @@ describe('createHostPageHtml — 宿主逻辑', () => {
 	it('不含应用列表壳（最小宿主，列表壳保留在 container demo）', () => {
 		expect(html).not.toContain('appList')
 		expect(html).not.toContain('AppList')
+	})
+})
+describe('createPageFrameHtml', () => {
+	it('加载 sdk pageFrame 资产并提供 mitt import map', () => {
+		const frame = createPageFrameHtml()
+		expect(frame).toContain(`href="${SDK_ASSET_PATHS.pageFrameCss}"`)
+		expect(frame).toContain(`src="${SDK_ASSET_PATHS.pageFrameJs}"`)
+		expect(frame).toContain(`"mitt": "${SDK_ASSET_PATHS.mittJs}"`)
+		expect(frame).toContain('class="dd-page"')
 	})
 })

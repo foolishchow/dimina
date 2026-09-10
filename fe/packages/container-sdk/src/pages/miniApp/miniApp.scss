@@ -234,14 +234,20 @@
 	padding-bottom: max(logic(52px), calc(logic(28px) + env(safe-area-inset-bottom)));
 	border-radius: logic(32px) logic(32px) 0 0;
 	box-shadow: 0 logic(-6px) logic(40px) rgba(15, 23, 42, 0.12);
-	transition: transform 0.24s ease-in-out;
+	// 关闭态先藏可见性；visibility 延迟到滑出动画后再切，避免打断 transform 过渡。
+	visibility: hidden;
+	pointer-events: none;
+	transition: transform 0.24s ease-in-out, visibility 0s linear 0.24s;
 	z-index: 1000;
 	transform: translateY(100%);
 	max-height: logic(420px);
 	overflow: hidden;
 
 	&.show {
+		visibility: visible;
+		pointer-events: auto;
 		transform: translateY(0);
+		transition: transform 0.24s ease-in-out, visibility 0s;
 	}
 }
 

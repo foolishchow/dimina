@@ -62,6 +62,11 @@ function diminaServiceUrlPlugin() {
 //                按需加载 vconsole、引入 @dimina/components 样式与 @dimina/render）。
 export default defineConfig({
 	plugins: [diminaServiceUrlPlugin()],
+	// lib 模式默认不替换 process.env.NODE_ENV；pageFrame 直接进浏览器 iframe，
+	// 内联的 Vue 仍会读 NODE_ENV，未替换会在运行时抛 ReferenceError。
+	define: {
+		'process.env.NODE_ENV': JSON.stringify('production'),
+	},
 	css: {
 		preprocessorOptions: {
 			scss: {

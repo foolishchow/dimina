@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { WebSocketServer, WebSocket } from 'ws'
-import { createHostPageHtml } from './dev-host.js'
+import { createHostPageHtml, createPageFrameHtml } from './dev-host.js'
 import { handleProxyRequest, isAllowedBrowserOrigin } from './dev-proxy.js'
 
 const DEFAULT_WS_PATH = '/ws'
@@ -32,7 +32,7 @@ const MIME_TYPES = Object.freeze({
 /**
  * 创建 dev server。服务启动前应完成初始 build 并获得 appId。
  * @param {{ serveRoot: string, sdkRoot: string, appId: string,
- *           wsPath?: string, hostHtml?: string, allowedOrigins?: string }} options
+ *           wsPath?: string, hostHtml?: string, pageFrameHtml?: string, allowedOrigins?: string }} options
  * @returns {{ server: import('node:http').Server, wsServer: WebSocketServer,
  *   listen: (port?: number, host?: string) => Promise<{ port: number, host: string }>,
  *   close: () => Promise<void>, setPendingReload: (payload: object|null) => void,
@@ -48,6 +48,7 @@ export function createDevServer({
 	appId,
 	wsPath = DEFAULT_WS_PATH,
 	hostHtml = createHostPageHtml({ appId, wsPath }),
+	pageFrameHtml = createPageFrameHtml(),
 	allowedOrigins = '',
 }) {
 	if (!serveRoot || !sdkRoot || !appId) {
@@ -136,6 +137,10 @@ export function createDevServer({
 		try {
 			if (pathname === '/' || pathname === '/index.html') {
 				writeStatic(response, hostHtml, 'text/html; charset=utf-8', request.method === 'HEAD')
+				return
+			}
+			if (pathname === '/pageFrame.html') {
+				writeStatic(response, pageFrameHtml, 'text/html; charset=utf-8', request.method === 'HEAD')
 				return
 			}
 			if (pathname.startsWith('/sdk/')) {

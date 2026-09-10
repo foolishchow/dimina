@@ -56,6 +56,14 @@ describe('dev server — HTTP 静态服务与快照语义', () => {
 		expect(res.body).toContain('/sdk/index.js')
 	})
 
+	it('GET /pageFrame.html 返回渲染层 iframe 文档', async () => {
+		const res = await get(`${baseUrl}/pageFrame.html`)
+		expect(res.status).toBe(200)
+		expect(res.headers['content-type']).toContain('text/html')
+		expect(res.body).toContain('/sdk/pageFrame.js')
+		expect(res.body).toContain('/sdk/pageFrame.css')
+	})
+
 	it('GET /sdk/index.js 服务 sdk 资产（no-cache + 正确类型）', async () => {
 		const res = await get(`${baseUrl}/sdk/index.js`)
 		expect(res.status).toBe(200)
