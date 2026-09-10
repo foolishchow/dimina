@@ -1,0 +1,475 @@
+import type { JSCore } from './jscore.js'
+import type { MiniApp } from '../pages/miniApp/miniApp.js'
+import type { BridgeMessage, BridgeOptions } from '../types.js'
+import { WebView } from '../pages/webview/webview.js'
+import { uuid } from '../utils/util.js'
+
+const RESOURCE_READY_TIMEOUT_MS = 15000
+
+/**
+ * 拆掉页面的两种原因。微信里 unloadPage 只有路由事件（reLaunch/redirectTo/navigateBack/
+ * switchTab）会触发，退出小程序走的是 onAppEnterBackground，只派发 App.onHide，页面不收
+ * onUnload。三端语义一致，Android 见 core/Bridge.kt 的 PageStateTeardown。
+ */
+export type PageStateTeardown = 'routing' | 'exit'
+
+export interface BridgeStartOptions {
+	visible?: boolean
+}
+
+export class Bridge {
+	id: string
+	opts: BridgeOptions & { jscore: JSCore }
+	webview: WebView | null
+	jscore: JSCore
+	devCommandResultHandler?: (body: Record<string, unknown>) => void
+
+	parent: MiniApp | null
+	destroyed!: boolean
+	serviceResource!: boolean
+	renderResource!: boolean
+	resourceLoadedForwarded!: boolean
+	resourceLoadId!: string | null
+	desiredPageVisible!: boolean | null
+	sentPageVisible!: boolean | null
+	domReadyResourceLoadId!: string | null
+	private startupReadyWaiter: {
+		resourceLoadId: string
+		resolve: () => void
+		reject: (error: Error) => void
+		timer: ReturnType<typeof setTimeout>
+		unsubscribeWorkerFailure: () => void
+	} | null
+	private unsubscribeServiceInvoke: (() => void) | null
+	private unsubscribeServicePublish: (() => void) | null
+
+	constructor(opts: BridgeOptions & { jscore: JSCore }) {
+		this.id = `bridge_${uuid()}`
+		this.opts = opts
+		this.webview = null
+		this.jscore = opts.jscore
+		this.parent = null
+		this.startupReadyWaiter = null
+		this.unsubscribeServiceInvoke = null
+		this.unsubscribeServicePublish = null
+		this.resetStatus()
+	}
+
+	async init(signal?: AbortSignal): Promise<void> {
+		this.webview = await this.createWebview(signal)
+		// 握手完成前被 abort：安静退出，不算错误。jscore 监听器必须在这之后才注册，
+		// 否则被丢弃的 Bridge 会经残留监听器泄漏（worker 在 start() 之前不知道
+		// 这个 bridgeId，延后注册不会丢消息）。
+		if (!this.webview) {
+			return
+		}
+		this.unsubscribeServiceInvoke?.()
+		this.unsubscribeServicePublish?.()
+		this.unsubscribeServiceInvoke = this.jscore.invoke(msg => this.messageInvoke('service', msg))
+		this.unsubscribeServicePublish = this.jscore.publish(msg => this.messagePublish(msg))
+		this.webview.invoke(msg => this.messageInvoke('render', msg))
+		this.webview.publish(msg => this.messagePublish(msg))
+	}
+
+	/**
+	 * dev-only（A3 HMR）：宿主页向渲染层转发 dev 指令（如 hmr/enableDevHmr）。
+	 * 仅在 dmcc dev 场景由宿主页 ws 分发调用；不进入原生/生产调用图。
+	 * @param {string} type render message.on 监听的消息类型
+	 * @param {Record<string, unknown>} body 指令体
+	 * @returns {boolean} 是否送达（无 webview 或已销毁时 false）
+	 */
+	sendDevCommand(
+		type: string,
+		body: Record<string, unknown> = {},
+		onResult?: (body: Record<string, unknown>) => void,
+	): boolean {
+		if (onResult) this.devCommandResultHandler = onResult
+		if (this.destroyed || !this.webview) {
+			return false
+		}
+		this.webview.postMessage({ type, body, target: 'render' })
+		return true
+	}
+
+	/**
+	 * 消息中转
+	 * @param {*} msg
+	 */
+	messagePublish(msg: BridgeMessage | string): void {
+		if (this.destroyed) {
+			return
+		}
+		if (typeof msg === 'string') {
+			msg = JSON.parse(msg) as BridgeMessage
+		}
+		const { body, target } = msg
+
+		// 按 id 过滤不同的 bridge 事件
+		if (body.bridgeId && body.bridgeId !== this.id) {
+			return
+		}
+
+		if (target === 'service') {
+			this.jscore.postMessage(msg)
+		}
+		else if (target === 'render') {
+			this.webview!.postMessage(msg)
+		}
+	}
+
+	/**
+	 * 消息处理
+	 * @param {*} source
+	 * @param {*} msg
+	 */
+	messageInvoke(source: 'service' | 'render', msg: BridgeMessage | string): void {
+		if (this.destroyed) {
+			return
+		}
+		// 如果浏览器开启了移动设备模式，被误识别为 android/ios，需要手动转换字符串对象
+		if (typeof msg === 'string') {
+			msg = JSON.parse(msg) as BridgeMessage
+		}
+		const { type, body, target } = msg
+
+		// 按 id 过滤不同的 bridge 事件
+		if (body.bridgeId && body.bridgeId !== this.id) {
+			return
+		}
+		const isResourceLifecycleMessage = type === 'serviceResourceLoaded'
+			|| type === 'renderResourceLoaded'
+			|| type === 'renderResourceLoadFailed'
+		const isDomReadyMessage = target === 'container' && type === 'domReady'
+		const isLoadLifecycleMessage = isResourceLifecycleMessage || isDomReadyMessage
+		if (
+			isLoadLifecycleMessage
+			&& (
+				typeof body.resourceLoadId !== 'string'
+				|| body.resourceLoadId !== this.resourceLoadId
+			)
+		) {
+			return
+		}
+		if (!isResourceLifecycleMessage && body.resourceLoadId && body.resourceLoadId !== this.resourceLoadId) {
+			return
+		}
+
+		console.log(`[container] receive msg from ${source}: `, msg)
+
+		const transMsg: BridgeMessage = {
+			type,
+			body: {
+				bridgeId: this.id,
+				pagePath: this.opts.pagePath,
+				scene: this.opts.scene,
+				query: this.opts.query,
+				...body,
+			},
+		}
+
+		if (target === 'service') {
+			if (type === 'serviceResourceLoaded') {
+				this.serviceResource = true
+				// service 侧 runtime 处理完第一次 loadResource 即完成 App 实例
+				// 构造，此后 app 级 appShow/appHide 才真正有意义——通知 jscore
+				// 补发累积期间的期望可见性（幂等，仅首次真正生效）。
+				this.jscore.notifyServiceReady()
+				if (this.isResourceLoaded() && !this.resourceLoadedForwarded) {
+					this.resourceLoadedForwarded = true
+					transMsg.type = 'resourceLoaded'
+				}
+				else {
+					return
+				}
+			}
+			else if (type === 'renderResourceLoaded') {
+				this.renderResource = true
+				if (this.isResourceLoaded() && !this.resourceLoadedForwarded) {
+					this.resourceLoadedForwarded = true
+					transMsg.type = 'resourceLoaded'
+				}
+				else {
+					return
+				}
+			}
+			else if (type === 'renderResourceLoadFailed') {
+				this.renderResource = false
+				this.resourceLoadedForwarded = false
+				transMsg.type = 'resourceLoadFailed'
+			}
+			this.jscore.postMessage(transMsg)
+			if (transMsg.type === 'resourceLoaded') {
+				this.#flushPageVisibility()
+				this.#resolveStartupReady()
+			}
+			else if (transMsg.type === 'resourceLoadFailed') {
+				const errors = Array.isArray(body.errors) ? body.errors.map(String).join('; ') : ''
+				this.#rejectStartupReady(new Error(errors || `render resource load failed: ${this.opts.pagePath}`))
+			}
+		}
+		else if (target === 'container') {
+			if (type === 'hmr:result') {
+				this.devCommandResultHandler?.(body)
+			}
+			else if (type === 'invokeAPI') {
+				const { name, params } = body as { name: string, params?: Record<string, unknown> }
+				// parent 是 miniApp 对象；带上调用方 bridge，让 hideHomeButton 这类
+				// 作用于"调用页自身"的 API 能定位到正确的页面
+				this.parent!.invokeApi(name, params, this)
+			}
+			else if (type === 'domReady') {
+				this.domReadyResourceLoadId = body.resourceLoadId as string
+				this.#resolveStartupReady()
+			}
+		}
+	}
+
+	/**
+	 * 启动资源加载
+	 */
+	start(options: BridgeStartOptions = {}): void {
+		this.#rejectStartupReady(new Error('startup was superseded'))
+		this.serviceResource = false
+		this.renderResource = false
+		this.resourceLoadedForwarded = false
+		this.resourceLoadId = uuid()
+		this.domReadyResourceLoadId = null
+		this.sentPageVisible = null
+		if (Object.prototype.hasOwnProperty.call(options, 'visible')) {
+			this.desiredPageVisible = options.visible ?? null
+		}
+		else if (this.desiredPageVisible === null) {
+			this.desiredPageVisible = true
+		}
+
+		// 通知渲染线程加载资源
+		this.webview!.postMessage({
+			type: 'loadResource',
+			body: {
+				bridgeId: this.id,
+				resourceLoadId: this.resourceLoadId,
+				appId: this.opts.appId,
+				runtimeType: this.opts.runtimeType,
+				pagePath: this.opts.pagePath,
+				root: this.opts.root,
+				baseUrl: this.parent?.getResourceBaseUrl?.() ?? '/',
+			},
+		})
+
+		// 通知逻辑线程加载资源
+		this.jscore.postMessage({
+			type: 'loadResource',
+			body: {
+				bridgeId: this.id,
+				resourceLoadId: this.resourceLoadId,
+				appId: this.opts.appId,
+				runtimeType: this.opts.runtimeType,
+				pagePath: this.opts.pagePath,
+				scene: this.opts.scene,
+				query: this.opts.query,
+				referrerInfo: this.opts.referrerInfo,
+				root: this.opts.root,
+				baseUrl: this.parent?.getResourceBaseUrl?.() ?? '/',
+				hostEnv: this.parent!.getHostEnvSnapshot(),
+			},
+		})
+
+		if (this.opts.isRoot) {
+			this.jscore.postMessage({
+				type: 'onUpdateStatusChange',
+				body: {
+					bridgeId: this.id,
+					event: 'noupdate',
+				},
+			})
+		}
+	}
+
+	/**
+	 * 启动事务门：service、render 资源与首屏 DOM 必须都属于本次 resourceLoadId。
+	 * Worker 失败、渲染资源失败、销毁或超时都会 reject，启动遮罩不能提前消失，
+	 * 也不能永久挂住。
+	 */
+	startAndWait(options: BridgeStartOptions = {}): Promise<void> {
+		this.start(options)
+		if (this.isStartupReady()) {
+			return Promise.resolve()
+		}
+		const expectedResourceLoadId = this.resourceLoadId
+		if (!expectedResourceLoadId) {
+			return Promise.reject(new Error('resource load did not start'))
+		}
+		return new Promise((resolve, reject) => {
+			const unsubscribeWorkerFailure = this.jscore.onWorkerFailure((reason) => {
+				const detail = reason instanceof Error ? reason.message : 'worker failed while loading resources'
+				this.#rejectStartupReady(new Error(detail))
+			})
+			const timer = setTimeout(() => {
+				this.#rejectStartupReady(new Error(`startup ready timed out: ${this.opts.pagePath}`))
+			}, RESOURCE_READY_TIMEOUT_MS)
+			this.startupReadyWaiter = {
+				resourceLoadId: expectedResourceLoadId,
+				resolve,
+				reject,
+				timer,
+				unsubscribeWorkerFailure,
+			}
+			// 保护测试替身或宿主桥接同步回包的非标准情形。
+			this.#resolveStartupReady()
+		})
+	}
+
+	#resolveStartupReady(): void {
+		const waiter = this.startupReadyWaiter
+		if (
+			!waiter
+			|| waiter.resourceLoadId !== this.resourceLoadId
+			|| !this.isStartupReady()
+		) {
+			return
+		}
+		this.startupReadyWaiter = null
+		clearTimeout(waiter.timer)
+		waiter.unsubscribeWorkerFailure()
+		waiter.resolve()
+	}
+
+	#rejectStartupReady(error: Error): void {
+		const waiter = this.startupReadyWaiter
+		if (!waiter) {
+			return
+		}
+		this.startupReadyWaiter = null
+		clearTimeout(waiter.timer)
+		waiter.unsubscribeWorkerFailure()
+		waiter.reject(error)
+	}
+
+	resetStatus(): void {
+		this.#rejectStartupReady(new Error('startup state was reset'))
+		this.destroyed = false
+		this.serviceResource = false
+		this.renderResource = false
+		this.resourceLoadedForwarded = false
+		this.resourceLoadId = null
+		this.domReadyResourceLoadId = null
+		this.desiredPageVisible = null
+		this.sentPageVisible = null
+	}
+
+	/**
+	 * 被 abort 时 resolve(null) 而非 reject，调用方据此静默放弃；挂载后才 abort 的
+	 * 会摘除已插入的 el，不留孤儿 iframe。非 abort 的真实初始化失败照常 reject。
+	 */
+	createWebview(signal?: AbortSignal): Promise<WebView | null> {
+		if (signal?.aborted) {
+			return Promise.resolve(null)
+		}
+		return new Promise((resolve, reject) => {
+			const webview = new WebView({
+				configInfo: this.opts.configInfo,
+				isRoot: this.opts.isRoot,
+				pageFrameUrl: this.parent?.getPageFrameUrl?.(),
+				resourceBaseUrl: this.parent?.getResourceBaseUrl?.(),
+				// 返回首页按钮显隐的权威判据在 miniApp（它掌握 entryPagePath / tabBar）
+				showHomeButton: this.parent?.shouldShowHomeButton?.({
+					pagePath: this.opts.pagePath,
+					configInfo: this.opts.configInfo,
+					isRoot: this.opts.isRoot,
+				}) ?? false,
+			})
+
+			webview.parent = this
+			if (!this.opts.isRoot) {
+				webview.el.classList.add('dimina-native-view--before-enter')
+			}
+			this.parent!.webviewsContainer!.appendChild(webview.el)
+			webview.init(() => {
+				resolve(webview)
+			}, signal).catch((error: unknown) => {
+				webview.el.remove()
+				// 按 name 而不是 instanceof DOMException 判定：signal.reason 来自
+				// AbortController 所在 realm，跨 realm 时 instanceof 会失效。
+				if ((error as { name?: string } | null)?.name === 'AbortError') {
+					resolve(null)
+					return
+				}
+				reject(error)
+			})
+		})
+	}
+
+	/**
+	 * 双线程资源是否已经初始化完成
+	 */
+	isResourceLoaded(): boolean {
+		return this.serviceResource && this.renderResource
+	}
+
+	isStartupReady(): boolean {
+		return this.isResourceLoaded()
+			&& this.resourceLoadId !== null
+			&& this.domReadyResourceLoadId === this.resourceLoadId
+	}
+
+	pageShow(): void {
+		this.desiredPageVisible = true
+		this.#flushPageVisibility()
+	}
+
+	pageHide(): void {
+		this.desiredPageVisible = false
+		this.#flushPageVisibility()
+	}
+
+	#flushPageVisibility(): void {
+		if (
+			!this.isResourceLoaded()
+			|| this.desiredPageVisible === null
+			|| this.sentPageVisible === this.desiredPageVisible
+		) {
+			return
+		}
+		if (!this.desiredPageVisible && this.sentPageVisible === null) {
+			this.sentPageVisible = false
+			return
+		}
+
+		this.jscore.postMessage({
+			type: this.desiredPageVisible ? 'pageShow' : 'pageHide',
+			body: {
+				bridgeId: this.id,
+			},
+		})
+		this.sentPageVisible = this.desiredPageVisible
+	}
+
+	/**
+	 * @param reason 默认按路由处理：直接销毁一个 Bridge 的调用点全都是路由卸载页面。
+	 * 退出小程序或整体换 runtime 由关闭方显式传 'exit'，那时只静默回收资源。
+	 */
+	destroy(reason: PageStateTeardown = 'routing'): void {
+		const wasResourceLoaded = this.isResourceLoaded()
+		this.#rejectStartupReady(new Error('bridge was destroyed before startup became ready'))
+		this.destroyed = true
+		this.serviceResource = false
+		this.renderResource = false
+		this.resourceLoadedForwarded = false
+		this.resourceLoadId = null
+		this.domReadyResourceLoadId = null
+		this.desiredPageVisible = null
+		this.sentPageVisible = null
+		this.unsubscribeServiceInvoke?.()
+		this.unsubscribeServicePublish?.()
+		this.unsubscribeServiceInvoke = null
+		this.unsubscribeServicePublish = null
+		if (wasResourceLoaded && reason === 'routing') {
+			this.jscore.postMessage({
+				type: 'pageUnload',
+				body: {
+					bridgeId: this.id,
+				},
+			})
+		}
+	}
+}

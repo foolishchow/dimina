@@ -1,0 +1,153 @@
+# @dimina/web-container-sdk
+
+Web 端小程序容器运行时 SDK：管理小程序的启动、导航栈与生命周期。
+
+- 核心不包含应用列表、手机壳等展示 UI，这些内容由宿主提供。SDK 另带可选的基础状态栏 `createDefaultShell()`。
+- 分层对齐 Android / iOS / Harmony 三端的「管理器 + App 实例」模型。
+- `fe/packages/container` demo 是参考消费者实现。
+
+## 快速开始
+
+```bash
+npm install @dimina/web-container-sdk
+```
+
+```js
+import { createContainer } from '@dimina/web-container-sdk'
+import '@dimina/web-container-sdk/style.css' // 容器视图结构样式（导航栏/页面栈/动画），必须显式引入
+
+const container = createContainer({
+	mount: document.getElementById('root'), // 必填：容器根元素
+})
+
+await container.openApp({ appId: 'wx92269e3b2f304afc', path: 'example/index' })
+// path 可省略：普通小程序取 app-config 首页，小游戏取 game 入口
+await container.openApp({ appId: 'wx-game-app-id' })
+```
+
+- 包以预构建 `dist/`（ESM）分发；`CreateContainerOptions` / `ContainerInstance` / `ShellAdapter` 等契约类型随包导出，TS 宿主可直接 `import type`。
+- `shell`、`getAppInfo` 和 `setRootView` 都是可选项。不传 `shell` 时状态栏几何使用全 0 矩形；不传 `getAppInfo` 时不发起元信息请求。
+
+`openApp()` 能真正打开页面，还需要两份资源就位：小程序编译产物（下一节）和渲染层宿主页 `pageFrame.html`（再下一节）。
+
+## 小程序资源约定
+
+SDK 本身不产出、也不内置任何小程序，`appId`/`path` 只是 URL 拼接参数。`openApp()` 之前须把小程序编译产物按固定目录结构放到 `resourceBaseUrl` 指向的位置：
+
+```
+resourceBaseUrl/
+└── {appId}/
+    └── main/                   # 主包，目录名固定叫 main
+        ├── app-config.json     # 必需：全局配置（app.pages 页面列表 / window 样式 / modules 等）
+        ├── app.css             # 全局样式
+        ├── logic.js            # 逻辑层 bundle，加载进 Worker 运行
+        ├── pages_index.js      # 每个页面一份 JS/CSS，pagePath 里的 "/" 替换成 "_"
+        └── pages_index.css     # 例如 pagePath "pages/index" -> "pages_index.js/.css"
+```
+
+加载规则：
+
+- `openApp({appId, path})` 请求 `${resourceBaseUrl}${appId}/main/app-config.json`，`path` 必须是其 `app.pages` 数组里的一项。请求 404 / 网络失败 / JSON 非法不会静默空白，走 `onAppLaunchError` 通知宿主。
+- `path` 省略时读取 `app.entryPagePath`；`app.runtimeType === 'game'` 时固定进入小游戏 `game` 入口，只加载 `logic.js`，不请求页面视图或样式文件。
+- `pageFrameUrl`（缺省 `resourceBaseUrl/pageFrame.html`）是另一份独立资源，不在 `{appId}/` 目录下。
+- `getAppInfo(appId)` 返回的 `{name, logo}` 仅用于展示（如启动屏文案），与 `app-config.json` 加载互不依赖。
+
+真实例子见 `fe/packages/container/public/wx6d707864656d6f01/`（单页面）；带分包的见 `wxbaf4b47de04f1d8a/`（`main/` 之外还有平级的 `sub_xxx/` 分包目录，各自一份 `logic.js`）。
+
+产物不绑定任何编译器，目录结构符合约定即可。本仓库的产物由内置编译器生成：`examples/miniprogram/{projectName}/` 是小程序源码（appId 取 `project.config.json` 的 `appid` 字段），在 `fe/`（pnpm workspace 根）跑 `pnpm compile` 编译到 `fe/packages/container/public/{appId}/`，demo 再把 `public/` 当静态资源托管、原样作为 `resourceBaseUrl`。
+
+## 页面渲染帧宿主页面
+
+`resourceBaseUrl` 目录下需提供一个 `pageFrame.html`：
+
+- 脚本入口 `import` 本包的 `@dimina/web-container-sdk/pageFrame` 与 `@dimina/web-container-sdk/pageFrame.css`。
+- 参考实现见 `fe/packages/container/src/pageFrameEntry.js` + 同目录 `pageFrame.html`。
+- 该子路径入口仅提供 ESM，只会以 `<script type="module">` 形式在 iframe 里加载。
+
+## 配置项（CreateContainerOptions）
+
+| 字段 | 说明 |
+|---|---|
+| `mount` | 必填，容器根元素 |
+| `shell.getStatusBarRect` | 宿主提供状态栏几何（`{top,left,width,height,...}`），用于自定义导航栏 / 胶囊按钮布局对齐 |
+| `shell.updateStatusBarColor` | 状态栏前景色（黑/白）变化通知，供宿主壳联动切换深浅色 |
+| `resourceBaseUrl` | 小程序资源请求基路径，缺省 `/`。经真实 `URL` 解析归一化为绝对 URL（相对路径按 `window.location.origin` 解析），畸形输入同步抛错。宿主部署在非根路径时必须显式传入 |
+| `pageFrameUrl` | 渲染层 iframe 的 URL，缺省基于归一化后的 `resourceBaseUrl` 解析出 `pageFrame.html`；同样经 `URL` 解析，畸形输入同步抛错 |
+| `virtualFilePrefix` | 虚拟文件协议前缀，缺省 `difile://`。必须是以 `://` 结尾的自定义 URI scheme，不能使用系统或 SDK 保留 scheme；按容器实例隔离，并在 service Worker 启动前同步传入逻辑层 |
+| `allowedOrigins` | `resourceBaseUrl`/`pageFrameUrl` 最终解析出的 origin 白名单（如 `[location.origin]`）。不传不限制来源；传了则两者（含走缺省值解析出的 origin）都必须精确命中，否则 `createContainer()` 同步抛错 |
+| `apiNamespaces` | 额外 API 命名空间（如 `['qd']`），每个小程序 `getApiNamespaces()` 都会返回它 |
+| `urlSync` | 地址栏路由同步。缺省使用内置 `QueryRouter`；也可关闭或传入自定义适配器，细节见下文 |
+| `instanceKey` | 多容器共用内置地址栏路由时的实例命名空间，细节见下文 |
+| `storageSync` | 小程序 Storage 的持久化适配器。缺省使用 `window.localStorage`，细节见下文 |
+| `getAppInfo(appId)` | 小程序元信息提供者，可同步或异步返回 `{name?, logo?} \| null \| undefined`，缺省返回 `{}` |
+| `onAppLaunchError(error, {appId})` | 小程序启动失败（配置不可达/为空/非法等）通知。`openApp` 不因此 reject（与 Native 端「打开成功但内容加载失败走回调」对称）；容器销毁打断不触发 |
+| `apis` | 启动阶段注册的容器级 API（`{name: handler}`），等价于拿到容器实例后立刻逐个调用 `registerApi`，但保证严格早于任何 `openApp()`（见下方「registerApi 边界」） |
+| `extModules` | 启动阶段注册的第三方扩展模块（`{name: handler}`），等价于立刻逐个调用 `registerExtModule` |
+
+### 地址栏同步
+
+`urlSync` 由 `application.syncUrl()` 根据当前展示栈的栈顶实例统一回写。打开、切到前台、关闭后露出下一个实例或清空栈时都会同步；小程序内部导航不各自改写地址栏。
+
+- 缺省值 `true` 使用内置 `QueryRouter`，通过 `history.replaceState` 维护 `?appId=&entry=&page=`；没有打开的小程序时清除这些参数。
+- `false` 关闭地址栏同步。
+- 自定义适配器的结构为 `{ syncStack(appId, stack), clear(), buildShareUrl?(appId, stack) }`。传入后，SDK 不再直接操作 `history`。`buildShareUrl` 未实现时，小程序菜单隐藏“复制链接”。
+
+多个容器同时使用内置 `QueryRouter` 时，要为每个容器设置不同的 `instanceKey`。路由参数会按该值增加命名空间，例如 `appId__{instanceKey}`，每个容器的 `clear()` 也只删除自己的参数。不设置 `instanceKey` 时保留未命名空间化的原有行为。`instanceKey` 不影响自定义 `urlSync` 适配器。
+
+### Storage 持久化
+
+`storageSync` 控制 `wx.setStorage`、`getStorage`、`removeStorage`、`clearStorage` 和 `getStorageInfo` 的持久化位置：
+
+- 缺省值 `true` 使用 `window.localStorage`。v2 key 通过 appId 长度前缀隔离小程序。
+- `false` 关闭持久化，五个方法都会进入 `fail`，且不会读写存储。
+- 传入 `{ getItem, setItem, removeItem, length, key }` 时，由自定义适配器接管。
+
+可唯一识别的旧格式 `` `${appId}_${key}` `` 会在精确读取时迁移。含下划线且无法判断归属的旧 key 不会被猜测读取，`clearStorage` 也不会按有歧义的旧前缀跨应用删除。相同 appId 的多个容器默认共享一份逻辑存储；需要按容器隔离时，应在自定义适配器中加入实例命名空间。
+
+```js
+const container = createContainer({
+	mount: document.getElementById('root'),
+	shell: {
+		getStatusBarRect: () => hostShell.getStatusBarRect(),
+		updateStatusBarColor: color => hostShell.setStatusBarColor(color),
+	},
+	resourceBaseUrl: '/static/miniapp/',
+	apiNamespaces: ['qd'],
+	getAppInfo: appId => hostApi.fetchAppInfo(appId),
+})
+```
+
+## 容器 API（ContainerInstance）
+
+| 成员 | 说明 |
+|---|---|
+| `application` | 导航栈应用实例（挂载在 `mount` 下） |
+| `openApp({appId, path?, scene?, destroy?, restoreStack?})` | 打开/前置小程序或小游戏；同 appId 二次打开复用缓存实例；`destroy: true` 先销毁其他 appId 的实例；resolve 为打开的 miniApp 实例。`path` 省略时优先取 `restoreStack[0]`，否则读取 `app-config.json` 的 `entryPagePath`；小游戏使用 `game` 入口 |
+| `closeApp(miniApp?)` | 关闭（不销毁）当前/指定小程序 |
+| `registerExtModule(name, handler)` | 注册第三方扩展 bridge 模块 |
+| `registerApi(name, handler)` | 容器级注册/覆盖 API（小程序侧经 `wx.xxx` / 命名空间调用），对已打开和之后打开的小程序都生效；`this` 为触发调用的 miniApp 实例 |
+| `setRootView(view)` | 可选注入根视图（宿主自定义首页，如应用列表页） |
+
+补充语义：
+
+- 同一容器内连续 `openApp()` 串行排队：前一次完整呈现（含入场动画）后才处理下一次，即使不 `await` 也不会互相打断。
+- miniApp 实例另支持实例级 `registerApi(name, handler)`（后写覆盖容器级同名注册）与 `getApiNamespaces()`。
+
+### registerApi 边界
+
+- 容器级注册优先于容器内置实现（可覆盖 `scanCode` 这类容器承接的 API）；已在 `@dimina/service` 逻辑层内置实现的 API（调用不出 worker）无法从容器侧覆盖。
+- 在首个 `openApp()` 之前完成的注册，名字在逻辑层 `Object.keys(wx)` 中可枚举（供 Taro 等按名建表的框架识别）；之后补注册的名字仍可调用，但不保证可枚举。`createContainer({apis, extModules})` 即保证注册早于任何 `openApp()`。
+
+## 默认状态栏壳（可选）
+
+不想自己实现 shell 适配器时，用 `createDefaultShell()`：渲染一条极简无品牌状态栏（默认 44px 高、显示 HH:MM 时间、随页面 `navigationBarTextStyle` 切换深浅色），并实现好 `getStatusBarRect` / `updateStatusBarColor`：
+
+```js
+import { createContainer, createDefaultShell } from '@dimina/web-container-sdk'
+
+const shell = createDefaultShell({ mount: document.getElementById('shell-host') })
+const container = createContainer({ mount: document.getElementById('root'), shell })
+// 不再需要时：shell.destroy()
+```
+
+选项：`mount`（提供则自动 prepend，不传则自行插入 `shell.el`）、`height`（默认 44）、`showTime`（默认 true）。返回的方法可安全解构成裸函数引用传递。
