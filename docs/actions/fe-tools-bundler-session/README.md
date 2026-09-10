@@ -1,7 +1,7 @@
 # FE Tools Bundler Session
 
 - Action: `fe-tools-bundler-session`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
 - 关系：独立架构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。与 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 无依赖（已 complete）。
@@ -34,7 +34,7 @@
 
 `@dimina/bundler` 已有一次编译、watch、`dimina-cli dev` 与 A1 lifecycle，但缺少共享会话：CLI/dev 手拼；`createBuildWatcher` 与会话无关。小程序工程装载（`app.json` 等）仍在 `storeInfo` / `runBuild` 内——本门**不重做**，只委托。
 
-## Goal（讨论中，未冻实施）
+## Goal（2026-09-10 评审冻结，可实施）
 
 1. `resolveBundlerConfig` → `ResolvedBundlerInput`；
 2. `createBundler(resolved)` → `.build` / `.watch` / `.dev`，委托今日 `runBuild` / `createBuildWatcher` / preview adapter；
@@ -80,7 +80,7 @@ Plugin：**OPEN / 非本门主交付**。
 
 ## Readiness
 
-**`draft`**。逐项讨论未完成；曾误标 ready 已纠正。实施前须重新评审。
+**`ready`**（2026-09-10）。经 14 轮审查（6 维度族：边界/可行性/适配性/功能完整性/文件规划/验收闭环，方法见 [Action-Review-Playbook](../../Action-Review-Playbook.md)）后升级：需求（R-BC1..7 + Non-reqs + 已知限制）、设计（探针 + 零循环拓扑 + §4.5 文件清单）、计划（O1–O3 门映射）、验收（A-BS01..08 客观判据）、验证（P-001..007 可执行）俱足。历史注记：早期曾误标 ready 已纠正；本次为评审通过后的正式升级。实施仍需明确授权（`in_progress`）。
 
 ## Closure conditions
 
