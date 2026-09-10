@@ -9,6 +9,10 @@
  *   R1 one session → at most one active watch/dev loop (`activeLoop`)
  *   R2 .build() repeatable without watch; concurrent build×build unguarded
  *      (semantics equal today's concurrent default build calls)
+ *   R3 a watch handle OCCUPIES activeLoop from CREATION (before start());
+ *      release via watcher.stop() (works even if never started) or
+ *      devHandle.close(); a FAILED watcher.start() does NOT auto-release —
+ *      retry start() or stop() to release
  *   R4 .build() while watch/dev active → throw
  *   R7 (O3) dev startup-failure rollback
  *
@@ -21,6 +25,7 @@
  */
 
 import build from '../index.js'
+import { createBuildWatcher } from '../common/watch-runner.js'
 import { createLifecycle } from '../common/lifecycle.js'
 
 /** Compile profile keys (config C1) — never treat as a free-form bag */
@@ -87,6 +92,73 @@ export function createBundler(resolved) {
 			}
 			return build(state.targetPath, state.workPath, state.useAppIdDir, options)
 		},
+
+		/**
+		 * Watch loop sharing this session's lifecycle (O2). Delegates to
+		 * createBuildWatcher with lifecycle injected via options.lifecycle
+		 * (NOT a top-level param — watch-runner reads it from options, matching
+		 * bin/dev.js wiring). The handle occupies activeLoop from CREATION (R3);
+		 * stop() releases it (finally), even if start() was never called.
+		 *
+		 * @param {object} [watchOpts] whitelist: autoListen / beforeBuild /
+		 *   onRebuild / onError / options (C1 + pipeline keys); unknown keys
+		 *   throw; watchOpts.lifecycle is ignored (session forces its own).
+		 */
+		watch(watchOpts = {}) {
+			assertCanStartLoop(state, 'watch')
+			const {
+				autoListen,
+				beforeBuild,
+				onRebuild,
+				onError,
+				options: watchBuildOptions,
+				lifecycle: _ignoredLifecycle,
+				...rest
+			} = watchOpts
+			const unknownKeys = Object.keys(rest)
+			if (unknownKeys.length > 0) {
+				throw new TypeError(`watch opts: unknown keys ${unknownKeys.join(', ')}`)
+			}
+
+			const { compileOverrides, pipelineExtras } = splitBuildOverrides(watchBuildOptions || {})
+			const baseOptions = {
+				...state.compile,
+				...compileOverrides,
+				...pipelineExtras,
+				fileTypes: pipelineExtras.fileTypes ?? state.fileTypes,
+				// FORCED last (H2): watch-runner takes lifecycle via options.lifecycle,
+				// NOT as a top-level param — so it must live inside `options`.
+				lifecycle: state.lifecycle,
+			}
+
+			const inner = createBuildWatcher({
+				targetPath: state.targetPath,
+				workPath: state.workPath,
+				useAppIdDir: state.useAppIdDir,
+				autoListen,
+				beforeBuild,
+				onRebuild,
+				onError,
+				options: baseOptions,
+			})
+
+			state.activeLoop = 'watch'
+
+			// waitForIdle is @internal (test-only via direct createBuildWatcher) —
+			// deliberately NOT forwarded on this handle.
+			return {
+				start: (...args) => inner.start(...args),
+				listen: (...args) => inner.listen(...args),
+			async stop(...args) {
+					try {
+						await inner.stop(...args)
+					}
+					finally {
+						state.activeLoop = null
+					}
+				},
+			}
+		},
 	}
 
 	return session
@@ -109,6 +181,13 @@ function assertResolved(resolved) {
 function assertNoActiveLoop(state, method) {
 	if (state.activeLoop) {
 		throw new Error(`R4: session.${method}() forbidden while activeLoop=${state.activeLoop}`)
+	}
+}
+
+/** R3: a second .watch()/.dev() throws until the loop is released. */
+function assertCanStartLoop(state, kind) {
+	if (state.activeLoop) {
+		throw new Error(`R3: cannot start ${kind}; activeLoop=${state.activeLoop}`)
 	}
 }
 

@@ -4,7 +4,6 @@ import path from 'node:path'
 import process from 'node:process'
 import { program } from 'commander'
 import pack from '../../package.json' with { type: 'json' }
-import { createBuildWatcher } from '../common/watch-runner.js'
 import { createBundler } from '../session/index.js'
 import { resolveBundlerConfig } from '../session/resolve.js'
 import { registerDevCommand } from './dev.js'
@@ -48,12 +47,8 @@ program
 			return
 		}
 
-		// -w 临时保留旧接线（watch 循环在 O2 迁至 session.watch）
-		const watcher = createBuildWatcher({
-			targetPath: resolved.targetPath,
-			workPath: resolved.workPath,
-			useAppIdDir: resolved.useAppIdDir,
-			options: { ...resolved.compile },
+		// -w ⊆ session（R-BC2）：经 session.watch 编排，bin 不再直接引用底层 watcher
+		const watcher = createBundler(resolved).watch({
 			onRebuild: ({ event, filePath, count }) => {
 				const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
 				console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)

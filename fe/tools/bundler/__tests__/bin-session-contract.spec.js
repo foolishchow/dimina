@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -79,4 +79,71 @@ describe('dimina-cli bin contract (session wiring)', () => {
 		expect(result.status).toBe(1)
 		expect(result.stderr).toContain(`${missing} 编译出错`)
 	})
+
+	it('build -w runs via session.watch: initial build, rebuild on change, SIGINT terminates', async () => {
+		const child = spawn(process.execPath, [
+			cliPath,
+			'build',
+			'--work-path', tempDir,
+			'--target-path', outputDir,
+			'--no-app-id-dir',
+			'--watch',
+		], {
+			stdio: ['ignore', 'pipe', 'pipe'],
+			env: {
+				...process.env,
+				NO_COLOR: '1',
+			},
+		})
+
+		let stdout = ''
+		child.stdout.on('data', chunk => (stdout += chunk))
+		child.stderr.on('data', chunk => (stdout += chunk))
+
+		try {
+			// 初始编译完成：产物出现
+			await waitUntil(() => fs.existsSync(path.join(outputDir, 'main', 'app-config.json')), 20_000)
+
+			// 触发 rebuild：追加页面模板改动
+			fs.appendFileSync(path.join(tempDir, `${pagePath}.wxml`), '<view>changed</view>\n')
+			await waitUntil(() => stdout.includes('重新编译'), 20_000)
+
+			// SIGINT：与今日一致（bin 无 signal handler，默认终止）
+			child.kill('SIGINT')
+			await exitWithin(child, 5_000)
+		}
+		finally {
+			if (child.exitCode === null) {
+				child.kill('SIGKILL')
+			}
+		}
+	})
 })
+
+function waitUntil(predicate, timeoutMs, intervalMs = 100) {
+	const deadline = Date.now() + timeoutMs
+	return new Promise((resolve, reject) => {
+		const tick = () => {
+			if (predicate()) {
+				resolve()
+				return
+			}
+			if (Date.now() > deadline) {
+				reject(new Error(`waitUntil timed out after ${timeoutMs}ms`))
+				return
+			}
+			setTimeout(tick, intervalMs)
+		}
+		tick()
+	})
+}
+
+function exitWithin(child, timeoutMs) {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(`process did not exit within ${timeoutMs}ms`)), timeoutMs)
+		child.once('exit', () => {
+			clearTimeout(timer)
+			resolve()
+		})
+	})
+}

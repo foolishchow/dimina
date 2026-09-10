@@ -120,6 +120,62 @@ describe('bundler session (O1 build)', () => {
 		})
 	})
 
+	describe('watch (O2)', () => {
+		it('exposes .watch returning a handle with start/listen/stop', () => {
+			const bundler = createBundler(makeResolved())
+			const watcher = bundler.watch({ autoListen: false })
+			expect(typeof watcher.start).toBe('function')
+			expect(typeof watcher.listen).toBe('function')
+			expect(typeof watcher.stop).toBe('function')
+			// R3: 创建即占用；从未 start 过，stop() 也能释放
+			return watcher.stop()
+		})
+
+		it('watch opts: unknown keys throw (whitelist)', () => {
+			const bundler = createBundler(makeResolved())
+			expect(() => bundler.watch({ bogus: 1 })).toThrow(/unknown keys/)
+		})
+
+		it('R3: second .watch() throws until stop() releases', async () => {
+			const bundler = createBundler(makeResolved())
+			const w1 = bundler.watch({ autoListen: false })
+			expect(() => bundler.watch({})).toThrow(/R3/)
+			await w1.stop()
+			const w2 = bundler.watch({ autoListen: false })
+			await w2.stop()
+		})
+
+		it('R4: build() rejects while a watch handle is active', async () => {
+			const bundler = createBundler(makeResolved())
+			const watcher = bundler.watch({ autoListen: false })
+			await expect(bundler.build()).rejects.toThrow(/R4/)
+			await watcher.stop()
+			// 释放后可再次 build
+			await bundler.build()
+		})
+
+		it('watch loop shares the session lifecycle (H2: options.lifecycle)', async () => {
+			const lifecycle = createLifecycle()
+			const events = []
+			lifecycle.on('build:end', () => events.push('build:end'))
+			const bundler = createBundler({ ...makeResolved(), lifecycle })
+			const watcher = bundler.watch({ autoListen: false })
+			await watcher.start()
+			await watcher.stop()
+			expect(events).toEqual(['build:end'])
+		})
+
+		it('start() returns the build result; stop() allows build again', async () => {
+			const bundler = createBundler(makeResolved())
+			const watcher = bundler.watch({ autoListen: false })
+			const result = await watcher.start()
+			expect(result.appId).toBe('bundler-session-app')
+			expect(fs.existsSync(outputDir)).toBe(true)
+			await watcher.stop()
+			await bundler.build()
+		})
+	})
+
 	describe('resolveBundlerConfig', () => {
 		it('resolves paths absolutely and seeds build compile via resolveCompileConfig', () => {
 			const resolved = resolveBundlerConfig({
