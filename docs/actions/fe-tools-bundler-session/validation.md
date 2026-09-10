@@ -1,15 +1,25 @@
 # Validation — fe-tools-bundler-session
 
-Status: `draft` — fill when implementing.
+Status: 实施完成（O1–O3 全部交付，2026-09-10）。
 
-Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`；不得填 planned 命令或推断成功（L-N1）。实施完成后另设消融段记录三处消融（见 README Closure ②，含 Experience-Review §6 四要素）。
+Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`；不得填 planned 命令或推断成功（L-N1）。
+
+## 消融记录（2026-09-10，实施完成；Experience-Review §6 四要素）
+
+| # | 目标用例 | 消融内容 | 预期失败点 | 实际失败点 | 恢复后验证 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `watch-api-bin-contract.spec`「bins route through session」 | 临时用 O1 前旧版 `bin/index.js`（直连 `build` + `createBuildWatcher`） | 测例因 bin 含 `createBuildWatcher` / 不含 `createBundler` 失败 | **1 failed**（正是该测例；`grep` 语义断言捕捉） | 恢复 HEAD 版，`watch-api-bin-contract` + `platforms` 8 测试全过 |
+| 2 | `bundler-session.spec`「watch loop shares the session lifecycle (H2)」 | 临时删除 `session.watch` baseOptions 的 `lifecycle` 行 | 测例 events 应为 `['build:end']` 而为空 | **1 failed**（正是 H2 测例；其余 24 过） | 恢复，25 全过 |
+| 3 | `bundler-session.spec` A-BS08 ×2（R7 回滚） | 临时删除 `dev()` catch 块的回滚清理与 `activeLoop` 清空 | 注入 failing adapter 后 session 卡死（复用 build 应因 R4 失败） | **2 failed**（正是两个 A-BS08 测例；其余 23 过） | 恢复，25 全过 |
+
+## Validation 结果
 
 | ID | Check | Command / method | Result |
 | --- | --- | --- | --- |
-| P-001 | 单元/契约 | `pnpm --filter @dimina/bundler test`（session / bin 相关） | pending |
-| P-002 | CLI build | `node fe/tools/bundler/src/bin/index.js build -c examples/miniprogram/base -s $(mktemp -d) --no-app-id-dir` → exit 0 且产物目录非空；`-w` 冒烟：启动后 SIGINT 进程随之终止（与今日一致——bin 无 signal handler，Ctrl+C 为默认终止；graceful shutdown 非本门交付）（unvite 镜像保证 src≡dist） | pending |
-| P-003 | CLI dev | `node fe/tools/bundler/src/bin/index.js dev -c examples/miniprogram/base -p <空闲端口>` → 从 stdout `[dmcc-dev] preview at ...` 行解析 appId，HTTP GET `http://127.0.0.1:<port>/?appId=<appId>` 返回 200（宿主页）；SIGINT 进程随之终止（与今日一致；graceful shutdown 非本门交付；编程关闭走 `devHandle.close()`） | pending |
-| P-004 | diff 范围 | 对照 technical-design §4.5 目标文件清单：允许新增 6 文件 + 修改 bin×2 / check-package-exports / package.json exports+"./session"；无 `core/*-compiler` / `env.storeInfo` 大改；`src/index.js` 零改动（M-K1/B）。O1 验收含 `pnpm --filter @dimina/bundler build`（postbuild 自动跑 check-package-exports，验证第 5 entry 可 import——test 链不覆盖 exports map，L-L2） | pending |
-| P-005 | 阶段清单 | 对照 [stages.draft.md](./stages.draft.md) 与 `src/index.js` 阶段标题；允许 L-H1/L-H2 已记录的近似描述偏差（`publishToDist` 参数名 `dist`、标题工程名后缀） | pending |
-| P-006 | C1 边界 | 审查 `resolveBundlerConfig` 实现：无 minify/esTarget 默认填充、无 mode/platform 合法性校验；`compile-config.spec.js` 通过 | pending |
-| P-007 | 启动失败回滚 | 注入 failing previewAdapter / 占用端口，验证 `.dev()` 失败后 session 可复用（R7 / A-BS08；activeLoop/资源层面，监听残留为已接受限制） | pending |
+| P-001 | 单元/契约 | `vitest run --no-file-parallelism`（session / bin 相关） | **pass** — 479 tests / 71 suites 全绿（2026-09-10，30a52cd9） |
+| P-002 | CLI build | `node src/bin/index.js build -c examples/miniprogram/base -s <mktemp> --no-app-id-dir`；`-w` SIGINT 冒烟 | **pass** — one-shot exit 0 + 分包产物；`-w` 初始产物 2s + SIGINT 终止（与今日一致；30a52cd9） |
+| P-003 | CLI dev | `node src/bin/index.js dev -c examples/miniprogram/base -p <port>` → 从 stdout `preview at` 解析 appId，HTTP GET 200 | **pass** — preview URL 正确（127.0.0.1:41879）、HTTP 200（宿主页 3457B）、SIGINT 干净退出（30a52cd9） |
+| P-004 | diff 范围 | 对照 technical-design §4.5 目标文件清单 + `pnpm build`（postbuild check-package-exports 验 ./session entry） | **pass** — 新增 6（session×3 + sdk-root + 测试×2）修改 4（bin×2 / check-package-exports / package.json）`src/index.js` 零改动；**check-package-exports 验证 6 entries**（30a52cd9） |
+| P-005 | 阶段清单 | 对照 stages.draft.md 与 src/index.js 阶段标题；允许 L-H1/L-H2 已记录近似偏差 | **pass** — 9 阶段标题逐一命中；`publishToDist` 参数名 / 标题后缀偏差已豁免 |
+| P-006 | C1 边界 | 审查 `resolveBundlerConfig`：无 MODE_PRESETS/DEFAULT_ES_TARGET/合法性 throw（D-R2/C 除外）；`compile-config.spec.js` 通过 | **pass** — resolve 仅层合并 + 委托 `resolveCompileConfig`（dd6668a4；D-R2 seed 经 `input.mode/platform`） |
+| P-007 | 启动失败回滚 | 注入 failing previewAdapter / 占用端口，验证 `.dev()` 失败后 session 可复用（R7 / A-BS08） | **pass** — A-BS08 ×2 测例（createServer/listen 注入失败 → 复用 build 成功）；消融 3 佐证（30a52cd9） |
