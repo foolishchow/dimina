@@ -176,6 +176,79 @@ describe('bundler session (O1 build)', () => {
 		})
 	})
 
+	describe('dev (O3, stub adapter)', () => {
+		function makeStubAdapter() {
+			const calls = []
+			let serverCreated = false
+			const adapter = {
+				calls,
+				setPendingReload() { calls.push('setPendingReload') },
+				async createServer(opts) {
+					serverCreated = true
+					calls.push(`createServer:${opts.appId}`)
+				},
+				async listen(port, host) {
+					calls.push(`listen:${port}:${host}`)
+					return { host, port }
+				},
+				notifyBuildPublished() { calls.push('notifyBuildPublished') },
+				notifyBuildError() { calls.push('notifyBuildError') },
+				async close() { calls.push('close') },
+				get serverCreated() { return serverCreated },
+			}
+			return adapter
+		}
+
+		it('dev opts whitelist: host/port overrides are rejected (M-C2)', async () => {
+			const bundler = createBundler(makeResolved())
+			await expect(bundler.dev({ host: '0.0.0.0' })).rejects.toThrow(/unknown keys/)
+		})
+
+		it('dev() sequences start → createServer → listen → watcher.listen via session.watch', async () => {
+			const adapter = makeStubAdapter()
+			const bundler = createBundler(makeResolved())
+			const handle = await bundler.dev({ previewAdapter: adapter })
+			expect(adapter.calls).toEqual([
+				'createServer:bundler-session-app',
+				'listen:8080:127.0.0.1',
+			])
+			expect(handle.appId).toBe('bundler-session-app')
+			expect(handle.server).toEqual({ host: '127.0.0.1', port: 8080 })
+			await handle.close()
+			expect(adapter.calls).toEqual([
+				'createServer:bundler-session-app',
+				'listen:8080:127.0.0.1',
+				'close',
+			])
+		})
+
+		it('A-BS08/R7: startup failure rolls back and session stays reusable', async () => {
+			const failing = {
+				setPendingReload() {},
+				async createServer() { throw new Error('adapter boom') },
+				async listen() { return { host: '127.0.0.1', port: 9 } },
+				async close() {},
+			}
+			const bundler = createBundler(makeResolved())
+			await expect(bundler.dev({ previewAdapter: failing })).rejects.toThrow(/adapter boom/)
+			// R7: activeLoop 已清，会话可复用（build 成功 + 可再次 dev）
+			await bundler.build()
+			await expect(bundler.dev({ previewAdapter: failing })).rejects.toThrow(/adapter boom/)
+		})
+
+		it('A-BS08: failure in listen also rolls back', async () => {
+			const failing = {
+				setPendingReload() {},
+				async createServer() {},
+				async listen() { throw new Error('port busy') },
+				async close() {},
+			}
+			const bundler = createBundler(makeResolved())
+			await expect(bundler.dev({ previewAdapter: failing })).rejects.toThrow(/port busy/)
+			await bundler.build()
+		})
+	})
+
 	describe('resolveBundlerConfig', () => {
 		it('resolves paths absolutely and seeds build compile via resolveCompileConfig', () => {
 			const resolved = resolveBundlerConfig({

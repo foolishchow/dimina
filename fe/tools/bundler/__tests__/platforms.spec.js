@@ -54,8 +54,13 @@ describe('platform-abstraction bin contract', () => {
 		const binDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/bin')
 		const buildBin = fs.readFileSync(path.join(binDir, 'index.js'), 'utf8')
 		const devBin = fs.readFileSync(path.join(binDir, 'dev.js'), 'utf8')
+		const resolveSrc = fs.readFileSync(
+			path.resolve(binDir, '../session/resolve.js'),
+			'utf8',
+		)
 		expect(buildBin).toMatch(/\.option\(['"]--platform <name>['"]/)
-		expect(devBin).toMatch(/platform:\s*['"]web['"]/)
 		expect(devBin).not.toMatch(/\.option\(['"]--platform/)
+		// D-R2 seed 取代旧 bin 硬编码：dev 强制 platform:'web'（行为等价，见 resolveBundlerConfig）
+		expect(resolveSrc).toMatch(/mode: 'dev', platform: 'web'/)
 	})
 })

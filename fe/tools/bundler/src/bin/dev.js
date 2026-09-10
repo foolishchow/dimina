@@ -2,10 +2,11 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
-import { createLifecycle, LIFECYCLE_EVENTS } from '../common/lifecycle.js'
-import { createDevServer } from '../common/dev-server.js'
-import { synthesizeReloadLevel } from '../common/dev-reload.js'
-import { createBuildWatcher } from '../common/watch-runner.js'
+import { createBundler } from '../session/index.js'
+import { resolveBundlerConfig } from '../session/resolve.js'
+
+// M-F3 兼容：resolveSdkRoot 已迁 common/sdk-root.js；此处 re-export 保持向后兼容
+export { resolveSdkRoot } from '../common/sdk-root.js'
 
 const DEFAULT_PORT = 8080
 
@@ -17,8 +18,10 @@ const EVENT_LABELS = {
 
 /**
  * 注册 `dmcc dev` 子命令（挂载到 program）。
- * 编排：createBuildWatcher(autoListen:false) 初始 build → devServer → attach lifecycle →
- * listen server → watcher.listen()（D1a）。
+ * 编排经 session.dev()：resolve → createBundler → .dev()（session.watch +
+ * preview adapter，D1a；R7 回滚）。argv 解析与日志文案留在 bin（R-BC2）。
+ * SIGINT 行为与今日一致：bin 无 signal handler，Ctrl+C 默认终止
+ * （graceful shutdown 非本门交付；编程关闭走 devHandle.close()）。
  */
 export function registerDevCommand(program) {
 	program
@@ -33,97 +36,47 @@ export function registerDevCommand(program) {
 		.option('--minify', '压缩产物（覆盖 mode=dev 缺省；可用 --no-minify 关闭）')
 		.action(async (options) => {
 			const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
+			// argv 缺省留 bin（M-G1）：dev 缺省 targetPath 用 mkdtempSync（等价今日）
 			const targetPath = options.targetPath
 				? path.resolve(options.targetPath)
 				: fs.mkdtempSync(path.join(os.tmpdir(), 'dmcc-dev-'))
-			const useAppIdDir = options.appIdDir !== false
-			const sourcemap = !!options.sourcemap
-			const minify = typeof options.minify === 'boolean' ? options.minify : undefined
-			const port = options.port ? Number.parseInt(options.port, 10) : DEFAULT_PORT
-			const host = typeof options.host === 'string' && options.host ? options.host : '127.0.0.1'
 
-			const lifecycle = createLifecycle()
-			let buildIdCounter = 0
-			/** @type {ReturnType<typeof createDevServer> | undefined} */
-			let devServer
-
-			const watcher = createBuildWatcher({
-				targetPath,
+			const cli = {
 				workPath,
-				useAppIdDir,
-				autoListen: false,
-				options: {
-					mode: 'dev',
-					platform: 'web',
-					sourcemap,
-					lifecycle,
-					...(minify === undefined ? {} : { minify }),
-				},
-				beforeBuild: ({ event, filePath, count, plan, appId }) => {
-					// F-002：build 前合成 reload 级别并注入 pendingReload（buildId 自增）
-					const payload = synthesizeReloadLevel({
-						event,
-						filePath,
-						count,
-						plan,
-						appId,
-						buildId: ++buildIdCounter,
-					})
-					devServer.setPendingReload(payload)
-				},
-				onRebuild: ({ event, filePath, count }) => {
-					const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
-					console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)
-				},
-				onError: (error) => {
-					// build:error 已由 lifecycle 监听推送；此处仅记录诊断（R-006：服务不退出）
-					console.error(`${workPath} 编译出错: ${error.message}`)
-				},
-			})
+				targetPath,
+				useAppIdDir: options.appIdDir !== false,
+				sourcemap: !!options.sourcemap,
+				...(typeof options.minify === 'boolean' ? { minify: options.minify } : {}),
+				...(options.port ? { port: Number.parseInt(options.port, 10) } : {}),
+				...(typeof options.host === 'string' && options.host ? { host: options.host } : {}),
+			}
 
-			let buildResult
+			const resolved = resolveBundlerConfig({ command: 'dev', cli })
+			let handle
 			try {
-				buildResult = await watcher.start()
+				handle = await createBundler(resolved).dev({
+					onRebuild: ({ event, filePath, count }) => {
+						const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
+						console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)
+					},
+					onError: (error) => {
+						// build:error 已由 lifecycle 监听推送；此处仅记录诊断（R-006：服务不退出）
+						console.error(`${workPath} 编译出错: ${error.message}`)
+					},
+				})
 			}
 			catch (error) {
 				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
 			}
 
-			devServer = createDevServer({
-				serveRoot: targetPath,
-				sdkRoot: resolveSdkRoot(),
-				appId: buildResult.appId,
-				wsPath: '/ws',
-			})
-
-			lifecycle.on(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, () => {
-				devServer.notifyBuildPublished()
-			})
-			lifecycle.on(LIFECYCLE_EVENTS.BUILD_ERROR, (payload) => {
-				devServer.notifyBuildError(payload.error?.message || 'build failed')
-			})
-
-			const { port: actualPort, host: boundHost } = await devServer.listen(port, host)
+			// 文案留 bin：preview URL / LAN 提示 / watching（数据来自 devHandle）
+			const boundHost = handle.server.host
 			const previewHost = boundHost === '0.0.0.0' ? '127.0.0.1' : boundHost
-			console.log(`[dmcc-dev] preview at http://${previewHost}:${actualPort}?appId=${buildResult.appId}`)
+			console.log(`[dmcc-dev] preview at http://${previewHost}:${handle.server.port}?appId=${handle.appId}`)
 			if (boundHost === '0.0.0.0') {
-				console.log(`[dmcc-dev] listening on 0.0.0.0:${actualPort} (LAN: http://<your-lan-ip>:${actualPort}?appId=${buildResult.appId})`)
+				console.log(`[dmcc-dev] listening on 0.0.0.0:${handle.server.port} (LAN: http://<your-lan-ip>:${handle.server.port}?appId=${handle.appId})`)
 			}
 			console.log(`[dmcc-dev] watching ${workPath}`)
-
-			await watcher.listen()
 		})
 	return program
-}
-
-/**
- * 定位 container-sdk 预构建资产（A2.0 随包分发）。
- * 发布形态：compiler/dist/sdk（copy-sdk-assets 复制产物，P-002.5）；
- * 源码形态：显式 TARGET_SDK_DIR 可用。
- */
-export function resolveSdkRoot() {
-	if (process.env.DIMINA_DEV_SDK_DIR) {
-		return path.resolve(process.env.DIMINA_DEV_SDK_DIR)
-	}
-	return path.resolve(path.dirname(new URL('../../package.json', import.meta.url).pathname), 'dist', 'sdk')
 }

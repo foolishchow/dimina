@@ -325,7 +325,10 @@ export function createBundler(resolved) {
 				// L-G2: NO build:warning listener — today's bin/dev.js mounts only the two above;
 				// real dev-server has no notifyBuildWarning method
 
-				await adapter.listen(state.server?.host ?? '127.0.0.1', state.server?.port ?? 8080)
+				const { port, host } = await adapter.listen(
+					state.server?.port ?? 8080,
+					state.server?.host ?? '127.0.0.1',
+				)
 				await watcher.listen()
 			}
 			catch (error) {

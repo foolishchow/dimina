@@ -27,9 +27,13 @@
 import build from '../index.js'
 import { createBuildWatcher } from '../common/watch-runner.js'
 import { createLifecycle } from '../common/lifecycle.js'
+import { createWebPreviewAdapter } from './preview-adapter.js'
 
 /** Compile profile keys (config C1) — never treat as a free-form bag */
 const COMPILE_KEYS = Object.freeze(['mode', 'platform', 'minify', 'sourcemap', 'esTarget'])
+
+/** server on Resolved / session — host/port only (D-R3) */
+const SERVER_KEYS = Object.freeze(['host', 'port'])
 
 /** Pipeline opts allowed beside compile when calling build/watch (not C1) */
 const PIPELINE_OPTION_KEYS = Object.freeze([
@@ -57,6 +61,7 @@ export function createBundler(resolved) {
 		useAppIdDir: resolved.useAppIdDir !== false,
 		compile: pickKeys(resolved.compile, COMPILE_KEYS),
 		fileTypes: resolved.fileTypes,
+		server: resolved.server ? pickKeys(resolved.server, SERVER_KEYS) : undefined,
 		/** Unique per session; A1 bus — hook rail, not the orchestrator itself */
 		lifecycle: resolved.lifecycle ?? createLifecycle(),
 		/** @type {null | 'watch' | 'dev'} */
@@ -157,6 +162,100 @@ export function createBundler(resolved) {
 						state.activeLoop = null
 					}
 				},
+			}
+		},
+
+		/**
+		 * Dev = session.watch(D1a) + preview adapter (O3). MUST go through
+		 * session.watch() — no bypass to createBuildWatcher.
+		 *
+		 * M-C2: server comes ONLY from Resolved.server (D-R3 as unique source);
+		 * there is no host/port override here — CLI --host/-p go through
+		 * resolveBundlerConfig's cli layer, API via api.server.
+		 *
+		 * R7 (accepted limitation): on any startup failure below, stop the
+		 * started watcher, close the adapter, clear activeLoop, rethrow — the
+		 * session stays reusable (activeLoop/resources). The 3 lifecycle
+		 * listeners registered here stay mounted after rollback/close —
+		 * harmless (dev-server close clears clients; broadcast checks
+		 * readyState) but they accumulate across dev cycles.
+		 *
+		 * @param {object} [devOpts] whitelist: previewAdapter / onError /
+		 *   onRebuild; unknown keys throw.
+		 * @returns {Promise<{ appId: string, server: { host: string, port: number }, close(): Promise<void> }>}
+		 */
+		async dev(devOpts = {}) {
+			assertCanStartLoop(state, 'dev')
+			const {
+				previewAdapter,
+				onError,
+				onRebuild,
+				...unknown
+			} = devOpts
+			const unknownKeys = Object.keys(unknown)
+			if (unknownKeys.length > 0) {
+				throw new TypeError(`dev opts: unknown keys ${unknownKeys.join(', ')}`)
+			}
+
+			const adapter = previewAdapter ?? createWebPreviewAdapter()
+
+			const watcher = session.watch({
+				autoListen: false,
+				beforeBuild: (ctx) => adapter.setPendingReload(ctx),
+				onError,
+				onRebuild,
+				options: {
+					fileTypes: state.fileTypes,
+				},
+			})
+
+			// R7: startup-failure rollback — on any failure below, stop the
+			// started watcher, close the adapter, clear activeLoop, rethrow.
+			try {
+				const buildResult = await watcher.start()
+
+				await adapter.createServer({
+					serveRoot: state.targetPath,
+					appId: buildResult.appId,
+				})
+
+				// KNOWN LIMITATION (A1 v1, no off()): these stay mounted after
+				// rollback/close — accumulate, but harmless (see above).
+				state.lifecycle.on('bundle:published', () => adapter.notifyBuildPublished())
+				state.lifecycle.on('build:error', ({ error }) => {
+					adapter.notifyBuildError(error?.message || 'build failed')
+				})
+
+				const { port, host } = await adapter.listen(
+					state.server?.port ?? 8080,
+					state.server?.host ?? '127.0.0.1',
+				)
+				await watcher.listen()
+
+				return {
+					appId: buildResult.appId,
+					server: { host, port },
+					async close() {
+						try {
+							await watcher.stop()
+							await adapter.close()
+						}
+						finally {
+							state.activeLoop = null
+						}
+					},
+				}
+			}
+			catch (error) {
+				try {
+					await watcher.stop()
+					await adapter.close()
+				}
+				catch {
+					// best-effort cleanup; original error wins
+				}
+				state.activeLoop = null
+				throw error
 			}
 		},
 	}
