@@ -1,23 +1,33 @@
 # Watch API（CF-4：watch 从 CLI-only 提升为 API 能力）
 
 - Action: `watch-api`
-- Status: `draft`
-- Updated: 2026-09-08
+- Status: `ready`
+- Updated: 2026-09-10
+- Promoted: 2026-09-10（Readiness Review pass；R1–R4 选 (a)，B 组默认全采纳，C/D 无异议）
 - Status authority: [Action Status](../STATUS.md)
 - 父 Action：[compiler-configuration](../compiler-configuration/README.md)（umbrella，gate CF-4）
-- 前置：无（独立，可与 CF-1 compiler-configurable 并行 formalize；**实施顺序建议先于 CF-1**，避免 bin/index.js 与 bin/dev.js 的 watch 重构和 CLI flag 接入冲突）
+- 前置：无（独立；**实施顺序先于 CF-1**，避免 bin 上 watch 重构与 CLI flag 接入冲突）
+- 设计权威：[technical-design](technical-design.md)（已冻结 v1）；冲突时以本文档群与 STATUS 一致更新为准
+
+## Documents
+
+| 文档 | 作用 |
+| --- | --- |
+| [requirements](requirements.md) | 需求与非范围 |
+| [technical-design](technical-design.md) | API / D1–D6+D1a / 编排环 / 导出（**已冻结 v1**） |
+| [acceptance](acceptance.md) | MUST 验收表（A-001..A-009） |
 
 ## Background
 
-当前 `-w, --watch` 是 CLI-only 能力，违反 **CLI ⊆ API** 原则：
+当前 `-w, --watch` 的**编排环**仍是 CLI 侧重复实现，违反 **CLI ⊆ API**：
 
-- `dmcc build -w` 的 watch 逻辑（chokidar + watch plan + scheduler + build）全部写在 `bin/index.js` 命令 handler 里
-- `dmcc dev` 需要同样的 watch 能力，但 API 没有——**被迫复制了一遍**（`bin/dev.js` 里几乎相同的 chokidar → plan → scheduler → build 链路）
-- 两处代码重复，改一处容易漏另一处
+- plan / scheduler / ignore 已抽到 `src/bin/watch.js`，但 `bin/index.js`（`build -w`）与 `bin/dev.js` 仍各自内联 chokidar → plan skip → schedule → rebuild → `build()` 环
+- 无公开 watch API；`package.json` `exports` 无 watch 子路径
+- 改一处编排容易漏另一处；CF-1 若并行改 bin 易冲突
 
 ## Goal
 
-将 watch 逻辑提升为可编程 API（消除 CLI-only 和代码重复），`build -w` 和 `dmcc dev` 都通过这个 API 使用 watch。
+将 watch 编排提升为可编程 API，`build -w` 与 `dmcc dev` 都通过该 API 使用 watch；消除 CLI-only 与 bin 重复，并稳定 bin 入口供 CF-1 接入。
 
 ## Non-goals
 
@@ -29,59 +39,52 @@
 ## Scope
 
 - `fe/packages/compiler/src/common/watch-runner.js`（新增：可编程 watch API）
+- `fe/packages/compiler/src/common/watch-plan.js`（由 `bin/watch.js` 迁入，D5）
 - `fe/packages/compiler/src/bin/index.js`（build -w 改为调 watch API）
-- `fe/packages/compiler/src/bin/dev.js`（dev 改为调 watch API，消除重复）
-- `fe/packages/compiler/__tests__/`（watch API 规格）
+- `fe/packages/compiler/src/bin/dev.js`（dev 改为调 watch API；`autoListen: false`，D1a）
+- `fe/packages/compiler/package.json` + `vite.config.mjs`（`@dimina/compiler/watch` 导出）
+- `fe/packages/compiler/__tests__/`（watch-runner 规格；scheduler 规格改 import）
 
-## API 设计（草案）
+## API 设计（已冻结 v1）
+
+以 [technical-design](technical-design.md) §2–§3 为准。摘要：
 
 ```js
-// 可编程 watch API
 import { createBuildWatcher } from '@dimina/compiler/watch'
 
 const watcher = createBuildWatcher({
   targetPath,
   workPath,
   useAppIdDir,
-  options,           // build options（兼容现有 build() 签名；CF-1 完成后由 compile configuration 合并层承接）
-  onRebuild,         // (result, change) => void
-  onError,           // (error, change) => void
+  options,        // 透传 build()；本门不做 CF-1 profile 合并
+  autoListen,     // 默认 true；dev 必须 false（D1a）
+  onRebuild,      // (change) => void；rebuild 前（CLI 日志）
+  beforeBuild,    // async ({ change, plan, appId }) => void；build() 前（dev：setPendingReload）
+  onError,        // (error, change) => void
 })
 
-await watcher.start()   // 初始构建 + 开始监听
-await watcher.stop()    // 停止监听
-```
-
-CLI 和 dev.js 都消费这个 API：
-
-```js
-// bin/index.js（build -w）
-const watcher = createBuildWatcher({ ..., onRebuild: console.log })
-
-// bin/dev.js
-const watcher = createBuildWatcher({
-  ...,
-  onRebuild: (result) => {
-    devServer.setPendingReload(synthesize(...))
-    // ws 推送
-  },
-})
+const buildResult = await watcher.start()  // 初始 build；autoListen 时一并 listen
+await watcher.listen()                     // 仅 autoListen=false
+await watcher.stop()
 ```
 
 ## Deliverables
 
-- `createBuildWatcher()` API（start/stop/onRebuild/onError）
-- `bin/index.js` 和 `bin/dev.js` 消除重复，都调 API
-- watch API 规格（可编程使用、生命周期、错误处理）
-- 行为等价验证（重构前后 build -w 和 dev 的 watch 行为不变）
+- `createBuildWatcher()` API（start / listen / stop；onRebuild / beforeBuild / onError）
+- `bin/index.js` 与 `bin/dev.js` 消除编排重复，都调 API
+- 公开导出 `@dimina/compiler/watch` + 构建/exports 检查
+- watch API 规格 + 行为等价验证（build -w / dev）
 
 ## Readiness gaps
 
-- 待 Readiness Review：API 形状（函数签名/回调/生命周期）需评审冻结
+无。Readiness Review 已于 2026-09-10 pass 并冻结 D1–D6 + D1a（见 technical-design）。
+
+- 状态：`ready`（可执行；**实施仍需明确授权**后方可进入 `in_progress`）
+- 残余风险：无已接受的时序窗口；dev 必须走 `autoListen: false`
 
 ## Closure conditions
 
-- 所有 MUST Acceptance 通过并有证据
-- build -w / dev 行为等价（重构不改语义）
-- 代码重复消除（bin/index.js 与 bin/dev.js 共享 watch API）
+- [acceptance](acceptance.md) 全部 MUST 通过并有证据
+- build -w / dev 行为等价（重构不改语义；D1a 严格等价，无默契窗口）
+- 代码重复消除（bin 共享 watch API）
 - STATUS、导航、归档一致

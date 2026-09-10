@@ -71,7 +71,7 @@ web               es2023 + minify     es2023 + 不 minify
 | CF-1 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap + platform 占位） | `compiler-configurable` | 无 | draft |
 | CF-2 | platform 维度接入（枚举注册进 config 框架/CLI/约束/D6:B） | `platform-abstraction` | CF-1 | draft |
 | CF-3 | ES target 值统一（es2020→es2023） | `es-target-unification` | CF-1 + Harmony WebView 调研 | draft |
-| CF-4 | watch API 化（消除 CLI-only/重复） | `watch-api` | 无（formalize 可并行；实施先于 CF-1） | draft |
+| CF-4 | watch API 化（消除 CLI-only/重复） | `watch-api` | 无（实施先于 CF-1） | ready |
 
 依赖关系（修正后，2026-09-08 审查）：
 

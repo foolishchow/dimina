@@ -37,4 +37,4 @@
 | `compiler-configurable` | `draft` | [README](compiler-configurable/README.md) | CF-1：统一编译配置框架（CLI⊆API、mode preset、minify/sourcemap/esTarget 收敛 + platform 占位）；dev 默认不 minify。无前置。 | 2026-09-08 |
 | `platform-abstraction` | `draft` | [README](platform-abstraction/README.md) | CF-2：platform 维度接入（native/web 注册进 config 框架、CLI --platform、D6:B 修订）。前置 CF-1。 | 2026-09-08 |
 | `es-target-unification` | `draft` | [README](es-target-unification/README.md) | CF-3：ES target 值统一（es2020→es2023，产物有意变化）；前置 CF-1 + Harmony WebView 兼容性调研。 | 2026-09-08 |
-| `watch-api` | `draft` | [README](watch-api/README.md) | CF-4：watch 从 CLI-only 提升为 API 能力，消除 bin/index.js 与 bin/dev.js 重复。独立，可与 CF-1 并行。 | 2026-09-08 |
+| `watch-api` | `ready` | [README](watch-api/README.md) | CF-4：watch API 化；Readiness pass（R1–R4=a，B 全勾）；D1–D6+D1a 已冻；待授权实施。 | 2026-09-10 |
