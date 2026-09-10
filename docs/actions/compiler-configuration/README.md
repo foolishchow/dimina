@@ -72,7 +72,7 @@ esTarget.view  ← 缺省 es2020（WebView/Browser；抬升属 CF-3 可选）
 | --- | --- | --- | --- | --- |
 | CF-1 | 统一编译配置框架（CLI⊆API/mode/minify/sourcemap + `esTarget.{logic,view}` + platform 占位） | `compiler-configurable` | 无（实施在 CF-4 后） | complete |
 | CF-2 | platform 维度接入（枚举注册进 config 框架/CLI/约束/D6:B） | `platform-abstraction` | CF-1 | complete |
-| CF-3 | logic 车道 ES 收敛；可选抬升 `esTarget.view`（须 WebView 矩阵） | `es-target-unification` | CF-1；（仅 view 抬升时）WebView 调研 | draft |
+| CF-3 | logic 车道 ES 收敛（本轮切片：仅 logic；view 抬升另议） | `es-target-unification` | CF-1 | ready |
 | CF-4 | watch API 化（消除 CLI-only/重复） | `watch-api` | 无（实施先于 CF-1） | complete |
 
 依赖关系（修正后，2026-09-08 审查）：
