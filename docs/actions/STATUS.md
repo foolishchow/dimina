@@ -38,6 +38,7 @@
 | `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
-| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（战略，draft）；长线分支 `feature/fe-tools-sidecar`；TS-0/1 已落地；下步 TS-2 IR。 | 2026-09-10 |
+| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（战略，draft）；长线分支 `feature/fe-tools-sidecar`；TS-0/1 已落地；编排轴见 bundler-session；下步另有 TS-2 IR。 | 2026-09-10 |
+| `fe-tools-bundler-session` | `draft` | [README](fe-tools-bundler-session/README.md) | 会话/编排门面（曾用名 bundler-core）；resolve + createBundler 讨论中；builtin 阶段清单 stages.draft；plugin 非主叙事。 | 2026-09-10 |
 | `fe-tools-bundler-unvite` | `complete` | [README](_archive/complete/fe-tools-bundler-unvite/README.md) | 卫生：下线 Vite 自打包；镜像 dist + watch shim；A-UV01..09 / P-001..008（含 dimina-cli build/dev）；已归档。 | 2026-09-10 |
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |

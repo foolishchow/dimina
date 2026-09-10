@@ -21,9 +21,10 @@
 
 | Field | Value |
 | --- | --- |
-| 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 [`fe-tools-bootstrap-copy`](_archive/complete/fe-tools-bootstrap-copy/README.md)（**`complete`**）；卫生 [`fe-tools-bundler-unvite`](_archive/complete/fe-tools-bundler-unvite/README.md)（**`complete`**） |
+| 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 [`fe-tools-bootstrap-copy`](_archive/complete/fe-tools-bootstrap-copy/README.md)（**`complete`**）；卫生 [`fe-tools-bundler-unvite`](_archive/complete/fe-tools-bundler-unvite/README.md)（**`complete`**）；会话编排 [`fe-tools-bundler-session`](fe-tools-bundler-session/README.md)（**`draft`**，曾用名 bundler-core；阶段清单 + resolve 讨论） |
+| 下一步 | 继续 session 探针讨论（resolve 已部分收敛；stages.draft 已建）；伞：IR 草案 + 终态句成文 + CI 决策后再考虑 `ready` |
+| 再激活 / 推进 | bundler-session：O1–O3 门面设计冻后再评审；管道插件化另 Action；伞 TS-2 |
 | 说明 | 候选条目保留指针；bootstrap / unvite 已归档；长线分支 **`feature/fe-tools-sidecar`**；下步另有 TS-2 IR / TS-4 |
-| 再激活 / 推进 | 伞：IR 草案 + 终态句成文 + CI 决策后再考虑 `ready` |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
