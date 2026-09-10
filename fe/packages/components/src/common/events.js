@@ -2,44 +2,28 @@ const initTimeStamp = Date.now()
 
 function useInfo() {
 	const bridgeId = inject('bridgeId')
-	const currPath = inject('path')
-	const info = inject(currPath)
-	let moduleId
-	let path
+	const inheritedPath = inject('path')
+	const inheritedInfo = inject(inheritedPath)
 	const instance = getCurrentInstance()
-
-	const scopeIds = instance.vnode.slotScopeIds
-	if (scopeIds?.length) {
-		// 当前组件实例作为插槽内容渲染时，组件信息取引入该组件的自定义组件的页面信息
-		// 由于存在嵌套的情况，所以需要覆写组件信息
-		// 获取组件的插槽作用域 ID
-		let currentInfo = info
-		let currentPath = currPath
-
-		// 通过 slotScopeIds 长度判断插槽嵌套层级
-		for (let i = 0; i < scopeIds.length; i++) {
-			if (!currentInfo?.pagePath)
-				break
-
-			const parentPath = currentInfo.pagePath
-			const parentInfo = inject(parentPath)
-			if (!parentInfo)
-				break
-
-			currentInfo = parentInfo
-			currentPath = parentPath
-		}
-
-		// 更新路径注入
-		provide('path', currentPath)
-		provide(currentPath, currentInfo)
-
-		moduleId = currentInfo.id
-		path = currentPath
+	// 插槽节点仍属于声明它的组件。slotScopeIds 只是 CSS 作用域标记，不能用其数量
+	// 推算事件归属；cover-view 等透传组件会改变这些标记，却没有改变声明者。
+	let owner = instance.vnode.ctx
+	// 只有显式声明 path 才建立事件上下文；theme 等无关 provide 不构成边界。
+	while (owner?.vnode.ctx && owner.vnode.ctx !== owner && (
+		owner.provides === owner.parent?.provides || !Object.hasOwn(owner.provides, 'path')
+	)) {
+		owner = owner.vnode.ctx
 	}
-	else {
-		moduleId = info.id
-		path = currPath
+	const ownerProvides = owner?.provides
+	const ownerPath = ownerProvides?.path
+	const ownerInfo = ownerPath && ownerProvides[ownerPath]
+	const path = ownerInfo ? ownerPath : inheritedPath
+	const info = ownerInfo || inheritedInfo
+	const moduleId = info.id
+	// 仅跨作用域时传给内部节点；普通节点复用父级 provides，避免逐节点创建对象。
+	if (path !== inheritedPath || info !== inheritedInfo) {
+		provide('path', path)
+		provide(path, info)
 	}
 
 	return {

@@ -55,6 +55,7 @@ export class DMPNavigator {
 
 
   async navigateTo(stackId: number, params: DMPMap) {
+    if (this.app.navigatorManager.isRetainedInBackground) throw new Error('navigation: mini program is in background')
     this.app.container.isNavigating = true;
     DMPLogger.d(Tags.NAVIGATOR, 'navigateTo')
     const pagePath: string = params.get('pagePath')
@@ -113,6 +114,7 @@ export class DMPNavigator {
   }
 
   async relaunchTo(params: DMPMap) {
+    if (this.app.navigatorManager.isRetainedInBackground) throw new Error('navigation: mini program is in background')
     DMPLogger.d(Tags.NAVIGATOR, 'relaunchTo')
     const pagePath: string = params.get('pagePath')
 
@@ -184,6 +186,7 @@ export class DMPNavigator {
   }
 
   async redirectTo(stackId: number, params: DMPMap) {
+    if (this.app.navigatorManager.isRetainedInBackground) throw new Error('navigation: mini program is in background')
     DMPLogger.d(Tags.NAVIGATOR, 'redirectTo')
     const pagePath: string = params.get('pagePath')
 
@@ -243,6 +246,7 @@ export class DMPNavigator {
   }
 
   async pop(delta: number = 1, animated: boolean = true, canDestroy = true, isReLaunch = false) {
+    if (this.app.navigatorManager.isRetainedInBackground) throw new Error('navigation: mini program is in background')
     DMPLogger.i(Tags.NAVIGATOR, 'pop')
     try {
       if (this.app.container.isNavigating) {
@@ -338,6 +342,7 @@ export class DMPNavigator {
    *   - eventHub.emit 抛错
    */
   async switchTab(params: DMPMap) {
+    if (this.app.navigatorManager.isRetainedInBackground) throw new Error('navigation: mini program is in background')
     const pagePath: string = params.get('pagePath')
     DMPLogger.i(Tags.NAVIGATOR, `switchTab to: ${pagePath}`)
 
@@ -408,6 +413,7 @@ export class DMPNavigator {
     // wasPrevTabVisible: 告诉容器是否需要给旧 tab 发 onHide
     try {
       getContext(this.app).eventHub.emit('tabbar_switch_webview', {
+        'appIndex': this.app.appIndex,
         'pagePath': pagePath,
         'wasPrevTabVisible': wasPrevTabVisible
       })

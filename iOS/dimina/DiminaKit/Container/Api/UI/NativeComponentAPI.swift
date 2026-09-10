@@ -38,10 +38,34 @@ public class NativeComponentAPI: DMPContainerApi {
         return DMPNoneResult()
     }
 
+    @BridgeMethod("mapMount")
+    var mapMount: DMPBridgeMethodHandler = { param, env, _ in
+        NativeComponentAPI.handleComponent(apiName: "mapMount", param: param, env: env)
+        return DMPNoneResult()
+    }
+
+    @BridgeMethod("mapUpdate")
+    var mapUpdate: DMPBridgeMethodHandler = { param, env, _ in
+        NativeComponentAPI.handleComponent(apiName: "mapUpdate", param: param, env: env)
+        return DMPNoneResult()
+    }
+
+    @BridgeMethod("mapUnmount")
+    var mapUnmount: DMPBridgeMethodHandler = { param, env, _ in
+        NativeComponentAPI.handleComponent(apiName: "mapUnmount", param: param, env: env)
+        return DMPNoneResult()
+    }
+
+    @BridgeMethod("mapContext")
+    var mapContext: DMPBridgeMethodHandler = { param, env, _ in
+        NativeComponentAPI.handleComponent(apiName: "mapContext", param: param, env: env)
+        return DMPNoneResult()
+    }
+
     private static func handleComponent(apiName: String, param: DMPBridgeParam, env: DMPBridgeEnv) {
         let params = param.getMap()
         let type = params.getString(key: "type") ?? "native/video"
-        guard type == "native/video" else { return }
+        guard type == "native/video" || type == "native/map" else { return }
 
         guard let app = DMPAppManager.sharedInstance().getApp(appIndex: env.appIndex),
               let webview = app.render?.getWebView(byId: env.webViewId) else {
@@ -49,6 +73,10 @@ public class NativeComponentAPI: DMPContainerApi {
         }
 
         DispatchQueue.main.async {
+            if type == "native/map" {
+                DMPNativeMapHost.handle(apiName, params: params, app: app, webview: webview, webViewId: env.webViewId)
+                return
+            }
             let host = DMPIOSNativeComponentHost.host(for: webview, app: app, webViewId: env.webViewId)
             host.handle(apiName: apiName, params: params)
         }
@@ -57,6 +85,7 @@ public class NativeComponentAPI: DMPContainerApi {
     public static func clear(webViewId: Int) {
         DispatchQueue.main.async {
             DMPIOSNativeComponentHost.clear(webViewId: webViewId)
+            DMPNativeMapHost.clear(webViewId)
         }
     }
 }

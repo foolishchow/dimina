@@ -62,6 +62,7 @@ export class WebView {
 		this.applyResourceBaseUrl(iframeWindow.document)
 
 		// 监听渲染线程的消息
+		iframeWindow.DiminaRenderBridge.mapRenderer = 'web'
 		iframeWindow.DiminaRenderBridge.invoke = (msg) => {
 			this.event.emit('invoke', msg)
 		}

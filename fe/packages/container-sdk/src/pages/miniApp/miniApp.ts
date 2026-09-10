@@ -1073,6 +1073,7 @@ export class MiniApp {
 	}
 
 	onPresentIn(): void {
+		this.parent?.appManager.retention.forget(this)
 		const currentBridge = this.navigator.top
 		this.webSocketManager.onAppShow()
 		// appShow/appHide 是 app 粒度信号，由共享的 jscore 统一记账去重，不挂在
@@ -1087,6 +1088,7 @@ export class MiniApp {
 		currentBridge?.pageHide()
 		this.webSocketManager.onAppHide()
 		this.jscore.appHide()
+		this.parent?.appManager.retention.hide(this)
 	}
 
 	/**

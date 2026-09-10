@@ -1,0 +1,49 @@
+<view class="map-page">
+  <view class="caption">点按地图上的标记查看地点</view>
+  <map id="places" class="map" longitude="{{longitude}}" latitude="{{latitude}}"
+    scale="{{scale}}" markers="{{markers}}" show-scale
+    rotate="{{rotate}}" skew="{{skew}}" show-compass="{{showCompass}}"
+    polyline="{{polyline}}" circles="{{circles}}" polygons="{{polygons}}"
+    show-location="{{showLocation}}" bindmarkertap="onMarkerTap"
+    bindcallouttap="onMarkerTap" bindregionchange="onRegionChange"
+    bindinterpolatepoint="onInterpolatePoint"
+    bindrendersuccess="onMapReady" binderror="onMapError" />
+  <view class="status">{{status}}</view>
+  <view class="results">
+    <view class="results-header">
+      <view class="section-title">调用结果（最近 8 条）</view>
+      <button size="mini" disabled="{{!results.length}}" bindtap="clearResults">清除结果</button>
+    </view>
+    <view wx:if="{{!results.length}}" class="caption">点击下方按钮查看成功回调或错误信息。</view>
+    <view wx:for="{{results}}" wx:key="index" class="result">{{item}}</view>
+  </view>
+  <view class="section-title">地图查询与定位</view>
+  <view class="buttons">
+    <button wx:for="{{queryMethods}}" wx:key="*this" disabled="{{!ready}}" data-command="{{item}}" bindtap="runTest">{{item}}</button>
+    <button disabled="{{!ready}}" bindtap="roundTrip">坐标往返转换</button>
+    <button disabled="{{!ready}}" data-command="includePoints" bindtap="runTest">显示全部地点</button>
+    <button disabled="{{!ready}}" data-command="moveToLocation" bindtap="runTest">回到我的位置</button>
+  </view>
+  <view class="section-title">标记与动画</view>
+  <view class="caption">先恢复标记，再平移 A → B 或沿折线路径移动（4 秒）。动画期间可删除 A 或再次启动动画，检查取消回调。</view>
+  <view class="buttons">
+    <button disabled="{{!ready}}" data-command="addMarkers" bindtap="runTest">恢复全部标记</button>
+    <button disabled="{{!ready}}" data-command="removeMarkers" bindtap="runTest">删除标记 A</button>
+    <button disabled="{{!ready}}" data-command="translateMarker" bindtap="runTest">平移标记 A</button>
+    <button disabled="{{!ready}}" data-command="moveAlong" bindtap="runTest">沿路径移动 A</button>
+  </view>
+  <view class="section-title">弧线与覆盖物</view>
+  <view class="buttons">
+    <button disabled="{{!ready}}" data-command="addArc" bindtap="runTest">添加弧线</button>
+    <button disabled="{{!ready}}" data-command="removeArc" bindtap="runTest">移除弧线</button>
+    <button disabled="{{!ready}}" bindtap="toggleOverlays">{{overlaysVisible ? '隐藏' : '显示'}}折线、圆、多边形</button>
+  </view>
+  <view class="section-title">视角与范围</view>
+  <view class="caption">切换视角后可查询旋转角和倾斜角。限制范围后，拖动地图检查边界；退出页面重新进入可恢复默认范围。</view>
+  <view class="buttons">
+    <button disabled="{{!ready}}" bindtap="toggleCamera">{{skew ? '恢复正北俯视' : '旋转 45° / 倾斜 30°'}}</button>
+    <button disabled="{{!ready}}" data-command="setBoundary" bindtap="runTest">限制地图范围</button>
+    <button disabled="{{!ready}}" data-command="offset" bindtap="runTest">中心移至下方</button>
+    <button disabled="{{!ready}}" data-command="resetOffset" bindtap="runTest">恢复中心位置</button>
+  </view>
+</view>

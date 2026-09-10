@@ -41,6 +41,9 @@
   <navigator class="intro" url="cover-view/index">
     <view class="weui-cell__bd">CoverView</view>
   </navigator>
+  <navigator class="intro" url="map/index">
+    <view class="weui-cell__bd">Map</view>
+  </navigator>
   <navigator class="intro" url="movable-view/index">
     <view class="weui-cell__bd">MovableView</view>
   </navigator>

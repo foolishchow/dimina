@@ -9,9 +9,6 @@ import SwiftUI
 
 @main
 struct diminaApp: App {
-    init() {
-    }
-    
     var body: some Scene {
         WindowGroup {
             ContentView()

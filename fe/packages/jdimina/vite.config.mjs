@@ -6,13 +6,13 @@ export default defineConfig(({ mode }) => {
 		resolve: {
 			extensions: ['.js'],
 			alias: {
-				'@': resolve(__dirname, 'src'),
+				'@': resolve(import.meta.dirname, 'src'),
 			},
 		},
 		build: {
 			minify: mode === 'production',
 			lib: {
-				entry: resolve(__dirname, 'src/index.js'),
+				entry: resolve(import.meta.dirname, 'src/index.js'),
 				formats: ['iife'],
 				name: 'jdimina_next',
 			},

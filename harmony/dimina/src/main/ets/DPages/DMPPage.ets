@@ -29,11 +29,11 @@ export struct DMPPage {
   aboutToAppear(): void {
     DMPLogger.d(Tags.DMP_PAGE, `DMPPage aboutToAppear`)
     const navigator = this.app?.navigatorManager?.getCurNavigator();
-    this.isLaunching = navigator?.getPageCount() == 1;
+    this.isLaunching = !this.pageRecord.retainsNativeView && navigator?.getPageCount() == 1;
 
     // Check if this should be a TabBar container
     // Use container when: 1) it's the launch page, 2) app has tabBar config, 3) current page is a tabBar page
-    if (this.isLaunching && this.app) {
+    if (this.app) {
       const appConfig = this.app.bundleManager.getJsAppModuleConfig()
       if (appConfig?.tabBar && appConfig.isTabBarPage(this.pageRecord.pagePath)) {
         this.isTabBarContainer = true
@@ -87,7 +87,13 @@ export struct DMPPage {
 
       const navigator: DMPNavigatorDelegate | undefined =
         DMPAppManager.sharedInstance().getApp(this.appIndex)?.navigatorManager.getCurNavigator()
-      navigator?.pop()
+      if (navigator?.getPageCount() === 1) {
+        this.app?.hideMiniProgram().catch((error: Error) => {
+          DMPLogger.e(Tags.DMP_PAGE, error.message)
+        })
+      } else {
+        navigator?.pop()
+      }
 
       return true;
     })

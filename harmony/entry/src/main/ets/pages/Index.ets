@@ -182,8 +182,9 @@ struct Index {
             });
           }, (item: MiniProgramModel) => item.appId);
         }
+        .height('100%')
         .backgroundColor(PAGE_BACKGROUND_COLOR);
-      }.width('100%').flexGrow(1).backgroundColor(PAGE_BACKGROUND_COLOR);
+      }.width('100%').layoutWeight(1).backgroundColor(PAGE_BACKGROUND_COLOR);
     }.backgroundColor(PAGE_BACKGROUND_COLOR).height('100%')
   }
 

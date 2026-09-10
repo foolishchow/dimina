@@ -1517,6 +1517,39 @@ final class DMPNavigatorCapsuleTests: XCTestCase {
         )
     }
 
+    func testRetainedHostReentryWhileBackgroundedDefersShowUntilForeground() async throws {
+        let manager = DMPAppManager.sharedInstance()
+        let app = manager.appWithConfig(appConfig: DMPAppConfig(
+            appName: "retained-visibility", appId: "retained-visibility-\(UUID().uuidString)"
+        ))
+        defer { app.destroy() }
+        let readEvents = await attachLifecycleCapture(to: app)
+        app.render = DMPRender(app: app)
+        let navigator = try XCTUnwrap(app.getNavigator())
+        let navigation = UINavigationController(rootViewController: UIViewController())
+        navigator.setup(navigationController: navigation)
+        _ = await navigator.launch(to: "pages/index/index", animated: false, showsLaunchLoading: false)
+        await navigator.hideMiniProgram()
+        await app.service?.drainPendingContainerMessages()
+        let showsBefore = readEvents().filter { $0["type"] as? String == "appShow" }.count
+
+        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        await waitForHostVisible(false, on: manager)
+        XCTAssertFalse(manager.isHostVisibleForTesting())
+        navigator.setup(navigationController: navigation)
+        await app.launch(launchConfig: DMPLaunchConfig(scene: 1011))
+        await app.service?.drainPendingContainerMessages()
+        XCTAssertTrue(navigator.isActiveNavigationOwner())
+        XCTAssertEqual(readEvents().filter { $0["type"] as? String == "appShow" }.count, showsBefore)
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        await waitForHostVisible(true, on: manager)
+        await app.service?.drainPendingContainerMessages()
+        let shows = readEvents().filter { $0["type"] as? String == "appShow" }
+        XCTAssertEqual(shows.count, showsBefore + 1)
+        await navigator.hideMiniProgram()
+    }
+
     func testNavigateBackMiniProgramLifecycleRunsOnceInOrder() async {
         let events = await captureMiniProgramLifecycle(rounds: [(
             DMPScene.fromMiniProgramBack.rawValue,

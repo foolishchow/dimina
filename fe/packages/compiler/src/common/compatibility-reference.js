@@ -14,6 +14,7 @@ const supportedBuiltinComponents = [
 	"image",
 	"input",
 	"label",
+	"map",
 	"movable-area",
 	"movable-view",
 	"navigation-bar",
@@ -43,6 +44,7 @@ const supportedBuiltinComponents = [
 ]
 
 const supportedWxApis = [
+	"createMapContext",
 	"env",
 	"getFileSystemManager",
 	"FileSystemManager.saveFile",

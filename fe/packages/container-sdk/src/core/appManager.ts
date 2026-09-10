@@ -1,6 +1,7 @@
 import type { Application } from '../pages/application/application.js'
 import type { ExtModuleHandler, MiniAppApiHandler, MiniProgramReferrerInfo, OpenAppOptions } from '../types.js'
 import { resolveResourceBaseUrl } from '../config.js'
+import { RetentionManager, type RetentionPolicy } from './retention.js'
 import { MiniApp } from '../pages/miniApp/miniApp.js'
 import { queryPath } from '../utils/util.js'
 
@@ -36,6 +37,30 @@ export class AppManager {
 	_extModules: Record<string, ExtModuleHandler>
 	_containerApis: Record<string, MiniAppApiHandler>
 	_openQueue: Promise<unknown>
+
+	private application?: Application
+	private retentionQueued = false
+	readonly retention = new RetentionManager<MiniApp>(() => this.scheduleRetention())
+
+	configureRetention(policy: RetentionPolicy, application: Application): void {
+		this.application = application
+		this.retention.configure(policy)
+	}
+
+	private scheduleRetention(): void {
+		if (this.retentionQueued || !this.application) return
+		this.retentionQueued = true
+		void this._enqueue(async () => {
+			const application = this.application!
+			await application._enqueue(async () => {
+				this.retentionQueued = false
+				// Presented navigation chains remain pinned until they are detached.
+				for (const app of this.retention.collect(app => !application.views.includes(app))) {
+					if (this.apps.get(app.appId) === app) await application.destroyRootView(app)
+				}
+			})
+		}).catch(error => { this.retentionQueued = false; console.error('[container] retention:', error) })
+	}
 
 	constructor() {
 		this.apps = new Map()
@@ -84,6 +109,12 @@ export class AppManager {
 	}
 
 	async _openApp(opts: InternalOpenAppOptions, dimina: Application): Promise<MiniApp> {
+		// Browser timers may have been throttled while the host was backgrounded.
+		await dimina._enqueue(async () => {
+			for (const app of this.retention.collect(app => !dimina.views.includes(app))) {
+				if (this.apps.get(app.appId) === app) await dimina.destroyRootView(app)
+			}
+		})
 		const { appId, path, scene, destroy, restoreStack } = opts
 		if (!appId || typeof appId !== 'string') {
 			throw new Error('[container] openApp: options.appId is required')
@@ -131,6 +162,16 @@ export class AppManager {
 		const cacheApp = this.getAppById(appId)
 
 		if (cacheApp) {
+			// A host entry starts a new presentation relationship while retaining the page stack.
+			cacheApp.opener = opts.opener ?? null
+			if (dimina.views.at(-1) !== cacheApp) {
+				cacheApp.queueAppShowOptions({
+					scene: scene ?? 1001,
+					path: cacheApp.getCurrentPagePath(),
+					query: cacheApp.getCurrentPageQuery(),
+					referrerInfo: opts.referrerInfo ?? {},
+				})
+			}
 			// 等呈现动画完整跑完再返回，下一个排队中的 openApp() 才开始处理。
 			await dimina.presentView(cacheApp, true)
 			return cacheApp
@@ -370,6 +411,7 @@ export class AppManager {
 	 * （MiniApp.destroy() 的触发时机与该实例是否仍是当前登记项无关）。
 	 */
 	removeApp(miniApp: MiniApp): void {
+		this.retention.forget(miniApp)
 		if (this.apps.get(miniApp.appId) === miniApp) {
 			this.apps.delete(miniApp.appId)
 		}

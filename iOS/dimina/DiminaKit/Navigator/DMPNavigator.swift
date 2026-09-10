@@ -26,6 +26,9 @@ public class DMPNavigator: NSObject {
 
     // 页面记录
     private var pageRecords: [DMPPageRecord] = []
+    private var retainedControllers: [UIViewController] = []
+
+    var isRetainedInBackground: Bool { !retainedControllers.isEmpty }
     @MainActor private var pageRouteOperationDepth = 0
     private weak var tabBarContainerController: DMPTabBarContainerController?
     // 跨小程序打开时，目标和 opener 共用同一个 UINavigationController。
@@ -68,7 +71,7 @@ public class DMPNavigator: NSObject {
     /// otherwise issue stale route calls from timers or async callbacks.
     @MainActor
     func isActiveNavigationOwner() -> Bool {
-        guard let navigationController else { return false }
+        guard !isRetainedInBackground, let navigationController else { return false }
         return (objc_getAssociatedObject(
             navigationController,
             &navigatorAssociationKey
@@ -859,6 +862,63 @@ public class DMPNavigator: NSObject {
         CATransaction.setCompletionBlock(completion)
         navigationController.setViewControllers(hostControllers, animated: animated)
         CATransaction.commit()
+    }
+
+    /// Detach the presentation while retaining the exact controller and WebView instances.
+    @MainActor
+    func hideMiniProgram() async {
+        guard let navigationController, isActiveNavigationOwner() else { return }
+        navigationController.view.endEditing(true)
+        notifyPresentOut()
+        setCapsuleVisible(false)
+        let hostControllers = hostViewControllers(in: navigationController)
+        retainedControllers = ownedViewControllers(in: navigationController)
+        guard !retainedControllers.isEmpty else { return }
+        objc_setAssociatedObject(navigationController, &navigatorAssociationKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        await withCheckedContinuation { continuation in
+            if hostControllers.isEmpty {
+                if navigationController.presentingViewController != nil {
+                    navigationController.dismiss(animated: true) { continuation.resume() }
+                } else {
+                    continuation.resume()
+                }
+            } else {
+                let animated = navigationController.viewIfLoaded?.window != nil
+                navigationController.setViewControllers(hostControllers, animated: animated)
+                if let transition = navigationController.transitionCoordinator,
+                   transition.animate(alongsideTransition: nil, completion: { _ in continuation.resume() }) {
+                    return
+                }
+                continuation.resume()
+            }
+        }
+    }
+
+    @MainActor
+    func resumeRetainedMiniProgram() -> Bool {
+        guard let navigationController, !retainedControllers.isEmpty else { return false }
+        let controllers = retainedControllers
+        // setup() may attach a new navigation controller supplied by the host on re-entry.
+        let hostControllers = hostViewControllers(in: navigationController)
+        retainedControllers = []
+        attach(to: navigationController)
+        navigationController.setViewControllers(hostControllers + controllers, animated: false)
+        if let app { DMPAppManager.sharedInstance().restoreRetainedAppVisibility(app) }
+        setCapsuleVisible(true)
+        return true
+    }
+
+    @MainActor
+    func destroyRetainedPages() {
+        let controllers = retainedControllers
+        retainedControllers = []
+        controllers.forEach { controller in
+            (controller as? DMPPageController)?.markTeardownReason(.exit)
+            (controller as? DMPTabBarContainerController)?.markTeardownReason(.exit)
+            (controller as? DMPPageController)?.destroy()
+            (controller as? DMPTabBarContainerController)?.destroy()
+        }
+        if !controllers.isEmpty { pageRecords.removeAll() }
     }
 
     @MainActor

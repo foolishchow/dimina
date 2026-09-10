@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import Darwin
 
 enum DMPMiniProgramNavigationError: LocalizedError {
     case invalidAppId
@@ -49,6 +50,27 @@ enum DMPMiniProgramNavigationError: LocalizedError {
     }
 }
 
+enum DMPRetentionClock {
+    private static let secondsPerTick: Double = {
+        var info = mach_timebase_info_data_t()
+        mach_timebase_info(&info)
+        return Double(info.numer) / Double(info.denom) / 1_000_000_000
+    }()
+    static func now() -> TimeInterval { Double(mach_continuous_time()) * secondsPerTick }
+}
+
+public struct DMPRetentionPolicy {
+    public let maxBackgroundApps: Int
+    public let backgroundTimeoutMs: Int
+
+    public init(maxBackgroundApps: Int = 3, backgroundTimeoutMs: Int = 300_000) {
+        precondition(maxBackgroundApps >= 0 && backgroundTimeoutMs >= 0,
+                     "Retention limits must be non-negative")
+        self.maxBackgroundApps = maxBackgroundApps
+        self.backgroundTimeoutMs = backgroundTimeoutMs
+    }
+}
+
 public class DMPAppManager {
     private static let instance = DMPAppManager()
 
@@ -74,6 +96,79 @@ public class DMPAppManager {
     /// 宿主自己的前后台状态，由 [setupSystemLifecycleObservers] 维护。跨小程序恢复 opener
     /// 时要看它，而不是看「谁在展示」——后者在宿主后台里同样会变。
     @MainActor private var hostVisible = true
+
+    @MainActor var retentionClock: () -> TimeInterval = { DMPRetentionClock.now() }
+    @MainActor private var retentionPolicy = DMPRetentionPolicy()
+    @MainActor private var retainedSince: [Int: TimeInterval] = [:]
+    @MainActor private var retentionTimer: Timer?
+    @MainActor private var retentionQueued = false
+    @MainActor private var retentionPressure = false
+
+    @MainActor
+    public func configureRetention(_ policy: DMPRetentionPolicy) {
+        retentionPolicy = policy
+        scheduleRetention()
+    }
+
+    @MainActor
+    public func notifyMemoryPressure() {
+        retentionPressure = true
+        scheduleRetention()
+    }
+
+    @MainActor
+    func retentionVisibility(_ app: DMPApp, visible: Bool) {
+        let index = app.getAppIndex()
+        if visible { retainedSince.removeValue(forKey: index) }
+        else if retainedSince[index] == nil { retainedSince[index] = retentionClock() }
+        scheduleRetention()
+    }
+
+    @MainActor
+    private func scheduleRetention() {
+        retentionTimer?.invalidate()
+        retentionTimer = nil
+        guard !retentionQueued else { return }
+        retentionQueued = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.retentionQueued = false
+            self.collectRetainedApps()
+        }
+    }
+
+    @MainActor
+    func collectRetainedApps() {
+        retentionTimer?.invalidate()
+        retentionTimer = nil
+        // Operation completion calls scheduleRetention again; never poll a transition.
+        guard !isMiniProgramOperationInProgress else { return }
+        let apps = withStateLock { appPools }
+        retainedSince = retainedSince.filter { apps[$0.key] != nil }
+        let candidates = retainedSince.filter {
+            apps[$0.key]?.getNavigator()?.isRetainedInBackground == true
+        }.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value < $1.value }
+        let now = retentionClock()
+        let timeout = Double(retentionPolicy.backgroundTimeoutMs) / 1000
+        var remaining = candidates.count
+        for (index, since) in candidates {
+            guard retentionPressure || remaining > retentionPolicy.maxBackgroundApps ||
+                    (timeout > 0 && now - since >= timeout) else { continue }
+            retainedSince.removeValue(forKey: index)
+            // Cache eviction cannot reveal a navigation opener.
+            _ = withStateLock { miniProgramOpeners.removeValue(forKey: index) }
+            apps[index]?.destroy()
+            remaining -= 1
+        }
+        retentionPressure = false
+        if timeout > 0, let next = candidates.first(where: { retainedSince[$0.key] != nil }) {
+            let timer = Timer(timeInterval: max(0.001, next.value + timeout - now), repeats: false) { [weak self] _ in
+                Task { @MainActor in self?.scheduleRetention() }
+            }
+            retentionTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
 
     private var systemLifecycleObservers: [NSObjectProtocol] = []
 
@@ -133,6 +228,10 @@ public class DMPAppManager {
     private func setupSystemLifecycleObservers() {
         let center = NotificationCenter.default
         systemLifecycleObservers = [
+            center.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification,
+                               object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.notifyMemoryPressure() }
+            },
             center.addObserver(
                 forName: UIApplication.didEnterBackgroundNotification,
                 object: nil,
@@ -205,6 +304,17 @@ public class DMPAppManager {
             applyPendingExtModules(to: app)
         }
         return app
+    }
+
+    @MainActor
+    func restoreEvictedApp(_ app: DMPApp) -> Bool {
+        let restored = withStateLock {
+            guard !appPools.values.contains(where: { $0.getAppId() == app.getAppId() && $0 !== app }) else { return false }
+            appPools[app.getAppIndex()] = app
+            return true
+        }
+        if restored { applyPendingExtModules(to: app) }
+        return restored
     }
 
     func existApp(appId: String) -> DMPApp? {
@@ -313,6 +423,7 @@ public class DMPAppManager {
         isMiniProgramOperationInProgress = true
         defer {
             isMiniProgramOperationInProgress = false
+            scheduleRetention()
         }
         return try await operation()
     }
@@ -446,6 +557,35 @@ public class DMPAppManager {
     }
 
     @MainActor
+    func restoreRetainedAppVisibility(_ app: DMPApp) {
+        let config = app.getCurrentLaunchConfig()
+        app.getNavigator()?.resumeAfterMiniProgramNavigation(
+            scene: config?.scene ?? DMPScene.fromMainEntry.rawValue,
+            referrerInfo: config?.referrerInfo,
+            hostVisible: hostVisible
+        )
+    }
+
+    @MainActor
+    func hideMiniProgram(_ app: DMPApp) async throws {
+        try await withMiniProgramOperation {
+            guard getApp(appIndex: app.getAppIndex()) === app else {
+                throw DMPMiniProgramNavigationError.sourceUnavailable
+            }
+            if app.getNavigator()?.isRetainedInBackground == true { return }
+            guard let navigator = app.getNavigator(), navigator.isActiveNavigationOwner() else {
+                throw DMPMiniProgramNavigationError.sourceNotPresented
+            }
+            guard !navigator.hasPageRouteOperationInProgress() else {
+                throw DMPMiniProgramNavigationError.operationInProgress
+            }
+            let opener = removeOpenerContext(for: app.getAppIndex())
+            await navigator.hideMiniProgram()
+            if let opener { restoreOpener(opener, extraData: nil) }
+        }
+    }
+
+    @MainActor
     func exitMiniProgram(
         _ app: DMPApp,
         onAccepted: () -> Void
@@ -453,6 +593,12 @@ public class DMPAppManager {
         try await withMiniProgramOperation {
             guard getApp(appIndex: app.getAppIndex()) === app else {
                 throw DMPMiniProgramNavigationError.sourceUnavailable
+            }
+            if app.getNavigator()?.isRetainedInBackground == true {
+                onAccepted()
+                await app.service?.drainPendingContainerMessages()
+                app.destroy()
+                return
             }
             guard app.getNavigator()?.isActiveNavigationOwner() == true else {
                 throw DMPMiniProgramNavigationError.sourceNotPresented

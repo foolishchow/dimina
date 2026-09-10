@@ -82,6 +82,8 @@ describe('compiler dependency graph', () => {
 		expect(graph.getFileKinds(path.join(tempDir, 'components/leaf/index.wxml'))).toEqual(['view'])
 	})
 
+	// 两次真实构建都需要启动 view/logic/style worker；CI 资源竞争时可能超过默认 5 秒。
+	// 仅为此集成用例放宽上限，其他依赖图单元测试仍使用默认超时。
 	it('preserves unaffected page artifacts during an affected-entry rebuild', async () => {
 		prepareProject()
 		writeProjectFile('shared/helper.js', 'export const value = 1\n')
@@ -119,5 +121,5 @@ describe('compiler dependency graph', () => {
 
 		expect(fs.readFileSync(path.join(outputDir, 'main/pages_one_index.js'), 'utf8')).toContain('one changed')
 		expect(fs.readFileSync(unaffectedPath, 'utf8')).toBe(unaffectedBefore)
-	})
+	}, 30000)
 })

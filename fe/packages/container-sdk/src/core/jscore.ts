@@ -163,7 +163,8 @@ export class JSCore {
 	}
 
 	/**
-	 * 等逻辑线程按 FIFO 消费完此前投递的 triggerCallback。销毁型 API 在收到
+	 * 等逻辑线程按 FIFO 消费完此前投递的生命周期和终止性 API 回调。普通业务回调
+	 * 可能仍处于挂起队列，不属于销毁屏障的交付保证。销毁型 API 在收到
 	 * barrier 回包之前不能 terminate Worker，否则 success/complete 可能永远不执行。
 	 */
 	flushCallbacks(): Promise<void> {

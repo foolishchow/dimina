@@ -2,6 +2,8 @@
 
 Dimina 在 Android、iOS、HarmonyOS 和 Web 上支持多个不同 `appId` 的小程序运行时并存。该能力用于解决 [Issue #44](https://github.com/didi/dimina/issues/44)：一个小程序打开另一个小程序后，来源实例进入后台但不被销毁，目标实例退出后可以恢复原来的运行状态。
 
+宿主入口也支持保留实例：点击胶囊关闭后，再次打开同一 `appId` 会恢复原页面栈。各端隐藏、恢复、主动销毁接口及资源边界见[宿主后台留存](./MiniProgram-Retention.md)。
+
 ## 运行模型
 
 每个宿主容器或 AppManager 对一个 `appId` 只保留一个权威运行时。多个不同 `appId` 可以同时存在，但任一时刻只有呈现栈栈顶的小程序处于前台：
@@ -20,19 +22,19 @@ B 返回 A         A(前台)
 
 A 通过 `navigateToMiniProgram` 打开 B 时：
 
-1. A 依次触发 App Hide 和当前 Page Hide。
+1. A 依次触发当前 Page Hide 和 App Hide。
 2. A 的 Worker/JS 引擎、页面栈、全局数据和宿主扩展订阅继续保留。
 3. B 以场景值 `1037` 启动，`referrerInfo.appId` 指向 A。
 4. B 成为唯一可操作的前台小程序；隐藏的 A 不能发起页面或跨小程序导航。
 
 B 调用 `navigateBackMiniProgram` 或 `exitMiniProgram` 后：
 
-1. B 的 Hide、成功/完成回调和页面卸载消息按各端协议进入旧运行时队列。
+1. B 的隐藏消息和成功/完成回调进入旧运行时队列；整个实例退出不额外派发 `Page.onUnload`。
 2. 终止性消息排空后才销毁 B 的页面、Worker/JS 引擎和原生资源。
 3. 恢复的仍是原来的 A 实例，不重新触发 `App.onLaunch`。
 4. A 以场景值 `1038` 触发 App Show 和当前 Page Show；`navigateBackMiniProgram` 的 `extraData` 放在 `referrerInfo.extraData` 中返回。
 
-这条“隐藏不等于销毁”的边界也适用于宿主直接缓存的 Web `MiniApp`：`closeApp()` 只从呈现栈摘除实例，后续再次 `openApp()` 同一 `appId` 会前置缓存实例；传入 `destroy: true` 才会销毁其它实例。
+这条“隐藏不等于销毁”的边界也适用于宿主直接缓存的 Web `MiniApp`：`closeApp()` 只从呈现栈摘除实例，后续再次 `openApp()` 同一 `appId` 会前置缓存实例；传入 `destroy: true` 会主动销毁其它实例；已脱离呈现栈的缓存还会按宿主留存策略自动回收。
 
 ## 平台实现
 
@@ -50,7 +52,7 @@ B 调用 `navigateBackMiniProgram` 或 `exitMiniProgram` 后：
 - `restartMiniProgram` 会替换当前实例的完整运行时，不属于后台恢复。
 - `exitMiniProgram` 会销毁当前目标实例；它不会销毁仍在呈现栈中的来源实例。
 - 后台保留是进程内能力，不是系统级持久化。宿主进程被系统终止后，需要按冷启动或宿主保存的恢复数据重新创建。
-- JavaScript 定时器、WebSocket、蓝牙和局域网等能力仍受微信语义及各操作系统后台策略约束。保留运行时不代表这些能力可以无限期在系统后台执行；例如 WebSocket 会按既有后台宽限策略中断。
+- JavaScript 定时器、WebSocket、蓝牙和局域网等能力仍受各能力自身的后台限制及操作系统策略约束；例如 WebSocket 会按既有后台宽限策略中断。框架在逻辑层协作式暂停定时器与普通业务回调，并为脱离展示链的后台缓存提供数量、超时和内存压力回收，详见[资源边界](./MiniProgram-Retention.md#生命周期与资源边界)及[宿主留存策略](./MiniProgram-Retention.md#宿主留存策略)。
 
 ## 验证建议
 

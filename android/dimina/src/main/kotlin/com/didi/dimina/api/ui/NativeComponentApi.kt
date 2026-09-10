@@ -12,6 +12,7 @@ class NativeComponentApi : BaseApiHandler() {
         "propsUpdate",
         "componentUnmount",
         "videoContext",
+        "mapMount", "mapUpdate", "mapUnmount", "mapContext",
     )
 
     override fun handleAction(

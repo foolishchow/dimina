@@ -1,3 +1,5 @@
+import { DMPMap } from '../Utils/DMPMap'
+import { DMPTabBarConfig } from '../Bundle/Model/DMPBundleAppConfigNext'
 import { DMPApp } from '../DApp/DMPApp';
 import { DMPLogger } from '../EventTrack/DMPLogger';
 import { Tags } from '../EventTrack/Tags';
@@ -12,7 +14,52 @@ export type PopListener = (destroyRecord?: DMPPageRecord, currentRecord?: DMPPag
 
 export type DomReadyListener = () => void;
 
+export class DMPRetainedTabState {
+  config?: DMPTabBarConfig
+  selectedIndex: number = 0
+  visible: boolean = true
+  badges: string[] = []
+  redDots: boolean[] = []
+  records: Map<number, DMPPageRecord> = new Map()
+}
+
 export class DMPNavigatorManager {
+  isRetainedInBackground: boolean = false
+  retainedTabState?: DMPRetainedTabState
+  captureTabState?: () => void
+  pendingTabBarEvents: DMPMap[] = []
+
+  hidePresentation(beforeDetach?: () => void): void {
+    if (this.isRetainedInBackground) return
+    this.captureTabState?.()
+    const delegates = this._navigatorDelegateStack.data
+    let count = 0
+    delegates.forEach((delegate: DMPNavigatorDelegate) => {
+      count += delegate.getNavigator().routerEntryCount()
+    })
+    if (count === 0) throw new Error('hideMiniProgram: host-managed pages must be hidden by the host')
+    beforeDetach?.()
+    this.webViewIdAndPageRecordMaps.forEach((record: DMPPageRecord) => { record.retainsNativeView = true })
+    this.isRetainedInBackground = true
+    DRouter.getInstance().popEntries(count, false)
+  }
+
+  resumePresentation(): boolean {
+    if (!this.isRetainedInBackground) return false
+    this._navigatorDelegateStack.data.forEach((delegate: DMPNavigatorDelegate) => {
+      delegate.getNavigator().stacks.data.forEach((record: DMPPageRecord) => {
+        if (!record.ownsRouterEntry) return
+        DRouter.getInstance().build('onetravel://dimina/page')
+          .putExtra('appIndex', record.appIndex)
+          .putExtra('webViewId', record.webViewId)
+          .putExtra('stackId', delegate.id)
+          .setNavMode(0).start()
+      })
+    })
+    this.isRetainedInBackground = false
+    return true
+  }
+
   //导航器记录
   private _navigatorDelegateStack: DMPStack<DMPNavigatorDelegate> = new DMPStack()
   //页面记录
@@ -140,6 +187,14 @@ export class DMPNavigatorManager {
 
   //只有退出和重启会调用
   clear() {
+    this.webViewIdAndPageRecordMaps.forEach((record: DMPPageRecord) => {
+      record.retainsNativeView = false
+      record.webViewNodeController.dispose()
+    })
+    this.retainedTabState = undefined
+    this.captureTabState = undefined
+    this.pendingTabBarEvents = []
+    this.isRetainedInBackground = false
     this._navigatorDelegateStack.clear();
     this.globalPageRecordStack.clear();
     this.webViewIdAndPageRecordMaps.clear()
@@ -156,7 +211,7 @@ export class DMPNavigatorManager {
     // All Dimina destinations are contiguous at the top of the shared NavPathStack.
     // Pop them in one operation so an actual close has exactly one transition and
     // leaves host/opener destinations below them untouched.
-    DRouter.getInstance().popEntries(routerEntryCount, animated)
+    if (!this.isRetainedInBackground) DRouter.getInstance().popEntries(routerEntryCount, animated)
     navigators.forEach((navigatorDelegate) => {
       navigatorDelegate.getNavigator().closeAllPages(reason)
     })
@@ -214,6 +269,8 @@ export class DMPNavigatorManager {
   popGlobalPageRecord() {
     const record = this.globalPageRecordStack.pop()
     if (record) {
+      record.retainsNativeView = false
+      record.webViewNodeController.dispose()
       this.webViewIdAndPageRecordMaps.delete(record.webViewId)
     }
   }

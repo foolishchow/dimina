@@ -87,7 +87,6 @@ export class AppList {
 				appId,
 				path: appInfo.path,
 				scene: 1001,
-				destroy: true, // 关闭之前的小程序
 			})
 		}
 	}

@@ -1,8 +1,16 @@
 /* eslint-disable no-undef */
-import { isWebWorker } from '@dimina/common'
+import { callback, isWebWorker } from '@dimina/common'
 import mitt from 'mitt'
+import { dispatchBackgroundWork } from './background-scheduler'
 import { reportAppError } from './app-events'
 import { decodeDataFunctions, encodeDataFunctions } from './data-function'
+
+// Resource/lifecycle control must remain live while business work is suspended.
+const controlMessages = new Set([
+	'appHide', 'appShow', 'stackHide', 'stackShow', 'pageHide', 'pageShow', 'pageUnload',
+	'mU', 'flushCallbacks', 'hostEnvUpdate', 'loadResource', 'resourceLoaded',
+	'pageAttached', 'pageReady', 'mC', 'mA', 'mR', 'canvasCapabilities', 'resourceLoadFailed',
+])
 
 class Message {
 	constructor() {
@@ -27,7 +35,14 @@ class Message {
 			const decodedMsg = decodeDataFunctions(msg)
 			console.log('[service] receive msg: ', isWebWorker ? decodedMsg : JSON.stringify(decodedMsg))
 			const { type, body } = decodedMsg
-			this.event.emit(type, body)
+			const deliver = () => {
+				try { this.event.emit(type, body) }
+				catch (error) { reportAppError(error) }
+			}
+			if (controlMessages.has(type) || (type === 'triggerCallback' && callback.isAllowedInBackground(body?.id))) {
+				deliver()
+			}
+			else dispatchBackgroundWork(deliver)
 		}
 		catch (error) {
 			reportAppError(error)

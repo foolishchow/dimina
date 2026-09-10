@@ -186,23 +186,27 @@ class DiminaActivityBackgroundHookTest {
     }
 
     @Test
-    fun `native close affordances go through exitMiniProgram so a live opener is restored`() {
+    fun `native close affordances retain the task and preserve opener return options`() {
         // closeMiniProgram is the raw "finish every Activity of this appId" primitive: it neither
         // queues the opener's scene 1038 payload nor runs the page-hide-before-app-hide ordering.
-        // The capsule "x" and the menu's 关闭小程序 are the *only* ways a user closes a mini program
-        // that was opened by another one, so wiring either of them straight to the primitive loses
-        // the opener restoration that navigateBackMiniProgram gets for free - a real-device
-        // reproduction showed the opener resuming with an empty appShow body and scene 1001.
+        // Capsule/menu close retains the task, but must still restore the opener's scene and
+        // return options just like an explicit navigateBackMiniProgram operation.
         val content = bodyOf("DiminaContent")
         assertTrue(
-            "the close affordances in DiminaContent must route through exitMiniProgram; found:\n$content",
-            content.contains("exitMiniProgram()"),
+            "the close affordances in DiminaContent must route through hideMiniProgram; found:\n$content",
+            content.contains("hideMiniProgram()"),
         )
         assertFalse(
             "no UI affordance may call the raw closeMiniProgram(): it skips the opener return " +
-                "payload and the suspension ordering. Route it through exitMiniProgram() instead.",
+                "payload and retained task. Route it through hideMiniProgram() instead.",
             content.contains("closeMiniProgram("),
         )
+
+        val hiding = bodyOf("hideMiniProgram")
+        assertTrue(hiding.contains("queueOpenerReturn(null)"))
+        assertTrue(hiding.contains("moveTaskToBack(true)"))
+        assertFalse(hiding.contains("finish()"))
+        assertFalse(hiding.contains("miniApp.clear"))
 
         // Pins the same invariant file-wide, so the check survives the handlers moving out of
         // DiminaContent: the primitive stays reachable only from the two functions that first give
@@ -224,6 +228,17 @@ class DiminaActivityBackgroundHookTest {
             "exitMiniProgram must queue the opener's return payload before closing; found:\n$exit",
             exit.indexOf("queueOpenerReturn") in 0 until exit.indexOf("closeMiniProgram("),
         )
+    }
+
+    @Test
+    fun `returning consumes the opener on every retained page after queueing its payload`() {
+        val returning = bodyOf("queueOpenerReturn")
+        val queue = returning.indexOf("miniApp.setPendingAppShowOptions(")
+        val consume = returning.indexOf("activityRegistry.snapshot(miniProgram.appId)")
+        assertTrue(queue >= 0)
+        assertTrue("All retained pages must drop the completed opener relation after queueing the return", consume > queue)
+        assertTrue(returning.substring(consume).contains("openerAppId = null"))
+        assertTrue(returning.substring(consume).contains("referrerExtraData = null"))
     }
 
     @Test

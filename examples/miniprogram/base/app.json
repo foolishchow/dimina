@@ -18,6 +18,7 @@
 		"pages/navigator/navigate/navigate",
 		"pages/navigator/redirect/redirect",
 		"pages/cover-view/index",
+		"pages/map/index",
 		"pages/movable-view/index",
 		"pages/picker/index",
 		"pages/picker-view/index",

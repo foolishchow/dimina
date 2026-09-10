@@ -124,6 +124,7 @@ export class DMPWebViewNodeController extends NodeController {
   dispose() {
     if (this.rootNode) {
       this.rootNode.dispose()
+      this.rootNode = null
     }
   }
 }

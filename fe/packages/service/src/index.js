@@ -6,6 +6,7 @@ import hostEnv from './core/host-env'
 import loader from './core/loader'
 import message from './core/message'
 import runtime from './core/runtime'
+import { pauseBackgroundWork, resumeBackgroundWork } from './core/background-scheduler'
 
 const actionMap = { navigateBack, navigateTo, reLaunch, redirectTo, switchTab }
 
@@ -173,11 +174,13 @@ class Service {
 		})
 
 		this.message.on('appShow', (options) => {
+			resumeBackgroundWork()
 			runtime.appShow(options)
 		})
 
 		this.message.on('appHide', () => {
-			runtime.appHide()
+			try { runtime.appHide() }
+			finally { pauseBackgroundWork() }
 		})
 
 		this.message.on('stackShow', ({ stackId }) => {

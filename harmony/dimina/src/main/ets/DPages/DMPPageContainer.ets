@@ -42,6 +42,30 @@ export struct DMPPageContainer {
     this.updateMenuButtonPosition()
   }
 
+  private pageContainerVisible: boolean = false
+  private keyboardWindow?: window.Window
+  private readonly keyboardHeightListener = (height: number): void => {
+    this.keyboardHeight = px2vp(height)
+  }
+  private readonly safetyDisplayListener = (data: Map<string, number>): void => {
+    const webViewId: number = data['webViewId'] ?? this.app.currentWebViewId
+    if (this.isTopView(webViewId)) {
+      const display: number = data['display']
+      this.showSafetyView = display == 1
+    }
+  }
+  private readonly safetyLayoutListener = (data: Map<string, number>): void => {
+    const webViewId: number = data['webViewId'] ?? this.app.currentWebViewId
+    if (this.isTopView(webViewId)) {
+      this.safeViewLeft = data['left'] ?? 10
+      this.safeViewBottom = data['bottom'] ?? 80
+      this.offsetX = 0
+      this.offsetY = 0
+      this.positionX = 0
+      this.positionY = 0
+    }
+  }
+
   onWebViewIdChange() {
     DMPLogger.d(Tags.TABBAR, `WebViewId changed to: ${this.webViewId}`)
     // Update pageRecord when webViewId changes
@@ -55,36 +79,22 @@ export struct DMPPageContainer {
   }
 
   aboutToAppear(): void {
+    this.pageContainerVisible = true
     this.showSafetyView = false
     this.updateTabBarSelection()
     this.updateMenuButtonPosition()
     DMPDeviceUtil.addMetricsChangeListener(this.deviceMetricsChangeCallback)
 
     window.getLastWindow(getContext(this)).then(currentWindow => {
-      currentWindow.on('keyboardHeightChange', (data: number) => {
-        this.keyboardHeight = px2vp(data);
-        DMPLogger.d('', "keyBoardHeight=" + this.keyboardHeight)
-      })
+      if (!this.pageContainerVisible) return
+      this.keyboardWindow = currentWindow
+      currentWindow.on('keyboardHeightChange', this.keyboardHeightListener)
+    }).catch((error: Error): void => {
+      DMPLogger.e(Tags.DMP_PAGE, error.message)
     })
-    getContext(this).eventHub.on('ps_safety_display', (data: Map<string, number>) => {
-      const webViewId: number = data['webViewId'] ?? this.app.currentWebViewId
-      if (this.isTopView(webViewId)) {
-        const display: number = data['display']
-        this.showSafetyView = display == 1
-      }
-    })
+    getContext(this).eventHub.on('ps_safety_display', this.safetyDisplayListener)
 
-    getContext(this).eventHub.on('ps_safety_layout', (data: Map<string, number>) => {
-      const webViewId: number = data['webViewId'] ?? this.app.currentWebViewId
-      if (this.isTopView(webViewId)) {
-        this.safeViewLeft = data['left'] ?? 10
-        this.safeViewBottom = data['bottom'] ?? 80
-        this.offsetX = 0
-        this.offsetY = 0
-        this.positionX = 0
-        this.positionY = 0
-      }
-    })
+    getContext(this).eventHub.on('ps_safety_layout', this.safetyLayoutListener)
 
     this.initActionSheetView()
   }
@@ -94,8 +104,13 @@ export struct DMPPageContainer {
   }
 
   aboutToDisappear(): void {
+    this.pageContainerVisible = false
+    this.keyboardWindow?.off('keyboardHeightChange', this.keyboardHeightListener)
+    this.keyboardWindow = undefined
+    getContext(this).eventHub.off('ps_safety_display', this.safetyDisplayListener)
+    getContext(this).eventHub.off('ps_safety_layout', this.safetyLayoutListener)
     DMPDeviceUtil.removeMetricsChangeListener(this.deviceMetricsChangeCallback)
-    if (this.pageRecord.webViewNodeController) {
+    if (this.pageRecord.webViewNodeController && !this.pageRecord.retainsNativeView) {
       this.pageRecord.webViewNodeController.dispose()
     }
 
@@ -234,10 +249,7 @@ export struct DMPPageContainer {
   }
 
   private closeMiniProgram() {
-    // Route through exitMiniProgram (not closeDimina directly) so a mini program
-    // opened via navigateToMiniProgram gets its opener restored on capsule/menu
-    // close the same way wx.exitMiniProgram already does.
-    DMPAppManager.sharedInstance().exitMiniProgram(this.app, async () => {}).catch((error: Error) => {
+    this.app.hideMiniProgram().catch((error: Error) => {
       DMPLogger.e(Tags.DMP_PAGE, `closeMiniProgram failed: ${error.message}`)
     })
   }

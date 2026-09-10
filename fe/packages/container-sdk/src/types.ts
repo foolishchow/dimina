@@ -118,6 +118,7 @@ export type ExtModuleHandler = (payload: {
 }) => (() => void) | void
 
 export interface CreateContainerOptions {
+	retention?: import('./core/retention.js').RetentionPolicy
 	/** 容器根元素，SDK 把应用视图树挂到这里 */
 	mount: HTMLElement
 	/** 宿主 shell 适配器：{ getStatusBarRect, updateStatusBarColor } */
@@ -186,6 +187,8 @@ export type OnAppLaunchError = (error: unknown, context: { appId: string }) => v
 export type MiniAppApiHandler = (this: MiniApp, params?: unknown) => void
 
 export interface ContainerInstance {
+	configureRetention: (policy: import('./core/retention.js').RetentionPolicy) => void
+	notifyMemoryPressure: () => void
 	application: Application
 	/** 打开/前置小程序；同 appId 二次打开复用缓存实例 */
 	openApp: (opts: OpenAppOptions) => Promise<MiniApp>
@@ -222,6 +225,7 @@ export interface BridgeMessage {
  * 只挂在 iframe contentWindow 上，故不进全局 Window 类型增强，由 WebView 按需断言。
  */
 export interface DiminaRenderBridge {
+	mapRenderer?: 'web'
 	invoke: ((msg: BridgeMessage) => void) | null
 	publish: ((msg: BridgeMessage) => void) | null
 	onMessage: (msg: BridgeMessage) => void

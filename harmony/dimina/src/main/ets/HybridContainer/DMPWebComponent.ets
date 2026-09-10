@@ -1,16 +1,16 @@
+import { DMPNativeMapManager } from '../Map/DMPMapProvider'
 
 import web_webview from '@ohos.web.webview'
 import { DMPWebViewController } from './DMPWebViewController'
 import { DMPAppManager } from '../DApp/DMPAppManager'
 import { DMPNodeController } from '../Render/SameLayer/DMPNodeController'
-import { NodeRenderType } from '@kit.ArkUI'
+import { NodeRenderType, Size } from '@kit.ArkUI'
 import { RequestCallback } from '../Render/UrlIntercepter/UrlInterceptor'
 import { DMPRender } from '../Render/DMPRender'
 import { DMPCommonDialog, ModalOption } from '../Bridges/Widget/DMPCommonDialog'
 import { DMPLogger } from '../EventTrack/DMPLogger'
 import { Tags } from '../EventTrack/Tags'
 import { DMPPageRecord } from '../Navigator/DMPPageRecord'
-import { NumberUtils } from '../Utils/DMPNumberUtils'
 import { DMPMap } from '../Utils/DMPMap'
 import { systemDateTime } from '@kit.BasicServicesKit'
 import { DMPContextUtils } from '../Utils/DMPContextUtils'
@@ -27,6 +27,7 @@ export struct DMPWebComponent {
   private readonly controller: DMPWebViewController = this.render.getController(this.webViewId)
   // 同层渲染用到
   private sameLayerNodeControllerMap: Map<string, DMPNodeController> = new Map();
+  @State private sameLayerNodeSizes: Map<string, Size> = new Map();
   @State componentIdArr: Array<string> = [];
   @State modalInteractionBlocked: boolean = false
   private modalInteractionBlockCount: number = 0
@@ -53,6 +54,7 @@ export struct DMPWebComponent {
     DMPLogger.i(Tags.DMP_WEB_COMPONENT, "aboutToDisappear")
     this.controller.webContainer = null;
     this.controller.notifyControllerDetached()
+    DMPNativeMapManager.clearPage(this.appIndex, this.webViewId)
     this.render.removeController(this.webViewId)
   }
 
@@ -74,6 +76,9 @@ export struct DMPWebComponent {
     Stack() {
       ForEach(this.componentIdArr, (componentId: string) => {
         NodeContainer(this.sameLayerNodeControllerMap.get(componentId))
+          // 百分比布局以 embed 的 vp 尺寸为约束，不能使用整个 Web 页面的高度。
+          .width(this.sameLayerNodeSizes.get(componentId)?.width ?? 0)
+          .height(this.sameLayerNodeSizes.get(componentId)?.height ?? 0)
       }, (embedId: string) => embedId)
 
       Web({
@@ -177,8 +182,8 @@ export struct DMPWebComponent {
       surfaceId: embed.surfaceId as string,
       embedId: embed.embedId as string,
       renderType: NodeRenderType.RENDER_TYPE_TEXTURE,
-      width: NumberUtils.toInt(px2vp(embed.info?.width)),
-      height: NumberUtils.toInt(px2vp(embed.info?.height)),
+      width: this.getUIContext().px2vp(embed.info?.width ?? 0),
+      height: this.getUIContext().px2vp(embed.info?.height ?? 0),
       type: embed.info?.type as string,
       params: componentParams,
       parentWebViewId: this.webViewId
@@ -186,6 +191,7 @@ export struct DMPWebComponent {
     nodeController.rebuild()
     // 根据web传入的embed的id属性作为key，将nodeController存入map。
     this.sameLayerNodeControllerMap.set(componentId, nodeController)
+    this.sameLayerNodeSizes.set(componentId, { width: nodeController.width, height: nodeController.height })
     // 将web传入的embed的id属性存入@State状态数组变量中，用于动态创建nodeContainer节点容器，需要将push动作放在set之后。
     this.componentIdArr.push(componentId)
   }
@@ -194,8 +200,8 @@ export struct DMPWebComponent {
     DMPLogger.d(Tags.WEB_COMPONENT, 'NativeEmbed update %{public}s', JSON.stringify(embed.info))
     let nodeController = this.sameLayerNodeControllerMap.get(componentId)
 
-    const changeWidth = NumberUtils.toInt(px2vp(embed.info?.width));
-    const changeHeight = NumberUtils.toInt(px2vp(embed.info?.height));
+    const changeWidth = this.getUIContext().px2vp(embed.info?.width ?? 0);
+    const changeHeight = this.getUIContext().px2vp(embed.info?.height ?? 0);
     if (changeWidth !== nodeController?.width ||
       changeHeight !== nodeController?.height) {
       const stack =
@@ -215,6 +221,7 @@ export struct DMPWebComponent {
         params: componentParams,
         parentWebViewId: this.webViewId
       })
+      this.sameLayerNodeSizes.set(componentId, { width: changeWidth, height: changeHeight })
       //这个更新会崩溃，先使用rebuild
       // nodeController?.updateNode({
       //   text: 'update',
@@ -234,6 +241,7 @@ export struct DMPWebComponent {
     DMPLogger.d(Tags.WEB_COMPONENT, 'NativeEmbed destroy %{public}s', JSON.stringify(embed.info))
     let nodeController = this.sameLayerNodeControllerMap.get(componentId)
     this.sameLayerNodeControllerMap.delete(componentId)
+    this.sameLayerNodeSizes.delete(componentId)
     nodeController?.dispose()
     const targetIndex = this.componentIdArr.indexOf(componentId);
     if (targetIndex != -1) {

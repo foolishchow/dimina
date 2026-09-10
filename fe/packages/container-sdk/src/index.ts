@@ -1,11 +1,13 @@
 import type { ContainerInstance, CreateContainerOptions } from './types.js'
 import { AppManager } from './core/appManager.js'
+import { resolveRetentionPolicy } from './core/retention.js'
 import { Application } from './pages/application/application.js'
 import { QueryRouter } from './utils/queryRouter.js'
 
 // 公开导出：宿主解析/构造小程序路由（刷新恢复、分享链接）需要它，
 // 而 dist 分发下深路径 import 不可达。
 export { QueryRouter }
+export type { RetentionPolicy } from './core/retention.js'
 
 export { createDefaultShell } from './defaultShell.js'
 export type { DefaultShell, DefaultShellOptions } from './defaultShell.js'
@@ -21,6 +23,7 @@ export function createContainer(options: CreateContainerOptions | Record<string,
 		throw new Error('[container] createContainer: options.mount is required')
 	}
 
+	const retentionPolicy = resolveRetentionPolicy(options.retention)
 	const appManager = new AppManager()
 
 	// apis/extModules 在函数返回之前注册，保证严格早于任何 openApp()。
@@ -32,10 +35,13 @@ export function createContainer(options: CreateContainerOptions | Record<string,
 	}
 
 	const application = new Application({ shell, resourceBaseUrl, pageFrameUrl, virtualFilePrefix, apiNamespaces, urlSync, instanceKey, storageSync, getAppInfo, onAppLaunchError, appManager, allowedOrigins })
+	appManager.configureRetention(retentionPolicy, application)
 	mount.appendChild(application.el)
 
 	return {
 		application,
+		configureRetention: policy => appManager.configureRetention(policy, application),
+		notifyMemoryPressure: () => appManager.retention.memoryPressure(),
 
 		openApp(opts) {
 			return appManager.openApp(opts, application)

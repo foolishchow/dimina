@@ -64,6 +64,7 @@ fastlane/test_output
 Pods
 Podfile.lock
 buildServer.json
+/Vendor/AMap/
 
 # Dimina JsSdk and JsApp files (copied from shared directory during build)
 /dimina/Resources/JsApp.bundle/**

@@ -1,9 +1,7 @@
 <script setup>
-// 地图
-// https://developers.weixin.qq.com/miniprogram/dev/component/map.html
-import { isAndroid, isDesktop, isHarmonyOS, isIOS } from '@dimina/common'
-import { invokeAPI, onEvent, triggerEvent, useInfo } from '@/common/events'
-import { ensureNativeLayerTouchBridge } from '@/common/nativeLayerTouchBridge'
+import { isAndroid, isIOS, isHarmonyOS } from '@dimina/common'
+import { triggerEvent, useInfo } from '@/common/events'
+import { createMapSession } from './map-session'
 
 const props = defineProps({
 	id: { type: String, default: () => `map-${useId()}` },
@@ -47,178 +45,49 @@ const props = defineProps({
 })
 
 const rootRef = ref()
+const surfaceRef = ref()
 const info = useInfo()
-const type = 'native/map'
-const isNativeMap = computed(() => isAndroid || isIOS || isHarmonyOS)
-const nativeEventOffs = []
-let resizeObserver
-let syncFrameId = 0
-let lastRectKey = ''
-let nativeMounted = false
+const errorMessage = ref('')
+const errorHint = computed(() => {
+	if (/AMap (?:Web|Android|iOS|HarmonyOS) key is required/i.test(errorMessage.value)) return '未配置地图 Key'
+	if (/map provider is not configured/i.test(errorMessage.value)) return '地图未配置，请配置地图 Key 和服务提供方'
+	return '地图暂不可用'
+})
+let session
 
-function getRect() {
-	if (!rootRef.value) return {}
-	const rect = rootRef.value.getBoundingClientRect()
-	return {
-		left: rect.left,
-		top: rect.top,
-		width: rect.width,
-		height: rect.height,
-		pageLeft: rect.left + window.scrollX,
-		pageTop: rect.top + window.scrollY,
-		scrollX: window.scrollX,
-		scrollY: window.scrollY,
-		viewportWidth: window.innerWidth,
-		viewportHeight: window.innerHeight,
-	}
+function snapshot() {
+	return JSON.parse(JSON.stringify({ ...props, ...props.setting }))
 }
 
-function getNativeParams() {
-	const enablePoi = props.enablePOI === undefined ? props.enablePoi : props.enablePOI
-	return {
-		latitude: props.latitude,
-		longitude: props.longitude,
-		scale: props.scale,
-		markers: props.markers,
-		covers: props.covers,
-		includePoints: props.includePoints,
-		polyline: props.polyline,
-		circles: props.circles,
-		controls: props.controls,
-		polygons: props.polygons,
-		showLocation: props.showLocation,
-		showScale: props.showScale,
-		showCompass: props.showCompass,
-		theme: props.theme,
-		subkey: props.subkey,
-		layerStyle: props.layerStyle,
-		usePluginId: props.usePluginId,
-		enableZoom: props.enableZoom,
-		enableScroll: props.enableScroll,
-		enableRotate: props.enableRotate,
-		enable3D: props.enable3D,
-		enableOverlooking: props.enableOverlooking,
-		enableAutoMaxOverlooking: props.enableAutoMaxOverlooking,
-		enableSatellite: props.enableSatellite,
-		enableTraffic: props.enableTraffic,
-		enablePoi,
-		enablePOI: enablePoi,
-		enableBuilding: props.enableBuilding,
-		enableIndoor: props.enableIndoor,
-		enableIndoorBuildingPick: props.enableIndoorBuildingPick,
-		enableIndoorLevelPick: props.enableIndoorLevelPick,
-		rotate: props.rotate,
-		skew: props.skew,
-		minScale: props.minScale,
-		maxScale: props.maxScale,
-		setting: props.setting,
-		...props.setting,
-		type,
-		id: props.id,
-		hidden: rootRef.value?.hasAttribute('hidden') || false,
-		rect: getRect(),
-	}
-}
-
-function invokeNative(apiName) {
-	if (!isNativeMap.value) return
-	if (apiName === 'propsUpdate' && !nativeMounted) return
-	invokeAPI(apiName, {
-		bridgeId: info.bridgeId,
-		params: getNativeParams(),
-	})
-}
-
-function bindNativeEvent(nativeEvent, eventType) {
-	const off = onEvent(nativeEvent, (msg) => {
-		if (msg.id !== undefined && msg.id !== props.id && msg.mapId !== props.id) return
-		triggerEvent(eventType, { type: eventType, info, detail: msg })
-	})
-	nativeEventOffs.push(off)
-}
-
-function syncRect(force = false) {
-	const rectKey = JSON.stringify({
-		...getRect(),
-		hidden: rootRef.value?.hasAttribute('hidden') || false,
-	})
-	if (force || rectKey !== lastRectKey) {
-		lastRectKey = rectKey
-		invokeNative('propsUpdate')
-	}
-}
-
-function scheduleSyncRect() {
-	if (syncFrameId) return
-	syncFrameId = requestAnimationFrame(() => {
-		syncFrameId = 0
-		syncRect()
-	})
+function emit(type, detail) {
+	triggerEvent(type, { info, detail, currentTarget: rootRef.value })
 }
 
 onMounted(() => {
-	if (!isNativeMap.value) return
-	if (isAndroid) ensureNativeLayerTouchBridge()
-
-	for (const eventType of [
-		'callouttap',
-		'markertap',
-		'labeltap',
-		'controltap',
-		'regionchange',
-		'tap',
-		'indoorchange',
-		'poitap',
-		'anchorpointtap',
-		'updated',
-		'rendersuccess',
-		'error',
-	]) bindNativeEvent(`bind${eventType}`, eventType)
-
-	nextTick(() => {
-		nativeMounted = true
-		invokeNative('componentMount')
-		lastRectKey = JSON.stringify({ ...getRect(), hidden: rootRef.value?.hasAttribute('hidden') || false })
-		window.addEventListener('resize', scheduleSyncRect)
-		window.addEventListener('scroll', scheduleSyncRect, true)
-		if (window.ResizeObserver && rootRef.value) {
-			resizeObserver = new ResizeObserver(scheduleSyncRect)
-			resizeObserver.observe(rootRef.value)
-		}
+	const config = window.__DIMINA_MAP_CONFIG__ || ((isAndroid || isIOS || isHarmonyOS) && window.DiminaRenderBridge?.mapRenderer !== 'web'
+		? { provider: 'native', authorize: () => true } : undefined)
+	session = createMapSession({ element: surfaceRef.value, props: snapshot(), emit, bridgeId: info.bridgeId, config })
+	session.ready.catch(error => { errorMessage.value = error.message })
+	Object.defineProperty(rootRef.value, '__diminaMap', {
+		configurable: true,
+		value: { bridgeId: info.bridgeId, moduleId: info.moduleId, invoke: session.invoke },
 	})
 })
 
-watch(
-	() => getNativeParams(),
-	() => invokeNative('propsUpdate'),
-	{ deep: true },
-)
+watch(snapshot, next => {
+	session?.update(next).catch(error => emit('error', { errMsg: `map:fail ${error.message}` }))
+}, { deep: true })
 
 onBeforeUnmount(() => {
-	if (syncFrameId) cancelAnimationFrame(syncFrameId)
-	resizeObserver?.disconnect()
-	window.removeEventListener('resize', scheduleSyncRect)
-	window.removeEventListener('scroll', scheduleSyncRect, true)
-	invokeNative('componentUnmount')
-	nativeMounted = false
-	nativeEventOffs.splice(0).forEach(off => off())
+	delete rootRef.value.__diminaMap
+	session?.destroy()
 })
 </script>
 
 <template>
 	<div :id="id" ref="rootRef" v-bind="$attrs" class="dd-map">
-		<div v-if="isDesktop" class="dd-map-desktop">未实现组件</div>
-		<div v-else-if="isIOS" class="dd-map-native dd-map-container"><div /></div>
-		<embed
-			v-else-if="isAndroid"
-			class="dd-map-native"
-			type="application/view"
-			:comp_type="type"
-			data-dimina-native-type="native/map"
-			:data-dimina-native-id="id"
-		/>
-		<embed v-else-if="isHarmonyOS" class="dd-map-native" :type="type" />
-		<div v-else class="dd-map-desktop">未实现组件</div>
+		<div ref="surfaceRef" class="dd-map-surface" />
+		<div v-if="errorMessage" class="dd-map-error" role="status">{{ errorHint }}</div>
 		<div class="dd-map-slot"><slot /></div>
 	</div>
 </template>
@@ -230,35 +99,21 @@ onBeforeUnmount(() => {
 	overflow: hidden;
 	width: 300px;
 	height: 150px;
-
 	&[hidden] { display: none; }
 }
-
-.dd-map-native,
-.dd-map-desktop,
-.dd-map-slot {
+.dd-map-surface, .dd-map-slot, .dd-map-error {
 	position: absolute;
 	inset: 0;
 	width: 100%;
 	height: 100%;
 }
-
-.dd-map-container {
-	overflow: scroll;
-	-webkit-overflow-scrolling: touch;
-
-	> div { width: 101%; height: 101%; }
-}
-
-.dd-map-desktop {
-	color: white;
-	background-color: gray;
+.dd-map-error {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	background: #f5f5f5;
+	color: #666;
 }
-
 .dd-map-slot { pointer-events: none; }
 .dd-map-slot * { pointer-events: auto; }
-.dd-map-native[data-dimina-native-type='native/map'] { background: transparent !important; opacity: 0; }
 </style>

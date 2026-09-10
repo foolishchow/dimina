@@ -1,3 +1,4 @@
+import { DMPNativeMapManager } from '../Map/DMPMapProvider'
 import { Tags } from '../EventTrack/Tags'
 import { DMPLogger } from '../EventTrack/DMPLogger'
 import { DMPContainerBridgesModule } from './DMPContainerBridgesModule'
@@ -16,8 +17,23 @@ export class DMPContainerBridgesModuleWeb extends DMPContainerBridgesModule {
       'componentMount',
       'componentUnmount',
       'adjustPosition',
-      'videoContext'
+      'videoContext', 'mapMount', 'mapUpdate', 'mapUnmount', 'mapContext'
     ];
+  }
+
+  mapMount(data: DMPMap, callback: DMPBridgeCallback, webViewId: number): void {
+    DMPNativeMapManager.mount(this.app, webViewId, data)
+    this.updateComponentParams(data, webViewId)
+  }
+  mapUpdate(data: DMPMap, callback: DMPBridgeCallback, webViewId: number): void {
+    DMPNativeMapManager.update(this.app, webViewId, data)
+  }
+  mapUnmount(data: DMPMap, callback: DMPBridgeCallback, webViewId: number): void {
+    DMPNativeMapManager.remove(this.app.appIndex, webViewId, data.getString('id') ?? '')
+    this.app.navigatorManager.getPageRecordById(webViewId)?.componentParams.delete(data.getString('id') ?? '')
+  }
+  mapContext(data: DMPMap, callback: DMPBridgeCallback, webViewId: number): void {
+    DMPNativeMapManager.invoke(this.app, webViewId, data)
   }
 
   postMessage(data: DMPMap, callback: DMPBridgeCallback, webViewId: number) {

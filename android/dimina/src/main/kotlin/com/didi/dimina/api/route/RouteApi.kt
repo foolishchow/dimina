@@ -95,6 +95,9 @@ class RouteApi : BaseApiHandler() {
         params: JSONObject,
         responseCallback: (String) -> Unit,
     ): APIResult {
+        if (!activity.isMiniProgramForeground()) {
+            return ApiUtils.createErrorResponse(apiName, "mini program is in background")
+        }
         return when (apiName) {
             NAVIGATE_TO -> {
                 val url = params.optString("url", "")

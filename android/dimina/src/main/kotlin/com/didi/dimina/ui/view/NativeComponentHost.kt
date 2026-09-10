@@ -1,22 +1,27 @@
 package com.didi.dimina.ui.view
 
+import com.didi.dimina.ui.view.nativecomponent.NativeComponentBackend
+import com.didi.dimina.ui.view.nativecomponent.NativeComponentBackends
+import com.didi.dimina.ui.view.nativecomponent.NativeComponentBackendContext
+import com.didi.dimina.ui.view.nativecomponent.NativeComponentLayout
+import com.didi.dimina.map.MapProviders
+import com.didi.dimina.map.MapInstance
+import com.didi.dimina.map.MapEvents
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.text.TextUtils
 import android.view.Gravity
-import android.view.InputDevice
-import android.view.MotionEvent
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.SslErrorHandler
@@ -45,34 +50,34 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import kotlin.math.roundToInt
 
 /**
- * Hosts native components behind the WebView and keeps their bounds aligned
- * with DOM placeholders reported from the render layer.
+ * Routes component APIs to SDK instances; presentation is delegated to a per-page backend.
  */
 class NativeComponentHost(
     private val activity: DiminaActivity,
     private val webView: WebView,
-    private val overlay: FrameLayout,
+    private val backend: NativeComponentBackend,
     private val embeddedMessageHandler: (JSONObject) -> Unit = {},
 ) {
-    private val components = mutableMapOf<String, NativeComponent>()
-    private val touchDownTimes = mutableMapOf<String, Long>()
-    private val originalWebViewBackground: Drawable? = webView.background
-    private val imageScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var webViewTransparent = false
+    // Preserve the existing container constructor and its trailing message-handler lambda.
+    constructor(activity: DiminaActivity, webView: WebView, overlay: FrameLayout,
+        embeddedMessageHandler: (JSONObject) -> Unit = {}) : this(activity, webView,
+        NativeComponentBackends.create(NativeComponentBackendContext(activity, webView, overlay)), embeddedMessageHandler)
 
-    init {
-        webView.setOnScrollChangeListener { _, _, _, _, _ ->
-            updateNativeComponentLayouts()
-        }
+    val capabilities get() = backend.capabilities
+    fun updatePageBackgroundColor(color: Int) {
+        activity.runOnUiThread { if (!cleared) backend.updatePageBackgroundColor(color) }
     }
+    private val components = mutableMapOf<String, NativeComponent>()
+    private val imageScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var cleared = false
 
     fun handle(apiName: String, params: JSONObject): Boolean {
+        if (cleared) return false
         val type = params.optString("type", VIDEO_TYPE)
         if (type !in SUPPORTED_TYPES) {
             LogUtils.d(TAG, "Ignore unsupported native component: $type")
@@ -86,6 +91,11 @@ class NativeComponentHost(
         }
 
         activity.runOnUiThread {
+            if (cleared) return@runOnUiThread
+            if (type == "native/map") {
+                handleMap(apiName, id, params)
+                return@runOnUiThread
+            }
             when (apiName) {
                 "componentMount" -> mountComponent(type, id, params)
                 "propsUpdate" -> updateComponent(type, id, params)
@@ -102,132 +112,115 @@ class NativeComponentHost(
             return false
         }
         activity.runOnUiThread {
-            dispatchNativeTouch(params)
+            if (!cleared) backend.dispatchTouch(params)
         }
         return true
     }
 
     fun clear() {
         activity.runOnUiThread {
-            webView.setOnScrollChangeListener(null)
-            components.values.forEach { it.release() }
-            components.clear()
-            touchDownTimes.clear()
-            restoreWebViewBackground()
-            imageScope.cancel()
-            overlay.removeAllViews()
+            if (cleared) return@runOnUiThread
+            cleared = true
+            try { backend.destroy() } finally {
+                components.values.forEach { it.release() }
+                components.clear()
+                imageScope.cancel()
+            }
         }
     }
 
-    private fun dispatchNativeTouch(params: JSONObject) {
-        val targetId = params.optString("targetId")
-        val component = components[targetId] ?: return
-        val targetView = component.view
-        if (targetView.visibility != View.VISIBLE) {
-            return
-        }
+    private fun mapResult(params: JSONObject, result: Result<JSONObject>) {
+        val requestId = params.optString("requestId")
+        if (requestId.isEmpty()) return
+        sendEvent("mapResult", JSONObject().put("id", params.optString("id"))
+            .put("requestId", requestId).put("ok", result.isSuccess)
+            .put("data", result.getOrElse { JSONObject().put("errMsg", it.message ?: "Native map operation failed") }))
+    }
 
-        val actionName = params.optString("action")
-        val now = SystemClock.uptimeMillis()
-        if (actionName == TOUCH_ACTION_DOWN) {
-            touchDownTimes[targetId] = now
-        }
-        val downTime = touchDownTimes[targetId] ?: now.also {
-            touchDownTimes[targetId] = it
-        }
-
-        val event = createMotionEvent(params, targetView, downTime, now) ?: return
+    private fun handleMap(apiName: String, id: String, params: JSONObject) {
         try {
-            targetView.dispatchTouchEvent(event)
-        } finally {
-            event.recycle()
-        }
-
-        if (actionName == TOUCH_ACTION_UP || actionName == TOUCH_ACTION_CANCEL) {
-            touchDownTimes.remove(targetId)
+            when (apiName) {
+                "mapMount" -> {
+                    unmountComponent(id)
+                    val component = NativeMapComponent(id, params)
+                    components[id] = component
+                    backend.attach(id, component.type, component.view, component::onVisibilityChanged)
+                    component.update(params)
+                }
+                "mapUpdate" -> {
+                    val component = components[id] as? NativeMapComponent ?: error("Map not found")
+                    component.update(params)
+                    mapResult(params, Result.success(JSONObject()))
+                }
+                "mapUnmount" -> unmountComponent(id)
+                "mapContext" -> {
+                    val component = components[id] as? NativeMapComponent ?: error("Map not found")
+                    component.invoke(params)
+                }
+            }
+        } catch (error: Exception) {
+            if (apiName == "mapMount") unmountComponent(id)
+            mapResult(params, Result.failure(error))
         }
     }
 
-    private fun createMotionEvent(
-        params: JSONObject,
-        targetView: View,
-        downTime: Long,
-        eventTime: Long,
-    ): MotionEvent? {
-        val pointers = params.optJSONArray("pointers") ?: return null
-        if (pointers.length() == 0) {
-            return null
-        }
+    private inner class NativeMapComponent(id: String, private val mount: JSONObject) :
+        BaseNativeComponent(id, "native/map"), MapEvents, DefaultLifecycleObserver {
+        private var released = false
+        private var mounted = false
+        private val instance: MapInstance = MapProviders.create(activity, this)
+        override val view: View get() = instance.view
 
-        val actionPointerId = params.optInt("actionPointerId", -1)
-        val actionPointerIndex = findPointerIndex(pointers, actionPointerId)
-        val action = when (params.optString("action")) {
-            TOUCH_ACTION_DOWN -> MotionEvent.ACTION_DOWN
-            TOUCH_ACTION_POINTER_DOWN -> MotionEvent.ACTION_POINTER_DOWN or
-                (actionPointerIndex.coerceAtLeast(0) shl MotionEvent.ACTION_POINTER_INDEX_SHIFT)
-            TOUCH_ACTION_MOVE -> MotionEvent.ACTION_MOVE
-            TOUCH_ACTION_POINTER_UP -> MotionEvent.ACTION_POINTER_UP or
-                (actionPointerIndex.coerceAtLeast(0) shl MotionEvent.ACTION_POINTER_INDEX_SHIFT)
-            TOUCH_ACTION_UP -> MotionEvent.ACTION_UP
-            TOUCH_ACTION_CANCEL -> MotionEvent.ACTION_CANCEL
-            else -> return null
+        private var resumed = false
+        private var presented = false
+        init { activity.lifecycle.addObserver(this) }
+        override fun onVisibilityChanged(visible: Boolean) {
+            presented = visible
+            syncLifecycle()
         }
-
-        val viewportWidth = params.optDouble("viewportWidth", 0.0)
-        val viewportHeight = params.optDouble("viewportHeight", 0.0)
-        val scaleX = if (viewportWidth > 0.0 && webView.width > 0) {
-            webView.width / viewportWidth
-        } else {
-            1.0
+        private fun syncLifecycle() {
+            if (released) return
+            val shouldResume = presented && activity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+            if (resumed == shouldResume) return
+            resumed = shouldResume
+            if (resumed) instance.resume() else instance.pause()
         }
-        val scaleY = if (viewportHeight > 0.0 && webView.height > 0) {
-            webView.height / viewportHeight
-        } else {
-            scaleX
+        override fun update(params: JSONObject) {
+            NativeComponentLayout.from(params)?.let { backend.updateLayout(id, it) }
+            if (!params.optBoolean("layoutOnly")) instance.update(params.optJSONObject("props") ?: JSONObject())
         }
-
-        val pointerProperties = Array(pointers.length()) { index ->
-            val pointer = pointers.getJSONObject(index)
-            MotionEvent.PointerProperties().apply {
-                id = pointer.optInt("id", index)
-                toolType = MotionEvent.TOOL_TYPE_FINGER
+        override fun ready() {
+            // A provider may report synchronously from create; wait until the host owns its view.
+            webView.post {
+                if (released || mounted) return@post
+                mounted = true
+                mapResult(mount, Result.success(JSONObject().put("nativeComponentBackend", JSONObject()
+                    .put("name", backend.capabilities.name)
+                    .put("supportsPageBackground", backend.capabilities.supportsPageBackground))))
+                event("rendersuccess")
             }
         }
-        val pointerCoords = Array(pointers.length()) { index ->
-            val pointer = pointers.getJSONObject(index)
-            MotionEvent.PointerCoords().apply {
-                x = (pointer.optDouble("clientX") * scaleX - targetView.left).toFloat()
-                y = (pointer.optDouble("clientY") * scaleY - targetView.top).toFloat()
-                pressure = 1f
-                size = 1f
+        override fun event(name: String, detail: JSONObject) {
+            if (!released) sendEvent("mapEvent", JSONObject().put("id", id).put("event", name).put("detail", detail))
+        }
+        override fun error(message: String) {
+            if (!mounted) mapResult(mount, Result.failure(IllegalStateException(message)))
+            event("error", JSONObject().put("errMsg", message))
+        }
+        fun invoke(params: JSONObject) {
+            var settled = false
+            instance.invoke(params.optString("command"), params.optJSONObject("args") ?: JSONObject()) { result ->
+                if (!released && !settled) { settled = true; mapResult(params, result) }
             }
         }
-
-        return MotionEvent.obtain(
-            downTime,
-            eventTime,
-            action,
-            pointers.length(),
-            pointerProperties,
-            pointerCoords,
-            0,
-            0,
-            1f,
-            1f,
-            0,
-            0,
-            InputDevice.SOURCE_TOUCHSCREEN,
-            0,
-        )
-    }
-
-    private fun findPointerIndex(pointers: JSONArray, pointerId: Int): Int {
-        for (index in 0 until pointers.length()) {
-            if (pointers.getJSONObject(index).optInt("id", -1) == pointerId) {
-                return index
-            }
+        override fun onResume(owner: LifecycleOwner) { syncLifecycle() }
+        override fun onPause(owner: LifecycleOwner) { resumed = false; instance.pause() }
+        override fun release() {
+            if (released) return
+            released = true
+            activity.lifecycle.removeObserver(this)
+            instance.destroy()
         }
-        return 0
     }
 
     private fun mountComponent(type: String, id: String, params: JSONObject) {
@@ -236,50 +229,27 @@ class NativeComponentHost(
             unmountComponent(id)
         }
         val component = components.getOrPut(id) {
-            createComponent(type, id).also { overlay.addView(it.view) }
+            createComponent(type, id).also { component ->
+                try { backend.attach(id, type, component.view, component::onVisibilityChanged) }
+                catch (error: Exception) {
+                    try { backend.detach(id) } finally { component.release() }
+                    throw error
+                }
+            }
         }
         component.update(params)
-        updateWebViewBackgroundForNativeComponents()
     }
 
     private fun updateComponent(type: String, id: String, params: JSONObject) {
         components[id]?.let { component ->
             component.update(params)
-            updateWebViewBackgroundForNativeComponents()
         } ?: mountComponent(type, id, params)
     }
 
     private fun unmountComponent(id: String) {
         components.remove(id)?.let { component ->
-            touchDownTimes.remove(id)
-            component.release()
-            overlay.removeView(component.view)
-            updateWebViewBackgroundForNativeComponents()
+            try { backend.detach(id) } finally { component.release() }
         }
-    }
-
-    private fun updateWebViewBackgroundForNativeComponents() {
-        val hasVisibleNativeComponent = components.values.any { component ->
-            component.view.visibility == View.VISIBLE
-        }
-        if (hasVisibleNativeComponent && !webViewTransparent) {
-            webView.setBackgroundColor(Color.TRANSPARENT)
-            webViewTransparent = true
-        } else if (!hasVisibleNativeComponent && webViewTransparent) {
-            restoreWebViewBackground()
-        }
-    }
-
-    private fun restoreWebViewBackground() {
-        if (!webViewTransparent) {
-            return
-        }
-        if (originalWebViewBackground != null) {
-            webView.background = originalWebViewBackground
-        } else {
-            webView.setBackgroundColor(Color.WHITE)
-        }
-        webViewTransparent = false
     }
 
     private fun createComponent(type: String, id: String): NativeComponent {
@@ -290,50 +260,6 @@ class NativeComponentHost(
             VIDEO_TYPE -> NativeVideoComponent(id)
             else -> error("Unsupported native component type: $type")
         }
-    }
-
-    private fun updateNativeComponentLayouts() {
-        components.values.forEach { component ->
-            component.applyLastLayout()
-        }
-    }
-
-    private fun calculateLayout(params: JSONObject): NativeLayout? {
-        val rect = params.optJSONObject("rect") ?: return null
-        val viewportWidth = rect.optDouble("viewportWidth", 0.0)
-        val viewportHeight = rect.optDouble("viewportHeight", 0.0)
-        val scaleX = if (viewportWidth > 0.0 && webView.width > 0) {
-            webView.width / viewportWidth
-        } else {
-            1.0
-        }
-        val scaleY = if (viewportHeight > 0.0 && webView.height > 0) {
-            webView.height / viewportHeight
-        } else {
-            scaleX
-        }
-        val width = (rect.optDouble("width") * scaleX).roundToInt()
-        val height = (rect.optDouble("height") * scaleY).roundToInt()
-        val left = if (rect.has("pageLeft")) {
-            (rect.optDouble("pageLeft") * scaleX - webView.scrollX).roundToInt()
-        } else {
-            (rect.optDouble("left") * scaleX).roundToInt()
-        }
-        val top = if (rect.has("pageTop")) {
-            (rect.optDouble("pageTop") * scaleY - webView.scrollY).roundToInt()
-        } else {
-            (rect.optDouble("top") * scaleY).roundToInt()
-        }
-        val hidden = params.optBoolean("hidden", false) || width <= 0 || height <= 0
-
-        return NativeLayout(
-            left = left,
-            top = top,
-            width = width.coerceAtLeast(1),
-            height = height.coerceAtLeast(1),
-            visible = !hidden,
-            zIndex = params.optJSONObject("style")?.optString("zIndex")?.toFloatOrNull() ?: 0f,
-        )
     }
 
     private fun sendEvent(eventName: String, body: JSONObject) {
@@ -348,7 +274,7 @@ class NativeComponentHost(
         val type: String
         val view: View
         fun update(params: JSONObject)
-        fun applyLastLayout()
+        fun onVisibilityChanged(visible: Boolean) = Unit
         fun release()
     }
 
@@ -356,11 +282,8 @@ class NativeComponentHost(
         protected val id: String,
         override val type: String,
     ) : NativeComponent {
-        protected var lastLayoutParams: JSONObject? = null
-        private var lastNativeLayout: NativeLayout? = null
 
         override fun update(params: JSONObject) {
-            lastLayoutParams = params
             applyLayout(params)
             view.isClickable = params.optBoolean("tappable", view.isClickable)
             view.setOnClickListener(
@@ -374,36 +297,12 @@ class NativeComponentHost(
             )
         }
 
-        override fun applyLastLayout() {
-            lastLayoutParams?.let { applyLayout(it) }
-        }
-
         protected fun applyLayout(params: JSONObject) {
-            val layout = calculateLayout(params) ?: return
-            if (layout == lastNativeLayout) {
-                return
-            }
-            lastNativeLayout = layout
-            view.visibility = if (layout.visible) View.VISIBLE else View.GONE
-            view.translationZ = layout.zIndex
-            val currentParams = view.layoutParams as? FrameLayout.LayoutParams
-            if (
-                currentParams?.width == layout.width &&
-                currentParams.height == layout.height &&
-                currentParams.leftMargin == layout.left &&
-                currentParams.topMargin == layout.top
-            ) {
-                return
-            }
-            view.layoutParams = FrameLayout.LayoutParams(layout.width, layout.height).apply {
-                leftMargin = layout.left
-                topMargin = layout.top
-            }
+            NativeComponentLayout.from(params)?.let { backend.updateLayout(id, it) }
         }
 
         protected fun applyCommonStyle(params: JSONObject) {
             val style = params.optJSONObject("style") ?: return
-            view.alpha = style.optString("opacity", "1").toFloatOrNull()?.coerceIn(0f, 1f) ?: 1f
             val borderRadius = parseCssPx(style.optString("borderRadius")).toFloat()
             val background = GradientDrawable().apply {
                 setColor(parseCssColor(style.optString("backgroundColor")) ?: Color.TRANSPARENT)
@@ -797,8 +696,6 @@ class NativeComponentHost(
         private var pendingPlay: Boolean = false
         private var timeUpdateRunning: Boolean = false
         private var isUserSeeking: Boolean = false
-        private var lastLayoutParams: JSONObject? = null
-        private var lastNativeLayout: NativeLayout? = null
 
         private val timeUpdateTask = object : Runnable {
             override fun run() {
@@ -854,7 +751,6 @@ class NativeComponentHost(
         }
 
         override fun update(params: JSONObject) {
-            lastLayoutParams = params
             applyLayout(params)
             controls = params.optBoolean("controls", controls)
             showProgress = params.optBoolean("showProgress", showProgress)
@@ -878,31 +774,8 @@ class NativeComponentHost(
             }
         }
 
-        override fun applyLastLayout() {
-            lastLayoutParams?.let { applyLayout(it) }
-        }
-
         private fun applyLayout(params: JSONObject) {
-            val layout = calculateLayout(params) ?: return
-            if (layout == lastNativeLayout) {
-                return
-            }
-            lastNativeLayout = layout
-            view.visibility = if (layout.visible) View.VISIBLE else View.GONE
-            view.translationZ = layout.zIndex
-            val currentParams = view.layoutParams as? FrameLayout.LayoutParams
-            if (
-                currentParams?.width == layout.width &&
-                currentParams.height == layout.height &&
-                currentParams.leftMargin == layout.left &&
-                currentParams.topMargin == layout.top
-            ) {
-                return
-            }
-            view.layoutParams = FrameLayout.LayoutParams(layout.width, layout.height).apply {
-                leftMargin = layout.left
-                topMargin = layout.top
-            }
+            NativeComponentLayout.from(params)?.let { backend.updateLayout(id, it) }
         }
 
         fun handleCommand(params: JSONObject) {
@@ -1109,13 +982,7 @@ class NativeComponentHost(
         private const val ABOUT_BLANK_URL = "about:blank"
         private const val TIME_UPDATE_INTERVAL_MS = 250L
         private const val FIRST_FRAME_SEEK_MS = 1
-        private const val TOUCH_ACTION_DOWN = "down"
-        private const val TOUCH_ACTION_POINTER_DOWN = "pointerDown"
-        private const val TOUCH_ACTION_MOVE = "move"
-        private const val TOUCH_ACTION_POINTER_UP = "pointerUp"
-        private const val TOUCH_ACTION_UP = "up"
-        private const val TOUCH_ACTION_CANCEL = "cancel"
-        private val SUPPORTED_TYPES = NativeWebViewPolicy.supportedComponentTypes
+        private val SUPPORTED_TYPES = NativeWebViewPolicy.supportedComponentTypes + "native/map"
     }
 
     private fun pxToSp(px: Float): Float {
@@ -1126,15 +993,6 @@ class NativeComponentHost(
         return (value * activity.resources.displayMetrics.density).roundToInt()
     }
 }
-
-private data class NativeLayout(
-    val left: Int,
-    val top: Int,
-    val width: Int,
-    val height: Int,
-    val visible: Boolean,
-    val zIndex: Float,
-)
 
 private fun parseCssPx(value: String?): Int {
     val token = value

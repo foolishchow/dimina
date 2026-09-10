@@ -32,6 +32,7 @@ export class DMPPageRecord {
   // NavPathStack，为 false。unwind 一条记录时是否要对应弹出原生路由只认这个字段
   // （见 shouldPopRouter），不要在别处另起一套算术判断
   ownsRouterEntry: boolean = true
+  retainsNativeView: boolean = false
 
   constructor(webViewId: number, fromWebViewId: number, pagePath: string, appIndex: number,
     webViewNodeController: DMPWebViewNodeController) {

@@ -66,6 +66,10 @@ pnpm generate:app
 pnpm generate:sdk
 ```
 
+`pnpm dev` 先构建依赖，再统一启动代理和 Vite；按 Ctrl+C 会同时停止两个服务。
+开发端口 5173 被占用时会直接报错并停止本次启动的代理，不会自动切换端口。
+`pnpm test:scripts` 包含真实开发进程的退出、重启和端口冲突回归；Windows 或本机开发端口正在使用时跳过这组进程测试。
+
 ### 资源生成工具
 
 #### pnpm compile

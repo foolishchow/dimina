@@ -6,7 +6,7 @@ import { DMPLogger } from '../../EventTrack/DMPLogger';
 import { Tags } from '../../EventTrack/Tags';
 import { DMPMap } from '../../Utils/DMPMap';
 import { WebViewBuilder } from './DMPEmbedWebViewComponent';
-import { MapBuilder } from './DMPMapComponent';
+import { DMPNativeMapManager } from '../../Map/DMPMapProvider';
 
 
 declare class nodeControllerParams {
@@ -110,13 +110,18 @@ export class DMPNodeController extends NodeController {
   // 在对应NodeContainer创建的时候调用、或者通过rebuild方法调用刷新。
   makeNode(uiContext: UIContext): FrameNode | null {
     DMPLogger.d(Tags.WEB_COMPONENT, 'NativeEmbed makeNode')
+    if (this.type === 'native/map' && this.rootNode) {
+      DMPNativeMapManager.get(this.appIndex, this.parentWebViewId, this.params?.getString('id') ?? '')?.detach?.()
+      this.rootNode.dispose()
+    }
     this.rootNode = new BuilderNode(uiContext, { surfaceId: this.surfaceId_, type: this.renderType_ });
     if (this.type === 'native/video') {
       this.rootNode.build(wrapBuilder(VideoBuilder), this.params);
     } else if (this.type === 'native/camera') {
       this.rootNode.build(wrapBuilder(CameraBuilder), this.params);
     } else if (this.type === 'native/map') {
-      this.rootNode.build(wrapBuilder(MapBuilder), this.params)
+      const handle = DMPNativeMapManager.get(this.appIndex, this.parentWebViewId, this.params?.getString('id') ?? '')
+      if (handle) this.rootNode.build(handle.builder, handle.builderParams)
     } else if (this.type === 'native/webview'){
       this.rootNode.build(wrapBuilder(WebViewBuilder), this.params)
     }
@@ -125,6 +130,9 @@ export class DMPNodeController extends NodeController {
   }
 
   dispose() {
+    if (this.type === 'native/map') {
+      DMPNativeMapManager.get(this.appIndex, this.parentWebViewId, this.params?.getString('id') ?? '')?.detach?.()
+    }
     if (this.rootNode) {
       this.rootNode.dispose();
     }

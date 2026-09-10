@@ -8,6 +8,7 @@ const mockGlobalApi = { __mock: true }
 const mockRegisterEnumerableApiNames = vi.fn()
 
 vi.mock('@dimina/common', () => ({
+	isWebWorker: false,
 	modDefine: vi.fn(),
 	modRequire: vi.fn(),
 }))

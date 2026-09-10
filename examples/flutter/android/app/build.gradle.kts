@@ -57,7 +57,7 @@ flutter {
 
 dependencies {
     // Replaced with the repository's android/:dimina project by settings.gradle.kts.
-    implementation("com.github.didi.dimina:dimina:1.6.2")
+    implementation("com.github.didi.dimina:dimina:1.7.0")
 }
 
 android.sourceSets.named("main") {

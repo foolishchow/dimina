@@ -1,3 +1,5 @@
+import { DMPMap } from '../Utils/DMPMap'
+import { DMPRetainedTabState } from '../Navigator/DMPNavigatorManager'
 import { DMPTabBar } from '../Components/DMPTabBar'
 import { DMPTabBarConfig, DMPTabBarItem } from '../Bundle/Model/DMPBundleAppConfigNext'
 import { DMPPageContainer } from '../DPages/DMPPageContainer'
@@ -23,9 +25,52 @@ export struct DMPTabBarContainerView {
   // Use Map to track loaded tab pages (index -> DMPPageRecord)
   @State tabPageRecords: Map<number, DMPPageRecord> = new Map()
 
+  private readonly switchListener = (data: ESObject): void => {
+    if (data['appIndex'] !== this.appIndex) return
+
+    const targetPath: string = data['pagePath']
+    // 由 DMPNavigator.switchTab 计算：旧 tab 是否之前就是可见页面
+    // (栈顶若是 navigateTo 推入页面，旧 tab 已被 onHide 过，不应再触发)
+    const wasPrevTabVisible: boolean = data['wasPrevTabVisible'] !== false
+    DMPLogger.d(Tags.TABBAR, `Received tabbar_switch_webview event for path: ${targetPath}, wasPrevTabVisible=${wasPrevTabVisible}`)
+
+    // Find the index of the target tab
+    if (this.tabBarConfig) {
+      const index = this.tabBarConfig.list.findIndex(item => item.pagePath === targetPath)
+      if (index >= 0) {
+        DMPLogger.d(Tags.TABBAR, `Switching to tab index: ${index}`)
+        this.handleTabSelected(index, wasPrevTabVisible)
+      } else {
+        DMPLogger.e(Tags.TABBAR, `Tab path not found in config: ${targetPath}`)
+      }
+    }
+  }
+  private readonly apiListener = (data: ESObject): void => {
+    if (data.get('appIndex') === this.appIndex) this.handleTabBarApiEvent(data)
+  }
+
+  private readonly captureState = (): void => {
+    const manager = this.app?.navigatorManager
+    if (!manager || manager.isEmpty()) return
+    const state = new DMPRetainedTabState()
+    state.config = this.tabBarConfig
+    state.selectedIndex = this.selectedIndex
+    state.visible = this.tabBarVisible
+    state.badges = this.badges
+    state.redDots = this.redDots
+    state.records = this.tabPageRecords
+    manager.retainedTabState = state
+  }
+
   aboutToDisappear() {
-    // 容器被销毁时清掉 tab 跟踪标记，避免 reLaunch / 退出后残留导致 currentWebViewId 错指
-    this.app?.navigatorManager?.clearCurrentTabWebViewId()
+    getContext(this).eventHub.off('tabbar_switch_webview', this.switchListener)
+    getContext(this).eventHub.off('tabbar_api', this.apiListener)
+    const manager = this.app?.navigatorManager
+    if (manager?.captureTabState === this.captureState) {
+      this.captureState()
+      manager.captureTabState = undefined
+    }
+    if (manager?.isEmpty()) manager.clearCurrentTabWebViewId()
   }
 
   /**
@@ -103,27 +148,37 @@ export struct DMPTabBarContainerView {
       return
     }
 
-    this.tabBarConfig = this.app.bundleManager.getJsAppModuleConfig()?.tabBar
-    if (!this.tabBarConfig || !this.tabBarConfig.list) {
-      DMPLogger.e(Tags.TABBAR, 'TabBar config not found')
-      return
+    const retained = this.app.navigatorManager.retainedTabState
+    if (retained) {
+      this.tabBarConfig = retained.config
+      this.selectedIndex = retained.selectedIndex
+      this.tabBarVisible = retained.visible
+      this.badges = retained.badges
+      this.redDots = retained.redDots
+      this.tabPageRecords = retained.records
+    } else {
+      this.tabBarConfig = this.app.bundleManager.getJsAppModuleConfig()?.tabBar
+      if (!this.tabBarConfig || !this.tabBarConfig.list) {
+        DMPLogger.e(Tags.TABBAR, 'TabBar config not found')
+        return
+      }
+
+      // Initialize badges and redDots arrays
+      const listLength = this.tabBarConfig.list.length
+      this.badges = new Array<string>(listLength).fill('')
+      this.redDots = new Array<boolean>(listLength).fill(false)
+
+      // 把 list 中的 iconPath / selectedIconPath 解析为沙盒中真实的 static 文件绝对路径
+      // 编译器输出形如 /<appId>/main/static/<prefix>_<file>，需要换成 ${jsAppDir}/main/static/...
+      // 才能被 ArkUI Image 加载
+      this.resolveTabBarIconPaths()
+
+      // Determine initial tab index
+      this.determineInitialTabIndex()
+
+      // Load only the initial tab page (lazy load others on demand)
+      this.loadTabPageAtIndex(this.selectedIndex)
     }
-
-    // Initialize badges and redDots arrays
-    const listLength = this.tabBarConfig.list.length
-    this.badges = new Array<string>(listLength).fill('')
-    this.redDots = new Array<boolean>(listLength).fill(false)
-
-    // 把 list 中的 iconPath / selectedIconPath 解析为沙盒中真实的 static 文件绝对路径
-    // 编译器输出形如 /<appId>/main/static/<prefix>_<file>，需要换成 ${jsAppDir}/main/static/...
-    // 才能被 ArkUI Image 加载
-    this.resolveTabBarIconPaths()
-
-    // Determine initial tab index
-    this.determineInitialTabIndex()
-
-    // Load only the initial tab page (lazy load others on demand)
-    this.loadTabPageAtIndex(this.selectedIndex)
 
     const initialPageRecord = this.tabPageRecords.get(this.selectedIndex)
     if (initialPageRecord) {
@@ -131,29 +186,12 @@ export struct DMPTabBarContainerView {
     }
 
     // Listen to switchTab events from JS API
-    getContext(this).eventHub.on('tabbar_switch_webview', (data: ESObject) => {
-      const targetPath: string = data['pagePath']
-      // 由 DMPNavigator.switchTab 计算：旧 tab 是否之前就是可见页面
-      // (栈顶若是 navigateTo 推入页面，旧 tab 已被 onHide 过，不应再触发)
-      const wasPrevTabVisible: boolean = data['wasPrevTabVisible'] !== false
-      DMPLogger.d(Tags.TABBAR, `Received tabbar_switch_webview event for path: ${targetPath}, wasPrevTabVisible=${wasPrevTabVisible}`)
-
-      // Find the index of the target tab
-      if (this.tabBarConfig) {
-        const index = this.tabBarConfig.list.findIndex(item => item.pagePath === targetPath)
-        if (index >= 0) {
-          DMPLogger.d(Tags.TABBAR, `Switching to tab index: ${index}`)
-          this.handleTabSelected(index, wasPrevTabVisible)
-        } else {
-          DMPLogger.e(Tags.TABBAR, `Tab path not found in config: ${targetPath}`)
-        }
-      }
-    })
+    this.app.navigatorManager.captureTabState = this.captureState
+    getContext(this).eventHub.on('tabbar_switch_webview', this.switchListener)
 
     // Listen to tabbar API events (setTabBarStyle, setTabBarItem, showTabBar, hideTabBar, etc.)
-    getContext(this).eventHub.on('tabbar_api', (data: ESObject) => {
-      this.handleTabBarApiEvent(data)
-    })
+    getContext(this).eventHub.on('tabbar_api', this.apiListener)
+    this.app.navigatorManager.pendingTabBarEvents.splice(0).forEach((data: DMPMap): void => this.handleTabBarApiEvent(data))
 
     DMPLogger.d(Tags.TABBAR, `TabBarContainer initialized. Initial tab loaded: ${this.selectedIndex}`)
   }

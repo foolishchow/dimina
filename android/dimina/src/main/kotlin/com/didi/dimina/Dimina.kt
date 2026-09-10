@@ -94,6 +94,14 @@ class Dimina private constructor(context: Context) {
         return BuildConfig.DEBUG && config.debugMode
     }
 
+    @MainThread
+    fun configureRetention(policy: com.didi.dimina.core.RetentionPolicy) {
+        MiniApp.getInstance().configureRetention(policy)
+    }
+
+    /** Hosts may forward their own pressure source here as well. */
+    fun notifyMemoryPressure() { MiniApp.getInstance().notifyMemoryPressure() }
+
     fun getApiNamespaces(): List<String> = config.apiNamespaces
 
     private val appContext: Context = context
@@ -108,6 +116,17 @@ class Dimina private constructor(context: Context) {
     // 初始化核心组件
     private fun setupCoreComponents() {
         StoreUtils.initialize(context = appContext)
+        appContext.registerComponentCallbacks(object : android.content.ComponentCallbacks2 {
+            override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {}
+            override fun onLowMemory() { notifyMemoryPressure() }
+            override fun onTrimMemory(level: Int) {
+                if (level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+                    level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+                    level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) {
+                    notifyMemoryPressure()
+                }
+            }
+        })
     }
 
     // 应用配置
@@ -128,6 +147,14 @@ class Dimina private constructor(context: Context) {
     fun startMiniProgram(context: Activity, miniProgram: MiniProgram) {
         val miniApp = MiniApp.getInstance()
         miniApp.openApp(context, miniProgram)
+    }
+
+    /** Hide an app while retaining its page stack and runtime for the next startMiniProgram. */
+    @MainThread
+    fun hideMiniProgram(appId: String): Boolean {
+        val normalizedAppId = appId.trim()
+        if (normalizedAppId.isEmpty()) return false
+        return DiminaActivity.hideMiniProgramFromHost(normalizedAppId)
     }
 
     /**

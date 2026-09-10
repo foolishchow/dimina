@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
 		build: {
 			minify: mode === 'production',
 			lib: {
-				entry: resolve(__dirname, 'src/index.js'),
+				entry: resolve(import.meta.dirname, 'src/index.js'),
 				formats: ['es'],
 				fileName: 'render',
 			},

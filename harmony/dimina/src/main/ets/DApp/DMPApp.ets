@@ -350,6 +350,7 @@ export class DMPApp {
   }
 
   async startPackageLoader(context: common.UIAbilityContext, launchConfig?: DMPLaunchConfig) {
+    await DMPAppManager.sharedInstance().collectRetainedApps()
     DMPLogger.i(Tags.LAUNCH, 'startPackageLoader start')
     const closeInProgress = this._closeInProgress
     if (closeInProgress) {
@@ -361,6 +362,7 @@ export class DMPApp {
       this._engineStatus.currentStatus != EngineStatus.LOADING) { // 已经启动jsEngine
       this._engineStatus.setStatus(EngineStatus.LOADING)
       DMPContextUtils.init(context)
+      DMPAppManager.sharedInstance().observeMemoryPressure(context)
       let fileManager: DMPFileManager = DMPFileManager.sharedInstance()
       fileManager.createLocalBundleDirectoryForApp(this.appConfig.appId)
       let installConfig =
@@ -476,10 +478,12 @@ export class DMPApp {
     return this._closeInProgress
   }
 
-  /**
-   * 宿主主动关闭小程序的稳定入口。通过 AppManager 的 exit 链路关闭，确保存在来源
-   * 小程序时恢复来源，而不是只销毁当前 Worker 和页面。
-   */
+  /** 隐藏界面，保留当前页面和运行时，再次打开时恢复。 */
+  public hideMiniProgram(): Promise<void> {
+    return DMPAppManager.sharedInstance().hideMiniProgram(this)
+  }
+
+  /** 销毁当前实例，通过 AppManager 恢复仍在运行的来源小程序。 */
   public closeMiniProgram(): Promise<void> {
     return DMPAppManager.sharedInstance().exitMiniProgram(this, async (): Promise<void> => {})
   }
@@ -505,6 +509,7 @@ export class DMPApp {
 
   /** Hide only this mini program; unlike DMPAppLifecycle this never broadcasts to every pooled app. */
   public notifyMiniProgramHide() {
+    DMPAppManager.sharedInstance().retentionVisibility(this, false)
     if (!this._visibilityLedger.request(false)) {
       return
     }
@@ -535,6 +540,7 @@ export class DMPApp {
 
   /** Reveal only this mini program and update App.onShow/GetEnterOptionsSync data. */
   public notifyMiniProgramShow(scene: DMPScene, referrerInfo?: DMPMap) {
+    DMPAppManager.sharedInstance().retentionVisibility(this, true)
     if (!this._visibilityLedger.request(true)) {
       return
     }
@@ -754,6 +760,14 @@ export class DMPApp {
   }
 
   private launchInner(launchConfig: DMPLaunchConfig) {
+    if (this.navigatorManager.isRetainedInBackground) {
+      DMPAppManager.sharedInstance().resumeRetainedApp(this, launchConfig)
+      return
+    }
+    if (!this.navigatorManager.isEmpty()) {
+      this.settleLaunchCompletion(launchConfig, true)
+      return
+    }
     DMPLogger.i(Tags.LAUNCH, "launchInner start");
     const appModuleConfig = this.bundleManager.getJsAppModuleConfig()
     if (appModuleConfig.runtimeType === 'game') {

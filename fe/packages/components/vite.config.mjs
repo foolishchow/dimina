@@ -8,14 +8,14 @@ export default defineConfig(({ mode }) => {
 		resolve: {
 			extensions: ['.js', '.scss'],
 			alias: {
-				'@': resolve(__dirname, 'src'),
-				'@component': resolve(__dirname, 'src/component'),
+				'@': resolve(import.meta.dirname, 'src'),
+				'@component': resolve(import.meta.dirname, 'src/component'),
 			},
 		},
 		build: {
 			minify: mode === 'production',
 			lib: {
-				entry: resolve(__dirname, 'index.js'),
+				entry: resolve(import.meta.dirname, 'index.js'),
 				formats: ['es'],
 				fileName: 'components',
 			},

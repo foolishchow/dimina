@@ -56,6 +56,49 @@ import java.io.File
  */
 class MiniApp private constructor() {
     private val tag = "MiniApp"
+    private val retention = BackgroundRetention()
+    private val retentionHandler by lazy { android.os.Handler(android.os.Looper.getMainLooper()) }
+    private var retentionPressure = false
+    private val retentionTask = Runnable { collectRetainedApps() }
+
+    @androidx.annotation.MainThread
+    fun configureRetention(policy: RetentionPolicy) {
+        retention.policy = policy
+        scheduleRetention()
+    }
+
+    fun notifyMemoryPressure() {
+        retentionHandler.post {
+            retentionPressure = true
+            scheduleRetention()
+        }
+    }
+
+    internal fun retentionVisibility(appId: String, visible: Boolean) {
+        if (visible) retention.forget(appId)
+        else retention.hide(appId, android.os.SystemClock.elapsedRealtime())
+        scheduleRetention()
+    }
+
+    private fun scheduleRetention() {
+        retentionHandler.removeCallbacks(retentionTask)
+        retentionHandler.post(retentionTask)
+    }
+
+    private fun collectRetainedApps() {
+        retentionHandler.removeCallbacks(retentionTask)
+        val now = android.os.SystemClock.elapsedRealtime()
+        val canEvict: (String) -> Boolean = { DiminaActivity.canEvictRetainedApp(it) }
+        val victims = retention.collect(now, retentionPressure, canEvict)
+        retentionPressure = false
+        victims.forEach { appId ->
+            // No opener restoration or foreground task movement during cache eviction.
+            DiminaActivity.closeForUninstall(appId)
+            clear(appId)
+        }
+        retention.nextDelay(now, canEvict)?.let { retentionHandler.postDelayed(retentionTask, it) }
+    }
+
 
     private val apiRegistry = ApiRegistry()
     private val bluetoothApi = BluetoothApi()
@@ -93,12 +136,13 @@ class MiniApp private constructor() {
      * @param miniProgram The MiniProgram to open
      */
     fun openApp(context: Activity, miniProgram: MiniProgram) {
+        collectRetainedApps()
         // Initialize or get JsCore for this MiniProgram
         val alreadyRunning = isRunning(miniProgram.appId)
         getOrCreateJsCore(miniProgram.appId, context)
 
         try {
-            DiminaActivity.launch(context, miniProgram)
+            DiminaActivity.openMiniProgram(context, miniProgram)
         } catch (error: Exception) {
             // The runtime is registered before the Activity exists. A start that never happened
             // would otherwise leave [isRunning] true with no Activity to ever clear it, and every
@@ -467,6 +511,7 @@ class MiniApp private constructor() {
      */
     @androidx.annotation.MainThread
     fun clear(appId: String) {
+        retention.forget(appId)
         updateCheckRegistry.reset(appId)
         synchronized(this) {
             pendingAppShowOptions.remove(appId)
@@ -503,6 +548,8 @@ class MiniApp private constructor() {
      */
     @androidx.annotation.MainThread
     fun clearAll() {
+        retention.clear()
+        retentionHandler.removeCallbacks(retentionTask)
         updateCheckRegistry.resetAll()
         synchronized(this) {
             pendingAppShowOptions.clear()

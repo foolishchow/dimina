@@ -20,8 +20,17 @@ export class DMPContainerBridgesModuleTabBar extends DMPContainerBridgesModule {
   }
 
   private emitTabBarEvent(data: DMPMap) {
+    if (this.app.navigatorManager.isRetainedInBackground &&
+      this.app.navigatorManager.pendingTabBarEvents.length >= 128) {
+      throw new Error('tabBar: too many pending background updates')
+    }
     try {
-      DMPApp.context.eventHub.emit('tabbar_api', data)
+      data.set('appIndex', this.app.appIndex)
+      if (this.app.navigatorManager.isRetainedInBackground) {
+        this.app.navigatorManager.pendingTabBarEvents.push(data)
+      } else {
+        DMPApp.context.eventHub.emit('tabbar_api', data)
+      }
     } catch (err) {
       DMPLogger.e(Tags.TABBAR, `Failed to emit tabbar_api event: ${err}`)
     }

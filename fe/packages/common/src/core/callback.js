@@ -19,6 +19,15 @@ class Callback {
 		return evtId
 	}
 
+	/** Lifecycle transactions must finish even after their initiating app hides. */
+	allowInBackground(evtId) {
+		if (this.callbacks[evtId]) this.callbacks[evtId].backgroundControl = true
+	}
+
+	isAllowedInBackground(evtId) {
+		return this.callbacks[evtId]?.backgroundControl === true
+	}
+
 	/**
 	 * [Container] triggerCallback -> [Service] invoke
 	 * @param {*} evtId

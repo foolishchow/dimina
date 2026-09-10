@@ -562,13 +562,8 @@ public class DMPPageController: UIViewController {
         }
         Task { @MainActor [weak self] in
             do {
-                // Capsule close is the UI form of exitMiniProgram. Reuse the
-                // coordinator so it shares active-owner/operation guards,
-                // lifecycle ordering, callback drain, and opener restoration.
-                try await DMPAppManager.sharedInstance().exitMiniProgram(
-                    app,
-                    onAccepted: {}
-                )
+                try await app.hideMiniProgram()
+                self?.isClosingMiniProgram = false
             } catch {
                 self?.isClosingMiniProgram = false
                 self?.navigator?.setCapsuleEnabled(true)
@@ -962,7 +957,7 @@ public class DMPPageController: UIViewController {
         hidePageLoading()
         
         // Notify lifecycle management when page completely disappears
-        if isMovingFromParent {
+        if isMovingFromParent && navigator?.isRetainedInBackground != true {
             // Page is removed from navigation stack
             destroyWebView()
         }

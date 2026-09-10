@@ -38,6 +38,7 @@ import loader from './loader'
 import message from './message'
 import { resolveCanvasExportSize } from './canvas-export-limits'
 import { createMiniProgramSlots } from './slots'
+import { invokeMapContext } from './map-context'
 
 const COMPONENT_HOST_ATTRIBUTE = 'data-dd-component-host'
 const STYLE_ISOLATION_ATTRIBUTE = 'data-dd-style-isolation'
@@ -2454,6 +2455,10 @@ class Runtime {
 
 	videoContext(opts) {
 		message.event.emit('videoContext', opts.params)
+	}
+
+	mapContext(opts) {
+		return invokeMapContext(opts, msg => message.send(msg))
 	}
 
 	/**
