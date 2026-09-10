@@ -33,4 +33,8 @@
 | `dmcc-dev-server` | `complete` | [README](_archive/complete/dmcc-dev-server/README.md) | Umbrella gate A2：`dmcc dev` 交付 dev 链路（静态服务 + 宿主页 + ws + 代理 + L1 relaunch）；A-001~A-012 全 passed，已归档。 | 2026-09-08 |
 | `hmr-l2-l3` | `complete` | [README](_archive/complete/hmr-l2-l3/README.md) | Umbrella gate A3：Web 容器 dev-only L2 CSS 热替换 + L3 模板热重挂；A-001~A-013 全 passed，已归档。 | 2026-09-08 |
 | `render-target-abstraction` | `complete` | [README](_archive/complete/render-target-abstraction/README.md) | Umbrella gate A4：renderer 抽象（对齐微信 app.json/page.json renderer），首个 `webview`，产物 diff=0；A-001~A-010 全 passed，已归档。 | 2026-09-08 |
-| `platform-abstraction` | `draft` | [README](platform-abstraction/README.md) | 编译产物平台维度（D6:B）：native/web 显式 platform、sourcemap 策略分叉、ES target 接线；缺省产物零变化。 | 2026-09-08 |
+| `compiler-configuration` | `draft` | [README](compiler-configuration/README.md) | Umbrella：编译器配置化（D6:B 产物分层、compile profile、CLI⊆API）；子门 CF-1..CF-4。 | 2026-09-08 |
+| `platform-abstraction` | `draft` | [README](platform-abstraction/README.md) | CF-1：platform 维度声明（native/web 枚举、CLI --platform、D6:B 修订），缺省产物零变化。 | 2026-09-08 |
+| `compiler-configurable` | `draft` | [README](compiler-configurable/README.md) | CF-2：统一编译配置框架（CLI⊆API、mode preset、minify/sourcemap/esTarget 收敛）；dev 默认不 minify。 | 2026-09-08 |
+| `es-target-unification` | `draft` | [README](es-target-unification/README.md) | CF-3：ES target 值统一（es2020→es2023，产物有意变化）；外部依赖 Harmony WebView 兼容性调研。 | 2026-09-08 |
+| `watch-api` | `draft` | [README](watch-api/README.md) | CF-4：watch 从 CLI-only 提升为 API 能力，消除 bin/index.js 与 bin/dev.js 重复实现。 | 2026-09-08 |
