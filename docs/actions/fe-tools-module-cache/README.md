@@ -26,7 +26,7 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 - **不持有到 main thread**（build-model M1）
 - **不做失效传播 / 变更传播**（build-model M2）
 - **不定义 IR / 不拆 view 组合编译结构**（TS-2 边界）
-- **不改产物字节**（验收 = 字节等价 + 既有 479+ 测试全绿）
+- **不改产物字节**（验收 = 字节等价 + 完整回归套件通过，当时数量记入实施证据）
 
 ## Worker 生命周期边界（D-WA-1 / MC scope）
 
@@ -42,7 +42,7 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
-| **MC1 边界与寻址** | ModuleCache/EntryCache 分层；compileResCache 内容寻址化；失败缓存 | 等价重构（缓存结构，不改产物） | 字节级 diff=0（nomap+sourcemap 双模式）；479+ 测试全绿 |
+| **MC1 边界与寻址** | ModuleCache/EntryCache 分层；compileResCache 内容寻址化；失败缓存 | 等价重构（缓存结构，不改产物） | 字节级 diff=0（nomap+sourcemap 双模式）；完整回归套件通过（当时数量记入实施证据） |
 | **MC2 key 维度** | key 纳入 minify/esTarget.view/fileTypes/renderer | key 协议 | 缓存单测（配置变化 → 不命中旧 key）；key 维度清单对齐 inputHash 规范 |
 | **MC3 可测性** | mock worker 单测集：同内容同命中 / 失败缓存 / 并发引用单文件只 parse 一次 | 新增测例 | 颗粒度断言 + 既有回归 |
 

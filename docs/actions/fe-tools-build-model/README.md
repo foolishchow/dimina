@@ -41,7 +41,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
-| **M1 持有与物化** | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5） | **等价重构** | 产物字节级 diff=0；479+ 测试全绿 |
+| **M1 持有与物化** | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5） | **等价重构** | 产物字节级 diff=0；完整回归套件通过（当时数量记入实施证据） |
 | **M2 指纹与失效** | 指纹体系（(mtime,size) 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器） | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录）；**体验监控**：通过 stats 可观测 reload 频率，若实测退化（过度刷新）回退合并退全量保守策略（D-WA-1 精神） | 增量对拍：受影响 Entry 重算、其余命中持有；测试更新 |
 | **M3（可选）** | cache 路径（`pnpm compile`）迁移到同一机制；`--verify-incremental` 全量对拍 | 消费者收编 | compile-cache 行为等价或改进记录 |
 

@@ -87,16 +87,16 @@
   前置： 阶段 1-3 完成；有明确性能收益测量支撑（避免盲目常驻）
 ```
 
-## 3. D-WA 决策表（本讨论已收敛，待 ready 复核冻结）
+## 3. D-WA 决策表（本讨论已收敛，待 ready 复核冻结；每条含依据/来源）
 
-| ID | 决策点 | 结论 |
-| --- | --- | --- |
-| D-WA-1 | worker 生命周期 | 前 3 阶段保留 new/terminate 无状态；接口按 service 形状设计（`update(changed)`）；常驻 = 阶段 4 可选 |
-| D-WA-2 | logic 产物边界 | app 级单 bundle 保持；view/style 才 entry 级（粒度诚实） |
-| D-WA-3 | 跨 build 复用途径 | 主线程 BuildModel 持有 entry 产物（未变 entry 不启动 worker）；非缓存实例共享 |
-| D-WA-4 | 缓存分层 | worker 内 = 单 stage（FileModule 内容）；主线程 = 跨 build（entry 产物）；不冲突 |
-| D-WA-5 | 数据流 | 单向：worker 回传 delta（outputs+graph delta+diagnostics），不反改 GroupModule；主线程合并 |
-| D-WA-6 | 三领域中间表示 | 不统一（DOM vs AST vs cssAST）；共享仅机制/协议 |
+| ID | 决策点 | 结论 | 依据/来源 |
+| --- | --- | --- | --- |
+| D-WA-1 | worker 生命周期 | 前 3 阶段保留 new/terminate 无状态；接口按 service 形状设计（`update(changed)`）；常驻 = 阶段 4 可选 | worker 生命周期审查；source-audit §2（new/terminate 事实）；commit `ba0f553f`/`928237cb` |
+| D-WA-2 | logic 产物边界 | app 级单 bundle 保持；view/style 才 entry 级（粒度诚实） | source-audit §3（logic 单文件 writeFileSync）；产物粒度表 |
+| D-WA-3 | 跨 build 复用途径 | 主线程 BuildModel 持有 entry 产物（未变 entry 不启动 worker）；非缓存实例共享 | build-model D-BM-1/D-BM-3；物理分布讨论（9fb9775c） |
+| D-WA-4 | 缓存分层 | worker 内 = 单 stage（FileModule 内容）；主线程 = 跨 build（entry 产物）；不冲突 | module-cache Worker 生命周期边界（928237cb）；BuildModel §1.1 分层 |
+| D-WA-5 | 数据流 | 单向：worker 回传 delta（outputs+graph delta+diagnostics），不反改 GroupModule；主线程合并 | §4 协议草案；单向数据流原则；build-model protocol.draft 流式设计 |
+| D-WA-6 | 三领域中间表示 | 不统一（DOM vs AST vs cssAST）；共享仅机制/协议 | source-audit §2（领域异构表）；AST 矩阵（view 无 AST / logic oxc / style postcss） |
 
 ## 4. WorkerTask / WorkerResult 协议草案（探针级，待细化）
 
