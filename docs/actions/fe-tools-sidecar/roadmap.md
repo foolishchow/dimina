@@ -16,7 +16,7 @@ TS-1 意图：整包复制冒烟
         ├─（并行，非父子）→ 编排控制面：fe-tools-bundler-session（complete，已归档）
         │
         ├─（并行，非父子）→ 主线程层：fe-tools-build-model（**ready**，D-BM/D-P 冻结；Entry 产物持有 + (mtime,size) 指纹 + 失效 + 统一物化，对拍 MUST）
-        ├─（并行，非父子）→ worker 内层：fe-tools-module-cache（draft；FileModule 颗粒化 + 内容寻址，**与 build-model 并行**）
+        ├─（并行，非父子）→ worker 内层：fe-tools-module-cache（**ready**，D-MC 冻结；FileModule 颗粒化 + ComposeCache + 内容寻址）
         ├─（并行，非父子）→ 决策层：fe-tools-worker-architecture（**ready**，决策已冻结；协议 v1/v2 + D-WA 决策 + 时序防护）
         │
         ▼
