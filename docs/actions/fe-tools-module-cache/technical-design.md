@@ -58,6 +58,28 @@ ViewFileModule（wxml → DOM）         ← 新增（组合前）
 templateRenderCache（tpl → render）  ← 保留（组合后，entry 级）
 ```
 
+### 物理分布（2026-09-10 讨论收敛：三模块在三个进程）
+
+```text
+主线程（跨 build）────────────────────────────
+  GroupModule（owner 结构 / 权威 / 跨维度索引）
+    │
+    ├── view worker：ViewFileModule   （wxml→DOM）
+    ├── logic worker：LogicFileModule（js→AST）
+    └── style worker：StyleFileModule（css→AST）
+```
+
+没有任何进程能同时看到三个实例 ⇒ 不设计“跨 worker 共享的 ModuleCache 实例”：
+
+- **共享的是约定**（js 模块里的 key 协议 / 失败语义 / 接口形状），非实例
+- **实例在各自 worker 进程内隔离**（单 stage 生命周期）
+- **跨 build 内容复用不靠缓存实例共享**，靠主线程 BuildModel 持有 entry 产物
+  （未变 entry 不启动 worker）——与 build-model 边界一致
+
+**推论**：未来若纯中间内容（DOM/AST）需要跨 build 复用，只有两条路——
+① 内容全放主线程（worker 无状态，但中间结果跨线程克隆成本高）；
+② worker 常驻服务（内容留各 worker）。两者都属后续独立决策，非本 Action 范围。
+
 ## 2. 现状缓存归宿（D-MC-1 形态①）
 
 | 现状 | 归宿 |
