@@ -5,8 +5,10 @@
  * 错误重建、槽位释放语义集中到一处。协议知识（消息形状、错误形状、进度、
  * 完成判定）单点维护。
  *
- * 本模块处于阶段一：仅搬移现有行为（等价重构），产物仍由 worker 直接写盘；
- * 阶段二接入产物回传（onOutput）与 outputCount 对账（D-P4 超时）。
+ * 阶段一（e5320c1c）：从 runCompileInWorker 等价搬移；
+ * 阶段二（ef1ab730）：产物流式回传（collectOutput + onOutput + outputCount 对账 + D-P4 超时）。
+ * 正常构建路径（onOutput 提供 → collectOutput=true）worker 不写盘；
+ * 兼容分支（collectOutput=false）保留直接写盘，供直连 worker 的场景使用。
  *
  * 约束（D-BM-7）：不做通用 RPC / 请求复用 / 重连 / IDL。
  */
