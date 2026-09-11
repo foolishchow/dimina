@@ -7,7 +7,7 @@ Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`。�
 | ID | Check | Command / method | Result |
 | --- | --- | --- | --- |
 | P-BM01 | 全量回归 | `vitest run --no-file-parallelism`（tools/bundler） | pending |
-| P-BM02 | 字节等价（M1） | 改造前 HEAD vs 改造后：base 示例 build，nomap 与 `--sourcemap` 双模式 `diff -r` 均为 0 | pending |
+| P-BM02 | 字节等价（M1） | 改造前 HEAD vs 改造后：`git worktree add /tmp/bm-baseline <改造前 commit>`（或 `git archive <commit>` 解包到临时目录）提取旧版 bundler；base 示例 build，nomap 与 `--sourcemap` 双模式 `diff -r` 均为 0 | pending |
 | P-BM03 | worker 零写盘 | `grep -rn "writeFileSync" src/core/{view,logic,style}-compiler.js` 零命中（materialize 除外注释） | pending |
 | P-BM04 | 指纹单测 | `(mtime, size)` 未变跳 hash / 内容变化（同 mtime 不同 size）必算 hash / include 聚合稳定 / scan 纯函数性质 | pending |
 | P-BM05 | watch 增量对拍 | 变更单文件 → 仅受影响 Entry 重编译（观察重编译日志/产物 mtime）；合并事件（快速连改）不再全量 | pending |

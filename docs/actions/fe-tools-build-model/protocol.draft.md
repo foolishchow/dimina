@@ -48,7 +48,7 @@ Status: 设计草案 · 未冻 · 未进 runtime。基于 HEAD `43e6953b` 的协
   protocolVersion: 1,
   type: 'output',
   entry: {
-    id,                            // page/component/app-logic/app-style 的 entryId
+    entryId,                       // page/component/app-logic/app-style 的 entryId（v1统一命名）
     kind: 'view' | 'style' | 'logic',
     files: [{ path, code }],       // path = 相对发布根（物化时直接写）
     sourcemaps?: [{ path, map }],  // sourcemap 模式

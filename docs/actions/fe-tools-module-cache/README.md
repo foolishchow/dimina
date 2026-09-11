@@ -42,9 +42,9 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
-| **MC1 边界与寻址** | ModuleCache/EntryCache 分层；compileResCache 内容寻址化；失败缓存 | 等价重构（缓存结构，不改产物） | 字节级 diff=0（nomap+sourcemap 双模式）；完整回归套件通过（当时数量记入实施证据） |
-| **MC2 key 维度** | key 纳入 minify/esTarget.view/fileTypes/renderer | key 协议 | 缓存单测（配置变化 → 不命中旧 key）；key 维度清单对齐 inputHash 规范 |
-| **MC3 可测性** | mock worker 单测集：同内容同命中 / 失败缓存 / 并发引用单文件只 parse 一次 | 新增测例 | 颗粒度断言 + 既有回归 |
+| **MC1 边界与寻址**（= 演进阶段 3） | ModuleCache/EntryCache 分层；compileResCache 内容寻址化；失败缓存 | 等价重构（缓存结构，不改产物） | 字节级 diff=0（nomap+sourcemap 双模式）；完整回归套件通过（当时数量记入实施证据） |
+| **MC2 key 维度**（= 演进阶段 3） | key 纳入 minify/esTarget.view/fileTypes/renderer | key 协议 | 缓存单测（配置变化 → 不命中旧 key）；key 维度清单对齐 inputHash 规范 |
+| **MC3 可测性**（= 演进阶段 3） | mock worker 单测集：同内容同命中 / 失败缓存 / 并发引用单文件只 parse 一次 | 新增测例 | 颗粒度断言 + 既有回归 |
 
 ## 关键决策（D-MC-1..3，倾向已记录、待 ready 冻结）
 
@@ -64,7 +64,10 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 ## Closure conditions
 
 ① MC1..3 交付；R-MC 全 pass 且 P-MC 填实际证据
-② 消融：MC1 内容寻址化（去内容 key 应使缓存单测失败）/ MC2 key 维度（去 esTarget 维度应使配置切换测例失败）
+② 消融（原则 6：每项独立机制分别消融）：
+- MC1 内容寻址化：去内容 key → 缓存单测失败
+- MC1 失败缓存：去失败缓存 → A-MC03 失败
+- MC2 key 维度：去 esTarget 维度 → 配置切换测例失败
 ③ Backflow：协议基准对齐（worker-architecture 的 FileModule 归属定义）+ TS-2 无涉及（未碰组合/IR）
 ④ STATUS/归档/指针一致变更
 
