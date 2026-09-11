@@ -1,8 +1,8 @@
 # FE Tools Worker Architecture
 
 - Action: `fe-tools-worker-architecture`
-- Status: `draft`
-- Updated: 2026-09-10
+- Status: `ready`
+- Updated: 2026-09-10（经 10 轮审查 + ready 评审通过，决策冻结）
 - Status authority: [Action Status](../STATUS.md)
 - 关系：**决策 Action（ready = 冻结，不实施）**。为 [`fe-tools-build-model`](../fe-tools-build-model/README.md) 与 [`fe-tools-module-cache`](../fe-tools-module-cache/README.md) 提供 worker 架构演进依据；实施责任分给它们（阶段 1/2 → build-model；阶段 3 → module-cache）。现状证据见 [source-audit](source-audit.md)。
 
