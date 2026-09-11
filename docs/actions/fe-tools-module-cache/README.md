@@ -4,7 +4,7 @@
 - Status: `draft`
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
-- 关系：独立架构 Action。是 [`fe-tools-build-model`](../fe-tools-build-model/README.md) 的**前置地基**（先固 module 粒度，再谈主线程持久化）；形态①（内容寻址 + module 层，不拆 view 组合/编译结构）已拍板，②（拆结构）属 TS-2 边界。现状证据见 [source-audit](source-audit.md)。
+- 关系：独立架构 Action。是 [`fe-tools-build-model`](../fe-tools-build-model/README.md) 的**前置地基**（先固 module 粒度，再谈主线程持久化）；形态①已拍板（不拆 view 组合），演进路径依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md) 阶段 3（模型层）。现状证据见 [source-audit](source-audit.md)。
 
 ## Background
 

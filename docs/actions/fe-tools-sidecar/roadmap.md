@@ -17,6 +17,7 @@ TS-1 意图：整包复制冒烟
         │
         ├─（并行，非父子）→ 内部统一地基：fe-tools-build-model（draft；Entry 产物持有 + 指纹失效 + 统一物化，**TS-2 前置**）
         ├─（并行，非父子）→ 地基的基：fe-tools-module-cache（draft；worker 缓存颗粒化，**build-model 前置**）
+        ├─（并行，非父子）→ 演进决策：fe-tools-worker-architecture（draft；**决策 Action，ready=冻结**；四阶段演进，归 build-model/module-cache）
         │
         ▼
 TS-2 tools/bundler 内模板管线（parse / IR / webview）

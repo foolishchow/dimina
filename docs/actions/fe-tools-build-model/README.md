@@ -4,7 +4,7 @@
 - Status: `draft`
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
-- 关系：独立架构 Action（非 umbrella 子门）。是 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（complete，外部调用统一）之后的**内部统一第一步**；为 TS-2（模板 IR）与后续调度 facade 化立地基层。背景讨论沉淀于 [source-audit](source-audit.md)。
+- 关系：独立架构 Action（非 umbrella 子门）。是 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（complete，外部调用统一）之后的**内部统一第一步**；worker 演进依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md)（阶段 1/2 归本门）；为 TS-2（模板 IR）与后续调度 facade 化立地基层。背景讨论沉淀于 [source-audit](source-audit.md)。
 
 ## Background
 
