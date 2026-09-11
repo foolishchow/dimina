@@ -2,6 +2,60 @@
 
 > 状态：**草案（2026-09-10）**。决策 Action：ready = 冻结，不实施；实施分给 build-model / module-cache。基于 source-audit 的现状证据与本轮讨论收敛。
 
+## 0. 终点架构目标（本决策的"为什么"）
+
+> **主线程是编译的"大脑"（模型权威 + 增量决策），worker 是"手"（领域编译执行器，只做事不理解状态）；一次编译/一次 watch 会话结束，产物回到大脑，大脑决定下次动哪只手、不动哪只手。**
+
+```text
+主线程（Brain）
+  GroupModule（owner 权威：page/component/npm + 跨维度文件引用）
+  BuildModel（entry 产物持有：每页 render/css/js + 指纹）
+  scan+closure（文件 hash → 受影响 Group → 精确到维度的失效集）
+
+  变更事件（chokidar，只做触发器）
+    → scan 指纹（mtime 预筛 + hash 确认）
+    → closure（哪些 Group 的哪些维度失效）
+    → 未变 Group：产物直接从 BuildModel 物化，worker 不动
+    → 变化 Group：只下发这几个 Group 的任务快照
+
+  任务分发（WorkerTask）：groups 子集 + changedFiles + contextFingerprint
+    ├── view worker    ← 受影响页面的 wxml
+    ├── logic worker   ← 受影响页面 js（保持 app 级 bundle 语义）
+    └── style worker   ← 受影响页面的 wxss
+
+  结果回收（WorkerResult）：outputs + graphDelta + diagnostics（单向，worker 不反改模型）
+    → BuildModel 更新（持有）
+    → GroupModule 合并（graph delta）
+    → materialize 物化（唯一写盘出口）
+```
+
+### 终点能力 vs 现状
+
+| 能力 | 终点 | 现状（三 worker 一次性） |
+| --- | --- | --- |
+| **A. 精确到维度的增量** | 改页面 js → 只 logic 维度重算；改共享 wxml → 只引用它的 Group 的 view 维度重算 | 改任意文件 → 消息合并退全量，整 app 重编 |
+| **B. 跨 build 结果复用** | 页面没变 → 产物从主线程 BuildModel 直接拿出，不启动 worker | 产物在磁盘、无指纹定位，启动 worker 全量重编 |
+| **C. 缓存与产物分层** | worker 内 = 单 stage 中间缓存（FileModule）；主线程 = 跨 build entry 产物 | 全在 worker 进程内，每次 terminate 全丢 |
+
+### 终点边界（也不做）
+
+- 不合并三 worker（领域中间表示异构：DOM vs AST vs cssAST）
+- 不做跨 worker 共享内存缓存（物理分布决定共享=约定非实例）
+- 不强制 worker 常驻（阶段 4 可选，凭性能测量；前 3 阶段已拿到 A/B/C 全部能力）
+- logic 不假装 module 级增量（app 级 bundle 是产物边界的事实）
+- 不定义 IR（TS-2 的事；本架构给 IR 留好"模型层"立足点）
+
+### 决策落地后的形态（D-WA-1..6 → 运行时）
+
+| 决策 | 落到运行时 |
+| --- | --- |
+| D-WA-1 生命周期 | 前 3 阶段无状态 worker，接口 service 形状（update(changed)），常驻可选 |
+| D-WA-2 logic 边界 | app 级 bundle（诚实） |
+| D-WA-3 跨 build 复用 | 主线程 BuildModel 持有 entry 产物 |
+| D-WA-4 缓存分层 | worker 内单 stage / 主线程跨 build |
+| D-WA-5 数据流 | 单向 delta，worker 不反改模型 |
+| D-WA-6 中间表示 | 不统一三域（DOM vs AST vs cssAST） |
+
 ## 1. 决策依据（为什么需要演进）
 
 三 worker 现状与目标的结构性落差（source-audit §3）：结果边界 / 协变 / 生命周期 / 协议 / 数据流 / 模型——六项落差是本 Action 决策的对象。**不是一步大改**：分四阶段，前 3 阶段不要求 worker 常驻。

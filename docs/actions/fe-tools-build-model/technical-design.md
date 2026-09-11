@@ -6,9 +6,11 @@
 
 ```js
 BuildModel（主线程持有，D-BM-1）
-  entries: Map<entryId, Entry>
-  fingerprints: Map<filePath, { mtime, hash }>        // 文件级两层指纹
-  graph: DependencyGraph                                // 现有结构骨架复用
+  groups: Map<groupId, GroupModule>    // 结构与关联权威（owner + 跨维度文件引用，见 module-cache）
+  entries: Map<entryId, Entry>        // 产物与增量权威
+  fingerprints: Map<filePath, { mtime, hash }>   // 文件级两层指纹
+  graph: DependencyGraph               // 现有结构骨架复用
+  sourceOfTruth: 'main'                // 主线程是权威；worker 只收任务快照，不反改
 
 Entry = {
   id,                    // page/component/app-logic/app-style
@@ -20,6 +22,37 @@ Entry = {
 ```
 
 不设 `ir` 字段（Non-goal）；三层判定升级缝：`inputHash`（本门）→ 未来 `irHash` → `outputHash`。
+
+### 1.1 BuildModel 归属与构建（谁构建 / 计划怎么构建）
+
+**现状谁在构建**（散落的组装者）：
+
+| 现状对象 | 当前构建者 | 内容 |
+| --- | --- | --- |
+| `pathInfo/configInfo` | `env.storeInfo()` | app.json、页面 JSON、组件树、项目配置 |
+| `DependencyGraph` | `storeInfo()` + 各 compiler `addFile()` | owner、文件归属、依赖边、kind |
+| `buildResult` | `runBuild()` 返回 | appId/name/path/dependencyGraph |
+| watch plan | `watch-plan.js` | 受影响 Entry、stages、seedPath |
+| compile-cache entry | `compile-cache.js` | 落盘指纹、依赖图、manifest |
+
+**当前缺失**：entries / inputFiles / inputHash / outputs / dirty 状态 / materialize 归属——
+即不是完整 BuildModel，是 `CompilerContext + DependencyGraph + WatchState` 的散落组合。
+
+**Action 计划怎么构建（M1 内的归拢步骤）**：
+
+1. **现状归拢**：将 `configInfo + DependencyGraph + buildResult + watch 状态` 收敛为
+   BuildModel 单点（groups / graph / fingerprints 起步）；不改编译算法
+2. **输出回传**：worker 产物经阶段 1（结果边界）流式回传 → `entries[entryId].outputs` 持有
+3. **组关联**：基于 DependencyGraph 的 fileOwners 构建 `groups[groupId] → viewFiles/logicFiles/...`
+4. **指纹与失效**：M2 接入 scan+closure，BuildModel 成为失效决策的唯一权威
+
+归属分层（与 worker-architecture / module-cache 对齐）：
+
+```text
+BuildModel（本门）：跨 build，主线程，结构+产物权威（Entry.outputs 是跨 build 复用的核心）
+ModuleCache（module-cache）：单 stage，worker 内，FileModule 内容局部复用
+GroupModule（介于两者）：结构关联索引——主线程权威，worker 只持注入引用
+```
 
 ## 2. worker 协议扩展（D-BM-1 的最小实现）
 
