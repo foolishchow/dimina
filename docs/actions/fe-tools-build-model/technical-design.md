@@ -32,8 +32,7 @@ Entry = {
       → postMessage({ success, ..., outputs: [{ entryId, code, sourcemap }] })
 ```
 
-- **只加产物字段**；上下文段、进度消息（completedTasks）、错误协议不动
-- 大产物分批：按 Entry 分条回传（单条上限保护，探针定阈值）
+- **只加产物字段**；上下文段、进度消息（completedTasks）、错误协议不动；产物**流式回传**（每 Entry 一条，与逐页进度同节奏，无字节阈值——base 实测 1.9MB/185 文件，单 Entry ≤ ~300KB；见 [protocol.draft](protocol.draft.md)）
 - logic：单 Entry（app 级 bundle 整体一条）
 
 ## 3. 指纹与失效传播（D-BM-2 / D-BM-3）

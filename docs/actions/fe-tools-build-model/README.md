@@ -57,7 +57,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 ## Readiness gaps
 
 1. D-BM-1..5 待逐项评审冻结（尤其 M2 行为变化的验收口径）
-2. worker 协议扩展的精确形状（产物字段/分批回传/大产物内存预算）待探针
+2. ~~worker 协议扩展的精确形状~~ — **探针已落盘**（[protocol.draft](protocol.draft.md)：流式回传/Entry 粒度天然分批/无需字节阈值与 LRU；D-P1..3 待随 ready 冻结）
 3. inputHash 聚合算法（输入集排序稳定性、include 链聚合）待设计
 4. M3 是否纳入本 Action 或另立（defer 决策）
 
@@ -73,6 +73,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 | 文档 | 作用 |
 | --- | --- |
 | [source-audit](source-audit.md) | 现状证据（直通式/缓存清单/双 plan/粒度/TS-2 素材） |
+| [protocol.draft](protocol.draft.md) | worker 协议探针：流式回传设计（D-P1..3）+ base 实测；gap ② 已关闭 |
 | [requirements](requirements.md) | R-BM-*（MUST/SHOULD） |
 | [technical-design](technical-design.md) | 模型/协议/指纹/失效传播设计 |
 | [acceptance](acceptance.md) / [validation](validation.md) | 验收与验证（draft） |
