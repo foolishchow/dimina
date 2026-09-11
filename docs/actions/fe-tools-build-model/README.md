@@ -40,7 +40,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
-| **M1 持有与物化** | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5） | **等价重构** | 产物字节级 diff=0；479+ 测试全绿 |
+| **M1 持有与物化** | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5）——前置 [`fe-tools-module-cache`](../fe-tools-module-cache/README.md)（module 粒度已冻） | **等价重构** | 产物字节级 diff=0；479+ 测试全绿 |
 | **M2 指纹与失效** | 指纹体系（mtime 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器） | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录） | 增量对拍：受影响 Entry 重算、其余命中持有；测试更新 |
 | **M3（可选）** | cache 路径（`pnpm compile`）迁移到同一机制；`--verify-incremental` 全量对拍 | 消费者收编 | compile-cache 行为等价或改进记录 |
 
@@ -60,7 +60,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 
 1. D-BM-1..7 待逐项评审冻结（尤其 M2 行为变化的验收口径）；D-BM-6/7 已随讨论拍板成文，待随 ready 一并确认
 2. ~~worker 协议扩展的精确形状~~ — **探针已落盘**（[protocol.draft](protocol.draft.md)：流式回传/Entry 粒度天然分批/无需字节阈值与 LRU；D-P1..3 待随 ready 冻结）
-3. inputHash 聚合算法（输入集排序稳定性、include 链聚合）待设计
+3. inputHash 聚合算法（输入集排序稳定性、include 链聚合）待设计——**module 粒度由 [`fe-tools-module-cache`](../fe-tools-module-cache/README.md)（draft，前置地基）固定后对齐**
 4. M3 是否纳入本 Action 或另立（defer 决策）
 
 ## Closure conditions
