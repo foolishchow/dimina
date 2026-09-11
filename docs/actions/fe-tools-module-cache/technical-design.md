@@ -68,4 +68,6 @@ value = { failed: true, errorShape }
 | 拆解 templateRenderCache 引入等价回归 | 字节级 diff 双模式验收（MC1） |
 | key 维度漏项 → 跨 build 错误命中 | R-MC4 维度清单 + MC2 单测（配置切换不命中旧 key） |
 | 失败缓存掩盖 transient 错误 | 失败缓存与诊断通道分离；错误形状可重建 |
-| 颗粒化度"看不见"（无 IR 时 module 边界语义弱） | 颗粒度断言测例（并发引用单文件只 parse 一次）作为可观察证据 |
+| 组合闭包依赖图不当 → 组合前缓存 miss 或错误命中 | 组合闭包从 `getDependencyGraph().fileOwners` 反查（module-cache 不改组合算法，只在组合前查缓存；miss 走现有组合现场） |
+
+**纠偏（2026-09-10 讨论）**：早期认为 module 层难在“触碰 view 组合逻辑结构”——不成立。现状 ModuleGraph（DependencyGraph）已存文件归属（`fileOwners`），一页面的 include/template/wxs 输入集可反查；“组合前内容缓存”只需在现有组合算法**前**垫一层查询（单文件 hash + miss 才走现场），**组合算法本身不拆不改**（D-MC-4）。真正的改动是：补齐内容层（文件 → 组合中间结果），不拆 view 结构。

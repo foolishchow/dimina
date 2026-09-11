@@ -42,6 +42,7 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 | D-MC-1 | module 中间结果形态 | ① 缓存"单文件级 parse/中间结果"（不定义 formal IR，不拆组合）——已拍板；② 拆组合/编译结构 → TS-2 |
 | D-MC-2 | 失败缓存 | 缓存失败结果（parse/transform 异常），同输入不再重复报错 |
 | D-MC-3 | compileResCache 处置 | 升级为内容寻址；若成本超支则明确"保持单 build 生命周期、放弃跨 build"（记录在案） |
+| D-MC-4（新增） | 组合前缓存查询层 vs 拆组合算法 | **垫查询层**：ModuleGraph 的 fileOwners 反查组合输入集，只加“单文件 hash + 组合前查缓存，miss 走现场”；**组合算法不拆不改**（2026-09-10 纠偏：早期“触碰组合结构”判断不成立） |
 
 ## Readiness gaps
 
