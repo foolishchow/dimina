@@ -4,13 +4,13 @@
 - Status: `draft`
 - Updated: 2026-09-10
 - Status authority: [Action Status](../STATUS.md)
-- 关系：独立架构 Action。是 [`fe-tools-build-model`](../fe-tools-build-model/README.md) 的**前置地基**（先固 module 粒度，再谈主线程持久化）；形态①已拍板（不拆 view 组合），演进路径依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md) 阶段 3（模型层）。现状证据见 [source-audit](source-audit.md)。
+- 关系：独立架构 Action。与 [`fe-tools-build-model`](../fe-tools-build-model/README.md) **并行实施**（各自独立、互不前置）；worker 演进与 FileModule 归属基准依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md)（其协议草案定义 FileModule 归属）。**形态①已拍板**（不拆 view 组合），②（拆结构）属 TS-2 边界。现状证据见 [source-audit](source-audit.md)。
 
 ## Background
 
 worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 → 单结果"纯 module 缓存——`templateRenderCache` 是组合/entry 级、`compileResCache` 是 path 寻址（跨 build 不安全）、`processedModules` 只记不缓存。且 worker 每次 `new + terminate`（§2），缓存生命周期 = 单次 stage。
 
-**先颗粒化，再持久化**：主线程 BuildModel（build-model Action）需要 module 粒度才能做 entry 级失效与注入；若先把粗粒度缓存持久化，key/失效/注入边界全部返工。
+**先颗粒化，再谈跨 build 持久化**：颗粒化（本 Action）是未来任何跨 build module 持久化（阶段 4 决策）的前提——先把粗粒度缓存颗粒化，否则 key/失效/注入边界全部返工。**与 build-model 并行**：build-model 的 M1/M2（结果边界/失效）按 entry 粒度即可，不依赖本 Action 的 FileModule 粒度。
 
 ## Goal
 
@@ -65,7 +65,7 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 
 ① MC1..3 交付；R-MC 全 pass 且 P-MC 填实际证据
 ② 消融：MC1 内容寻址化（去内容 key 应使缓存单测失败）/ MC2 key 维度（去 esTarget 维度应使配置切换测例失败）
-③ Backflow：build-model README 前置关系确认（module 粒度已冻）；TS-2 无涉及（未碰组合/IR）
+③ Backflow：协议基准对齐（worker-architecture 的 FileModule 归属定义）+ TS-2 无涉及（未碰组合/IR）
 ④ STATUS/归档/指针一致变更
 
 ## Documents

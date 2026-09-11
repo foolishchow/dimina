@@ -12,20 +12,19 @@
 
 **但**：不是一步大改。演进分四阶段，前 3 阶段不需要 worker 常驻；三领域中间表示不可统一。
 
-## Goal（决策交付物）
+## Goal（决策交付物，ready = 冻结）
 
-1. **演进路径定稿**：结果边界 → 协变 → 模型层 →（可选）常驻 service 四阶段；每阶段独立可验收、字节等价
-2. **四个张力结论**（D-WA 决策表）：无状态 vs 常驻 / logic 产物边界 / worker 内 vs 主线程缓存 / 单向数据流
-3. **WorkerTask / WorkerResult 协议草案**（探针）：build-model 的 stage-channel 与 module-cache 的 FileModule 按它对齐
-4. **边界映射表**：演进路径各阶段归谁（build-model / module-cache / TS-2 / 未来）
-5. **决策冻结**（ready = 冻结，无未决张力；实施不归本 Action）
+1. **WorkerTask / WorkerResult 协议草案**（核心交付，探针）：build-model 的 stage-channel 与 module-cache 的 FileModule 归属**以它为共同基准**对齐
+2. **D-WA 决策表**（六条约束冻结）：生命周期 / logic 产物边界 / 跨 build 复用 / 缓存分层 / 单向数据流 / 不统一三域中间表示
+3. **演进路径**（降级为**决策记录**，非实施地图）：四阶段标注归属（阶段 1/2 → build-model，阶段 3 → module-cache，阶段 4 → 未来）
+4. **决策冻结**：ready 即冻结；无未决张力；实施不归本 Action
 
 ## Non-goals（决策 Action 不实施）
 
-- **不写编译代码**（实施分给 build-model / module-cache）
+- **不写编译代码、不迁移实现、不提供任何实施门**（实施分给 build-model / module-cache）
 - **不合并三个 worker 成一个超级 worker**（领域中间表示异构：DOM vs AST vs cssAST）
 - **不统一三领域 FileModule 内容结构**（各自异构，机制共享）
-- **不强制 worker 常驻**（第 4 阶段为可选，前置决策记录）
+- **不强制 worker 常驻**（第 4 阶段为可选，凭性能测量决定）
 - **不引入共享内存缓存 / 跨 worker 全局单例**（物理分布决定：共享=约定非实例）
 - 不定义 IR（TS-2）、不定义 inputHash 具体算法（build-model gap③）
 
@@ -49,7 +48,7 @@
 | D-WA-5 | 数据流 | **单向**：worker 回传 delta（outputs + graph delta + diagnostics），不反向修改 GroupModule；主线程合并 |
 | D-WA-6 | 三领域中间表示 | **不统一**（DOM vs AST vs cssAST）；共享仅机制/协议（key 构造、失败语义、接口形状） |
 
-## 演进路径（四阶段，见 technical-design §2）
+## 演进路径（决策记录：四阶段归属实施方，本 Action 不实施）
 
 ```text
 阶段 1：结果边界（output 回传 + materialize）          → build-model M1
