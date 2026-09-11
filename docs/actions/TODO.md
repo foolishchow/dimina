@@ -23,7 +23,7 @@
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 [`fe-tools-bootstrap-copy`](_archive/complete/fe-tools-bootstrap-copy/README.md)（**`complete`**）；卫生 [`fe-tools-bundler-unvite`](_archive/complete/fe-tools-bundler-unvite/README.md)（**`complete`**）；会话编排 [`fe-tools-bundler-session`](_archive/complete/fe-tools-bundler-session/README.md)（**`complete`**，O1–O3 全交付+消融+字节级等价验证；曾用名 bundler-core） |
 | 下一步 | 继续 session 探针讨论（resolve 已部分收敛；stages.draft 已建）；伞：IR 草案 + 终态句成文 + CI 决策后再考虑 `ready` |
-| 再激活 / 推进 | bundler-session 已 complete（管道插件化另 Action）；伞主战场 TS-2 IR；TS-4 含 ./session API 文档成文 |
+| 再激活 / 推进 | bundler-session 已 complete（管道插件化另 Action）；**build-model（draft）：内部统一地基（持有+指纹+失效+物化），TS-2 前置**；伞主战场 TS-2 IR；TS-4 含 ./session API 文档成文 |
 | 说明 | 候选条目保留指针；bootstrap / unvite 已归档；长线分支 **`feature/fe-tools-sidecar`**；下步另有 TS-2 IR / TS-4 |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
