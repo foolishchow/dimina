@@ -1,13 +1,13 @@
 # FE Tools Bundler Session
 
 - Action: `fe-tools-bundler-session`
-- Status: `in_progress`
-- Updated: 2026-09-10（O1–O3 全部交付；证据见 validation.md；next: closure 待授权）
-- Status authority: [Action Status](../STATUS.md)
-- 关系：独立架构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。与 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 无依赖（已 complete）。
+- Status: `complete`
+- Updated: 2026-09-10（O1–O3 交付 + 消融×3 + 独立复核；闭合并归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 关系：独立架构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。与 [`fe-tools-bundler-unvite`](../fe-tools-bundler-unvite/README.md) 无依赖（已 complete）。
 - 曾用名：`fe-tools-bundler-core`（讨论中改名：本门是**会话/编排门面**，不是编译内核或插件宿主）。
-- 工作分支建议：长线 [`feature/fe-tools-sidecar`](../fe-tools-sidecar/README.md)，或短分支 `feature/fe-tools-bundler-session`。
-- 设计权威：讨论中；探针为 vivid source，[technical-design](technical-design.md) 为设计索引（对齐探针；未冻）。
+- 工作分支建议：长线 [`feature/fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)，或短分支 `feature/fe-tools-bundler-session`。
+- 设计权威：已随实施落地——`fe/tools/bundler/src/session/` 为实现真源；本文档集（探针 + [technical-design](technical-design.md)）转为历史设计记录。
 
 ## Positioning
 
@@ -80,14 +80,18 @@ Plugin：**OPEN / 非本门主交付**。
 
 ## Readiness
 
-**`ready`**（2026-09-10）。经 14 轮审查（6 维度族：边界/可行性/适配性/功能完整性/文件规划/验收闭环，方法见 [Action-Review-Playbook](../../Action-Review-Playbook.md)）后升级：需求（R-BC1..7 + Non-reqs + 已知限制）、设计（探针 + 零循环拓扑 + §4.5 文件清单）、计划（O1–O3 门映射）、验收（A-BS01..08 客观判据）、验证（P-001..007 可执行）俱足。历史注记：早期曾误标 ready 已纠正；本次为评审通过后的正式升级。实施仍需明确授权（`in_progress`）。
+**`ready`**（2026-09-10）。经 14 轮审查（6 维度族：边界/可行性/适配性/功能完整性/文件规划/验收闭环，方法见 [Action-Review-Playbook](../../../../Action-Review-Playbook.md)）后升级：需求（R-BC1..7 + Non-reqs + 已知限制）、设计（探针 + 零循环拓扑 + §4.5 文件清单）、计划（O1–O3 门映射）、验收（A-BS01..08 客观判据）、验证（P-001..007 可执行）俱足。历史注记：早期曾误标 ready 已纠正；本次为评审通过后的正式升级。实施仍需明确授权（`in_progress`）。
 
-## Closure conditions
+## Closure（2026-09-10 执行完毕）
 
-① **交付**：O1–O3 三门全部交付；A-BS01..08 全 pass，P-001..007 填入**实际证据**（非 planned）。
-② **消融**：三处执行并记录——bin 接线（去 `createBundler` 接线应失败）/ watch lifecycle 注入（不注入 `options.lifecycle` 应使 lifecycle-integration 失败）/ R7 回滚（去 dev() 的 try/catch 应使 A-BS08 注入测例失败）。证据记录于 validation.md 消融段，含 Experience-Review §6 四要素：目标用例、消融内容、预期与实际失败点、恢复后复验（L-N3）。
-③ **Backflow（持久发现回流）**：伞 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md) README 的 TS-3 行更新控制面状态；tools/bundler 的 `./session` API 面文档去向（随门成文或 defer 至 TS-4）在闭合决策中显式记录。
-④ **一致性**：STATUS.md 状态行 + 归档位置（`_archive/complete/`）作为一次一致变更更新；伞/TODO 候选区指针同步。
+**四条件全部满足**：
+
+① **交付** ✅ — O1 `dd6668a4` / O2 `45ae450f` / O3 `30a52cd9`；A-BS01..08 全 pass、P-001..007 实际证据（见 [acceptance](acceptance.md) / [validation](validation.md)，含消融记录）；独立复核（`c31b6c26`）补齐 R-BC3 最硬证据：**产物字节级等价**（nomap 94 文件 + `--sourcemap` 185 文件，diff 均 exit 0）。
+② **消融** ✅ — 三处全部执行，四要素记录于 [validation](validation.md) 消融段。
+③ **Backflow** ✅ — 伞 TS-3 行控制面状态已更新；**`./session` API 文档去向：defer 至 TS-4**（理由：tools 为私有孵化面不推 didi，模块级 JSDoc 已覆盖使用面，随伞终态 B 门禁成文统一同步）。
+④ **一致性** ✅ — STATUS/归档/伞/TODO 指针一次变更同步。
+
+**残留（已知限制，随归档保留）**：lifecycle 无 `off()`（A1 v1），dev 监听跨循环累积（无害）；若 A1 后续扩展 `off()`，另立 Action 处理。
 
 ## Documents
 

@@ -5,7 +5,7 @@ Status: inventory only — **not** a plugin API · **not** extracted from `runBu
 
 Purpose: name today’s hardwired pipeline pieces so later “pipeline as plugins” discussions have a shared table. Session **delegates** to `runBuild`; it does **not** own these stages in this Action.
 
-Authoritative code today: [`fe/tools/bundler/src/index.js`](../../../fe/tools/bundler/src/index.js) (`runBuild`), [`env.js`](../../../fe/tools/bundler/src/env.js), [`core/*`](../../../fe/tools/bundler/src/core/).
+Authoritative code today: [`fe/tools/bundler/src/index.js`](../../../../../fe/tools/bundler/src/index.js) (`runBuild`), [`env.js`](../../../../../fe/tools/bundler/src/env.js), [`core/*`](../../../../../fe/tools/bundler/src/core/).
 
 Related probe constant: `STAGE_GRAPH_DRAFT` in [orchestrator.draft.mjs](./orchestrator.draft.mjs) (names only; O5 / future Action extracts).
 

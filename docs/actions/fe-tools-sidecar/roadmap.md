@@ -29,7 +29,7 @@ TS-3 编排可选拆包 + web-container-sdk 深改（按需；BC-3 指针）
 | TS-0 | 冻结 D-TS0-1..6；`tools/*` workspace | 决策已落 umbrella README | 无 | **已冻 + 已落地**（bootstrap → 长线 `feature/fe-tools-sidecar`） |
 | TS-1 | 整包复制改名接线冒烟（意图） | **不立子门**。由独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 交付；伞只把它当**前置**，不父子验收 | — | **前置已 complete** |
 | TS-2 | 在 `@dimina/bundler` 内切开 parse→IR→webview | `fe-tools-template`（未来） | bootstrap-copy complete；IR 草案 | pending |
-| TS-3 | 可选抽出薄编排包；sdk 仅在 `@dimina/web-container-sdk` 内深改 | 可选未来 Action；控制面先行见独立 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（`draft`；拆包更晚） | bootstrap-copy complete | pending / 可 deferred；**不阻塞本门** |
+| TS-3 | 可选抽出薄编排包；sdk 仅在 `@dimina/web-container-sdk` 内深改 | 可选未来 Action；控制面先行见独立 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（`draft`；拆包更晚） | bootstrap-copy complete | pending / 可 deferred；**不阻塞本门** |
 | TS-4 | `fe/packages` 相对 origin/main 无私有 improve diff；`dimina-cli` 仍 work；同步节奏成文 | 未来 Action 或并入伞验收 | bootstrap-copy complete | packages 干净已满足草案句；**同步节奏文档 pending** |
 
 ## 与已归档工作的关系

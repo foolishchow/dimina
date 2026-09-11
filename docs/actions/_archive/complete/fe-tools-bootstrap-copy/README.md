@@ -7,7 +7,7 @@
 - Authorized: 2026-09-10（对齐 origin/main → tag → 开分支实施）
 - Archived: 2026-09-10
 - Status authority: [Action Status](../../../STATUS.md)
-- 关系：独立 Action（**不是**任何 umbrella 的子门）。策略背景可对照 [`fe-tools-sidecar`](../../fe-tools-sidecar/README.md)；本门闭合不依赖该伞 `ready`。
+- 关系：独立 Action（**不是**任何 umbrella 的子门）。策略背景可对照 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；本门闭合不依赖该伞 `ready`。
 - 设计权威：本目录文档；命名/终态约定见下方 **D-BC-***（与 sidecar 伞 TS-0 对齐，但以本 Action 为准）。
 - Draft review：#1 + #2（2026-09-10）→ `ready` → 实施 → **`complete`**。
 
@@ -153,4 +153,4 @@
 | [requirements](requirements.md) | MUST |
 | [acceptance](acceptance.md) | 验收表 |
 | [validation](validation.md) | 计划命令与证据 |
-| （可选对照）[fe-tools-sidecar](../../fe-tools-sidecar/README.md) | 后续战略伞；非父门 |
+| （可选对照）[fe-tools-sidecar](../../../fe-tools-sidecar/README.md) | 后续战略伞；非父门 |

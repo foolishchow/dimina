@@ -6,8 +6,8 @@
 - Authorized: 2026-09-10
 - Archived: 2026-09-10
 - Status authority: [Action Status](../../../STATUS.md)
-- 关系：独立卫生 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。
-- 工作分支：[`feature/fe-tools-sidecar`](../../fe-tools-sidecar/README.md)
+- 关系：独立卫生 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。
+- 工作分支：[`feature/fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)
 - 设计权威：本目录；冻结项见 **D-UV-***。
 
 - Draft review：2026-09-10 → 冻结升 `ready` → 授权实施 → **`complete`**（A-UV01..09 / P-001..008）。

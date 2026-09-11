@@ -10,13 +10,13 @@ Action renamed from `fe-tools-bundler-core`（2026-09-10）。定位收窄为 **
 
 设计基线（`feature/fe-tools-sidecar`，unvite complete 后）：
 
-- [`src/index.js`](../../../fe/tools/bundler/src/index.js)：`build` / `runBuild` + Listr 阶段手写
-- [`src/common/watch-runner.js`](../../../fe/tools/bundler/src/common/watch-runner.js)：`createBuildWatcher`（lifecycle 经 `options.lifecycle` 注入）
-- [`src/bin/dev.js`](../../../fe/tools/bundler/src/bin/dev.js)：D1a 手拼串联
-- [`src/bin/index.js`](../../../fe/tools/bundler/src/bin/index.js)：`build` / `build -w` 手拼
-- [`src/common/lifecycle.js`](../../../fe/tools/bundler/src/common/lifecycle.js)：A1 事件契约 v1（内部）
-- [`src/common/dev-server.js`](../../../fe/tools/bundler/src/common/dev-server.js)：preview server
-- [`src/bin/compile.js`](../../../fe/tools/bundler/src/bin/compile.js)：**范围外**——bootstrap 复制残留、无消费者（fe 的 `compile` script 指向 packages/compiler 侧同名文件）；不经 session，本门不动
+- [`src/index.js`](../../../../../fe/tools/bundler/src/index.js)：`build` / `runBuild` + Listr 阶段手写
+- [`src/common/watch-runner.js`](../../../../../fe/tools/bundler/src/common/watch-runner.js)：`createBuildWatcher`（lifecycle 经 `options.lifecycle` 注入）
+- [`src/bin/dev.js`](../../../../../fe/tools/bundler/src/bin/dev.js)：D1a 手拼串联
+- [`src/bin/index.js`](../../../../../fe/tools/bundler/src/bin/index.js)：`build` / `build -w` 手拼
+- [`src/common/lifecycle.js`](../../../../../fe/tools/bundler/src/common/lifecycle.js)：A1 事件契约 v1（内部）
+- [`src/common/dev-server.js`](../../../../../fe/tools/bundler/src/common/dev-server.js)：preview server
+- [`src/bin/compile.js`](../../../../../fe/tools/bundler/src/bin/compile.js)：**范围外**——bootstrap 复制残留、无消费者（fe 的 `compile` script 指向 packages/compiler 侧同名文件）；不经 session，本门不动
 - 自发布：镜像 `src`→`dist`（无 Vite；`sync-dist-from-src.js` 整目录递归，新 session 模块文件自动进 dist）
 
 ## 1. 问题与边界

@@ -18,7 +18,7 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支已由 `feature/fe-tools-bootstrap` **改名为** `feature/fe-tools-sidecar`；`git diff origin/main...HEAD -- fe/packages` 为空。卫生门 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 已 `complete`（下线 Vite 自打包，镜像 `src`→`dist`）。编排轴独立 Action [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md) 为 `ready`（14 轮审查后升级；会话门面 + resolve + stages 清单；plugin 非主叙事）。伞仍为 `draft`，模板主战场仍为 TS-2（IR / template）。
+**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支已由 `feature/fe-tools-bootstrap` **改名为** `feature/fe-tools-sidecar`；`git diff origin/main...HEAD -- fe/packages` 为空。卫生门 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 已 `complete`（下线 Vite 自打包，镜像 `src`→`dist`）。编排轴独立 Action [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md) 已 `complete`（O1–O3 全交付：session 模块 + `./session` 子路径 + CLI 全经 session；479 测试全绿、消融×3、产物字节级等价；已知限制：dev 监听累积随档保留）。伞仍为 `draft`，模板主战场仍为 TS-2（IR / template）。
 
 ## Goal
 
@@ -43,7 +43,7 @@
 | `fe/pnpm-workspace.yaml` | **已含** `tools/*` |
 | `fe/packages/*` | **与 upstream 同构**（终态 B）；不作私有改造主战场 |
 | `feature/compiler-improve` / tag `fe-tools-copy-source` | **复制源快照**（只读取向） |
-| `docs/actions/` | 本 umbrella；搬迁已归档至 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md)；编排见 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md) |
+| `docs/actions/` | 本 umbrella；搬迁已归档至 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md)；编排已归档 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（complete） |
 
 ## TS-0 冻结决策（2026-09-10）
 
@@ -147,7 +147,7 @@ fe/tools/
 | TS-0 | 冻结项 D-TS0-1..6 + workspace | **决策已冻；落地完成** |
 | TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
 | TS-2 | tools 内模板管线切开（parse / IR / webview） | pending |
-| TS-3 | 编排可选拆包与 sdk 深改边界 | pending / 可 deferred；控制面见 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（`ready`） |
+| TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md) 交付（**complete**）；剩余 sdk 深改边界 pending / 可 deferred |
 | TS-4 | 终态 B 门禁闭环与同步节奏成文 | packages 已干净；文档 pending |
 
 ## Readiness gaps
