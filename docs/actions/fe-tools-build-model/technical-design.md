@@ -33,6 +33,22 @@ Entry = {
 ```
 
 - **只加产物字段**；上下文段、进度消息（completedTasks）、错误协议不动；产物**流式回传**（每 Entry 一条，与逐页进度同节奏，无字节阈值——base 实测 1.9MB/185 文件，单 Entry ≤ ~300KB；见 [protocol.draft](protocol.draft.md)）
+
+### 2.5 stage-channel 封装（M1 配套，协议知识的家）
+
+现状 `runCompileInWorker`（index.js:310-400+，约 90 行）是手写半封装：Worker 构造 / promise 化 / terminate 槽位语义 / 四分支消息分发 / 六字段错误重建，全部内联在 runBuild 所在文件。
+
+**升格为独立模块** `common/stage-channel.js`（~150 行领域封装，非通用 RPC）：
+
+```js
+runCompileStage({ script: 'view'|'logic'|'style', payload,
+                  onProgress, onOutput, onWarning })
+  → Promise<{ dependencyGraph }>
+// 内部：现状 90 行搬家 + M1 新增的 output 消息分发与
+//       outputCount 对账（有状态：实收 vs 声明，不符 = stage 失败）
+```
+
+**硬理由**：M1 使消息处理从无状态变**有状态**（对账计数）——必须有宿主，不能与 index.js 纠缠；协议知识单点（M3/TS-2 再改协议只动此一处）；channel 可 mock worker 单测（现状只能集成测）。**不做**：通用 RPC / 请求复用 / 重连 / IDL。
 - logic：单 Entry（app 级 bundle 整体一条）
 
 ## 3. 指纹与失效传播（D-BM-2 / D-BM-3）
