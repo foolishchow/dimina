@@ -33,6 +33,8 @@ transform 内部（view/logic/style 编译逻辑）、env.js 隐式上下文（A
 ## Non-requirements
 
 - IR（字段/形状/pass 链）——TS-2 战场，本 Action 只留三层判定第 1 层
+- native 缓存模块（D-BM-6：xxhash/blake3/SQLite/LMDB 均不引入；理由与 revisit 触发见 README 决策表）
+- 通用 worker RPC 框架（D-BM-7 只做 stage 协议领域封装；不做请求复用/重连/IDL）
 - 调度↔处理器 facade 化（handler 接口）
 - logic 的 module 级增量（esbuild bundle 保持 app 级全量）
 - rebuild 全量 storeInfo 的增量化（L0 热点，属调度后续）
