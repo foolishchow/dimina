@@ -28,6 +28,16 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 - **不定义 IR / 不拆 view 组合编译结构**（TS-2 边界）
 - **不改产物字节**（验收 = 字节等价 + 既有 479+ 测试全绿）
 
+## Worker 生命周期边界（D-WA-1 / MC scope）
+
+本 Action **不把 worker 改为持久化 service**：前 3 阶段仍是 `new Worker → stage → terminate`。
+因此 MC1..3 的 FileModule cache 是 **worker-local / 单 stage 生命周期**，不承诺跨 build
+持久化；跨 build 的 entry 产物持有归 `fe-tools-build-model`。
+
+若未来性能测量证明“变化 Entry 内部的未变 FileModule 重算”是主要瓶颈，另立阶段 4
+决策：选择持久化 worker service，或选择 main-thread FileModuleStore（DOM/AST 跨线程
+传递成本需实测）。本 Action 不预设两者之一，也不提前引入共享缓存实例。
+
 ## 门（实施计划，待 ready 冻结）
 
 | 门 | 交付 | 性质 | 验收核心 |
