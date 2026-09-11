@@ -105,6 +105,31 @@ entry 需重算 ⇔ closure(变更集) 含该 entry
 
 **include 聚合**：`inputFiles` 由 graph 的 fileOwners 反查生成；`inputHash = hash(排序后 [path:hash] 串)`——include 模板变 → 所属页 inputHash 变（与现状 affectedEntries 行为一致，判定更可靠）。
 
+### 3.1 inputHash 聚合协议（L-M-12：讨论收敛沉淀）
+
+```text
+Entry.inputHash = H(
+  schemaVersion,        // 如 'bm-v1'——算法变更时整体失效
+  toolStamp,            // 编译器版本指纹（全局维度，变则全部失效）
+  contextFingerprint,   // 编译维度聚合（minify/esTarget.view/fileTypes/renderer）
+                          // ← 即 worker-architecture WorkerTask.contextFingerprint
+  sorted(inputFiles.map(f => `${relPath}:${contentHash}`))  // 字典序排序
+)
+```
+
+**四层维度**（漏维度 → 错误命中，多维度 → 保守重算，宁多勿漏）：
+
+| 层 | 内容 | 归属 |
+| --- | --- | --- |
+| 内容 | 文件 contentHash | R-BM3（(mtime,size) 预筛 + hash） |
+| 结构 | inputFiles 集（graph.fileOwners 反查） | R-BM1（Entry 定义） |
+| 参数 | contextFingerprint（minify/esTarget.view/fileTypes/renderer） | worker-architecture 协议字段 |
+| 工具 | toolStamp（编译器版本/源码指纹） | 全局维度，变则全部失效（对齐 compile-cache 的 compilerLastModified 先例） |
+
+**排序稳定性**：inputFiles 集合来自 graph（Set），序列化前按 `relPath` 字典序排序——消除遍历顺序不确定性。
+
+**不应进入 inputHash 的维度**（否则换目录/进程即全失效）：targetPath / 临时路径 / 进程 PID / worker ID / 时间戳 / 监听事件 count。
+
 ## 4. 物化（D-BM-4）
 
 ```js

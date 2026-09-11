@@ -30,6 +30,10 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 - **调度 facade 化**（处理器接口）、TS-2、logic 的 module 级增量（保持 app 级）、rebuild 全量 storeInfo（L0 热点，属后续）
 - **不含 FileModule 颗粒化**（worker 内单文件→中间结果缓存，属 [`fe-tools-module-cache`](../fe-tools-module-cache/README.md) 并行层）——本门专注于主线程 BuildModel / 结果边界 / 失效传播
 
+## 与并行 Action 的实施协调（M-11）
+
+module-cache MC1 与本门 M1 均改动 `view-compiler.js`（M1 改产物输出路径，MC1 改 templateRenderCache/compileResCache 结构），存在**同文件冲突**风险。建议实施顺序：**M1 先行**（改产物边界——外框），**MC1 随后**（改缓存结构——内层）。若并行实施，view-compiler.js 的变更需手动协调（MC1 拆出的 ComposeCache 的 output 写入路径应对接 M1 的流式回传点）。
+
 ## 粒度诚实表
 
 | compiler | 本 Action 增量粒度 |
@@ -61,7 +65,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 
 1. D-BM-1..7 待逐项评审冻结（尤其 M2 行为变化的验收口径）；D-BM-6/7 已随讨论拍板成文，待随 ready 一并确认
 2. ~~worker 协议扩展的精确形状~~ — **探针已落盘**（[protocol.draft](protocol.draft.md)：流式回传/Entry 粒度天然分批/无需字节阈值与 LRU；D-P1..3 待随 ready 冻结）
-3. inputHash 聚合算法（输入集排序稳定性、include 链聚合）待设计——**协议基准由 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md) 提供；FileModule 粒度属 module-cache 并行层，不阻塞本门**
+3. ~~inputHash 聚合算法~~ — **已沉淀为 technical-design §3.1 协议段**（四层维度/排序规则/schemaVersion/排除维度）；协议基准由 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md) 提供
 4. M3 是否纳入本 Action 或另立（defer 决策）——**对拍已拆入 M2（MUST），M3 仅剩 cache 迁移，defer 不影响正确性兜底**
 
 ## Closure conditions

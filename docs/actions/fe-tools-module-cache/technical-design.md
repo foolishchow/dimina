@@ -120,9 +120,40 @@ value = { failed: true, errorShape }
 
 ## 5. 待探针（ready 前）
 
-1. view"组合型编译"的 module 切点：templateRenderCache 现有 key（path+源签名+wxs签名+tpl）拆解为 module 层/entry 层的精确边界（source-audit §3 的结构约束内）
-2. compileResCache 内容寻址化成本测算（D-MC-3 二选一依据）
-3. 颗粒度断言的可观察判据（"单文件只 parse 一次"如何在不侵入编译流程的前提下观察——探针计数/日志/覆盖率探针）
+### 5.1 module 切点探针（L-M-12：讨论收敛沉淀）
+
+templateRenderCache 现有 key = `tm.path + sourceSig + scriptSig + tm.tpl` 四段。拆分边界：
+
+```text
+【现状】单层：组合后 tpl 字符串 → render 编译结果
+  key = tm.path + sourceSig(path+startLine) + scriptSig(wxs模块列表) + tm.tpl(★组合后内容)
+  值 = { path, code, sourcemap }（insertWxsToRenderResult 后的产物）
+  副作用：命中时补 scriptRes 登记
+
+【MC1 目标】两层：
+  ModuleCache（组合前）：
+    key = mc-v1 + relPath + contentHash + compileFingerprint
+    值 = { contentHash, parseResult(DOM), failed? }
+    纯函数；组合闭包由 graph.fileOwners 反查
+
+  ComposeCache（组合后，即原 templateRenderCache 的等价层）：
+    key = cc-v1 + tm.path + sourceSig + scriptSig + tm.tpl（补 compileFingerprint）
+    值 = { path, code, sourcemap }（同现状）+ scriptRes 副作用（A-MC07）
+    ← 本层保持与现状等价，仅补 key 维度 + 归入统一机制
+
+【切点边界】
+  ModuleCache 拦截点 = compileModule 入口处（读文件 + cheerio.load 前）
+  —— 命中则跳过文件读取与 DOM 解析，直接返回 parseResult
+  ComposeCache 拦截点 = compileTemplateModuleRender 入口（不变，仅补 key 维度）
+  组合算法本身（transTagTemplate/include 展开）不拆不改（D-MC-4）
+```
+
+**维度补齐（MC2，R-MC4）**：ComposeCache 现有 key 在单 stage 内安全；跨 build 持久化（阶段 4）前须补 `compileFingerprint`（minify/esTarget.view/fileTypes/renderer）。ModuleCache 从第一天即含此维度。
+
+### 5.2 其余待探针
+
+1. compileResCache 内容寻址化成本测算（D-MC-3 二选一依据）
+2. 颗粒度断言的可观察判据（"单文件只 parse 一次"→ module cache miss 计数器探针，非侵入式）
 
 ## 6. 风险
 

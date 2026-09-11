@@ -38,6 +38,10 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 决策：选择持久化 worker service，或选择 main-thread FileModuleStore（DOM/AST 跨线程
 传递成本需实测）。本 Action 不预设两者之一，也不提前引入共享缓存实例。
 
+## 与并行 Action 的实施协调（M-11）
+
+build-model M1 与本门 MC1 均改动 `view-compiler.js`（M1 改产物输出路径为流式回传，MC1 改 templateRenderCache/compileResCache 为内容寻址 + 拆分 ModuleCache/ComposeCache），存在**同文件冲突**风险。建议实施顺序：**M1 先行**（产物边界外框），**MC1 随后**（缓存结构内层）。若并行实施，view-compiler.js 变更需手动协调：MC1 拆出的 ComposeCache 的 output 写入路径应对接 M1 的流式回传通道（`postMessage type:'output'`）而非直接写盘。
+
 ## 门（实施计划，待 ready 冻结）
 
 | 门 | 交付 | 性质 | 验收核心 |
@@ -57,8 +61,8 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 
 ## Readiness gaps
 
-1. D-MC-1..3 待 ready 评审（尤其 MC3 的"颗粒度断言"验收口径）
-2. view "组合型编译"的 module 切点探针：templateRenderCache 现有 key 拆解为 module 层 / entry 层的精确边界
+1. D-MC-1..4 待 ready 评审（尤其 MC3 的"颗粒度断言"验收口径）
+2. ~~view "组合型编译"的 module 切点探针~~ — **已沉淀为 technical-design §5.1**（ModuleCache/ComposeCache 拆分边界 + 拦截点 + 维度补齐）
 3. key 维度清单（minify/esTarget/fileTypes/renderer）与 build-model 的 inputHash 协议对齐方式
 
 ## Closure conditions
