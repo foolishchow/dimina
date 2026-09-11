@@ -98,6 +98,8 @@
 | D-WA-5 | 数据流 | 单向：worker 回传 delta（outputs+graph delta+diagnostics），不反改 GroupModule；主线程合并 | §4 协议草案；单向数据流原则；build-model protocol.draft 流式设计 |
 | D-WA-6 | 三领域中间表示 | 不统一（DOM vs AST vs cssAST）；共享仅机制/协议 | source-audit §2（领域异构表）；AST 矩阵（view 无 AST / logic oxc / style postcss） |
 
+**修订机制（L-6）**：build-model / module-cache 在实施 Backflow 时若发现与 D-WA 冲突，不得静默违背——向本表 append 修订行（格式：`修订日期 + 触发方 + 原因 + 新结论`）；单条冲突由此处理，结构性冲突另立修订 Action。
+
 ## 4. WorkerTask / WorkerResult 协议草案（探针级，待细化）
 
 ### 与 build-model protocol.draft 的关系（演进声明，M-1 修订）

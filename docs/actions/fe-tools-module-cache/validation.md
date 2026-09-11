@@ -4,6 +4,8 @@ Status: `draft` — fill when implementing.
 
 Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`；不得填 planned 命令或推断成功。
 
+消融记录另设段落（四要素，对齐 Experience-Review §6）：目标用例 / 消融内容 / 预期与实际失败点 / 恢复后复验（对应 Closure ② 的 MC1/MC2 消融）。
+
 | ID | Check | Command / method | Result |
 | --- | --- | --- | --- |
 | P-MC01 | 全量回归 | `vitest run --no-file-parallelism`（tools/bundler） | pending |

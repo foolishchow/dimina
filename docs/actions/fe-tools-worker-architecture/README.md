@@ -67,7 +67,7 @@
 ## Closure conditions（决策落地）
 
 ① D-WA 决策表冻结（ready）后，被 build-model / module-cache README 引用为设计输入
-② 后续 Action 实施冲突 → 修订记录（append 或另立）
+② 后续 Action 实施冲突 → **决策表修订机制**：build-model / module-cache 在 Backflow 时如发现与 D-WA 冲突，不得静默违背——向本 Action technical-design §3 决策表 append 修订行（`修订日期 + 触发方 + 原因 + 新结论`），由冲突方 Action 的 Closure ③ 触发；若冲突超出单条决策，另立修订 Action
 ③ 演进路径中未分配的阶段（第 4 阶段）无阻塞（已记录 defer）
 ④ STATUS/归档/指针一致变更
 

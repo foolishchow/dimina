@@ -18,7 +18,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 ## Goal
 
 1. **Entry 级产物回传与持有**（BuildModel）：worker 产物从"直接写盘"改为回传主线程模型；logic 保持 app 级特例
-2. **输入指纹体系**：`(mtime, size)` 预筛 + content hash 确认（git 风格轻量版）；Entry `inputHash` = 输入文件 hash 聚合。**漏算兜底**：预筛仅在 `(mtime, size)` 均未变时跳 hash；若未来实测漏算风险仍需兜底，由 M3 `--verify-incremental` 对拍发现（不静默错误）
+2. **输入指纹体系**：`(mtime, size)` 预筛 + content hash 确认（git 风格轻量版）；Entry `inputHash` = 输入文件 hash 聚合。**漏算兜底**：预筛仅在 `(mtime, size)` 均未变时跳 hash；`--verify-incremental` 对拍为 M2 MUST 子项（不静默错误；不挂可选门）
 3. **指纹失效传播**（单实现）：变更集 = `scan(fingerprints)`，受影响集 = `graph.closure(变更集)`——**状态对比替代事件推导**；watch 与 cache 共用此机制
 4. **materialize() 统一物化**：收敛三个 compiler 的 `writeFileSync` 与 publish/rename 语义，产物字节不变
 
@@ -42,8 +42,8 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
 | **M1 持有与物化** | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5） | **等价重构** | 产物字节级 diff=0；完整回归套件通过（当时数量记入实施证据） |
-| **M2 指纹与失效** | 指纹体系（(mtime,size) 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器） | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录）；**体验监控**：通过 stats 可观测 reload 频率，若实测退化（过度刷新）回退合并退全量保守策略（D-WA-1 精神） | 增量对拍：受影响 Entry 重算、其余命中持有；测试更新 |
-| **M3（可选）** | cache 路径（`pnpm compile`）迁移到同一机制；`--verify-incremental` 全量对拍 | 消费者收编 | compile-cache 行为等价或改进记录 |
+| **M2 指纹与失效** | 指纹体系（(mtime,size) 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器）；**`--verify-incremental` 对拍（MUST 子项：增量 vs 全量 diff=0）** | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录）；**体验监控**：通过 stats 可观测 reload 频率，若实测退化（过度刷新）回退合并退全量保守策略（D-WA-1 精神） | 增量对拍：受影响 Entry 重算、其余命中持有 + verify diff=0；测试更新 |
+| **M3（可选）** | cache 路径（`pnpm compile`）迁移到同一机制（对拍已拆入 M2，不在 M3） | 消费者收编 | compile-cache 行为等价或改进记录 |
 
 ## 关键决策（D-BM-1..7，倾向已记录、待 ready 冻结）
 
@@ -53,7 +53,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 | D-BM-2 | 指纹方案 | `(mtime, size)` 预筛 + content hash 确认（git 风格轻量版，非纯 mtime——避免 mtime 未变但内容变的漏算窗口）；M3 对拍兜底 |
 | D-BM-3 | 变更检测 | 状态对比（scan+closure）；事件只触发扫描。**已知行为变化**：watch 合并事件不再退全量 |
 | D-BM-4 | 物化 | materialize 保持产物字节与目录结构不变；临时目录 rename 优化保留 |
-| D-BM-5 | 正确性地基 | 依赖图完备性 = correctness 基石（小程序依赖静态可完备）；M3 提供对拍兜底 |
+| D-BM-5 | 正确性地基 | 依赖图完备性 = correctness 基石（小程序依赖静态可完备）；**`--verify-incremental` 对拍为 M2 MUST 子项（不挂可选门）** |
 | D-BM-6 | **不引入 native 缓存模块**（2026-09-10 讨论拍板） | 有意不引入（xxhash/blake3/SQLite/LMDB 等）。理由：① hash 非瓶颈（base 实测 202 文件全量 sha256 含 IO 6.2ms，吞吐 ~1.1GB/s，crypto 本就 native OpenSSL）；② NAPI 边界负优化（产物为 JS 字符串，入 native 结构需双次拷贝，20MB 级 V8 堆无压力）；③ 持久化场景由文件系统承担（targetPath staging/seedPath 即磁盘缓存）。**revisit 触发**：实测超大工程（万级文件）指纹扫描成 watch 延迟主因 → @node-rs/xxhash；跨进程产物级持久缓存（CI 复用）→ SQLite 索引。仓库不排斥 native（已依赖 oxc/esbuild），拒绝理由是必要性非洁癖 |
 | D-BM-7 | **stage-channel 封装并入 M1**（2026-09-10 讨论拍板） | `runCompileInWorker`（index.js 内联 90 行）升格为 `common/stage-channel.js`（~150 行领域封装，含 M1 的 outputCount 对账）。硬理由：流式协议使消息处理从无状态变**有状态**，必须有宿主；协议知识单点（M3/TS-2 改协议只动一处）；可 mock worker 单测。**不做**：通用 RPC/请求复用/重连/IDL。见 technical-design §2.5 |
 
@@ -62,7 +62,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 1. D-BM-1..7 待逐项评审冻结（尤其 M2 行为变化的验收口径）；D-BM-6/7 已随讨论拍板成文，待随 ready 一并确认
 2. ~~worker 协议扩展的精确形状~~ — **探针已落盘**（[protocol.draft](protocol.draft.md)：流式回传/Entry 粒度天然分批/无需字节阈值与 LRU；D-P1..3 待随 ready 冻结）
 3. inputHash 聚合算法（输入集排序稳定性、include 链聚合）待设计——**协议基准由 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md) 提供；FileModule 粒度属 module-cache 并行层，不阻塞本门**
-4. M3 是否纳入本 Action 或另立（defer 决策）
+4. M3 是否纳入本 Action 或另立（defer 决策）——**对拍已拆入 M2（MUST），M3 仅剩 cache 迁移，defer 不影响正确性兜底**
 
 ## Closure conditions
 

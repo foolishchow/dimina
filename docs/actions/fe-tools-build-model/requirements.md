@@ -26,9 +26,9 @@ worker 编译产物不再直接写盘：`postMessage` 协议扩展产物字段�
 
 transform 内部（view/logic/style 编译逻辑）、env.js 隐式上下文（ALS/Proxy）、worker 上下文协议段——三不动。Entry 失效即重跑现有直通编译（输入源→产物），不在本 Action 引入任何中间表示。
 
-## R-BM6（SHOULD）依赖图完备性可验证
+## R-BM6（MUST）依赖图完备性可验证（对拍）
 
-依赖图为 correctness 基石：漏边 = 漏算。提供 `--verify-incremental`（或等价）全量对拍模式：增量结果与全量结果 diff=0 的机器验证（可归 M3）。
+依赖图为 correctness 基石：漏边 = 漏算。**`--verify-incremental`（或等价）全量对拍模式为 M2 的 MUST 子项**（增量完成抽检全量对拍：增量结果与全量结果 diff=0 的机器验证）；cache 路径迁移（原 M3 主体）可 defer，但对拍兜底**不得**挂在可选交付上。
 
 ## Non-requirements
 

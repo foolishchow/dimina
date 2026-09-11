@@ -41,10 +41,11 @@ Status: 设计草案 · 未冻 · 未进 runtime。基于 HEAD `43e6953b` 的协
 ```js
 // 主 → worker：完全不变（logic 的 sourcemapTargetPath 微差保留）
 
-// worker → 主：
+// worker → 主（阶段 1，protocolVersion: 1）：
 // (1) 进度（不变）:        { completedTasks }
 // (2) 产物（新增，流式）:
 {
+  protocolVersion: 1,
   type: 'output',
   entry: {
     id,                            // page/component/app-logic/app-style 的 entryId
@@ -53,10 +54,12 @@ Status: 设计草案 · 未冻 · 未进 runtime。基于 HEAD `43e6953b` 的协
     sourcemaps?: [{ path, map }],  // sourcemap 模式
   },
 }
-// (3) 完成（瘦身）: { success:true, compatibilityWarnings, dependencyGraph,
-//                     outputCount }   ← 完整性校验：主线程比对收到的 output 条数
+// (3) 完成（瘦身）: { success:true, protocolVersion: 1, compatibilityWarnings,
+//                     dependencyGraph, outputCount }   ← 完整性校验：主线程比对收到的 output 条数
 // (4) 错误（不变）: { success:false, ... }
 ```
+
+（阶段 2 的 WorkerTask/WorkerResult 用 `protocolVersion: 2`，见 worker-architecture §4——v1 → v2 即演进声明中的两代。）
 
 ### 三 worker 的回传节奏
 
