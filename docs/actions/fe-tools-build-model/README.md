@@ -18,7 +18,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 ## Goal
 
 1. **Entry 级产物回传与持有**（BuildModel）：worker 产物从"直接写盘"改为回传主线程模型；logic 保持 app 级特例
-2. **输入指纹体系**：mtime 预筛 + content hash 确认；Entry `inputHash` = 输入文件 hash 聚合
+2. **输入指纹体系**：`(mtime, size)` 预筛 + content hash 确认（git 风格轻量版）；Entry `inputHash` = 输入文件 hash 聚合。**漏算兜底**：预筛仅在 `(mtime, size)` 均未变时跳 hash；若未来实测漏算风险仍需兜底，由 M3 `--verify-incremental` 对拍发现（不静默错误）
 3. **指纹失效传播**（单实现）：变更集 = `scan(fingerprints)`，受影响集 = `graph.closure(变更集)`——**状态对比替代事件推导**；watch 与 cache 共用此机制
 4. **materialize() 统一物化**：收敛三个 compiler 的 `writeFileSync` 与 publish/rename 语义，产物字节不变
 
@@ -42,7 +42,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
 | **M1 持有与物化** | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5） | **等价重构** | 产物字节级 diff=0；479+ 测试全绿 |
-| **M2 指纹与失效** | 指纹体系（mtime 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器） | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录） | 增量对拍：受影响 Entry 重算、其余命中持有；测试更新 |
+| **M2 指纹与失效** | 指纹体系（(mtime,size) 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器） | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录）；**体验监控**：通过 stats 可观测 reload 频率，若实测退化（过度刷新）回退合并退全量保守策略（D-WA-1 精神） | 增量对拍：受影响 Entry 重算、其余命中持有；测试更新 |
 | **M3（可选）** | cache 路径（`pnpm compile`）迁移到同一机制；`--verify-incremental` 全量对拍 | 消费者收编 | compile-cache 行为等价或改进记录 |
 
 ## 关键决策（D-BM-1..7，倾向已记录、待 ready 冻结）
@@ -50,7 +50,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 | ID | 决策点 | 倾向 |
 | --- | --- | --- |
 | D-BM-1 | 模型位置 | 主线程持有；worker 变"transform 服务"（传源进、传产物回）——协议仅**加产物字段**，上下文段不动 |
-| D-BM-2 | 指纹方案 | mtime 预筛 + content hash 确认（git 风格两层） |
+| D-BM-2 | 指纹方案 | `(mtime, size)` 预筛 + content hash 确认（git 风格轻量版，非纯 mtime——避免 mtime 未变但内容变的漏算窗口）；M3 对拍兜底 |
 | D-BM-3 | 变更检测 | 状态对比（scan+closure）；事件只触发扫描。**已知行为变化**：watch 合并事件不再退全量 |
 | D-BM-4 | 物化 | materialize 保持产物字节与目录结构不变；临时目录 rename 优化保留 |
 | D-BM-5 | 正确性地基 | 依赖图完备性 = correctness 基石（小程序依赖静态可完备）；M3 提供对拍兜底 |

@@ -10,3 +10,4 @@ Status: `draft`（门级状态按终态记录；证据见 validation.md）
 | A-MC04 | R-MC4 | key 覆盖文件内容、minify、esTarget.view、fileTypes、renderer；配置变化不错误命中 | 维度矩阵 + 配置切换测例 | pending |
 | A-MC05 | R-MC5 | nomap 与 sourcemap 产物相对基线字节级一致 | 双模式 `diff -r` + 既有回归 | pending |
 | A-MC06 | R-MC6 | mock worker 测例覆盖同内容命中、失败缓存、共享 module 单次计算 | vitest 测例 | pending |
+| A-MC07 | R-MC1 | **命中路径副作用等价**：templateRenderCache 命中时 `scriptRes` 登记与未命中等价（wxs 模块登记完整，无遗漏/重复）——MC1 拆缓存结构时保护此跨路径行为 | 测例：命中/未命中两路径 scriptRes 内容一致 | pending |
