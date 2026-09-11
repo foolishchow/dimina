@@ -1,8 +1,8 @@
 # FE Tools Build Model
 
 - Action: `fe-tools-build-model`
-- Status: `draft`
-- Updated: 2026-09-10
+- Status: `ready`
+- Updated: 2026-09-10（经 10 轮审查 + ready 评审通过，D-BM-1..7 + D-P1..4 冻结）
 - Status authority: [Action Status](../STATUS.md)
 - 关系：独立架构 Action（非 umbrella 子门）。是 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（complete，外部调用统一）之后的**内部统一第一步**；worker 演进与协议基准依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md)（**并行实施**，本门只引用其协议）；**不依赖 module-cache**（FileModule 颗粒化为独立并行层，见 Non-goals）。为 TS-2（模板 IR）与后续调度 facade 化立地基层。背景讨论沉淀于 [source-audit](source-audit.md)。
 
