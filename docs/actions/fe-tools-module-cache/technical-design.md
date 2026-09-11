@@ -85,7 +85,7 @@ templateRenderCache（tpl → render）  ← 保留（组合后，entry 级）
 | 现状 | 归宿 |
 | --- | --- |
 | `optionalChainingCache` | ModuleCache（本就是内容寻址） |
-| `templateRenderCache` | 拆解：tpl 内容签名 → ModuleCache 的 module 结果层；组合结果 → EntryCache（探针定精确切点） |
+| `templateRenderCache` | 拆解：tpl 内容签名 → ModuleCache 的 module 结果层；组合结果 → ComposeCache（探针定精确切点） |
 | `compileResCache` | 升级内容寻址（R-MC2）或明确单 build（D-MC-3） |
 | `processedModules`（logic） | 保持"已处理标记"，不承担结果缓存（R-MC1 注释） |
 | `wxsFilePathMap` | 路径绑定，不迁移（Non-goal） |

@@ -42,7 +42,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
 | **M1 持有与物化**（= 演进阶段 1） | worker postMessage 扩产物回传字段；BuildModel（entries 持有）；materialize() 收敛写盘+发布；**stage-channel 封装**（runCompileInWorker 升格独立模块，含 outputCount 对账，见 technical-design §2.5） | **等价重构** | 产物字节级 diff=0；完整回归套件通过（当时数量记入实施证据） |
-| **M2 指纹与失效**（= 演进阶段 2） | 指纹体系（(mtime,size) 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器）；**`--verify-incremental` 对拍（MUST 子项：增量 vs 全量 diff=0）** | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录）；**体验监控**：通过 stats 可观测 reload 频率，若实测退化（过度刷新）回退合并退全量保守策略（D-WA-1 精神） | 增量对拍：受影响 Entry 重算、其余命中持有 + verify diff=0；测试更新 |
+| **M2 指纹与失效**（= 演进阶段 2） | 指纹体系（(mtime,size) 预筛+hash）；scan+closure 单实现；watch 接入（事件降级为触发器）；**`--verify-incremental` 对拍（MUST 子项：增量 vs 全量 diff=0）** | **含行为改进点**：合并事件不再保守退全量（watch-plan.spec 对应用例更新并记录）；**体验监控（stats 消费契约见 worker-architecture §4.1）**：dev 经 vconsole/调试位观察 reload 频率，若实测退化回退保守策略（D-WA-1 精神） | 增量对拍：受影响 Entry 重算、其余命中持有 + verify diff=0；测试更新 |
 | **M3（可选）** | cache 路径（`pnpm compile`）迁移到同一机制（对拍已拆入 M2，不在 M3） | 消费者收编 | compile-cache 行为等价或改进记录 |
 
 ## 关键决策（D-BM-1..7，倾向已记录、待 ready 冻结）

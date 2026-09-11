@@ -15,7 +15,7 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 ## Goal
 
 1. **三模块模型**（GroupModule / ViewFileModule / LogicFileModule）：GroupModule 为 owner 级主线程权威索引（page/component/npm）；ViewFileModule 为 wxml 单文件→DOM 中间结果；LogicFileModule 为 js 单文件→AST（缓存价值单独评估）。**FileModule 内携带所属 Group 引用（双向关联）**，见 technical-design §1
-2. **ModuleCache / EntryCache 边界划分**（worker 内）：单文件级 module 结果缓存（内容寻址）与 entry 组合产物缓存分层
+2. **ModuleCache / ComposeCache 边界划分**（worker 内）：单文件级 module 结果缓存（内容寻址）与 entry 组合产物缓存分层。**术语澄清（L-M-10）**：`ComposeCache` 指 worker 内组合产物缓存——与 build-model 的主线程 `Entry`（产物权威单元）同名不同物，已改名避免冲突
 3. **compileResCache 升级**：path 寻址 → 内容寻址（或明确弃用跨 build）
 4. **失败结果也缓存**（防重复报错）
 5. **key 维度补齐**：minify / esTarget.view / fileTypes / renderer（跨 build 安全前提）
@@ -42,7 +42,7 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 
 | 门 | 交付 | 性质 | 验收核心 |
 | --- | --- | --- | --- |
-| **MC1 边界与寻址**（= 演进阶段 3） | ModuleCache/EntryCache 分层；compileResCache 内容寻址化；失败缓存 | 等价重构（缓存结构，不改产物） | 字节级 diff=0（nomap+sourcemap 双模式）；完整回归套件通过（当时数量记入实施证据） |
+| **MC1 边界与寻址**（= 演进阶段 3） | ModuleCache/ComposeCache 分层；compileResCache 内容寻址化；失败缓存 | 等价重构（缓存结构，不改产物） | 字节级 diff=0（nomap+sourcemap 双模式）；完整回归套件通过（当时数量记入实施证据） |
 | **MC2 key 维度**（= 演进阶段 3） | key 纳入 minify/esTarget.view/fileTypes/renderer | key 协议 | 缓存单测（配置变化 → 不命中旧 key）；key 维度清单对齐 inputHash 规范 |
 | **MC3 可测性**（= 演进阶段 3） | mock worker 单测集：同内容同命中 / 失败缓存 / 并发引用单文件只 parse 一次 | 新增测例 | 颗粒度断言 + 既有回归 |
 
@@ -77,5 +77,5 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 | --- | --- |
 | [source-audit](source-audit.md) | worker 缓存粒度现状证据（§1 核心） |
 | [requirements](requirements.md) | R-MC-* |
-| [technical-design](technical-design.md) | ModuleCache/EntryCache 边界 + key 协议 |
+| [technical-design](technical-design.md) | ModuleCache/ComposeCache 边界 + key 协议 |
 | [acceptance](acceptance.md) / [validation](validation.md) | 验收与验证（draft） |

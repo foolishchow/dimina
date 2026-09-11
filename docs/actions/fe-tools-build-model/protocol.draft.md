@@ -91,6 +91,7 @@ Status: 设计草案 · 未冻 · 未进 runtime。基于 HEAD `43e6953b` 的协
 | D-P1 | 回传时机 | 流式（本文件 §3） |
 | D-P2 | entry.files 的 path 语义 | 相对发布根的**最终物化路径**（materialize 零转换直写） |
 | D-P3 | sourcemap 载荷 | 与产物同条消息（`sourcemaps` 字段），不分开发——单 Entry 总量 ≤ ~600KB 无压力 |
+| D-P4（新增，M-8） | 完成消息超时 | 主线程发任务后启动超时计时（阈值由 stage-channel 构造时传入，缺省值文档化但可覆盖——不做硬编码）；超时未收到完成消息 → stage 失败 → terminateWorker → build:error 路径。与 outputCount 对账共同覆盖“完成消息到达但 output 缺失”与“完成消息未到”两种场景。详见 worker-architecture §4.2 |
 
 ## 6. 对 requirements/design 的回写点（探针结论）
 

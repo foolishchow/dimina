@@ -138,9 +138,42 @@ WorkerResult = {
   outputs: [{ entryId, kind, files: [{path, code}], sourcemaps? }],
   graphDelta,             // 阶段 2 起：worker 观测到的依赖增量（主线程合并进 GroupModule）
   diagnostics: { warnings: [...], errors, shape: 'serializable' },
-  stats: { cacheHits, cacheMisses, durationMs },   // 可观测性（原则 7）
+  stats: { cacheHits, cacheMisses, durationMs },   // 可观测性（消费契约见 §4.1）
   status: 'success' | 'failed',
 }
+```
+
+### 4.1 stats 消费契约（M-7）
+
+stats 的消费者与暴露路径：
+
+| 消费者 | 路径 |
+| --- | --- |
+| dev 开发者（reload 频率观察） | `dimina-cli dev` 经 vconsole 调试位输出（对齐 A2 既有通道）；或 `session.dev` 的 devHandle 暴露 `stats` 只读属性 |
+| API 用户 | `session.lifecycle` 的 `build:end` 事件载荷携带增量统计（阶段 2 起） |
+| 内部调试 | stage-channel 日志（前缀 `[stage-channel]`，含 cacheHits/Misses/durationMs） |
+
+**约束**：stats 不得作为行为决策依据（不参与失效判定），仅用于诊断与体验监控（build-model M2 的 reload 频率回退预案以此为触发输入）。
+
+### 4.2 消息时序防护（M-8，阶段 1 流式 + 阶段 2）
+
+跨线程消息不能假设到达与顺序（Experience-Review §4）：
+
+```text
+① 完成消息超时：主线程发送任务后启动超时计时（如 120s 或 stage 级默认值）
+   → 超时未收到完成消息 → 判定 stage 失败
+   → terminateWorker（对齐现有 runCompileInWorker 语义）
+   → 触发错误路径（build:error lifecycle 事件）
+
+② 乱序/丢失：outputCount 对账（收到的 output 条数 vs 完成消息声明的条数）
+   + ① 超时兜底：完成消息丢失 → ① 超时触发 → 对账从未执行
+   → 两条防护共同覆盖“完成消息到达但 output 缺失”与“完成消息根本未到”两种场景
+
+③ worker 异常退出（exit code !== 0）：已有处理（runCompileInWorker 的 exit/error 监听）
+   → stage-channel 封装时保留
+
+④ 超时阈值：不做硬编码——由 stage-channel 构造时传入（可从配置/CLI 环境变量取，
+   缺省值写入文档但标记为可覆盖）
 ```
 
 **单向数据流原则（D-WA-5）**：worker 永不反向修改 GroupModule / BuildModel——只回传 delta；主线程是唯一合并与失效决策点。

@@ -2,11 +2,11 @@
 
 Status: `draft`（随讨论修订；ID 前缀 R-MC）
 
-## R-MC1（MUST）ModuleCache / EntryCache 边界
+## R-MC1（MUST）ModuleCache / ComposeCache 边界
 
 worker 内缓存分为两层：
 - **ModuleCache**：单文件级 `moduleId → { contentHash, result }`，内容寻址（同内容必同结果），**纯函数**；含失败结果缓存
-- **EntryCache**：entry 组合产物（页面 render 等），`inputHash = hash(依赖 module contentHash 集)` 派生
+- **ComposeCache**：entry 组合产物（页面 render 等），`inputHash = hash(依赖 module contentHash 集)` 派生
 
 现状缓存归属：`optionalChainingCache` 归 ModuleCache；`compileResCache`/`templateRenderCache` 依 D-MC-1 拆解；`processedModules`（logic）仅作已处理标记，不承担结果缓存职责（不迁移语义）。
 
