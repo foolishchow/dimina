@@ -14,11 +14,12 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 
 ## Goal
 
-1. **ModuleCache / EntryCache 边界划分**（worker 内）：单文件级 module 结果缓存（内容寻址）与 entry 组合产物缓存分层
-2. **compileResCache 升级**：path 寻址 → 内容寻址（或明确弃用跨 build）
-3. **失败结果也缓存**（防重复报错）
-4. **key 维度补齐**：minify / esTarget.view / fileTypes / renderer（跨 build 安全前提）
-5. **可测**：缓存模块可 mock worker 单测（同内容同命中、失败缓存、颗粒度断言）
+1. **三模块模型**（GroupModule / ViewFileModule / LogicFileModule）：GroupModule 为 owner 级主线程权威索引（page/component/npm）；ViewFileModule 为 wxml 单文件→DOM 中间结果；LogicFileModule 为 js 单文件→AST（缓存价值单独评估）。**FileModule 内携带所属 Group 引用（双向关联）**，见 technical-design §1
+2. **ModuleCache / EntryCache 边界划分**（worker 内）：单文件级 module 结果缓存（内容寻址）与 entry 组合产物缓存分层
+3. **compileResCache 升级**：path 寻址 → 内容寻址（或明确弃用跨 build）
+4. **失败结果也缓存**（防重复报错）
+5. **key 维度补齐**：minify / esTarget.view / fileTypes / renderer（跨 build 安全前提）
+6. **可测**：缓存模块可 mock worker 单测（同内容同命中、失败缓存、颗粒度断言）
 
 ## Non-goals（四不碰）
 

@@ -2,19 +2,60 @@
 
 > 状态：**草案（2026-09-10）**。基于 source-audit 的代码事实；D-MC-1..3 待 ready 冻结。vivid source 待探针（§5）。
 
-## 1. 两层缓存形状（R-MC1）
+## 1. 三模块模型（GroupModule / ViewFileModule / LogicFileModule）
 
-```js
-// worker 内
-ModuleCache
-  key   = schemaVersion + contentHash(文件内容) + compileFingerprint(维度见 §3)
-  value = { contentHash, result | { failed, errorShape }, kind }
-  // 纯函数、内容寻址；失败也缓存（R-MC3）
+### 粒度与归属（2026-09-10 讨论收敛）
 
-EntryCache（派生层）
-  key   = entryId 组合维度（页面模板组合 + module 集合 hash）
-  value = 组合产物（render code / css）
-  // 依赖 module 变化 → entry 失效（build-model 侧消费；本 Action 只定义边界与寻址）
+```text
+GroupModule（主线程权威，跨 build）
+  id = owner（页面/组件/npm 包）
+  kind = 'page' | 'component' | 'npm'
+  viewFiles / logicFiles / styleFiles / configFiles  ← 跨维度输入引用
+
+ViewFileModule（worker，单 stage）
+  file: 单 wxml 相对路径
+  parseResult: DOM / 组合中间结果（内容寻址缓存）
+  groups: [{ groupId, groupKind: 'page'|'component'|'npm' }]  ← 所属 Group 引用（注入）
+
+LogicFileModule（worker，单 stage；缓存价值单独评估，见 D-MC-5）
+  file: 单 js 相对路径
+  ast / moduleResult: oxc AST / 模块中间结果
+  groups: [{ groupId, groupKind }]  ← 同样携带 Group 关联
+```
+
+### 关键：Group 关联必须存在于 FileModule 域内（2026-09-10 用户确认）
+
+```text
+原因：
+  1. view 编译语义取决于 Group 类型：Page（多根/page.json）、Component（组件边界）、
+     npm（包组件路径解析）——ViewFileModule 必须知道自己在哪种 Group 语境下被处理
+  2. 失效传播需要双向关联：文件变 → 所属 Group 集合 → 精确到维度的失效
+
+原则：
+  Group 关联的权威在主线程 GroupModule（避免双写）；
+  FileModule 内的 groups 是注入的引用（主线程任务输入时带上，不在 worker 内重新发现）
+
+失效链（跨维度精确）：
+  wxml 变 → ViewFileModule miss → 所属 Group 集合 → 这些 Group 的 view 维度失效
+  js 变   → LogicFileModule miss → 所属 Group 集合 → 这些 Group 的 logic 维度失效
+  json 变 → Group 配置（usingComponents）变 → 关联 Group 的配置失效
+```
+
+### 两端依赖图不同（不可共用）
+
+```text
+GroupModule 层：owner → owner（组件树 usingComponents 边）——主线程公共
+view 域内：    ViewFileModule → ViewFileModule（include/import/template 模板域边）
+logic 域内：   LogicFileModule → LogicFileModule（import/require 模块域边）
+```
+
+Group 层依赖图可共享；file 层依赖图按域异构，不可统一。
+
+### 与 templateRenderCache 的关系
+
+```text
+ViewFileModule（wxml → DOM）         ← 新增（组合前）
+templateRenderCache（tpl → render）  ← 保留（组合后，entry 级）
 ```
 
 ## 2. 现状缓存归宿（D-MC-1 形态①）
