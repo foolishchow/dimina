@@ -100,11 +100,28 @@
 
 ## 4. WorkerTask / WorkerResult 协议草案（探针级，待细化）
 
+### 与 build-model protocol.draft 的关系（演进声明，M-1 修订）
+
+```text
+阶段 1（build-model M1）：以 build-model/protocol.draft §3 为准
+  - 消息形态：流式 { type:'output', entry:{ entryId, kind, files, sourcemaps? } }
+  - 完成消息：{ success, compatibilityWarnings, dependencyGraph(全量), outputCount }
+  - stage-channel 消费此阶段协议（自持，不等本草案冻结）
+
+阶段 2（build-model M2）：演进为 WorkerTask / WorkerResult（本草案）
+  - 入站：WorkerTask（groups 子集 + changedFiles + contextFingerprint + seed）
+  - 出站：WorkerResult（outputs 数组 + graphDelta 增量 + diagnostics + stats + status）
+  - 演进点：全量图 → graphDelta；metadata → stats/diagnostics；产出聚合为 outputs
+
+两者是同一协议的两代形态，不是两套并行协议；
+产物条目命名统一（entryId + kind，不引入 groupId 顶层字段——Group 关联在 WorkerTask.groups）。
+```
+
 ```js
 // 入站（阶段 2 起）
 WorkerTask = {
   domain: 'view' | 'logic' | 'style',
-  protocolVersion: 1,
+  protocolVersion: 2,
   buildId,
   groups: [{ id, kind: 'page'|'component'|'npm',
              viewFiles?/logicFiles?/styleFiles? }],   // Group 子集（受影响）
@@ -115,11 +132,11 @@ WorkerTask = {
 
 // 出站（单向回传，不反改模型）
 WorkerResult = {
-  domain, protocolVersion, buildId,
-  outputs: [{ groupId, entryId, files: [{path, code}], sourcemaps? }],
-  graphDelta,             // worker 观测到的依赖增量（主线程合并进 GroupModule）
+  domain, protocolVersion: 2, buildId,
+  outputs: [{ entryId, kind, files: [{path, code}], sourcemaps? }],
+  graphDelta,             // 阶段 2 起：worker 观测到的依赖增量（主线程合并进 GroupModule）
   diagnostics: { warnings: [...], errors, shape: 'serializable' },
-  stats: { cacheHits, cacheMisses, durationMs },   // 可观测性
+  stats: { cacheHits, cacheMisses, durationMs },   // 可观测性（原则 7）
   status: 'success' | 'failed',
 }
 ```

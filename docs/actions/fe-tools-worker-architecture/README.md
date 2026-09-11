@@ -14,7 +14,7 @@
 
 ## Goal（决策交付物，ready = 冻结）
 
-1. **WorkerTask / WorkerResult 协议草案**（核心交付，探针）：build-model 的 stage-channel 与 module-cache 的 FileModule 归属**以它为共同基准**对齐
+1. **WorkerTask / WorkerResult 协议草案**（核心交付，探针）：build-model **M2 的协变**与 module-cache 的 FileModule 归属以它为共同基准对齐；**build-model M1 的 stage-channel 自持 protocol.draft**（阶段 1 output 流式消息，见 technical-design §4 演进声明）
 2. **D-WA 决策表**（六条约束冻结）：生命周期 / logic 产物边界 / 跨 build 复用 / 缓存分层 / 单向数据流 / 不统一三域中间表示
 3. **演进路径**（降级为**决策记录**，非实施地图）：四阶段标注归属（阶段 1/2 → build-model，阶段 3 → module-cache，阶段 4 → 未来）
 4. **决策冻结**：ready 即冻结；无未决张力；实施不归本 Action
