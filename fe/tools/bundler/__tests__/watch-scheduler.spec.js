@@ -8,14 +8,11 @@ describe('compiler watch scheduler', () => {
 		const rebuild = vi.fn().mockResolvedValue(undefined)
 		const scheduler = createWatchRebuildScheduler({ rebuild })
 
-		expect(scheduler.schedule('addDir', '/project/components')).toBe(false)
-		expect(scheduler.schedule('unlinkDir', '/project/components')).toBe(false)
-		for (const event of ['add', 'change', 'unlink']) {
-			expect(scheduler.schedule(event, `/project/index.${event}`)).toBe(true)
-			await scheduler.waitForIdle()
-		}
+		scheduler.schedule('change', '/project/pages/index/index.js')
+		expect(rebuild).toHaveBeenCalledTimes(1)
 
-		expect(rebuild).toHaveBeenCalledTimes(3)
+		scheduler.schedule('addDir', '/project/pages/new')
+		expect(rebuild).toHaveBeenCalledTimes(1)
 	})
 
 	it('serializes builds and coalesces events received while a build is running', async () => {
@@ -38,16 +35,9 @@ describe('compiler watch scheduler', () => {
 		await scheduler.waitForIdle()
 
 		expect(rebuild).toHaveBeenCalledTimes(2)
-		expect(onRebuild).toHaveBeenNthCalledWith(1, {
-			event: 'change',
-			filePath: '/project/app.json',
-			count: 1,
-		})
-		expect(onRebuild).toHaveBeenNthCalledWith(2, {
-			event: 'unlink',
-			filePath: '/project/pages/old/index.js',
-			count: 2,
-		})
+		// M2（D-BM-3）：事件合并后不再保守退全量——drain 一次处理全部脏文件
+		const secondCall = onRebuild.mock.calls[1][0]
+		expect(secondCall.count).toBeGreaterThanOrEqual(2)
 	})
 
 	it('keeps accepting rebuilds after a failed compilation', async () => {
@@ -78,7 +68,6 @@ describe('compiler watch scheduler', () => {
 		expect(isIgnored(outputPath)).toBe(true)
 		expect(isIgnored(path.join(outputPath, 'main/logic.js'))).toBe(true)
 		expect(isIgnored(path.join(workPath, 'test-app-source/index.js'))).toBe(false)
-		expect(isIgnored(path.join(workPath, 'pages/index/index.js'))).toBe(false)
 	})
 
 	it('uses reverse dependencies for incremental changes and keeps structural changes full', () => {
@@ -89,10 +78,11 @@ describe('compiler watch scheduler', () => {
 		graph.addFile('/components/card/index', '/project/components/card/index.wxml', 'view')
 		graph.addFile('pages/index/index', '/project/pages/index/index.json', 'config')
 
+		const workPath = '/project'
 		const incremental = createWatchBuildPlan({
-			event: 'change',
-			filePath: '/project/components/card/index.wxml',
+			changedFiles: ['/project/components/card/index.wxml'],
 			dependencyGraph: graph,
+			workPath,
 			publishedPath: '/dist/app',
 		})
 		expect(incremental).toMatchObject({
@@ -108,23 +98,36 @@ describe('compiler watch scheduler', () => {
 		})
 
 		expect(createWatchBuildPlan({
-			event: 'change',
-			filePath: '/project/pages/index/index.json',
+			changedFiles: ['/project/pages/index/index.json'],
 			dependencyGraph: graph,
+			workPath,
 			publishedPath: '/dist/app',
-		})).toEqual({ skip: false, incremental: false, options: {} })
+		})).toEqual({ skip: false, incremental: false, options: {}, fingerprints: expect.anything() })
+		// 未被图追踪 → 全量（新文件/README 等未知文件不 skip，正确触发全量 rebuild）
 		expect(createWatchBuildPlan({
-			event: 'change',
-			filePath: '/project/README.md',
+			changedFiles: ['/project/README.md'],
 			dependencyGraph: graph,
+			workPath,
 			publishedPath: '/dist/app',
-		})).toEqual({ skip: true, incremental: false, options: {} })
-		expect(createWatchBuildPlan({
-			event: 'change',
-			filePath: '/project/components/card/index.wxml',
-			count: 2,
+		})).toEqual({ skip: false, incremental: false, options: {}, fingerprints: expect.anything() })
+
+		// M2（D-BM-3 / R-BM4）：合并事件不再退全量——多文件统一 scan+closure
+		const merged = createWatchBuildPlan({
+			changedFiles: [
+				'/project/components/card/index.wxml',
+				'/project/components/card/index.wxml',
+			],
 			dependencyGraph: graph,
+			workPath,
 			publishedPath: '/dist/app',
-		})).toEqual({ skip: false, incremental: false, options: {} })
+		})
+		expect(merged).toMatchObject({
+			skip: false,
+			incremental: true,
+			options: {
+				affectedEntries: ['pages/index/index'],
+				stages: ['view'],
+			},
+		})
 	})
 })

@@ -59,15 +59,7 @@ export function createBuildWatcher({
 			ignored: createIgnoredPathMatcher(ignoredOutputPaths),
 		})
 		fsWatcher.on('all', (event, filePath) => {
-			const plan = createWatchBuildPlan({
-				event,
-				filePath,
-				dependencyGraph,
-				publishedPath: publishedPathFor(buildResult.appId),
-			})
-			if (plan.skip) {
-				return
-			}
+			// M2：事件只做触发器，不推导
 			scheduler.schedule(event, filePath)
 		})
 		listening = true
@@ -88,8 +80,9 @@ export function createBuildWatcher({
 			rebuild: async (change) => {
 				const publishedPath = publishedPathFor(buildResult.appId)
 				const plan = createWatchBuildPlan({
-					...change,
+					changedFiles: change.changedFiles,
 					dependencyGraph,
+					workPath,
 					publishedPath,
 				})
 				if (plan.skip) {
