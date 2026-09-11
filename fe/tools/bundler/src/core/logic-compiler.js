@@ -17,6 +17,9 @@ const processedModules = new Set()
 // 是否生成 sourcemap
 let enableSourcemap = false
 let sourcemapTargetPath = null
+/** 产物是否回传（build-model M1：collectOutput=true 时不写盘、postMessage output） */
+let collectOutput = false
+let outputCount = 0
 /** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
 let activeCompileConfig = {
 	minify: true,
@@ -25,10 +28,12 @@ let activeCompileConfig = {
 }
 
 if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, sourcemapTargetPath: targetPath, compileConfig }) => {
+	parentPort.on('message', async ({ pages, storeInfo, sourcemap, sourcemapTargetPath: targetPath, compileConfig, collectOutput: collectFlag }) => {
 		try {
 			resetStoreInfo(storeInfo)
 			enableSourcemap = !!sourcemap
+			collectOutput = !!collectFlag
+			outputCount = 0
 			sourcemapTargetPath = targetPath || getTargetPath()
 			activeCompileConfig = {
 				minify: compileConfig?.minify !== false,
@@ -74,6 +79,7 @@ if (!isMainThread) {
 				success: true,
 				compatibilityWarnings: takeCompatibilityWarnings(),
 				dependencyGraph: getDependencyGraph().toJSON(),
+				outputCount,
 			})
 		}
 		catch (error) {
@@ -96,6 +102,8 @@ async function writeCompileRes(compileRes, root) {
 	const outputDir = root
 		? `${getTargetPath()}/${root}`
 		: `${getTargetPath()}/main`
+	// 相对发布根的物化路径前缀（D-P2）
+	const relPrefix = root ? `${root}` : 'main'
 
 	if (!fs.existsSync(outputDir)) {
 		fs.mkdirSync(outputDir, { recursive: true })
@@ -122,8 +130,22 @@ async function writeCompileRes(compileRes, root) {
 		})
 		const { bundleCode, sourcemap } = mergeSourcemap(rebasedCompileRes)
 		const sourcemapFileName = 'logic.js.map'
-		fs.writeFileSync(`${outputDir}/logic.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
-		fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
+		if (collectOutput) {
+			parentPort.postMessage({
+				type: 'output',
+				entry: {
+					entryId: `logic${root ? ':' + root : ''}`,
+					kind: 'logic',
+					files: [{ path: `${relPrefix}/logic.js`, code: `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n` }],
+					sourcemaps: [{ path: `${relPrefix}/${sourcemapFileName}`, map: sourcemap }],
+				},
+			})
+			outputCount++
+		}
+		else {
+			fs.writeFileSync(`${outputDir}/logic.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
+			fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
+		}
 	}
 	else if (effectiveJsMinify(activeCompileConfig)) {
 		let mergeCode = ''
@@ -139,7 +161,20 @@ ${module.code}
 			})
 			mergeCode += minifiedCode
 		}
-		fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
+		if (collectOutput) {
+			parentPort.postMessage({
+				type: 'output',
+				entry: {
+					entryId: `logic${root ? ':' + root : ''}`,
+					kind: 'logic',
+					files: [{ path: `${relPrefix}/logic.js`, code: mergeCode }],
+				},
+			})
+			outputCount++
+		}
+		else {
+			fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
+		}
 	}
 	else {
 		let mergeCode = ''
@@ -149,7 +184,20 @@ ${module.code}
 });
 `
 		}
-		fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
+		if (collectOutput) {
+			parentPort.postMessage({
+				type: 'output',
+				entry: {
+					entryId: `logic${root ? ':' + root : ''}`,
+					kind: 'logic',
+					files: [{ path: `${relPrefix}/logic.js`, code: mergeCode }],
+				},
+			})
+			outputCount++
+		}
+		else {
+			fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
+		}
 	}
 }
 

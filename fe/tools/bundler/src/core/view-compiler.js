@@ -214,6 +214,9 @@ const wxsFilePathMap = new Map()
 let wxsScannedWorkPath = null
 
 let enableSourcemap = false
+/** 产物是否回传（build-model M1 阶段二：collectOutput=true 时不写盘、逐页 postMessage output） */
+let collectOutput = false
+let outputCount = 0
 /** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
 let activeCompileConfig = {
 	minify: true,
@@ -222,10 +225,12 @@ let activeCompileConfig = {
 }
 
 if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig }) => {
+	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig, collectOutput: collectFlag }) => {
 		try {
 			resetStoreInfo(storeInfo)
 			enableSourcemap = !!sourcemap
+			collectOutput = !!collectFlag
+			outputCount = 0
 			activeCompileConfig = {
 				minify: compileConfig?.minify !== false,
 				sourcemap: !!sourcemap,
@@ -266,6 +271,7 @@ if (!isMainThread) {
 				success: true,
 				compatibilityWarnings: takeCompatibilityWarnings(),
 				dependencyGraph: getDependencyGraph().toJSON(),
+				outputCount,
 			})
 		}
 		catch (error) {
@@ -306,6 +312,8 @@ async function compileML(pages, root, progress) {
 		const sourceMapRes = new Map()
 		buildCompileView(page, false, scriptRes, new Set(), new Set(), sourceMapRes)
 		const filename = `${page.path.replace(/\//g, '_')}`
+		// 相对发布根的物化路径前缀（D-P2）：主包 → main/，分包 → {root}/
+		const relPrefix = root ? `${root}` : 'main'
 		const outputDir = root
 			? `${getTargetPath()}/${root}`
 			: `${getTargetPath()}/main`
@@ -321,8 +329,23 @@ async function compileML(pages, root, progress) {
 			}))
 			const sourcemapFileName = `${filename}.js.map`
 			const { bundleCode, sourcemap } = mergeSourcemap(compileRes, `${filename}.js`)
-			fs.writeFileSync(`${outputDir}/${filename}.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
-			fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
+			if (collectOutput) {
+				// build-model M1：产物回传主线程（materialize 统一写盘）
+				parentPort.postMessage({
+					type: 'output',
+					entry: {
+						entryId: page.path,
+						kind: 'view',
+						files: [{ path: `${relPrefix}/${filename}.js`, code: `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n` }],
+					sourcemaps: [{ path: `${relPrefix}/${sourcemapFileName}`, map: sourcemap }],
+				},
+			})
+				outputCount++
+			}
+			else {
+				fs.writeFileSync(`${outputDir}/${filename}.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
+				fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
+			}
 		}
 		else {
 			const moduleRanges = []
@@ -371,7 +394,20 @@ async function compileML(pages, root, progress) {
 				error.message = `视图模块 ${failedModule?.key || 'bundle'} 转换失败: ${error.message}${sourceHint ? `\n${sourceHint}` : ''}`
 				throw error
 			}
-			fs.writeFileSync(`${outputDir}/${filename}.js`, mergeRender)
+			if (collectOutput) {
+				parentPort.postMessage({
+					type: 'output',
+					entry: {
+						entryId: page.path,
+						kind: 'view',
+						files: [{ path: `${relPrefix}/${filename}.js`, code: mergeRender }],
+					},
+				})
+				outputCount++
+			}
+			else {
+				fs.writeFileSync(`${outputDir}/${filename}.js`, mergeRender)
+			}
 		}
 
 		// 单个页面编译完成后清理缓存，释放内存

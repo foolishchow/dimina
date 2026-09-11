@@ -43,6 +43,15 @@ export function runCompileStage({ script, ctx, task, options = {}, lifecycle = n
 		let isResolved = false
 		let workerError = null
 		let terminationPromise
+		let receivedOutputCount = 0
+
+		// D-P4：完成消息超时（阈值由构造传入，缺省 120s，不硬编码——可用 env 覆盖）
+		const stageTimeoutMs = options.stageTimeoutMs ?? Number(process.env.DIMINA_STAGE_TIMEOUT_MS ?? 120_000)
+		const timeoutTimer = setTimeout(() => {
+			void handleError(new Error(
+				`[stage-channel] ${script} stage timed out after ${stageTimeoutMs}ms (no completion message)`,
+			))
+		}, stageTimeoutMs)
 
 		const terminateWorker = () => {
 			terminationPromise ||= worker.terminate().catch(() => undefined)
@@ -52,6 +61,7 @@ export function runCompileStage({ script, ctx, task, options = {}, lifecycle = n
 		// 统一的错误处理函数，防止重复 reject
 		const handleError = async (error) => {
 			if (isResolved) return
+			clearTimeout(timeoutTimer)
 			isResolved = true
 			// WorkerPool 只有在 isolate 确实退出后才能释放槽位；否则排队的
 			// 阶段会与仍在回收中的 Worker 重叠，突破 CPU/RSS 限制。
@@ -65,6 +75,7 @@ export function runCompileStage({ script, ctx, task, options = {}, lifecycle = n
 			sourcemap: !!options.sourcemap,
 			sourcemapTargetPath: options.sourcemapTargetPath,
 			compileConfig: options.compileConfig,
+			collectOutput: typeof onOutput === 'function',
 		})
 
 		// 接收 Worker 消息（进度 / 产物回传 / 完成 / 错误）
@@ -72,6 +83,7 @@ export function runCompileStage({ script, ctx, task, options = {}, lifecycle = n
 			try {
 				// 阶段二：产物流式回传
 				if (message.type === 'output' && typeof onOutput === 'function') {
+					receivedOutputCount++
 					onOutput(message.entry)
 					return
 				}
@@ -92,6 +104,14 @@ export function runCompileStage({ script, ctx, task, options = {}, lifecycle = n
 					if (process.stdout.isTTY && totalTasks > 0) {
 						task.output = formatCompileProgress(totalTasks, totalTasks)
 					}
+					// outputCount 对账：worker 声明的 output 条数 vs 实收（完成消息丢失 → D-P4 超时兜底）
+					if (typeof onOutput === 'function' && message.outputCount !== receivedOutputCount) {
+						await handleError(new Error(
+							`[stage-channel] ${script} output count mismatch: expected ${message.outputCount}, received ${receivedOutputCount}`,
+						))
+						return
+					}
+					clearTimeout(timeoutTimer)
 					ctx.dependencyGraph.merge(message.dependencyGraph)
 					isResolved = true
 					await terminateWorker()

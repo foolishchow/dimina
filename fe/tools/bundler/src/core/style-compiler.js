@@ -12,6 +12,9 @@ import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleE
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from './sourcemap.js'
 
 const compileRes = new Map()
+/** 产物是否回传（build-model M1） */
+let collectOutput = false
+let outputCount = 0
 const builtInTagNames = new Set(tagWhiteList)
 const autoprefixerPlugin = autoprefixer({ overrideBrowserslist: ['cover 99.5%'] })
 let cssnanoLoader
@@ -34,9 +37,11 @@ function loadSass() {
 }
 
 if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig }) => {
+	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig, collectOutput: collectFlag }) => {
 		try {
 			resetStoreInfo(storeInfo)
+			collectOutput = !!collectFlag
+			outputCount = 0
 
 			const progress = {
 				_completedTasks: 0,
@@ -64,6 +69,7 @@ if (!isMainThread) {
 			parentPort.postMessage({
 				success: true,
 				dependencyGraph: getDependencyGraph().toJSON(),
+				outputCount,
 			})
 		}
 		catch (error) {
@@ -98,6 +104,8 @@ async function compileSS(pages, root, progress, options = {}) {
 		const outputDir = root
 			? `${getTargetPath()}/${root}`
 			: `${getTargetPath()}/main`
+		// 相对发布根的物化路径前缀（D-P2）
+		const relPrefix = root ? `${root}` : 'main'
 		if (!fs.existsSync(outputDir)) {
 			fs.mkdirSync(outputDir, { recursive: true })
 		}
@@ -107,9 +115,37 @@ async function compileSS(pages, root, progress, options = {}) {
 			const map = JSON.parse(result.map)
 			map.file = `${filename}.css`
 			code += `\n/*# sourceMappingURL=${mapFileName} */\n`
-			fs.writeFileSync(`${outputDir}/${mapFileName}`, JSON.stringify(map))
+			if (collectOutput) {
+				parentPort.postMessage({
+					type: 'output',
+					entry: {
+						entryId: page.path,
+						kind: 'style',
+						files: [{ path: `${relPrefix}/${filename}.css`, code }],
+						sourcemaps: [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }],
+					},
+				})
+				outputCount++
+			}
+			else {
+				fs.writeFileSync(`${outputDir}/${mapFileName}`, JSON.stringify(map))
+				fs.writeFileSync(`${outputDir}/${filename}.css`, code)
+			}
 		}
-		fs.writeFileSync(`${outputDir}/${filename}.css`, code)
+		else if (collectOutput) {
+			parentPort.postMessage({
+				type: 'output',
+				entry: {
+					entryId: page.path,
+					kind: 'style',
+					files: [{ path: `${relPrefix}/${filename}.css`, code }],
+				},
+			})
+			outputCount++
+		}
+		else {
+			fs.writeFileSync(`${outputDir}/${filename}.css`, code)
+		}
 
 		progress.completedTasks++
 	}

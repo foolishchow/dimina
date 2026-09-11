@@ -8,6 +8,7 @@ import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
 import { assertRendererSupportsPlatform } from './common/platforms.js'
 import { getRenderer, registerRenderer, resolveProjectRenderers } from './common/renderers.js'
 import { createDist, publishToDist } from './common/publish.js'
+import { BuildModel, materialize } from './common/build-model.js'
 import { runCompileStage } from './common/stage-channel.js'
 import { artCode, resetAssetCache } from './common/utils.js'
 import { NpmBuilder } from './common/npm-builder.js'
@@ -27,9 +28,9 @@ const MAX_WARNING_PROJECTS = 32
 const webviewRenderer = {
 	name: 'webview',
 	runViewStage: (ctx, task, workerOptions, lifecycle) =>
-		runCompileStage({ script: 'view', ctx, task, options: workerOptions, lifecycle }),
+		runCompileStage({ script: 'view', ctx, task, options: workerOptions, lifecycle, onOutput: (entry) => ctx.buildModel.add(entry) }),
 	runStyleStage: (ctx, task, workerOptions, lifecycle) =>
-		runCompileStage({ script: 'style', ctx, task, options: workerOptions, lifecycle }),
+		runCompileStage({ script: 'style', ctx, task, options: workerOptions, lifecycle, onOutput: (entry) => ctx.buildModel.add(entry) }),
 }
 registerRenderer(webviewRenderer)
 
@@ -104,6 +105,7 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 		const shouldPrepareConfig = !seedPath || prepareConfig
 		const shouldPrepareNpm = !seedPath || prepareNpm
 		resetAssetCache()
+
 		if (!isPrinted) {
 			artCode()
 			isPrinted = true
@@ -115,6 +117,8 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 			{
 				title: '收集配置信息',
 				task: async (ctx) => {
+					// M1 阶段二：主线程 BuildModel 持有 worker 回传产物
+					ctx.buildModel = new BuildModel()
 					ctx.storeInfo = storeInfo(workPath, { fileTypes, dependencyGraph })
 					ctx.dependencyGraph = new DependencyGraph(ctx.storeInfo.dependencyGraph)
 					const allPages = getPages()
@@ -209,7 +213,9 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 				},
 				{
 					title: '写入编译产物',
-					task: async () => {
+					task: async (ctx) => {
+						// M1 阶段二：先物化主线程 BuildModel 的产物到构建目录，再走发布
+						materialize(ctx.buildModel, getTargetPath())
 						publishToDist(targetPath, useAppIdDir)
 						await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
 					},
@@ -271,7 +277,7 @@ function createStageTask(stage, title, lifecycle, workerOptions = {}, renderer =
 					await runStage(ctx, task, workerOptions, lifecycle)
 				}
 				else {
-					await runCompileStage({ script: stage, ctx, task, options: workerOptions, lifecycle })
+					await runCompileStage({ script: stage, ctx, task, options: workerOptions, lifecycle, onOutput: (entry) => ctx.buildModel.add(entry) })
 				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,
