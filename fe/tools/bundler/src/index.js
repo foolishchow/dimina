@@ -1,17 +1,15 @@
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { Worker } from 'node:worker_threads'
 import { Listr, PRESET_TIMER } from 'listr2'
-import { formatCompileProgress } from './common/compile-progress.js'
 import { resolveCompileConfig } from './common/compile-config.js'
 import { DependencyGraph } from './common/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from './common/lifecycle.js'
 import { assertRendererSupportsPlatform } from './common/platforms.js'
 import { getRenderer, registerRenderer, resolveProjectRenderers } from './common/renderers.js'
 import { createDist, publishToDist } from './common/publish.js'
+import { runCompileStage } from './common/stage-channel.js'
 import { artCode, resetAssetCache } from './common/utils.js'
-import { workerPool } from './common/worker-pool.js'
 import { NpmBuilder } from './common/npm-builder.js'
 import { compileConfig } from './core/index.js'
 import { getAppConfigInfo, getAppId, getAppName, getAppStyleScopeId, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext, storeInfo } from './env.js'
@@ -24,14 +22,14 @@ const MAX_WARNING_PROJECTS = 32
 /**
  * webview renderer 阶段级薄适配（A4 P-002）。
  * 只包装既有 view/style worker 调用；logic 保持 renderer-neutral。
- * runCompileInWorker 内部协议不变（A1 冻结契约）。
+ * runCompileStage 内部协议不变（A1 冻结契约）。
  */
 const webviewRenderer = {
 	name: 'webview',
 	runViewStage: (ctx, task, workerOptions, lifecycle) =>
-		runCompileInWorker('view', ctx, task, workerOptions, lifecycle),
+		runCompileStage({ script: 'view', ctx, task, options: workerOptions, lifecycle }),
 	runStyleStage: (ctx, task, workerOptions, lifecycle) =>
-		runCompileInWorker('style', ctx, task, workerOptions, lifecycle),
+		runCompileStage({ script: 'style', ctx, task, options: workerOptions, lifecycle }),
 }
 registerRenderer(webviewRenderer)
 
@@ -273,7 +271,7 @@ function createStageTask(stage, title, lifecycle, workerOptions = {}, renderer =
 					await runStage(ctx, task, workerOptions, lifecycle)
 				}
 				else {
-					await runCompileInWorker(stage, ctx, task, workerOptions, lifecycle)
+					await runCompileStage({ script: stage, ctx, task, options: workerOptions, lifecycle })
 				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,
@@ -306,108 +304,6 @@ function filterPagesByEntries(pages, affectedEntries) {
 				.filter(([, subPackage]) => subPackage.info.length > 0),
 		),
 	}
-}
-
-function runCompileInWorker(script, ctx, task, options = {}, lifecycle = null) {
-	return workerPool.runWorker(() => new Promise((resolve, reject) => {
-		const worker = new Worker(
-			path.join(path.dirname(fileURLToPath(import.meta.url)), `core/${script}-compiler.js`),
-			workerPool.getWorkerOptions(),
-		)
-		const pages = options.pages || ctx.pages
-		const totalTasks = Object.keys(pages.mainPages).length
-			+ Object.values(pages.subPages).reduce((sum, item) => sum + item.info.length, 0)
-
-		let isResolved = false
-		let workerError = null
-		let terminationPromise
-
-		const terminateWorker = () => {
-			terminationPromise ||= worker.terminate().catch(() => undefined)
-			return terminationPromise
-		}
-
-		// 统一的错误处理函数，防止重复 reject
-		const handleError = async (error) => {
-			if (isResolved) return
-			isResolved = true
-			// WorkerPool 只有在 isolate 确实退出后才能释放槽位；否则排队的
-			// 阶段会与仍在回收中的 Worker 重叠，突破 CPU/RSS 限制。
-			await terminateWorker()
-			reject(error)
-		}
-
-			worker.postMessage({
-				pages,
-				storeInfo: ctx.storeInfo,
-				sourcemap: !!options.sourcemap,
-				sourcemapTargetPath: options.sourcemapTargetPath,
-				compileConfig: options.compileConfig,
-			})
-		// 接收 Worker 完成后的消息
-		worker.on('message', async (message) => {
-			try {
-				for (const warning of message.compatibilityWarnings || []) {
-					ctx.compatibilityWarnings.add(warning)
-					if (lifecycle) {
-						await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_WARNING, { message: warning })
-					}
-				}
-
-				if (process.stdout.isTTY && message.completedTasks !== undefined) {
-					task.output = formatCompileProgress(message.completedTasks, totalTasks)
-				}
-
-				if (message.success) {
-					if (isResolved) return
-					if (process.stdout.isTTY && totalTasks > 0) {
-						task.output = formatCompileProgress(totalTasks, totalTasks)
-					}
-					ctx.dependencyGraph.merge(message.dependencyGraph)
-					isResolved = true
-					await terminateWorker()
-					resolve()
-				}
-				else if (message.error) {
-					const error = new Error(message.error.message || message.error)
-					if (message.error.name)
-						error.name = message.error.name
-					if (message.error.stack)
-						error.stack = message.error.stack
-					if (message.error.file)
-						error.file = message.error.file
-					if (message.error.line != null)
-						error.line = message.error.line
-					if (message.error.column != null)
-						error.column = message.error.column
-					if (message.error.stage)
-						error.stage = message.error.stage
-					await handleError(error)
-				}
-			}
-			catch (err) {
-				await handleError(new Error(`Error processing worker message: ${err.message}\n${err.stack}`))
-			}
-		})
-
-		worker.on('error', (err) => {
-			// 保存错误信息，可能在 exit 事件中使用
-			workerError = err
-			void handleError(err)
-		})
-		worker.on('exit', (code) => {
-			if (code !== 0 && !isResolved) {
-				// 如果已经有 workerError，使用它；否则创建新的错误
-				// 退出码 1 通常表示内存溢出或其他致命错误
-				const error = workerError || new Error(
-					code === 1
-						? 'Worker terminated due to reaching memory limit: JS heap out of memory'
-						: `Worker stopped with exit code ${code}`,
-				)
-				void handleError(error)
-			}
-		})
-	}))
 }
 
 function printCompatibilityWarnings(workPath, warnings = new Set()) {
