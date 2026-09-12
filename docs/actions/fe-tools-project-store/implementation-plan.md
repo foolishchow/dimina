@@ -1,6 +1,6 @@
 # Implementation plan — fe-tools-project-store（PS1）
 
-Status: **冻结（FR1 · 2026-09-12）** — 升 `in_progress` 后按序执行；**未**授权实施直至 Action=`in_progress`
+Status: **PS1 已交付（`aa6b6508`）+ PS2 已交付（审查后修订）** — PS1/PS2 触达序已执行；PS3 待实施
 
 ## 目标门
 
@@ -18,9 +18,21 @@ Status: **冻结（FR1 · 2026-09-12）** — 升 `in_progress` 后按序执行�
 
 ## 不做（本 PR）
 
-- `build-pipeline.js` / 阶段表抽取（BP1）  
-- 删闭包（PS2）  
-- compile-cache；新 exports  
+- `build-pipeline.js` / 阶段表抽取（BP1）（兄弟门已 complete）
+- PS3 订阅 / applyChanges
+- compile-cache；新 exports
+
+## PS2 触达序（已执行 2026-09-12）
+
+| Step | 文件 | 动作 |
+| --- | --- | --- |
+| 1 | `src/watch/watch-runner.js` | 删闭包 `dependencyGraph` 变量 + `new DependencyGraph(buildResult.dependencyGraph)`（start/rebuild 两处）；无 store 注入时临时 `createProjectStore()` 并持有（W2）；`createWatchBuildPlan` 改用 `activeStore.getDependencyGraph()`（plan 只读 Store 活图，M-A 同引用） |
+| 2 | `src/session/index.js` | `.watch()` 创建 watcher 时补传 `store: state.store`（补 PS1 缺口；watch 与 build 共用同一 Store 实例） |
+| 3 | 测例 | watch-runner.spec：+2 PS2 用例（注入 store 同一引用传 build；无 store 临时 create 复用）；既有 watch/dev 全绿 |
+| 4 | 消融 | PS2-store：移除 store 持有 → 2 用例失败（store undefined）→ 恢复 6/6 绿 |
+| 5 | 验证 | 487 tests / 73 suites 全绿；字节等价 nomap 0 / sourcemap 0 diff（对照 0556f320） |
+
+**结果**：活图唯一权威 = Store；watch 闭包镜像（W3）已删；`createWatchBuildPlan` 读 `store.getDependencyGraph()`。
 
 ## 验证
 
