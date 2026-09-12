@@ -2,11 +2,12 @@
 
 - Action: `fe-tools-sidecar`
 - Status: `draft`
-- Updated: 2026-09-12
+- Updated: 2026-09-12（TS-4 sync-rhythm 成文）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[compiler-improvement](../_archive/complete/compiler-improvement/README.md)（已归档 A 轨道）、[compiler-configuration](../_archive/complete/compiler-configuration/README.md)（已归档 CF 门）、分支 `feature/compiler-improve` 上的私有演进
 - 工作分支（现行）：`feature/fe-tools-sidecar`（由 `feature/fe-tools-bootstrap` 改名延续；bootstrap 已落地；伞文档同分支演进）
 - 设计权威：本 umbrella 文档集（当前）；成熟后回写 `docs/` 专题或 RFC 附录。不替代上游产品权威。
+- 同步操作真源：[sync-rhythm.md](./sync-rhythm.md)（TS-4）
 
 ## Background
 
@@ -18,14 +19,14 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 均已 **complete / 归档**。伞仍为 `draft`。**TS-2（模板 IR）书面 deferred**。近端候补：`runBuild` 阶段化（未 formalize）。
+**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 均已 **complete / 归档**。**TS-4** 同步节奏已成文（[sync-rhythm.md](./sync-rhythm.md)）。伞仍为 `draft`（CI / 阶段化等 gap）。**TS-2（模板 IR）书面 deferred**。近端候补：`runBuild` 阶段化（未 formalize）。
 
 ## Goal
 
 1. 建立 `fe/tools` 旁路战略与 TS-0 冻结约定（终态 B、命名、依赖方向）；与独立搬迁 Action 对齐但不父子绑定 — **约定已冻；落地已由 bootstrap 完成**；
 2. **搬迁冒烟本身**由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 独立交付（本伞 TS-1 仅记意图/前置）— **前置已 complete**；
 3. 在 tools 内再改造：**dev 编排**（session 已交付）、**模板管线**（parser → IR → webview；**TS-2 deferred**）、按需深改私有 sdk — 模板 IR **未开始且后置**；
-4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面 — **本分支 packages 已干净；同步节奏成文属 TS-4**；
+4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面 — **本分支 packages 已干净；同步节奏见 [sync-rhythm.md](./sync-rhythm.md)（TS-4 成文）**；
 5. 不向 didi 推送本伞交付物。
 
 ## Non-goals
@@ -53,7 +54,7 @@
 
 `fe/packages/*` 与 didi main 同构（无私有 improve 长期 diff）。私有能力只存在于 `fe/tools/*`。操作上以已对齐的 **`origin/main`** 为对照 tip（remote 名 `upstream` = didi）。
 
-**可检查句（草案，可在 ready / TS-4 前微调）**：工作分支上，`git diff origin/main...HEAD -- fe/packages` 为空，或仅含成文白名单且带撤出日期（测前 `origin/main` ≡ `upstream/main`）。**本分支实测已为空。**
+**可检查句（最终，TS-4 / [sync-rhythm.md](./sync-rhythm.md)）**：工作分支上，`git diff origin/main...HEAD -- fe/packages` 为空，或仅含 [sync-rhythm §5](./sync-rhythm.md) 成文白名单且未过撤出日期（测前 `origin/main` ≡ `upstream/main`）。**本分支实测已为空（2026-09-12）**。
 
 ### D-TS0-2 分支策略
 
@@ -128,9 +129,9 @@ fe/tools/
 
 - ~~workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter~~ — **bootstrap 已交付**；
 - ~~`dimina-cli` 冷启动冒烟~~ — **bootstrap 已交付**；
-- `packages/*` 满足终态 B 可检查句 — **本分支已满足；TS-4 补同步节奏成文**；
-- 后续：~~立即开 template IR（TS-2）~~ → **TS-2 deferred**；近端候选 **`runBuild` 阶段化**（待立 Action）/ TS-4 同步节奏 / CI；TS-3 可选；
-- ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义。
+- `packages/*` 满足终态 B 可检查句 — **已满足；操作真源 [sync-rhythm.md](./sync-rhythm.md)**；
+- 后续：~~立即开 template IR（TS-2）~~ → **TS-2 deferred**；近端候选 **`runBuild` 阶段化**（待立 Action）；TS-3 可选；CI job 仍为 gap；
+- ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义；Sync 行指向 sync-rhythm。
 
 ## Umbrella 机制
 
@@ -148,7 +149,7 @@ fe/tools/
 | TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
 | TS-2 | tools 内模板管线切开（parse / IR / webview） | **deferred**（2026-09-12；见下） |
 | TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 session 交付；剩余 sdk 深改 pending / 可 deferred |
-| TS-4 | 终态 B 门禁闭环与同步节奏成文 | packages 已干净；文档 pending |
+| TS-4 | 终态 B 门禁闭环与同步节奏成文 | **文档完成（2026-09-12）** — [sync-rhythm.md](./sync-rhythm.md)；packages 干净；可检查句已最终化 |
 
 ### TS-2 deferred（2026-09-12）
 
@@ -162,19 +163,19 @@ fe/tools/
 2. 最小 IR 形状已起草并经评审，且有明确实施授权；  
 3. 测量/产品证明模板巨石已成为阻塞演进的主矛盾。
 
-**近端替代重心**：另候 `runBuild` 阶段化；可选 TS-4 成文。（目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 已 complete。）
+**近端替代重心**：另候 `runBuild` 阶段化。（目录归置与 TS-4 同步节奏均已成文/完成。）
 
 ## Readiness gaps
 
 1. ~~复制源 / 目标包名 / 分支 / 目录 / bin~~ — **已冻**（D-TS0-2..6）。  
 2. ~~近端必须先做最小 IR~~ — **不再作为近端阻塞**：TS-2 **deferred**（目标保留，见上门表）；IR 草案仅在再激活时需要。  
-3. **终态 B 可检查句**需在伞 `ready` / TS-4 前写成 STATUS/验收可引用的最终句（D-TS0-1 草案已有；本分支实测已满足草案句）。  
+3. ~~终态 B 可检查句~~ — **已最终化**（[sync-rhythm.md](./sync-rhythm.md) §1；D-TS0-1）。  
 4. **CI**：tools 独立 job 与否。  
-5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md）。  
+5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md → sync-rhythm）。  
 6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
 7. **近端结构债**：目录归置已完成（[`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md)）；`runBuild` 阶段化 Action 未 formalize。
 
-伞级在 B 判定句（gap 3）补齐前可维持 `draft`；**不授权伞级大实施**。TS-2 已 deferred，不阻塞近端另立「阶段化」等独立 Action。
+伞级在 gap 4（CI）与结构候补（阶段化）之外可维持 `draft`；**不授权伞级大实施**。TS-2 已 deferred；TS-4 文档门已闭合。TS-2 不阻塞近端另立「阶段化」等独立 Action。
 
 ## Closure conditions
 

@@ -99,3 +99,7 @@ Service 与 Render 运行在不同线程或执行环境中，JavaScript 微任�
 6. 恢复消融改动、删除临时日志，说明已验证内容、未验证内容和残余风险。
 
 长任务应分阶段保存进展，避免上下文压缩或进程中断导致已确认结论丢失。
+
+## 11. FE tools 旁路与 packages 同构
+
+私有 toolchain 落在 `fe/tools/*`；`fe/packages/*` 与已对齐的 `origin/main`（didi）保持同构，禁止长期私有 improve。上游同步先 merge 进工作分支的 packages，再按需 port 到 tools 副本。操作清单与可检查句见 `docs/actions/fe-tools-sidecar/sync-rhythm.md`。

@@ -22,7 +22,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-bundler-layout`](_archive/complete/fe-tools-bundler-layout/README.md) 已 **complete**；近端候补：`runBuild` 阶段化（待 formalize）；TS-2 IR deferred |
+| 下一步 | TS-4 同步节奏已成文（[sync-rhythm.md](fe-tools-sidecar/sync-rhythm.md)）；近端候补：`runBuild` 阶段化（待 formalize）；TS-2 IR deferred |
 | 再激活 / 推进 | 阶段化：另立 Action；TS-2 条件见伞 README |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
 

@@ -9,4 +9,4 @@
 | Copied | 2026-09-10 |
 | Action | `fe-tools-bootstrap-copy` |
 
-Sync: prefer merging didi into work-branch `packages/`, then selectively port into this tree. Do not reverse-depend from `fe/packages/*`.
+Sync: see `docs/actions/fe-tools-sidecar/sync-rhythm.md` (TS-4). Prefer merging didi into work-branch `packages/`, then selectively port into this tree. Do not reverse-depend from `fe/packages/*`.

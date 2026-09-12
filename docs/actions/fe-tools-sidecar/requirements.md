@@ -36,7 +36,7 @@ parser / IR **不得**绑定 `platform: native|web`；renderer 选择后端（�
 
 ## R-009（MUST）终态 B：packages 与 upstream 同构
 
-工作分支上 `fe/packages/*` 与已对齐的 `origin/main`（didi）同构（无私有 improve 长期 diff）。预览/改造以 `fe/tools` 内 `@dimina/bundler` + `@dimina/web-container-sdk` 为唯一私有面。可检查句见 umbrella README D-TS0-1。
+工作分支上 `fe/packages/*` 与已对齐的 `origin/main`（didi）同构（无私有 improve 长期 diff）。预览/改造以 `fe/tools` 内 `@dimina/bundler` + `@dimina/web-container-sdk` 为唯一私有面。可检查句与同步节奏见 [sync-rhythm.md](./sync-rhythm.md)（TS-4；D-TS0-1 最终句）。
 
 ## R-011（MUST）分支与复制源
 
