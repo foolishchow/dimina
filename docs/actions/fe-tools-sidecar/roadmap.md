@@ -16,7 +16,7 @@ TS-1 意图：整包复制冒烟
         ├─（并行，非父子）→ 编排控制面：fe-tools-bundler-session（complete，已归档）
         │
         ├─（并行，非父子）→ 主线程层：fe-tools-build-model（**M1+M2 已交付**，M3 defer；Entry 产物持有 + (mtime,size) 指纹 + scan/closure 失效 + 统一物化 + verify 对拍 MUST）
-        ├─（并行，非父子）→ worker 内层：fe-tools-module-cache（**ready**，D-MC 冻结；FileModule 颗粒化 + ComposeCache + 内容寻址）
+        ├─（并行，非父子）→ worker 内层：fe-tools-module-cache（**MC1..MC3 已交付**，complete + 归档；失败缓存 + style compileRes key minify 维度 + mock worker 测例）
         ├─（并行，非父子）→ 决策层：fe-tools-worker-architecture（**ready**，决策已冻结；协议 v1/v2 + D-WA 决策 + 时序防护）
         │
         ▼
