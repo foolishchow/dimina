@@ -553,11 +553,29 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 	// 收集所有 wxs 模块（包括组件的）
 	const allScriptModules = []
 
-	// 首先编译当前模块
-	const currentInstruction = compileModule(module, isComponent, scriptRes, {
-		skipTemplatePaths: isComponent ? inheritedTemplatePaths : new Set(),
-		sourceMapRes,
-	})
+	// 首先编译当前模块（MC1/R-MC3：失败也缓存，同 stage 内同模块不再重复失败编译）
+	let currentInstruction
+	try {
+		currentInstruction = compileModule(module, isComponent, scriptRes, {
+			skipTemplatePaths: isComponent ? inheritedTemplatePaths : new Set(),
+			sourceMapRes,
+		})
+	}
+	catch (error) {
+		compileResCache.set(module.path, {
+			failed: true,
+			errorShape: {
+				message: error.message,
+				stack: error.stack,
+				name: error.name,
+				file: error.file,
+				line: error.line,
+				column: error.column,
+				stage: error.stage,
+			},
+		})
+		throw error
+	}
 	if (currentInstruction && currentInstruction.scriptModule) {
 		allScriptModules.push(...currentInstruction.scriptModule)
 	}
@@ -639,6 +657,13 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 
 	if (canUseCache && !scriptRes.has(module.path) && compileResCache.has(module.path)) {
 		const cacheData = compileResCache.get(module.path)
+		// MC1/R-MC3：失败缓存——同模块上次编译失败，直接重抛等价错误（避免同 stage 内重复失败编译）
+		if (cacheData && cacheData.failed) {
+			const err = new Error(cacheData.errorShape?.message || 'module compilation failed (cached)')
+			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name
+			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack
+			throw err
+		}
 		// 如果缓存数据包含完整的编译信息，则使用缓存
 		if (cacheData && typeof cacheData === 'object' && cacheData.code && cacheData.instruction) {
 			cachedCode = cacheData.code
