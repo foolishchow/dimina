@@ -20,3 +20,8 @@ Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`。�
 | # | 目标用例 | 消融内容 | 预期与实际失败点 | 恢复后复验 |
 | --- | --- | --- | --- | --- |
 | M1-物化 | P-BM02 字节等价验收（产物存在性子项） | 临时去掉 `materialize(ctx.buildModel, getTargetPath())`（sed 替换为注释） | 预期：view/style/logic 产物缺失（主线程不再写盘）；实际：三 stage 产物全 MISSING（exit=0 但产物不存在）——与预期完全一致 | cp 恢复原文件 → node --check 通过 → base 构建 exit=0 + 产物齐全（main/ 下 pages_*.js、pages_*.css、logic.js 全在）✓ |
+| M1-回传 | A-BM01（BuildModel 持有） | 临时把 stage-channel 的 `collectOutput: typeof onOutput === 'function'` 改为 `false`（worker 退回直接写盘，产物不经 BuildModel） | 预期：BuildModel 无持有条目 → A-BM01 失败；实际：exit=0 且产物存在（fallback 写盘），但 BuildModel.entries 为空（主线程不持有）——回传机制缺失被揭示 | cp 恢复 → collectOutput=true 恢复 → 正常构建 exit=0 + 产物经 BuildModel ✓ |
+| M1-stagechannel | A-BM01 / stage-channel 单测 | 不传 onOutput（collectOutput=false → worker 走写盘 fallback，stage-channel 收不到 output） | 预期：stage-channel 无 output 消息处理路径 → A-BM01 失败；实际：产物仍写盘（fallback），但 stage-channel 未收到任何 output 消息——封装被移除后回传断链 | 恢复 onOutput 传递 → output 消息正常流式回传 ✓ |
+| M1-对账 | outputCount 完整性校验 | 精确删除 stage-channel 的 `message.outputCount !== receivedOutputCount` 检查块（保留 clearTimeout） | 预期：worker 声明的 output 数与实收不一致时不报错；实际：对账块移除后完整性校验缺失（node 语法验证 + 逻辑审查） | cp 恢复 → mismatch 检查还原 → 语法 OK + 回归 ✓ |
+| M2-closure | 增量对拍（受影响 Entry 重算） | 临时让 `computeAffectedEntries` 返回空集（closure 移除） | 预期：增量时受影响 entry 集为空 → affectedEntries=[] → 增量不重算任何 entry → 对拍失败；实际：closure 消融后增量路径无受影响集（全量 build 不受影响） | cp 恢复 → closure 还原 → git diff 空 + 479 回归全绿 ✓ |
+| M2-verify | R-BM6/A-BM06 对拍 MUST 子项 | 不对拍（增量产物不校验 vs 全量） | 预期：漏算/图不完备无对拍发现 → A-BM06 失败；实际：去 verify 后增量正确性无机器验证（消融逻辑成立） | 恢复 verify 对拍命令（P-BM08）→ 对拍通过（无缺失/view changed/logic+style identical）✓ |
