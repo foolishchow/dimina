@@ -1,6 +1,6 @@
 import chokidar from 'chokidar'
 import build from '../index.js'
-import { DependencyGraph } from '../model/dependency-graph.js'
+import { createProjectStore } from '../model/project-store.js'
 import {
 	createIgnoredPathMatcher,
 	createWatchBuildPlan,
@@ -33,7 +33,6 @@ export function createBuildWatcher({
 	onError = () => {},
 }) {
 	let buildResult
-	let dependencyGraph
 	let scheduler
 	let fsWatcher
 	let started = false
@@ -71,8 +70,10 @@ export function createBuildWatcher({
 			throw new Error('createBuildWatcher: already started')
 		}
 
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, ...(store ? { store } : {}) })
-		dependencyGraph = new DependencyGraph(buildResult.dependencyGraph)
+		// PS2：活图唯一权威为 ProjectStore——无注入时临时 create 并持有（W2），
+		// 不再维护闭包 dependencyGraph 镜像（W3 删除）。
+		const activeStore = store ?? createProjectStore()
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore })
 		ignoredOutputPaths.add(publishedPathFor(buildResult.appId))
 
 		scheduler = createWatchRebuildScheduler({
@@ -80,9 +81,10 @@ export function createBuildWatcher({
 			onError,
 			rebuild: async (change) => {
 				const publishedPath = publishedPathFor(buildResult.appId)
+				// PS2：plan 从 Store 活图读取（同一引用，M-A），不再读闭包镜像
 				const plan = createWatchBuildPlan({
 					changedFiles: change.changedFiles,
-					dependencyGraph,
+					dependencyGraph: activeStore.getDependencyGraph(),
 					workPath,
 					publishedPath,
 				})
@@ -98,11 +100,10 @@ export function createBuildWatcher({
 				}
 				const result = await build(targetPath, workPath, useAppIdDir, {
 					...options,
-					...(store ? { store } : {}),
+					store: activeStore,
 					...plan.options,
 				})
 				buildResult = result
-				dependencyGraph = new DependencyGraph(result.dependencyGraph)
 				ignoredOutputPaths.add(publishedPathFor(result.appId))
 			},
 		})

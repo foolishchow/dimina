@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-project-store`
 - Status: `in_progress`
-- Updated: 2026-09-12（**PS1 已交付** `aa6b6508`：壳 + 刀 A + M-A；PS2/PS3 待实施）
+- Updated: 2026-09-12（**PS1 已交付** `aa6b6508`：壳 + 刀 A + M-A；**PS2 已交付**：删闭包镜像，Store 唯一活图权威；PS3 待实施）
 - Status authority: [Action Status](../STATUS.md)
 - 关系：独立结构 Action（**不是** umbrella 子门）。背景 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；总览 [`architecture-notes.md`](../fe-tools-sidecar/architecture-notes.md)；与已归档 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、[`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md)、[`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md) 对齐；兄弟 [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**已 complete 归档**）。
 - 工作分支：`feature/fe-tools-sidecar`

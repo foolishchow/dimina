@@ -50,7 +50,11 @@ describe('createBuildWatcher', () => {
 
 		const result = await watcher.start()
 		expect(result.appId).toBe('app-1')
-		expect(build).toHaveBeenCalledWith('/dist', '/project', true, { sourcemap: true })
+		// PS2：watch 恒注入 store（无 store 时临时 create 并持有）——活图唯一权威
+		expect(build).toHaveBeenCalledTimes(1)
+		const [, , , buildOptions] = build.mock.calls[0]
+		expect(buildOptions).toMatchObject({ sourcemap: true })
+		expect(buildOptions.store).toBeTruthy()
 		expect(chokidarWatch).toHaveBeenCalledWith('/project', expect.objectContaining({
 			persistent: true,
 			ignoreInitial: true,
@@ -141,5 +145,46 @@ describe('createBuildWatcher', () => {
 		await watcher.start()
 		await watcher.stop()
 		expect(fsWatcher.close).toHaveBeenCalled()
+	})
+
+	it('PS2: injected store is passed to build (same reference, live-graph authority)', async () => {
+		const fsWatcher = createFakeWatcher()
+		chokidarWatch.mockReturnValue(fsWatcher)
+
+		const store = {
+			load: vi.fn().mockReturnValue({ compilerOptions: {} }),
+			getDependencyGraph: vi.fn().mockReturnValue({ hasFile: () => false, toJSON: () => emptyGraph() }),
+		}
+		const watcher = createBuildWatcher({
+			targetPath: '/dist',
+			workPath: '/project',
+			useAppIdDir: true,
+			store,
+			options: { sourcemap: true },
+		})
+
+		await watcher.start()
+
+		expect(build).toHaveBeenCalledTimes(1)
+		const [, , , buildOptions] = build.mock.calls[0]
+		expect(buildOptions.store).toBe(store)
+	})
+
+	it('PS2: no injected store → temp store created and reused (W2)', async () => {
+		const fsWatcher = createFakeWatcher()
+		chokidarWatch.mockReturnValue(fsWatcher)
+
+		const watcher = createBuildWatcher({
+			targetPath: '/dist',
+			workPath: '/project',
+			useAppIdDir: true,
+		})
+
+		await watcher.start()
+
+		expect(build).toHaveBeenCalledTimes(1)
+		const [, , , buildOptions] = build.mock.calls[0]
+		expect(buildOptions.store).toBeTruthy()
+		expect(typeof buildOptions.store.getDependencyGraph).toBe('function')
 	})
 })

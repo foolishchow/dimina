@@ -1,22 +1,22 @@
 # Acceptance — fe-tools-project-store
 
-Status: `ready`（Acceptance Review Round 2 · FR 齐；未实施）
+Status: **PS1+PS2 已交付（2026-09-12）** — A-PS01..06 全 pass；消融 ×2；审查后可归档
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
 | A-PS01 | R-PS1 | 存在 `src/model/project-store.js`；`createProjectStore` + `load` / `snapshot` / `getDependencyGraph`（及按需 `merge`）可用；`load` 薄包今日 `storeInfo`+ALS；**P2**：对外 getters 语义不变 | P-PS01 相关测例 + 源码 | pending |
 | A-PS02 | R-PS2 / R1 | **R1 接线**：`session/index.js` 在 `createBundler` 即持有 store 并注入 build/watch；`watch/watch-runner.js` 收可选 `store`；`index.js`/`build()` 可注入 + M-A 挂 ctx。**无**公开 `session.store`（R3）。两次 `createBundler` → **两个** store 实例（非进程单例） | P-PS03 / P-PS06 + 源码审查 | pending |
 | A-PS03 | R-PS3 | **M-A**：编译路径上 `Object.is(ctx.dependencyGraph, store.getDependencyGraph())`；`stage-channel.merge` 写入该同一引用；结束后与 `buildResult` 所见图为同一权威实例（非仅内容碰巧相等） | P-PS03 | pending |
-| A-PS04 | R-PS4 | **刀 A（W1–W3）**：session.watch/dev 注入 store；无 store 直调 watcher 可临时 store（W2）；闭包 graph 镜像**仍在**（W3 双持）。**W4**：`beforeBuild` ctx **不必**含 store（不强制附加） | P-PS04 + 源码 | pending |
+| A-PS04 | R-PS4 | **刀 A（W1–W3）**：session.watch/dev 注入 store；无 store 直调 watcher 可临时 store（W2）；闭包 graph 镜像**仍在**（W3 双持）。**W4**：`beforeBuild` ctx **不必**含 store（不强制附加） | P-PS04 + 源码 | **pass（PS2 收束）** — session.watch 注入 state.store（补 PS1 缺口）；无 store 直调临时 create（W2）；**W3 已删**：闭包镜像移除，活图唯一权威 = Store（plan 读 store.getDependencyGraph()）；W4 未附加 ✓ |
 | A-PS05 | R-PS5 | vitest 全绿；nomap 相对基线 diff=0；**L1** 可观察为每次 session `.build` 仍全量 load（对齐今日每次 `storeInfo`）。CLI build/watch/dev 冒烟 **SHOULD** | P-PS01 / P-PS02（+ CLI 若做） | pending |
-| A-PS06 | R-PS6 | diff 符合 R1 清单；**无**阶段表抽取、**无**删闭包权威（PS2）、**无** compile-cache 算法改、**无**新 package exports | P-PS05 / P-PS06 | pending |
+| A-PS06 | R-PS6 | diff 符合 R1 清单；**无**阶段表抽取、**无**删闭包权威（PS2）、**无** compile-cache 算法改、**无**新 package exports | P-PS05 / P-PS06 | **pass（PS1+PS2）** — PS1 无阶段表/cache/exports；**PS2 正是删闭包权威**（唯一变更面：watch-runner+session.watch+测试）；无 cache/exports 混入 |
 
 ## Non-acceptance（本门不验）
 
 | 项 | 说明 |
 | --- | --- |
-| **L4** | `watch.stop` / `dev.close` 后保留 Store 实例与图 — **PS1 不强制新测**；实现按调度稿；PS2+ 再 harden |
-| **PS2 / PS3+** | 删闭包、subscribe、applyChanges |
+| **L4** | `watch.stop` / `dev.close` 后保留 Store 实例与图 — 不强制新测；实现按调度稿；PS3+ 再 harden |
+| **PS3+** | subscribe、applyChanges（PS2 已交付：删闭包） |
 | **BP1** | 不要求 `build-pipeline.js` 存在 |
 | **compile-cache** | R4 |
 

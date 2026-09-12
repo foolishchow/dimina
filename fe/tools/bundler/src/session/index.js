@@ -145,6 +145,8 @@ export function createBundler(resolved) {
 				targetPath: state.targetPath,
 				workPath: state.workPath,
 				useAppIdDir: state.useAppIdDir,
+				// PS2：watch 与 build 共用同一 Store（state.store）——活图唯一权威
+				store: state.store,
 				autoListen,
 				beforeBuild,
 				onRebuild,
