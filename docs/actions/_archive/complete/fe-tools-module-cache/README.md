@@ -2,9 +2,40 @@
 
 - Action: `fe-tools-module-cache`
 - Status: `complete`
-- Updated: 2026-09-10（MC1..MC3 全部交付，A-MC01..07 全 pass，消融 ×3）
+- Updated: 2026-09-12（MC1..MC3 按**缩 scope**闭合；见下方「实际交付摘要」；A-MC01..07 全 pass，消融 ×3）
 - Status authority: [Action Status](../../../STATUS.md)
 - 关系：独立架构 Action。与 [`fe-tools-build-model`](../fe-tools-build-model/README.md) **并行实施**（各自独立、互不前置）；worker 演进与 FileModule 归属基准依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md)（其协议草案定义 FileModule 归属）。**形态①已拍板**（不拆 view 组合），②（拆结构）属 TS-2 边界。现状证据见 [source-audit](source-audit.md)。
+
+## 实际交付摘要（闭合口径，2026-09-12）
+
+> **读档以本节为准。** 下文 Goal / 门表保留设计期叙述，**不等于**闭合时已落地的运行时能力。证据见 [acceptance](acceptance.md) / [validation](validation.md)。
+
+### 交付了什么
+
+| 项 | 实际内容 | 价值 |
+| --- | --- | --- |
+| **MC1 失败缓存** | `view-compiler`：`compileModule` 失败写入 `compileResCache`（`{failed:true, errorShape}`）；命中则按保存字段重建并 rethrow | **脚手架**：错误 shape 含 file/line/column/stage；当前单 stage 架构下**行为≈无此缓存**（消融去掉仍绿） |
+| **D-MC-3 选项 B** | 明文：**不做** `compileResCache` 内容寻址；保持单 stage / path 生命周期 | 避免空转升级 |
+| **MC2 minify key** | `style-compiler` 的 `compileRes` cacheKey 增加 `::minify:…` | **真修复**：minify 变化不再误命中未压缩结果（消融可证） |
+| **D-MC-5** | 判定 view 缓存 value **不依赖** compileConfig → key **不加** esTarget/fileTypes/renderer 等 | 避免模型冗余 |
+| **MC3 测例** | 新增 `module-cache.spec.js`（同内容命中 / minify miss）；共享「只算一次」复用既有 hotpaths | 把 MC2 钉死；颗粒度靠旁证 |
+| **回归护栏** | 相对 ready 基线字节 diff=0；测试 479→481 全绿 | 证明没改产物语义 |
+| **代码范围** | 仅 `view-compiler.js` + `style-compiler.js` + 一测例 | 未碰 BuildModel / IR / env / worker 生命周期 |
+
+### 明确没做什么
+
+| 原 Goal / 门表写的 | 实际 |
+| --- | --- |
+| **ModuleCache / ComposeCache 分层**（新抽象、改名拆分） | **没做**；仍用原有 `compileResCache` / `templateRenderCache` 等 |
+| **compileResCache → 内容寻址** | **没做**（选项 B） |
+| **三模块模型**（Group / ViewFile / LogicFile + 双向关联） | **没做**（设计叙述，无运行时类型） |
+| **D-MC-4「组合前查询层」** | **没做**（组合算法未动，也未加查询层） |
+| **key 全维度**（minify + esTarget.view + fileTypes + renderer） | **只做了 style 的 minify**；其余按 D-MC-5 不必加 |
+| **失败缓存的可观察收益**（同 key 二次跳过执行） | **当前不可观察**；等阶段 4 常驻 worker |
+| **稳定单测触发 view 失败缓存** | **未做**（vue 编译器宽容；acceptance 诚实放过） |
+| **跨 build / 跨 stage 缓存持久化** | **非本门**（仍 new/terminate） |
+
+**一句话：** 本门 = 诚实缩 scope 闭合——修了 style minify 错 key + 记下失败缓存脚手架 + 测例钉住；**没有**交付早期宣称的 worker 内颗粒化重构。
 
 ## Background
 
@@ -13,6 +44,8 @@ worker 内缓存粒度缺陷（source-audit §1）：没有干净的"单文件 �
 **先颗粒化，再谈跨 build 持久化**：颗粒化（本 Action）是未来任何跨 build module 持久化（阶段 4 决策）的前提——先把粗粒度缓存颗粒化，否则 key/失效/注入边界全部返工。**与 build-model 并行**：build-model 的 M1/M2（结果边界/失效）按 entry 粒度即可，不依赖本 Action 的 FileModule 粒度。
 
 ## Goal
+
+> 设计期意图。**闭合是否达成以下各项 → 见 [实际交付摘要](#实际交付摘要闭合口径2026-09-12)。**
 
 1. **三模块模型**（GroupModule / ViewFileModule / LogicFileModule）：GroupModule 为 owner 级主线程权威索引（page/component/npm）；ViewFileModule 为 wxml 单文件→DOM 中间结果；LogicFileModule 为 js 单文件→AST（缓存价值单独评估）。**FileModule 内携带所属 Group 引用（双向关联）**，见 technical-design §1
 2. **ModuleCache / ComposeCache 边界划分**（worker 内）：单文件级 module 结果缓存（内容寻址）与 entry 组合产物缓存分层。**术语澄清（L-M-10）**：`ComposeCache` 指 worker 内组合产物缓存——与 build-model 的主线程 `Entry`（产物权威单元）同名不同物，已改名避免冲突
