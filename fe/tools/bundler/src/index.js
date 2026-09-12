@@ -9,6 +9,7 @@ import { assertRendererSupportsPlatform } from './shared/platforms.js'
 import { getRenderer, registerRenderer, resolveProjectRenderers } from './compiler/renderers.js'
 import { createDist, publishToDist } from './compiler/publish.js'
 import { BuildModel, materialize } from './model/build-model.js'
+import { createProjectStore } from './model/project-store.js'
 import { runCompileStage } from './compiler/stage-channel.js'
 import { artCode, resetAssetCache } from './shared/utils.js'
 import { NpmBuilder } from './compiler/npm-builder.js'
@@ -70,7 +71,11 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 		stages,
 		prepareConfig = true,
 		prepareNpm = true,
+		store: providedStore,
 	} = options
+
+	// PS1/RR4：包内私有 options.store——session 持有并传入，无则临时 create（L3）
+	const store = providedStore ?? createProjectStore()
 	if (stages !== undefined
 		&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
 		throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
@@ -89,8 +94,8 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 	}
 	// CF-2：renderer × platform 约束（webview 双平台可用；预留 unsupportedPlatforms）
 	assertRendererSupportsPlatform(activeRenderer, compileConfiguration.platform)
-	// build:start 载荷需可序列化（R-006）：剥离可能为实例的 dependencyGraph 与 lifecycle
-	const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, ...serializableOptions } = options
+	// build:start 载荷需可序列化（R-006）：剥离可能为实例的 dependencyGraph、lifecycle 与 store
+	const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, store: _storeRef, ...serializableOptions } = options
 	try {
 		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_START, {
 			workPath,
@@ -119,8 +124,10 @@ async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) 
 				task: async (ctx) => {
 					// M1 阶段二：主线程 BuildModel 持有 worker 回传产物
 					ctx.buildModel = new BuildModel()
-					ctx.storeInfo = storeInfo(workPath, { fileTypes, dependencyGraph })
-					ctx.dependencyGraph = new DependencyGraph(ctx.storeInfo.dependencyGraph)
+					// PS1/M-A：store.load 替代直接 storeInfo；ctx.dependencyGraph
+					// 绑定 store.getDependencyGraph()——同一引用，禁止再 new 挂 ctx
+					ctx.storeInfo = store.load(workPath, { fileTypes, dependencyGraph })
+					ctx.dependencyGraph = store.getDependencyGraph()
 					const allPages = getPages()
 					await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
 						fileTypes: ctx.storeInfo.compilerOptions,

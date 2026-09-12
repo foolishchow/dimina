@@ -16,8 +16,8 @@ TS-1 意图：整包复制冒烟
         ├─（并行，已归档）→ fe-tools-bundler-session / build-model / module-cache / worker-architecture
         │
         ├─（已归档）→ fe-tools-bundler-layout（build/dev × session/compiler；L0–L3 complete）
-        ├─（近端 draft）→ fe-tools-project-store（ProjectStore）
-        ├─（近端 draft）→ fe-tools-build-pipeline（BuildPipeline；按次；D-PS-SESSION）
+        ├─（近端 ready）→ fe-tools-project-store（ProjectStore；待 in_progress）
+        ├─（近端 ready）→ fe-tools-build-pipeline（BuildPipeline；按次；D-PS-SESSION）
         │
         ▼
 TS-2 模板管线 parse → IR → webview     【deferred 2026-09-12】

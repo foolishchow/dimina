@@ -28,6 +28,7 @@ import build from '../index.js'
 import { createBuildWatcher } from '../watch/watch-runner.js'
 import { createLifecycle } from '../shared/lifecycle.js'
 import { createWebPreviewAdapter } from './preview-adapter.js'
+import { createProjectStore } from '../model/project-store.js'
 
 /** Compile profile keys (config C1) — never treat as a free-form bag */
 const COMPILE_KEYS = Object.freeze(['mode', 'platform', 'minify', 'sourcemap', 'esTarget'])
@@ -66,6 +67,8 @@ export function createBundler(resolved) {
 		lifecycle: resolved.lifecycle ?? createLifecycle(),
 		/** @type {null | 'watch' | 'dev'} */
 		activeLoop: null,
+		/** PS1/RR5：session 创建即持有 ProjectStore（非可选；load 按需） */
+		store: createProjectStore(),
 	}
 
 	const session = {
@@ -92,6 +95,8 @@ export function createBundler(resolved) {
 				...compileOverrides,
 				...pipelineExtras,
 				fileTypes: pipelineExtras.fileTypes ?? state.fileTypes,
+				// PS1/RR4：session 注入 store（state.store）供 runBuild 使用
+				store: state.store,
 				// FORCED last — never allow overrides.lifecycle to win
 				lifecycle: state.lifecycle,
 			}

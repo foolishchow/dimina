@@ -25,6 +25,7 @@ export function createBuildWatcher({
 	targetPath,
 	workPath,
 	useAppIdDir,
+	store,
 	options = {},
 	autoListen = true,
 	onRebuild = () => {},
@@ -70,7 +71,7 @@ export function createBuildWatcher({
 			throw new Error('createBuildWatcher: already started')
 		}
 
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options })
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, ...(store ? { store } : {}) })
 		dependencyGraph = new DependencyGraph(buildResult.dependencyGraph)
 		ignoredOutputPaths.add(publishedPathFor(buildResult.appId))
 
@@ -97,6 +98,7 @@ export function createBuildWatcher({
 				}
 				const result = await build(targetPath, workPath, useAppIdDir, {
 					...options,
+					...(store ? { store } : {}),
 					...plan.options,
 				})
 				buildResult = result
