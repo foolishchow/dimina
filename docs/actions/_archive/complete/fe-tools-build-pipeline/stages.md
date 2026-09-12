@@ -2,16 +2,16 @@
 
 Action: `fe-tools-build-pipeline`  
 Status: **inventory authority（RR1 · 2026-09-12）** — **not** a plugin API · **not yet** extracted from `runBuild`（extraction = BP1）  
-Migrated from archived [`fe-tools-bundler-session/stages.draft.md`](../_archive/complete/fe-tools-bundler-session/stages.draft.md); paths updated for post-layout tree.
+Migrated from archived [`fe-tools-bundler-session/stages.draft.md`](../fe-tools-bundler-session/stages.draft.md); paths updated for post-layout tree.
 
 Purpose: name today’s hardwired pipeline pieces so BP1 can extract equivalently. Session **delegates** to `build()` / Pipeline；**不**拥有这些 stage 实现。
 
 Authoritative code today:
 
-- [`fe/tools/bundler/src/index.js`](../../../fe/tools/bundler/src/index.js) (`runBuild`)
-- [`compiler/env.js`](../../../fe/tools/bundler/src/compiler/env.js) (`storeInfo` / ALS)
-- [`compiler/*`](../../../fe/tools/bundler/src/compiler/)（阶段与 publish / npm）
-- [`model/dependency-graph.js`](../../../fe/tools/bundler/src/model/dependency-graph.js)
+- [`fe/tools/bundler/src/index.js`../../../../../fe/tools/bundler/src/index.js) (`runBuild`)
+- [`compiler/env.js`../../../../../fe/tools/bundler/src/compiler/env.js) (`storeInfo` / ALS)
+- [`compiler/*`../../../../../fe/tools/bundler/src/compiler/)（阶段与 publish / npm）
+- [`model/dependency-graph.js`../../../../../fe/tools/bundler/src/model/dependency-graph.js)
 
 Stage id 字符串 **未**冻结为公开 API；BP1 首刀等价抽取，可微调 id。
 

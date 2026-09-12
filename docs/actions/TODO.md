@@ -22,8 +22,8 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | 近端 [`project-store`](fe-tools-project-store/README.md) + [`build-pipeline`](fe-tools-build-pipeline/README.md) 已 **ready**；**待授权 `in_progress`：PS1 → BP1**（禁混 PR）；TS-2 deferred |
-| 再激活 / 推进 | 授权实施 PS1（略先）→ BP1；伞保持 draft |
+| 下一步 | 近端 [`project-store`](fe-tools-project-store/README.md) **in_progress**（PS1 已交付）；[`build-pipeline`](_archive/complete/fe-tools-build-pipeline/README.md) **complete / 已归档**；**待授权 PS2**；TS-2 deferred |
+| 再激活 / 推进 | 授权实施 project-store PS2（删闭包镜像，Store 唯一活图权威）；伞保持 draft |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
