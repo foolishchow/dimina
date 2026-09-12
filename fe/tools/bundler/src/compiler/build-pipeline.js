@@ -12,9 +12,7 @@
 import path from 'node:path'
 import process from 'node:process'
 import { Listr, PRESET_TIMER } from 'listr2'
-import { formatCompileProgress } from '../shared/compile-progress.js'
 import { resolveCompileConfig } from '../shared/compile-config.js'
-import { DependencyGraph } from '../model/dependency-graph.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.js'
 import { assertRendererSupportsPlatform } from '../shared/platforms.js'
 import { getRenderer, registerRenderer, resolveProjectRenderers } from './renderers.js'
@@ -77,10 +75,10 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			stages,
 			prepareConfig = true,
 			prepareNpm = true,
-			store: providedStore,
+			store: runStore,
 			lifecycle: runLifecycle,
 		} = runOptions
-		const store = providedStore ?? createProjectStore()
+		const store = runStore ?? providedStore ?? createProjectStore()
 		if (stages !== undefined
 			&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
 			throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
