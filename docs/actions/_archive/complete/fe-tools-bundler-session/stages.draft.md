@@ -1,4 +1,6 @@
-# Builtin stages / capabilities — DRAFT
+# Builtin stages / capabilities — DRAFT（archived）
+
+> **Superseded inventory authority:** [`fe-tools-build-pipeline/stages.md`](../../fe-tools-build-pipeline/stages.md)（RR1 · 2026-09-12；layout 后路径）。本文件仅作历史快照。
 
 Action: `fe-tools-bundler-session`  
 Status: inventory only — **not** a plugin API · **not** extracted from `runBuild`
