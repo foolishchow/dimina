@@ -381,7 +381,7 @@ async function enhanceCSS(module, options = {}) {
 	if (graphOwnerPath) {
 		getDependencyGraph().addFile(graphOwnerPath, absolutePath, 'style')
 	}
-	const cacheKey = `${absolutePath}::${module.id || ''}::${options.sourcemap ? 'map' : 'plain'}`
+	const cacheKey = `${absolutePath}::${module.id || ''}::${options.sourcemap ? 'map' : 'plain'}::minify:${options.minify !== false}`
 
 	const inputCSS = getContentByPath(absolutePath)
 	if (!inputCSS) {

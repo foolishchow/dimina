@@ -10,8 +10,8 @@ Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`；�
 | --- | --- | --- | --- |
 | P-MC01 | 全量回归 | `vitest run --no-file-parallelism`（tools/bundler） | **pass（MC1）** — 479 tests / 71 suites 全绿 |
 | P-MC02 | 字节等价 | 改造前 HEAD vs 改造后，base 工程 nomap + sourcemap `diff -r` | **pass（MC1）** — 对照 b9dd9246：nomap 94 / sourcemap 185 文件 diff=0 |
-| P-MC03 | 内容寻址 | mock worker：相同输入二次执行计数为 1；内容/配置任一变化必须 miss | pending（MC2） |
-| P-MC04 | 失败缓存 | mock failure：同 key 二次访问不重复执行，错误 shape 等价 | **pass（MC1，缓解受限记录）** — read+write 已实现；消融证实非承重；真实收益待阶段 4 持久化 worker（当前单 stage 构建首错即中止，无同 key 二次访问触发点） |
+| P-MC03 | 内容寻址 | mock worker：相同输入二次执行计数为 1；内容/配置任一变化必须 miss | **pass（MC2，按 D-MC-5 判定）** — style `compileRes` key 加 `minify:` 维度（value 依赖 minify）；view cache 判定 value 独立于 compileConfig → 不加（模型冗余） |
+| P-MC04 | 失败缓存 | mock failure：同 key 二次访问不重复执行，错误 shape 等价 | **pass（MC1，缓解受限记录）** — read+write 已实现；消融证实非承重；真实收益待阶段 4 持久化 worker |
 | P-MC05 | 颗粒度 | 两个 entry 引用同一 module，module 计算计数为 1 | pending（MC3） |
 | P-MC06 | diff 范围 | 无 main thread BuildModel、IR、env.js、worker service、publish/materialize 变更 | **pass（MC1）** — 仅 view-compiler.js 改动（失败缓存 read/write） |
 | P-MC07 | 副作用等价 | mock worker：命中/未命中两路径的 scriptRes 内容一致（wxs 模块登记完整，无遗漏/重复） | pending（MC3） |

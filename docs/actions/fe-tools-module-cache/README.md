@@ -58,6 +58,7 @@ build-model M1 与本门 MC1 均改动 `view-compiler.js`（M1 改产物输出�
 | D-MC-2 | 失败缓存 | 缓存失败结果（parse/transform 异常），同输入不再重复报错 |
 | D-MC-3 | compileResCache 处置 | **保持单 build 生命周期（选项 B，MC1 拍板）**：内容寻址化在单 stage worker 下无行为收益（path 唯一决定 content，worker 每 stage new/terminate 不跨 build）——不升级，文档记录；失败缓存（R-MC3）已实现（read+write），非承重（消融验证） |
 | D-MC-4（新增） | 组合前缓存查询层 vs 拆组合算法 | **垫查询层**：ModuleGraph 的 fileOwners 反查组合输入集，只加“单文件 hash + 组合前查缓存，miss 走现场”；**组合算法不拆不改**（2026-09-10 纠偏：早期“触碰组合结构”判断不成立） |
+| D-MC-5（新增） | 各缓存 compileConfig 依赖判定（MC2 拍板） | **style `compileRes`：value 依赖 minify（transform 在 set 前）→ key 加 `minify:` 维度**（已实施）；**view `compileResCache`/`templateRenderCache`：value 独立于 compileConfig（esTarget/minify 在 compileML 最终 transform，不在缓存内）→ key 不加 compileFingerprint（模型冗余）；logic `processedModules`：非 value 缓存 → 不适用** |
 
 ## Readiness gaps
 
