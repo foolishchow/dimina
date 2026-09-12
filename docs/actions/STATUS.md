@@ -40,7 +40,7 @@
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
 | `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（draft）；近端 project-store + build-pipeline 已 **ready**（未授权实施）；TS-2 deferred；TS-4 成文。 | 2026-09-12 |
 | `fe-tools-project-store` | `ready` | [README](fe-tools-project-store/README.md) | ProjectStore **ready**：design/req/acc/val/plan 齐；PS1 可实施（须另授 `in_progress`）；与 BP 分 PR。 | 2026-09-12 |
-| `fe-tools-build-pipeline` | `ready` | [README](fe-tools-build-pipeline/README.md) | BuildPipeline **ready**：stages+plan 齐；BP1 可实施（须另授 `in_progress`）；与 PS 分 PR。 | 2026-09-12 |
+| `fe-tools-build-pipeline` | `in_progress` | [README](fe-tools-build-pipeline/README.md) | BuildPipeline **BP1 实施中**：runBuild 演进为 BuildPipeline（编译承载面）；阶段可指认 + 注入 ProjectStore + 行为 0 变化。 | 2026-09-12 |
 | `fe-tools-bundler-layout` | `complete` | [README](_archive/complete/fe-tools-bundler-layout/README.md) | 目录双轴归置：`common/`/`core/`→`compiler|model|watch|dev|shared`；行为 0 变化（481 测绿；nomap 94 / sm 185 diff=0）；已归档。 | 2026-09-12 |
 | `fe-tools-bundler-session` | `complete` | [README](_archive/complete/fe-tools-bundler-session/README.md) | 会话/编排门面（曾用名 bundler-core）：O1–O3 全交付（session 模块 + ./session 子路径 + CLI 全经 session）；479 测试全绿；消融×3；产物字节级等价（nomap+sourcemap）；已知限制（监听累积）随档保留。已归档。 | 2026-09-10 |
 | `fe-tools-build-model` | `complete` | [README](_archive/complete/fe-tools-build-model/README.md) | 内部统一第一步（主线程层）：M1 结果边界（产物回传+BuildModel+materialize）+ M2 指纹失效（(mtime,size)+scan/closure+verify 对拍 MUST）已交付；M3 cache 迁移 defer。A-BM01..07 全 pass + 6 项消融。已归档。 | 2026-09-10 |
