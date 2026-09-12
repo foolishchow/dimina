@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-10（M1 结果边界 + M2 指纹失效已交付；M3 cache 迁移 defer）
 - Status authority: [Action Status](../../../STATUS.md)
-- 关系：独立架构 Action（非 umbrella 子门）。是 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（complete，外部调用统一）之后的**内部统一第一步**；worker 演进与协议基准依据 [`fe-tools-worker-architecture`](../../../fe-tools-worker-architecture/README.md)（**并行实施**，本门只引用其协议）；**不依赖 module-cache**（FileModule 颗粒化为独立并行层，见 Non-goals）。为 TS-2（模板 IR）与后续调度 facade 化立地基层。背景讨论沉淀于 [source-audit](source-audit.md)。
+- 关系：独立架构 Action（非 umbrella 子门）。是 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（complete，外部调用统一）之后的**内部统一第一步**；worker 演进与协议基准依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md)（**并行实施**，本门只引用其协议）；**不依赖 module-cache**（FileModule 颗粒化为独立并行层，见 Non-goals）。为 TS-2（模板 IR）与后续调度 facade 化立地基层。背景讨论沉淀于 [source-audit](source-audit.md)。
 
 ## Background
 
@@ -65,7 +65,7 @@ module-cache MC1 与本门 M1 均改动 `view-compiler.js`（M1 改产物输出�
 
 1. D-BM-1..7 待逐项评审冻结（尤其 M2 行为变化的验收口径）；D-BM-6/7 已随讨论拍板成文，待随 ready 一并确认
 2. ~~worker 协议扩展的精确形状~~ — **探针已落盘**（[protocol.draft](protocol.draft.md)：流式回传/Entry 粒度天然分批/无需字节阈值与 LRU；D-P1..3 待随 ready 冻结）
-3. ~~inputHash 聚合算法~~ — **已沉淀为 technical-design §3.1 协议段**（四层维度/排序规则/schemaVersion/排除维度）；协议基准由 [`fe-tools-worker-architecture`](../../../fe-tools-worker-architecture/README.md) 提供
+3. ~~inputHash 聚合算法~~ — **已沉淀为 technical-design §3.1 协议段**（四层维度/排序规则/schemaVersion/排除维度）；协议基准由 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md) 提供
 4. M3 是否纳入本 Action 或另立（defer 决策）——**对拍已拆入 M2（MUST），M3 仅剩 cache 迁移，defer 不影响正确性兜底**
 
 ## Closure conditions
