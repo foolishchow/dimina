@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-sidecar`
 - Status: `draft`
-- Updated: 2026-09-10
+- Updated: 2026-09-12
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[compiler-improvement](../_archive/complete/compiler-improvement/README.md)（已归档 A 轨道）、[compiler-configuration](../_archive/complete/compiler-configuration/README.md)（已归档 CF 门）、分支 `feature/compiler-improve` 上的私有演进
 - 工作分支（现行）：`feature/fe-tools-sidecar`（由 `feature/fe-tools-bootstrap` 改名延续；bootstrap 已落地；伞文档同分支演进）
@@ -18,13 +18,13 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-10 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支已由 `feature/fe-tools-bootstrap` **改名为** `feature/fe-tools-sidecar`；`git diff origin/main...HEAD -- fe/packages` 为空。卫生门 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md) 已 `complete`（下线 Vite 自打包，镜像 `src`→`dist`）。编排轴独立 Action [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md) 已 `complete`（O1–O3 全交付：session 模块 + `./session` 子路径 + CLI 全经 session；479 测试全绿、消融×3、产物字节级等价；已知限制：dev 监听累积随档保留）。伞仍为 `draft`，模板主战场仍为 TS-2（IR / template）。
+**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md) 均已 **complete / 归档**。伞仍为 `draft`。**TS-2（模板 IR）书面 deferred**。近端结构债：[`fe-tools-bundler-layout`](../fe-tools-bundler-layout/README.md)（**ready**，待实施授权）——按 **build/dev × session/compiler** 收敛 `common/` 平铺；`runBuild` 阶段化另候。
 
 ## Goal
 
 1. 建立 `fe/tools` 旁路战略与 TS-0 冻结约定（终态 B、命名、依赖方向）；与独立搬迁 Action 对齐但不父子绑定 — **约定已冻；落地已由 bootstrap 完成**；
 2. **搬迁冒烟本身**由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 独立交付（本伞 TS-1 仅记意图/前置）— **前置已 complete**；
-3. 在 tools 内再改造：**dev 编排**、**模板管线**（parser → IR → wxml→vue）、按需深改私有 sdk — **未开始（TS-2+）**；
+3. 在 tools 内再改造：**dev 编排**（session 已交付）、**模板管线**（parser → IR → webview；**TS-2 deferred**）、按需深改私有 sdk — 模板 IR **未开始且后置**；
 4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面 — **本分支 packages 已干净；同步节奏成文属 TS-4**；
 5. 不向 didi 推送本伞交付物。
 
@@ -129,7 +129,7 @@ fe/tools/
 - ~~workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter~~ — **bootstrap 已交付**；
 - ~~`dimina-cli` 冷启动冒烟~~ — **bootstrap 已交付**；
 - `packages/*` 满足终态 B 可检查句 — **本分支已满足；TS-4 补同步节奏成文**；
-- 后续：template IR（TS-2）、编排拆分（TS-3 可选）、CI；
+- 后续：~~立即开 template IR（TS-2）~~ → **TS-2 deferred**；近端候选 **`runBuild` 阶段化**（待立 Action）/ TS-4 同步节奏 / CI；TS-3 可选；
 - ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义。
 
 ## Umbrella 机制
@@ -146,20 +146,35 @@ fe/tools/
 | --- | --- | --- |
 | TS-0 | 冻结项 D-TS0-1..6 + workspace | **决策已冻；落地完成** |
 | TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
-| TS-2 | tools 内模板管线切开（parse / IR / webview） | pending |
-| TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md) 交付（**complete**）；剩余 sdk 深改边界 pending / 可 deferred |
+| TS-2 | tools 内模板管线切开（parse / IR / webview） | **deferred**（2026-09-12；见下） |
+| TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 session 交付；剩余 sdk 深改 pending / 可 deferred |
 | TS-4 | 终态 B 门禁闭环与同步节奏成文 | packages 已干净；文档 pending |
+
+### TS-2 deferred（2026-09-12）
+
+**决定**：不将模板 IR / `fe-tools-template` 作为近端主线。
+
+**理由**：在仍仅 webview→vue、无第二 renderer 压力时，IR 改造步子大、短期工程收益低；且治不好 `runBuild` 过程式中枢。R-006/R-007 仍为伞级 MUST，**延后实施**而非取消目标。
+
+**再激活条件**（满足其一即可重开讨论并另立 Action）：
+
+1. 明确需要第二模板后端（如 lynx）或必须大改模板算法；  
+2. 最小 IR 形状已起草并经评审，且有明确实施授权；  
+3. 测量/产品证明模板巨石已成为阻塞演进的主矛盾。
+
+**近端替代重心**：[`fe-tools-bundler-layout`](../fe-tools-bundler-layout/README.md)（目录归置，**ready**；L1=`dev/`）；另候 `runBuild` 阶段化；可选 TS-4 成文。
 
 ## Readiness gaps
 
 1. ~~复制源 / 目标包名 / 分支 / 目录 / bin~~ — **已冻**（D-TS0-2..6）。  
-2. **最小 IR 形状**未起草（阻塞 TS-2 / `fe-tools-template` `ready`）。  
+2. ~~近端必须先做最小 IR~~ — **不再作为近端阻塞**：TS-2 **deferred**（目标保留，见上门表）；IR 草案仅在再激活时需要。  
 3. **终态 B 可检查句**需在伞 `ready` / TS-4 前写成 STATUS/验收可引用的最终句（D-TS0-1 草案已有；本分支实测已满足草案句）。  
 4. **CI**：tools 独立 job 与否。  
 5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md）。  
-6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。
+6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
+7. **近端结构债**：[`fe-tools-bundler-layout`](../fe-tools-bundler-layout/README.md)（目录双轴归置，**ready**）；`runBuild` 阶段化 Action 未 formalize。
 
-伞级在 B 判定句（gap 3）与 IR（gap 2）补齐前可维持 `draft`；**不授权伞级大实施**。TS-2 可另立独立 Action，不阻塞于伞 `ready`。
+伞级在 B 判定句（gap 3）补齐前可维持 `draft`；**不授权伞级大实施**。TS-2 已 deferred，不阻塞近端另立「阶段化」等独立 Action。
 
 ## Closure conditions
 

@@ -24,6 +24,8 @@ dev 编排（宿主页、静态服务、WS、代理、reload、预览资产）�
 
 在 `@dimina/bundler` 内，模板路径具备 **parse → 中立 IR → renderer 后端** 的逻辑边界（TS-2）；首版允许同包多入口，IR 边界须可单测。
 
+**时机（2026-09-12）**：对应伞门 **TS-2 书面 deferred**——本条仍为伞闭合 MUST，**近端不实施**；再激活条件见 [README](./README.md)「TS-2 deferred」。近端结构工作优先讨论 `runBuild` 阶段化（另 Action），勿与本条混为同一刀。
+
 ## R-007（MUST）renderer 与 platform 正交
 
 parser / IR **不得**绑定 `platform: native|web`；renderer 选择后端（今日仅 webview→vue）。

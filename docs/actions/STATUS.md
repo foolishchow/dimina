@@ -38,7 +38,8 @@
 | `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
-| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（战略，draft）；长线分支 `feature/fe-tools-sidecar`；TS-0/1 已落地；编排轴见 bundler-session；下步另有 TS-2 IR。 | 2026-09-10 |
+| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（draft）；TS-2 IR deferred；近端 [`fe-tools-bundler-layout`](fe-tools-bundler-layout/README.md) **ready**（目录双轴归置）。 | 2026-09-12 |
+| `fe-tools-bundler-layout` | `ready` | [README](fe-tools-bundler-layout/README.md) | 目录归置：build/dev × session/compiler；归属表 ACCEPTED；D-BL-1..8 冻；L1 试点=`dev/`；行为 0 变化。待实施授权。 | 2026-09-12 |
 | `fe-tools-bundler-session` | `complete` | [README](_archive/complete/fe-tools-bundler-session/README.md) | 会话/编排门面（曾用名 bundler-core）：O1–O3 全交付（session 模块 + ./session 子路径 + CLI 全经 session）；479 测试全绿；消融×3；产物字节级等价（nomap+sourcemap）；已知限制（监听累积）随档保留。已归档。 | 2026-09-10 |
 | `fe-tools-build-model` | `complete` | [README](_archive/complete/fe-tools-build-model/README.md) | 内部统一第一步（主线程层）：M1 结果边界（产物回传+BuildModel+materialize）+ M2 指纹失效（(mtime,size)+scan/closure+verify 对拍 MUST）已交付；M3 cache 迁移 defer。A-BM01..07 全 pass + 6 项消融。已归档。 | 2026-09-10 |
 | `fe-tools-module-cache` | `complete` | [README](_archive/complete/fe-tools-module-cache/README.md) | worker 内层：**缩 scope 闭合**（见 README「实际交付摘要」）— MC1 失败缓存脚手架 + D-MC-3 选项 B / MC2 style minify key + D-MC-5 / MC3 测例；**未**做 ModuleCache 分层与内容寻址。消融 ×3。已归档。 | 2026-09-12 |
