@@ -554,6 +554,8 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 	const allScriptModules = []
 
 	// 首先编译当前模块（MC1/R-MC3：失败也缓存，同 stage 内同模块不再重复失败编译）
+	// F2：write 无条件（组件+页面都记）；read 端仅 canUseCache=true（页面）触发——组件场景 read 不到，
+	// 无行为影响（单 stage 首错中止 + activePaths 防递归），记录覆盖面不对称。
 	let currentInstruction
 	try {
 		currentInstruction = compileModule(module, isComponent, scriptRes, {
@@ -623,6 +625,7 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 		}
 
 		// 重新编译页面，包含所有收集到的 wxs 模块
+		// F3：此二次编译失败不进失败缓存（不在 MC1 try 内）——无行为影响（页面同 stage 不二次编译）
 		compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapRes)
 	}
 
@@ -658,10 +661,15 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 	if (canUseCache && !scriptRes.has(module.path) && compileResCache.has(module.path)) {
 		const cacheData = compileResCache.get(module.path)
 		// MC1/R-MC3：失败缓存——同模块上次编译失败，直接重抛等价错误（避免同 stage 内重复失败编译）
+		// F1：重建完整字段（含 file/line/column/stage，供上层 stage-channel 错误重建消费）
 		if (cacheData && cacheData.failed) {
 			const err = new Error(cacheData.errorShape?.message || 'module compilation failed (cached)')
 			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name
 			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack
+			if (cacheData.errorShape?.file) err.file = cacheData.errorShape.file
+			if (cacheData.errorShape?.line != null) err.line = cacheData.errorShape.line
+			if (cacheData.errorShape?.column != null) err.column = cacheData.errorShape.column
+			if (cacheData.errorShape?.stage) err.stage = cacheData.errorShape.stage
 			throw err
 		}
 		// 如果缓存数据包含完整的编译信息，则使用缓存
