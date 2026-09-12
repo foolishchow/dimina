@@ -1,7 +1,7 @@
 import path from 'node:path'
 import process from 'node:process'
 import fs from 'node:fs'
-import { getAppId, getTargetPath, isTemporaryTargetPath } from '../env.js'
+import { getAppId, getTargetPath, isTemporaryTargetPath } from './env.js'
 
 function copyDir(src, dest) {
 	fs.mkdirSync(dest, { recursive: true })

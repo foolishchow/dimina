@@ -1,6 +1,6 @@
 import chokidar from 'chokidar'
 import build from '../index.js'
-import { DependencyGraph } from './dependency-graph.js'
+import { DependencyGraph } from '../model/dependency-graph.js'
 import {
 	createIgnoredPathMatcher,
 	createWatchBuildPlan,

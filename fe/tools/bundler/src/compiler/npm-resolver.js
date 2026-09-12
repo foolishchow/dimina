@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getRelativePosixPath, resolveMiniProgramPath, toMiniProgramModuleId } from './path-utils.js'
+import { getRelativePosixPath, resolveMiniProgramPath, toMiniProgramModuleId } from '../shared/path-utils.js'
 
 /**
  * npm 组件解析器

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, '../../../..')
 const docPath = path.join(repoRoot, 'docs/API-Reference.md')
-const outputPath = path.resolve(scriptDir, '../src/common/compatibility-reference.js')
+const outputPath = path.resolve(scriptDir, '../src/compiler/compatibility-reference.js')
 const checkOnly = process.argv.includes('--check')
 const sourceLabel = path.relative(repoRoot, docPath)
 const outputLabel = path.relative(repoRoot, outputPath)

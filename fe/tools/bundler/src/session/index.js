@@ -25,8 +25,8 @@
  */
 
 import build from '../index.js'
-import { createBuildWatcher } from '../common/watch-runner.js'
-import { createLifecycle } from '../common/lifecycle.js'
+import { createBuildWatcher } from '../watch/watch-runner.js'
+import { createLifecycle } from '../shared/lifecycle.js'
 import { createWebPreviewAdapter } from './preview-adapter.js'
 
 /** Compile profile keys (config C1) — never treat as a free-form bag */

@@ -18,7 +18,7 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md) 均已 **complete / 归档**。伞仍为 `draft`。**TS-2（模板 IR）书面 deferred**。近端结构债：[`fe-tools-bundler-layout`](../fe-tools-bundler-layout/README.md)（**ready**，待实施授权）——按 **build/dev × session/compiler** 收敛 `common/` 平铺；`runBuild` 阶段化另候。
+**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 均已 **complete / 归档**。伞仍为 `draft`。**TS-2（模板 IR）书面 deferred**。近端候补：`runBuild` 阶段化（未 formalize）。
 
 ## Goal
 
@@ -162,7 +162,7 @@ fe/tools/
 2. 最小 IR 形状已起草并经评审，且有明确实施授权；  
 3. 测量/产品证明模板巨石已成为阻塞演进的主矛盾。
 
-**近端替代重心**：[`fe-tools-bundler-layout`](../fe-tools-bundler-layout/README.md)（目录归置，**ready**；L1=`dev/`）；另候 `runBuild` 阶段化；可选 TS-4 成文。
+**近端替代重心**：另候 `runBuild` 阶段化；可选 TS-4 成文。（目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 已 complete。）
 
 ## Readiness gaps
 
@@ -172,7 +172,7 @@ fe/tools/
 4. **CI**：tools 独立 job 与否。  
 5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md）。  
 6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
-7. **近端结构债**：[`fe-tools-bundler-layout`](../fe-tools-bundler-layout/README.md)（目录双轴归置，**ready**）；`runBuild` 阶段化 Action 未 formalize。
+7. **近端结构债**：目录归置已完成（[`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md)）；`runBuild` 阶段化 Action 未 formalize。
 
 伞级在 B 判定句（gap 3）补齐前可维持 `draft`；**不授权伞级大实施**。TS-2 已 deferred，不阻塞近端另立「阶段化」等独立 Action。
 

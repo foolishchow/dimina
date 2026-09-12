@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCompileProgress } from '../src/common/compile-progress.js'
+import { formatCompileProgress } from '../src/shared/compile-progress.js'
 
 describe('compile progress', () => {
 	it('renders a continuous unicode bar with stable progress metadata', () => {

@@ -5,10 +5,10 @@ import process from 'node:process'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
-import { resolveMiniProgramPath, toMiniProgramModuleId } from './common/path-utils.js'
-import { isObjectEmpty, resolveAssetSourcePath, uuid } from './common/utils.js'
-import { NpmResolver } from './common/npm-resolver.js'
-import { DependencyGraph } from './common/dependency-graph.js'
+import { resolveMiniProgramPath, toMiniProgramModuleId } from '../shared/path-utils.js'
+import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../shared/utils.js'
+import { NpmResolver } from './npm-resolver.js'
+import { DependencyGraph } from '../model/dependency-graph.js'
 
 const compilerContextStorage = new AsyncLocalStorage()
 let defaultCompilerContext

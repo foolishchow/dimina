@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { storeInfo } from '../src/env.js'
-import { compileJS } from '../src/core/logic-compiler.js'
+import { storeInfo } from '../src/compiler/env.js'
+import { compileJS } from '../src/compiler/logic-compiler.js'
 
 describe('logic compiler asset paths', () => {
 	let tempDir

@@ -9,7 +9,7 @@ import {
 	getViewScriptTags,
 	resetStoreInfo,
 	storeInfo,
-} from '../src/env.js'
+} from '../src/compiler/env.js'
 
 /**
  * 「可配置小程序自定义文件类型（custom file types）」特性的契约测试。
@@ -330,10 +330,10 @@ describe('custom file types — 行为层（集成）', () => {
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/env.js')
+		const { storeInfo: store, getPages } = await import('../src/compiler/env.js')
 		store(tempDir, { fileTypes: { template: ['qdml'] } })
 
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		const outputPath = path.join(outputDir, 'main/pages_tpl_index.js')
@@ -358,10 +358,10 @@ describe('custom file types — 行为层（集成）', () => {
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/env.js')
+		const { storeInfo: store, getPages } = await import('../src/compiler/env.js')
 		store(tempDir) // 不注入自定义文件类型
 
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		const outputPath = path.join(outputDir, 'main/pages_tplneg_index.js')
@@ -386,10 +386,10 @@ describe('custom file types — 行为层（集成）', () => {
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/env.js')
+		const { storeInfo: store, getPages } = await import('../src/compiler/env.js')
 		store(tempDir, { fileTypes: { template: ['qdml'], style: ['qdss'] } })
 
-		const { compileSS } = await import('../src/core/style-compiler.js')
+		const { compileSS } = await import('../src/compiler/style-compiler.js')
 		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
 
 		const outputPath = path.join(outputDir, 'main/pages_sty_index.css')
@@ -429,10 +429,10 @@ module.exports = { srcFn: srcFn }
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/env.js')
+		const { storeInfo: store, getPages } = await import('../src/compiler/env.js')
 		store(tempDir, { fileTypes: { template: ['qdml'], viewScript: ['qds'] } })
 
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		const outputPath = path.join(outputDir, 'main/pages_vs_index.js')
@@ -469,10 +469,10 @@ module.exports = { srcFn: srcFn }
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/env.js')
+		const { storeInfo: store, getPages } = await import('../src/compiler/env.js')
 		store(tempDir, { fileTypes: { template: ['qdml'] } })
 
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_dir_index.js'), 'utf-8')

@@ -7,7 +7,7 @@ import {
 	isAllowedBrowserOrigin,
 	isPublicAddress,
 	sanitizeRequestHeaders,
-} from '../src/common/dev-proxy.js'
+} from '../src/dev/dev-proxy.js'
 
 // dmcc-dev-server 契约 v1 §7：代理（security 纯函数迁移 + /proxy 端点）。
 

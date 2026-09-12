@@ -4,7 +4,7 @@ import {
 	getRelativePosixPath,
 	resolveMiniProgramPath,
 	toMiniProgramModuleId,
-} from '../src/common/path-utils.js'
+} from '../src/shared/path-utils.js'
 
 describe('path utils', () => {
 	it('应该根据输入路径语义选择 Windows path API', () => {

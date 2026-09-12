@@ -2,9 +2,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { DependencyGraph } from '../src/common/dependency-graph.js'
+import { DependencyGraph } from '../src/model/dependency-graph.js'
 import build from '../src/index.js'
-import { getDependencyGraph, storeInfo } from '../src/env.js'
+import { getDependencyGraph, storeInfo } from '../src/compiler/env.js'
 
 describe('compiler dependency graph', () => {
 	let tempDir

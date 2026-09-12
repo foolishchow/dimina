@@ -6,7 +6,7 @@ import { createBundler } from '../session/index.js'
 import { resolveBundlerConfig } from '../session/resolve.js'
 
 // M-F3 兼容：resolveSdkRoot 已迁 common/sdk-root.js；此处 re-export 保持向后兼容
-export { resolveSdkRoot } from '../common/sdk-root.js'
+export { resolveSdkRoot } from '../dev/sdk-root.js'
 
 const DEFAULT_PORT = 8080
 

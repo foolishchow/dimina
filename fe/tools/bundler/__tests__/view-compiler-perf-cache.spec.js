@@ -90,9 +90,9 @@ describe('templateRenderCache 命中路径 - 两页共享具名模板 + WXS 的�
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { getDependencyGraph, getPages, storeInfo } = await import('../src/env.js')
+		const { getDependencyGraph, getPages, storeInfo } = await import('../src/compiler/env.js')
 		storeInfo(tempDir)
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		const outputOne = fs.readFileSync(path.join(outputDir, 'main/pages_one_index.js'), 'utf8')

@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { WebSocket } from 'ws'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createDevServer } from '../src/common/dev-server.js'
+import { createDevServer } from '../src/dev/dev-server.js'
 
 // dmcc-dev-server 契约 v1 §2/§6：静态服务/快照语义/pendingReload/ws 协议。
 

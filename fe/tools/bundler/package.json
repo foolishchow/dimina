@@ -12,9 +12,9 @@
 		".": "./dist/index.js",
 		"./watch": "./dist/watch.js",
 		"./session": "./dist/session/index.js",
-		"./view-compiler": "./dist/core/view-compiler.js",
-		"./logic-compiler": "./dist/core/logic-compiler.js",
-		"./style-compiler": "./dist/core/style-compiler.js"
+		"./view-compiler": "./dist/compiler/view-compiler.js",
+		"./logic-compiler": "./dist/compiler/logic-compiler.js",
+		"./style-compiler": "./dist/compiler/style-compiler.js"
 	},
 	"bin": {
 		"dimina-cli": "dist/bin/index.js"

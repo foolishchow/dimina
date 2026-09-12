@@ -16,9 +16,9 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Worker } from 'node:worker_threads'
-import { formatCompileProgress } from './compile-progress.js'
-import { LIFECYCLE_EVENTS } from './lifecycle.js'
-import { workerPool } from './worker-pool.js'
+import { formatCompileProgress } from '../shared/compile-progress.js'
+import { LIFECYCLE_EVENTS } from '../shared/lifecycle.js'
+import { workerPool } from '../watch/worker-pool.js'
 
 /**
  * 运行单个编译阶段（view / logic / style）的 worker 任务。
@@ -35,7 +35,7 @@ import { workerPool } from './worker-pool.js'
 export function runCompileStage({ script, ctx, task, options = {}, lifecycle = null, onOutput }) {
 	return workerPool.runWorker(() => new Promise((resolve, reject) => {
 		const worker = new Worker(
-			path.join(path.dirname(fileURLToPath(import.meta.url)), `../core/${script}-compiler.js`),
+			path.join(path.dirname(fileURLToPath(import.meta.url)), `./${script}-compiler.js`),
 			workerPool.getWorkerOptions(),
 		)
 		const pages = options.pages || ctx.pages

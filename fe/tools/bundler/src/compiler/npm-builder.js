@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getStyleExts, getTemplateExts, getViewScriptExts } from '../env.js'
+import { getStyleExts, getTemplateExts, getViewScriptExts } from './env.js'
 
 /**
  * npm 构建工具

@@ -4,8 +4,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { COMPILE_CACHE_VERSION } from '../src/common/compile-cache.js'
-import { storeInfo } from '../src/env.js'
+import { COMPILE_CACHE_VERSION } from '../src/model/compile-cache.js'
+import { storeInfo } from '../src/compiler/env.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const compileCliPath = path.resolve(testDir, '../src/bin/compile.js')

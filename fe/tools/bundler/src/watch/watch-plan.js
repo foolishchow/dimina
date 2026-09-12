@@ -9,8 +9,8 @@
  */
 
 import path from 'node:path'
-import { computeAffectedEntries, computeStagesForFiles } from './invalidation.js'
-import { scanFingerprints } from './fingerprint.js'
+import { computeAffectedEntries, computeStagesForFiles } from '../model/invalidation.js'
+import { scanFingerprints } from '../model/fingerprint.js'
 
 const WATCH_FILE_EVENTS = new Set(['add', 'change', 'unlink'])
 

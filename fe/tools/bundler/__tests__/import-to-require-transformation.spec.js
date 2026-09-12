@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { storeInfo } from '../src/env.js'
-import { compileJS } from '../src/core/logic-compiler.js'
+import { storeInfo } from '../src/compiler/env.js'
+import { compileJS } from '../src/compiler/logic-compiler.js'
 
 describe('Import to Require Transformation', () => {
 	let tempDir

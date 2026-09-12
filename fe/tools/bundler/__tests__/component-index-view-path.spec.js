@@ -56,10 +56,10 @@ describe('目录组件视图编译', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/env.js')
+		const { storeInfo, getPages } = await import('../src/compiler/env.js')
 		storeInfo(tempDir)
 
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		const pagesInfo = getPages()
 		await compileML(pagesInfo.mainPages, null, { completedTasks: 0 })
 

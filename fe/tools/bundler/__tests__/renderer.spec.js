@@ -10,7 +10,7 @@ import {
 	resolveProjectRenderers,
 	resolveRenderer,
 	SUPPORTED_RENDERERS,
-} from '../src/common/renderers.js'
+} from '../src/compiler/renderers.js'
 
 function makeTempDir() {
 	return fs.mkdtempSync(path.join(os.tmpdir(), 'renderer-spec-'))

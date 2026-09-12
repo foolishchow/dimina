@@ -81,9 +81,9 @@ describe('compiler CPU hot paths', () => {
 		writeFile('components/card.json', JSON.stringify({ component: true }))
 		writeFile('components/card.wxml', '<view><slot name="content" /></view>')
 
-		const { getPages, storeInfo } = await import('../src/env.js')
+		const { getPages, storeInfo } = await import('../src/compiler/env.js')
 		storeInfo(tempDir)
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		expect(hotpathSpies.cheerioLoad).toHaveBeenCalledTimes(3)
@@ -99,9 +99,9 @@ describe('compiler CPU hot paths', () => {
 		writeFile('pages/index.json', '{}')
 		writeFile('pages/index.wxss', 'view { display: flex; user-select: none; }')
 
-		const { getPages, storeInfo } = await import('../src/env.js')
+		const { getPages, storeInfo } = await import('../src/compiler/env.js')
 		storeInfo(tempDir)
-		const { compileSS } = await import('../src/core/style-compiler.js')
+		const { compileSS } = await import('../src/compiler/style-compiler.js')
 		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
 
 		const postprocessPasses = hotpathSpies.postcssPlugins.mock.calls

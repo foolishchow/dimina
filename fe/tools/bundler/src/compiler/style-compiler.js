@@ -7,8 +7,8 @@ import autoprefixer from 'autoprefixer'
 import { transform } from 'esbuild'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
-import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../common/utils.js'
-import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../env.js'
+import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../shared/utils.js'
+import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from './env.js'
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from './sourcemap.js'
 
 const compileRes = new Map()

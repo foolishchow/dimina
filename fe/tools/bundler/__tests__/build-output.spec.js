@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const distViewCompiler = path.join(packageRoot, 'dist/core/view-compiler.js')
-const srcViewCompiler = path.join(packageRoot, 'src/core/view-compiler.js')
+const distViewCompiler = path.join(packageRoot, 'dist/compiler/view-compiler.js')
+const srcViewCompiler = path.join(packageRoot, 'src/compiler/view-compiler.js')
 
 /**
  * D-UV-6: assert mirrored ESM tree (no Vite transform). Prefer dist after

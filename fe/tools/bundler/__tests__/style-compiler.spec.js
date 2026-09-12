@@ -2,10 +2,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, resolveStyleImportPath } from '../src/core/style-compiler'
-import { getAppStyleScopeId, getComponent, getPages, storeInfo } from '../src/env.js'
-import { compileSS } from '../src/core/style-compiler.js'
-import { compileML } from '../src/core/view-compiler.js'
+import { boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, resolveStyleImportPath } from '../src/compiler/style-compiler'
+import { getAppStyleScopeId, getComponent, getPages, storeInfo } from '../src/compiler/env.js'
+import { compileSS } from '../src/compiler/style-compiler.js'
+import { compileML } from '../src/compiler/view-compiler.js'
 
 describe('ensureImportSemicolons', () => {
 	it('should add semicolons to @import statements that do not have them', () => {

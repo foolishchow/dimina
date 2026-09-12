@@ -15,7 +15,7 @@ TS-1 意图：整包复制冒烟
         │
         ├─（并行，已归档）→ fe-tools-bundler-session / build-model / module-cache / worker-architecture
         │
-        ├─（近端）→ fe-tools-bundler-layout（**ready**：build/dev × session/compiler；L1=`dev/`）
+        ├─（已归档）→ fe-tools-bundler-layout（build/dev × session/compiler；L0–L3 complete）
         ├─（近端候选，待 formalize）→ runBuild 阶段化（行为 0 变化；非 TS-2）
         │
         ▼

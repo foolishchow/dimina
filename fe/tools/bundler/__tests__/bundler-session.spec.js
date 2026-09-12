@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createBundler } from '../src/session/index.js'
 import { resolveBundlerConfig } from '../src/session/resolve.js'
-import { createLifecycle } from '../src/common/lifecycle.js'
+import { createLifecycle } from '../src/shared/lifecycle.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 

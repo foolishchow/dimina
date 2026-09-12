@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import build from '../src/index.js'
-import { createLifecycle } from '../src/common/lifecycle.js'
+import { createLifecycle } from '../src/shared/lifecycle.js'
 
 // 观察者集成规格（compiler-hook-layer 契约 v1）：
 // 全量 / stages 过滤 / 小游戏 / 失败路径四场景 + 并发不串行 + 错误隔离消融。

@@ -17,8 +17,8 @@ vi.mock('esbuild', async (importOriginal) => {
 	}
 })
 
-const { compileJS, _setActiveCompileConfigForTest } = await import('../src/core/logic-compiler.js')
-const { storeInfo } = await import('../src/env.js')
+const { compileJS, _setActiveCompileConfigForTest } = await import('../src/compiler/logic-compiler.js')
+const { storeInfo } = await import('../src/compiler/env.js')
 
 describe('logic esTarget.logic wiring (CF-3)', () => {
 	let tempDir
@@ -84,7 +84,7 @@ describe('logic esTarget.logic wiring (CF-3)', () => {
 
 	it('source contract: no hardcoded CJS target es2020', () => {
 		const src = fs.readFileSync(
-			path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/core/logic-compiler.js'),
+			path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/compiler/logic-compiler.js'),
 			'utf8',
 		)
 		expect(src).toMatch(/target:\s*activeCompileConfig\.esTarget\.logic/)

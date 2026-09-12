@@ -6,8 +6,8 @@ import {
 	getPageConfigInfo,
 	getTargetPath,
 	getWorkPath,
-} from '../env.js'
-import { collectAssets } from '../common/utils.js'
+} from './env.js'
+import { collectAssets } from '../shared/utils.js'
 
 /**
  * 处理 tabBar.list 中的 iconPath / selectedIconPath。

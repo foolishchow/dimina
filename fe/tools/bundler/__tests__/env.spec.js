@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getProjectConfig, resetStoreInfo, storeProjectConfig } from '../src/env.js'
+import { getProjectConfig, resetStoreInfo, storeProjectConfig } from '../src/compiler/env.js'
 
 // Mock fs module
 vi.mock('node:fs', async (importOriginal) => {

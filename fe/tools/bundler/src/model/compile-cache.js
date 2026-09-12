@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { getCompileStagesForFiles } from './compile-stages.js'
+import { getCompileStagesForFiles } from '../compiler/compile-stages.js'
 import { DependencyGraph } from './dependency-graph.js'
 
 const COMPILE_CACHE_VERSION = 2

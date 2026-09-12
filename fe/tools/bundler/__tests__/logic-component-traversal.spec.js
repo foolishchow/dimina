@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getPages, storeInfo } from '../src/env.js'
-import { compileJS } from '../src/core/logic-compiler.js'
+import { getPages, storeInfo } from '../src/compiler/env.js'
+import { compileJS } from '../src/compiler/logic-compiler.js'
 
 describe('logic compiler component dependency traversal', () => {
 	let tempDir

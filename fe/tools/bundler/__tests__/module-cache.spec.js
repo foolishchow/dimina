@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getPages, storeInfo } from '../src/env.js'
+import { getPages, storeInfo } from '../src/compiler/env.js'
 
 const hotpathSpies = {}
 
@@ -57,7 +57,7 @@ describe('module cache (MC3)', () => {
 
 	it('style compileRes: same content + same config hits cache (process once)', async () => {
 		setupMiniApp()
-		const { compileSS } = await import('../src/core/style-compiler.js')
+		const { compileSS } = await import('../src/compiler/style-compiler.js')
 
 		// 第一次：postcss.process 应执行（缓存 miss）
 		await compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false })
@@ -71,7 +71,7 @@ describe('module cache (MC3)', () => {
 
 	it('style compileRes: minify config change misses cache (MC2 key dimension)', async () => {
 		setupMiniApp()
-		const { compileSS } = await import('../src/core/style-compiler.js')
+		const { compileSS } = await import('../src/compiler/style-compiler.js')
 
 		await compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false })
 		const afterFirst = hotpathSpies.postcssProcess

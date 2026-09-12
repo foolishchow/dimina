@@ -5,10 +5,10 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
-import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from '../common/compatibility.js'
-import { effectiveJsMinify } from '../common/compile-config.js'
-import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../common/utils.js'
-import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../env.js'
+import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from './compatibility.js'
+import { effectiveJsMinify } from '../shared/compile-config.js'
+import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../shared/utils.js'
+import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from './env.js'
 import { mergeSourcemap, remapSourcemap } from './sourcemap.js'
 
 // 用于缓存已处理的模块
@@ -457,7 +457,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 				}
 			}
 
-			// 处理 re-export 语句，如 export * from './foo'
+			// 处理 re-export 语句，如 export * from '../core/foo.js'
 			// 这类语句不会出现在运行时 require 中，必须在这里提前收集依赖。
 			if (
 				(node.type === 'ExportAllDeclaration' || node.type === 'ExportNamedDeclaration')

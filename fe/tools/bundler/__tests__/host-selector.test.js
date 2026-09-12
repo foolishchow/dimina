@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { processHostSelector } from '../src/core/style-compiler.js'
+import { processHostSelector } from '../src/compiler/style-compiler.js'
 
 describe('Host Selector Processing', () => {
 	const moduleId = 'test-component-123'

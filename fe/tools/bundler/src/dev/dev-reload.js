@@ -5,7 +5,7 @@
  *
  * 实参来源（评审 F-001 定案）：
  * - plan = createWatchBuildPlan 返回值（{ skip, incremental, options }）；
- *   本函数不触碰 src/common/watch-plan.js —— stages 取 plan.options.stages、
+ *   本函数不触碰 src/watch/watch-plan.js —— stages 取 plan.options.stages、
  *   受影响页面取 plan.options.affectedEntries，对外载荷字段名统一为 affectedPages。
  * - event / filePath / count = createWatchRebuildScheduler 的 change 对象字段。
  * - appId / buildId 由 dev 侧持有（初始 build 结果的 appId；每次重建自增的 buildId）。

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as cheerio from 'cheerio'
-import { processIncludeConditionalAttrs } from '../src/core/view-compiler.js'
+import { processIncludeConditionalAttrs } from '../src/compiler/view-compiler.js'
 
 describe('Include 节点条件属性处理', () => {
 	/**

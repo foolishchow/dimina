@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { SourceMapConsumer, SourceMapGenerator } from 'source-map-js'
-import { mergeSourcemap } from '../src/core/sourcemap.js'
+import { mergeSourcemap } from '../src/compiler/sourcemap.js'
 
 /**
  * 创建一个简单的 sourcemap JSON 字符串，映射每行代码到源文件对应行

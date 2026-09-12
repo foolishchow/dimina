@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RELOAD_LEVELS, synthesizeReloadLevel } from '../src/common/dev-reload.js'
+import { RELOAD_LEVELS, synthesizeReloadLevel } from '../src/dev/dev-reload.js'
 
 // dmcc-dev-server 契约 v1 §4：reloadLevel 合成矩阵（technical-design §4 + F-001 修复）。
 

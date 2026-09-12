@@ -116,11 +116,11 @@ describe('全局组件 wxs 问题修复', () => {
 		process.env.TARGET_PATH = outputDir
 		
 		// 清理模块缓存
-		const envModulePath = path.resolve(__dirname, '../src/env.js')
+		const envModulePath = path.resolve(__dirname, '../src/compiler/env.js')
 		delete require.cache[envModulePath]
 		
 		// 重新导入并初始化环境
-		const { storeInfo, getPages } = await import('../src/env.js')
+		const { storeInfo, getPages } = await import('../src/compiler/env.js')
 		
 		// 执行配置收集
 		storeInfo(tempDir)
@@ -134,7 +134,7 @@ describe('全局组件 wxs 问题修复', () => {
 		expect(pagesInfo.mainPages[1].usingComponents).toHaveProperty('global-component')
 
 		// 模拟编译过程
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		
 		// 编译页面
 		const progress = { completedTasks: 0 }

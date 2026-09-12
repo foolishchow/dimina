@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generateVModelTemplate, generateSlotDirective, parseBraceExp, parseClassRules, parseKeyExpression, parseTemplateDataExp, processWxsContent, splitWithBraces } from '../src/core/view-compiler'
+import { generateVModelTemplate, generateSlotDirective, parseBraceExp, parseClassRules, parseKeyExpression, parseTemplateDataExp, processWxsContent, splitWithBraces } from '../src/compiler/view-compiler'
 
 describe('parseKeyExpression - 解析 key 表达式', () => {
 	it('默认索引名 index - 应该直接返回 index', () => {

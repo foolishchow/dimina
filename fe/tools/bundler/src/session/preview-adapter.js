@@ -14,9 +14,9 @@
  * Action: fe-tools-bundler-session (docs/actions/fe-tools-bundler-session/)
  */
 
-import { createDevServer } from '../common/dev-server.js'
-import { synthesizeReloadLevel } from '../common/dev-reload.js'
-import { resolveSdkRoot } from '../common/sdk-root.js'
+import { createDevServer } from '../dev/dev-server.js'
+import { synthesizeReloadLevel } from '../dev/dev-reload.js'
+import { resolveSdkRoot } from '../dev/sdk-root.js'
 
 /**
  * @returns {object} PreviewAdapter

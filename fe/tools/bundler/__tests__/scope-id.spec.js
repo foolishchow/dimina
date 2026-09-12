@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { uuid } from '../src/common/utils.js'
+import { uuid } from '../src/shared/utils.js'
 
 // The per-module CSS scope id (`data-v-<id>`) is derived from the module path,
 // not a random uuid. Determinism is load-bearing: the view stage, the style

@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import build from '../src/index.js'
-import { InvalidRendererError } from '../src/common/renderers.js'
+import { InvalidRendererError } from '../src/compiler/renderers.js'
 
 describe('build renderer pre-validation (A4 P-007 ablation target)', () => {
 	function makeProject(renderer) {

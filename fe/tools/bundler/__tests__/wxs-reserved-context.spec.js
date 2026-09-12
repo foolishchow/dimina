@@ -51,10 +51,10 @@ describe('wxs 保留上下文字段', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/env.js')
+		const { storeInfo, getPages } = await import('../src/compiler/env.js')
 		storeInfo(tempDir)
 
-		const { compileML } = await import('../src/core/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view-compiler.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.js'), 'utf-8')

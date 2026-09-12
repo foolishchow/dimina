@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { collectAssets, resetAssetCache, transformRpx } from '../src/common/utils.js'
+import { collectAssets, resetAssetCache, transformRpx } from '../src/shared/utils.js'
 
 describe('transformRpx', () => {
 	it('does not reuse rem as the rpx transport unit', () => {

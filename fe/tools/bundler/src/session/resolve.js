@@ -27,7 +27,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { resolveCompileConfig } from '../common/compile-config.js'
+import { resolveCompileConfig } from '../shared/compile-config.js'
 
 const COMPILE_KEYS = Object.freeze(['mode', 'platform', 'minify', 'sourcemap', 'esTarget'])
 /** Resolved server surface — host/port only (D-R3) */

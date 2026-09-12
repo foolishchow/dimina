@@ -53,10 +53,10 @@ describe('目录组件样式路径', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/env.js')
+		const { storeInfo, getPages } = await import('../src/compiler/env.js')
 		storeInfo(tempDir)
 
-		const { compileSS } = await import('../src/core/style-compiler.js')
+		const { compileSS } = await import('../src/compiler/style-compiler.js')
 		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.css'), 'utf-8')
