@@ -16,12 +16,13 @@ Result 列格式：`命令 → 关键输出摘要（日期 + commit hash）`；�
 | P-MC06 | diff 范围 | 无 main thread BuildModel、IR、env.js、worker service、publish/materialize 变更 | **pass（MC1+M2）** — 仅 view-compiler.js（失败缓存）+ style-compiler.js（compileRes key minify） |
 | P-MC07 | 副作用等价 | mock worker：命中/未命中两路径的 scriptRes 内容一致（wxs 模块登记完整，无遗漏/重复） | **pass（MC3，字节等价泛化）** — 双模式字节等价（94/185 diff=0）保证命中/未命中产物一致；479→481 回归全绿 |
 
-## 消融记录（2026-09-10，MC1；Experience-Review §6 四要素）
+## 消融记录（2026-09-10，MC1+MC2；Experience-Review §6 四要素）
 
 | # | 目标用例 | 消融内容 | 预期与实际失败点 | 恢复后复验 |
 | --- | --- | --- | --- | --- |
 | MC1-read | build-error-contract（错误照常传播） | 去掉 compileModule 缓存读取处的 `cacheData.failed` 重抛检查块 | 预期：错误仍照常传播（read 端非承重）；实际：build-error-contract 2/2 通过 | cp 恢复 → read 端还原 → 语法 OK + 回归绿 ✓ |
 | MC1-write | build-error-contract + style-error-contract（错误照常传播） | 去掉 buildCompileView 的 try/catch 失败缓存写入（恢复直接调用 compileModule） | 预期：错误仍照常传播（write 端非承重）；实际：error-contract 7/7 通过 | cp 恢复 → write 端还原 → 语法 OK ✓ |
+| MC2-minify | module-cache.spec「minify config change misses cache」 | 去掉 style compileRes cacheKey 的 `::minify:${...}` 段（node 精确替换） | 预期：minify 变化时错误命中旧缓存 → process 不重跑 → 测例失败；实际：`1 failed`（正是 minify-dim 测例） | cp 恢复 → 2/2 通过 ✓ |
 
 ## 未验证范围（诚实记录，不可替代）
 

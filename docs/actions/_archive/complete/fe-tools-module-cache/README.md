@@ -1,10 +1,10 @@
 # FE Tools Module Cache
 
 - Action: `fe-tools-module-cache`
-- Status: `in_progress`
-- Updated: 2026-09-10（MC1..MC3 已交付）
-- Status authority: [Action Status](../STATUS.md)
-- 关系：独立架构 Action。与 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md) **并行实施**（各自独立、互不前置）；worker 演进与 FileModule 归属基准依据 [`fe-tools-worker-architecture`](../fe-tools-worker-architecture/README.md)（其协议草案定义 FileModule 归属）。**形态①已拍板**（不拆 view 组合），②（拆结构）属 TS-2 边界。现状证据见 [source-audit](source-audit.md)。
+- Status: `complete`
+- Updated: 2026-09-10（MC1..MC3 全部交付，A-MC01..07 全 pass，消融 ×3）
+- Status authority: [Action Status](../../../STATUS.md)
+- 关系：独立架构 Action。与 [`fe-tools-build-model`](../fe-tools-build-model/README.md) **并行实施**（各自独立、互不前置）；worker 演进与 FileModule 归属基准依据 [`fe-tools-worker-architecture`](../../../fe-tools-worker-architecture/README.md)（其协议草案定义 FileModule 归属）。**形态①已拍板**（不拆 view 组合），②（拆结构）属 TS-2 边界。现状证据见 [source-audit](source-audit.md)。
 
 ## Background
 

@@ -28,7 +28,7 @@ session 门统一了外部调用（build/watch/dev 三入口共享编译核心�
 - **transform 内部**：view/logic/style 编译逻辑一行不动（源变即重跑现有直通编译）
 - **env.js 隐式上下文**（ALS/Proxy）与 worker 编译协议的上下文段
 - **调度 facade 化**（处理器接口）、TS-2、logic 的 module 级增量（保持 app 级）、rebuild 全量 storeInfo（L0 热点，属后续）
-- **不含 FileModule 颗粒化**（worker 内单文件→中间结果缓存，属 [`fe-tools-module-cache`](../../../fe-tools-module-cache/README.md) 并行层）——本门专注于主线程 BuildModel / 结果边界 / 失效传播
+- **不含 FileModule 颗粒化**（worker 内单文件→中间结果缓存，属 [`fe-tools-module-cache`](../fe-tools-module-cache/README.md) 并行层）——本门专注于主线程 BuildModel / 结果边界 / 失效传播
 
 ## 与并行 Action 的实施协调（M-11）
 
