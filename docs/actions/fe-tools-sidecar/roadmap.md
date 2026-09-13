@@ -16,7 +16,7 @@ TS-1 意图：整包复制冒烟
         ├─（并行，已归档）→ fe-tools-bundler-session / build-model / module-cache / worker-architecture
         │
         ├─（已归档）→ fe-tools-bundler-layout（build/dev × session/compiler；L0–L3 complete）
-        ├─（近端 in_progress）→ fe-tools-project-store（ProjectStore；PS1 已交付）
+        ├─（已归档）→ fe-tools-project-store（ProjectStore；PS1+PS2 complete；PS3 deferred）
         ├─（已归档）→ fe-tools-build-pipeline（BuildPipeline；按次；D-PS-SESSION；BP1 complete）
         │
         ▼

@@ -22,8 +22,9 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | 近端 [`project-store`](_archive/complete/fe-tools-project-store/README.md) + [`build-pipeline`](_archive/complete/fe-tools-build-pipeline/README.md) 均 **complete / 已归档**（PS1+PS2 / BP1）；**PS3 订阅/applyChanges 可选**；TS-2 deferred |
-| 再激活 / 推进 | project-store PS3（订阅 / applyChanges，供 preview 消费）；伞保持 draft |
+| 下一步 | 近端 [`project-store`](_archive/complete/fe-tools-project-store/README.md) + [`build-pipeline`](_archive/complete/fe-tools-build-pipeline/README.md) 均 **complete / 已归档**（PS1+PS2 / BP1）；**PS3 已书面 deferred**（增量装载 applyChanges / subscribe）；TS-2 deferred |
+| 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
+| 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）

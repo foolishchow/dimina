@@ -38,7 +38,7 @@
 | `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
-| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（draft）；近端 project-store + build-pipeline 均 **complete / 已归档**（PS1+PS2 / BP1）；TS-2 deferred；TS-4 成文。 | 2026-09-12 |
+| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（draft）；近端 project-store + build-pipeline 均 **complete / 已归档**（PS1+PS2 / BP1）；**PS3（增量装载 applyChanges/subscribe）书面 deferred**；TS-2 deferred；TS-4 成文。 | 2026-09-12 |
 | `fe-tools-project-store` | `complete` | [README](_archive/complete/fe-tools-project-store/README.md) | ProjectStore **PS1+PS2 已交付并归档**：壳 + 刀 A + M-A + 删闭包镜像（W3→仅 Store）；Store 唯一活图权威；消融 ×3（M-A-inject / PS2-store / PS2-plan）；PS3 未实施。 | 2026-09-12 |
 | `fe-tools-build-pipeline` | `complete` | [README](_archive/complete/fe-tools-build-pipeline/README.md) | BuildPipeline **BP1 已交付并归档**：阶段表等价抽取→`src/compiler/build-pipeline.js`；index.js 薄委托；Listr 仍在；行为 0（nomap 94 / sourcemap 185 diff=0）；485 tests / 73 suites 全绿；M-A 消融 ×1；A-BP01..05 全 pass。 | 2026-09-12 |
 | `fe-tools-bundler-layout` | `complete` | [README](_archive/complete/fe-tools-bundler-layout/README.md) | 目录双轴归置：`common/`/`core/`→`compiler|model|watch|dev|shared`；行为 0 变化（481 测绿；nomap 94 / sm 185 diff=0）；已归档。 | 2026-09-12 |
