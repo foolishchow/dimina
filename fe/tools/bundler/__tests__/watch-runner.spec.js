@@ -187,4 +187,39 @@ describe('createBuildWatcher', () => {
 		expect(buildOptions.store).toBeTruthy()
 		expect(typeof buildOptions.store.getDependencyGraph).toBe('function')
 	})
+
+	it('PS2: rebuild plan reads the live graph from the injected store (not a closure mirror)', async () => {
+		const fsWatcher = createFakeWatcher()
+		chokidarWatch.mockReturnValue(fsWatcher)
+
+		const graph = {
+			hasFile: () => true,
+			getAffectedEntries: () => ['pages/index/index'],
+			getFileKinds: () => ['logic'],
+			toJSON: () => ({ nodes: [], edges: [], fileEdges: [] }),
+		}
+		const store = {
+			load: vi.fn().mockReturnValue({ compilerOptions: {} }),
+			getDependencyGraph: vi.fn().mockReturnValue(graph),
+		}
+		const beforeBuild = vi.fn()
+		const watcher = createBuildWatcher({
+			targetPath: '/dist',
+			workPath: '/project',
+			useAppIdDir: true,
+			store,
+			beforeBuild,
+		})
+
+		await watcher.start()
+		store.getDependencyGraph.mockClear()
+
+		// change 事件：tracked（hasFile=true）→ 增量路径 → plan 读 store 活图
+		fsWatcher.emit('all', 'change', path.resolve('/project/pages/index/index.js'))
+		await watcher.waitForIdle()
+
+		expect(store.getDependencyGraph).toHaveBeenCalled()
+		const plan = beforeBuild.mock.calls[0][0].plan
+		expect(plan.skip).toBe(false)
+	})
 })
