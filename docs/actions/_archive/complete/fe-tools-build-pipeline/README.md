@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-12（BP1 已交付并归档；A-BP01..05 全 pass，消融 ×1）
 - Status authority: [Action Status../../../STATUS.md)
-- 关系：独立结构 Action。与 [`fe-tools-project-store`../../../fe-tools-project-store/README.md) **正交**（状态 vs 阶段执行）；总览 [`architecture-notes.md`../../../fe-tools-sidecar/architecture-notes.md)；同属 [`fe-tools-sidecar`../../../fe-tools-sidecar/README.md) 近端结构债。session 边界对齐已归档 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)。
+- 关系：独立结构 Action。与 [`fe-tools-project-store`](../fe-tools-project-store/README.md) **正交**（状态 vs 阶段执行）；总览 [`architecture-notes.md`](../../../fe-tools-sidecar/architecture-notes.md)；同属 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md) 近端结构债。session 边界对齐已归档 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)。
 - 工作分支：`feature/fe-tools-sidecar`
 - 设计权威：[design.draft.md](./design.draft.md)（**已冻结 v1**）；阶段表权威：[stages.md](./stages.md)（RR1）
 

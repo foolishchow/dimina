@@ -3,7 +3,7 @@
 Action: `fe-tools-project-store`  
 Status: **已冻结 v1（2026-09-12）** — Action **`ready`**；**未**授权实施（须升 `in_progress`）  
 Naming: **ProjectStore**（不用 GraphManager）  
-Sibling: [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**BuildPipeline**）
+Sibling: [`fe-tools-build-pipeline`../fe-tools-build-pipeline/README.md)（**BuildPipeline**）
 
 > 契约变更须同步 requirements / acceptance / README。字段名允许同义微调（RR11），ready 后改名须改 acc。
 

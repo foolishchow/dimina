@@ -1,6 +1,6 @@
 # Validation — fe-tools-project-store
 
-Status: **PS1+PS2 已交付（2026-09-12）** — Result 列已填；审查后可归档
+Status: **complete（2026-09-12）** — PS1+PS2 已交付；Result 列已填；消融 ×3；已归档
 
 **基线（RR3）：** `aa6b6508`（升 in_progress 时 HEAD = PS1 提交）；PS2 对拍基线 `0556f320`（PS2 改动前 HEAD）。
 

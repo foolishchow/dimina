@@ -1,10 +1,10 @@
 # FE Tools ProjectStore
 
 - Action: `fe-tools-project-store`
-- Status: `in_progress`
-- Updated: 2026-09-12（**PS1 已交付** `aa6b6508`：壳 + 刀 A + M-A；**PS2 已交付**：删闭包镜像，Store 唯一活图权威；PS3 待实施）
-- Status authority: [Action Status](../STATUS.md)
-- 关系：独立结构 Action（**不是** umbrella 子门）。背景 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；总览 [`architecture-notes.md`](../fe-tools-sidecar/architecture-notes.md)；与已归档 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、[`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md)、[`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md) 对齐；兄弟 [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**已 complete 归档**）。
+- Status: `complete`
+- Updated: 2026-09-12（**PS1+PS2 已交付并归档**：壳 + 刀 A + M-A + 删闭包镜像；Store 唯一活图权威；PS3 订阅/applyChanges 未实施）
+- Status authority: [Action Status](../../../STATUS.md)
+- 关系：独立结构 Action（**不是** umbrella 子门）。背景 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；总览 [`architecture-notes.md`](../../../fe-tools-sidecar/architecture-notes.md)；与已归档 [`fe-tools-bundler-session`../fe-tools-bundler-session/README.md)、[`fe-tools-bundler-layout`../fe-tools-bundler-layout/README.md)、[`fe-tools-worker-architecture`../fe-tools-worker-architecture/README.md) 对齐；兄弟 [`fe-tools-build-pipeline`../fe-tools-build-pipeline/README.md)（**已 complete 归档**）。
 - 工作分支：`feature/fe-tools-sidecar`
 - 设计权威：[design.draft.md](./design.draft.md)（**已冻结 v1**；RR1–RR12 已确认；字段名可同义微调）
 
@@ -34,7 +34,7 @@
 - 不把 ProjectStore 做成 session / 通用 core / 会话管理者  
 - 不起 worker、不起 `dev-server`、不实现 reload 协议  
 - 不做 TS-2 IR；不引入 SharedArrayBuffer 共享堆  
-- 不抽 `runBuild` 阶段表（属兄弟 [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)；**R1**）
+- 不抽 `runBuild` 阶段表（属兄弟 [`fe-tools-build-pipeline`../fe-tools-build-pipeline/README.md)；**R1**）
 - 不引入第二套会话级 Compiler/Engine 与 session 抢权  
 - 默认不新增稳定 npm `exports` 子路径（若暴露 API 另议）  
 - **PS1 不**暴露 `session.store`（**R3**）  
@@ -105,7 +105,7 @@ session →（按次）BuildPipeline.run(options, store)
 
 | 工作 | 关系 |
 | --- | --- |
-| [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) | 抽阶段表 / Pipeline 对象；共用 D-PS-SESSION；调 Store（**已 complete 归档**） |
+| [`fe-tools-build-pipeline`../fe-tools-build-pipeline/README.md) | 抽阶段表 / Pipeline 对象；共用 D-PS-SESSION；调 Store（**已 complete 归档**） |
 | graphDelta | Store.merge 输入形状；可后置 |
 | TS-2 IR | deferred |
 
@@ -133,4 +133,4 @@ session →（按次）BuildPipeline.run(options, store)
 | [requirements.md](./requirements.md) | MUST（冻结） |
 | [acceptance.md](./acceptance.md) | 验收 |
 | [validation.md](./validation.md) | 验证计划 |
-| [session-scheduling.draft.md](../fe-tools-sidecar/session-scheduling.draft.md) | session 调度 L1–L4 + W1–W4 |
+| [session-scheduling.draft.md](../../../fe-tools-sidecar/session-scheduling.draft.md) | session 调度 L1–L4 + W1–W4 |

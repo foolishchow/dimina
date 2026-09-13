@@ -21,7 +21,7 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 均已 **complete / 归档**。**TS-4** 同步节奏已成文（[sync-rhythm.md](./sync-rhythm.md)）。近端结构：[`fe-tools-project-store`](../fe-tools-project-store/README.md)（**in_progress**：PS1 已交付）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；[architecture-notes.md](./architecture-notes.md)。伞仍为 `draft`（CI 等 gap）。**TS-2（模板 IR）书面 deferred**。
+**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md) 均已 **complete / 归档**。**TS-4** 同步节奏已成文（[sync-rhythm.md](./sync-rhythm.md)）。近端结构：[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（**in_progress**：PS1 已交付）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；[architecture-notes.md](./architecture-notes.md)。伞仍为 `draft`（CI 等 gap）。**TS-2（模板 IR）书面 deferred**。
 
 ## Goal
 
@@ -165,7 +165,7 @@ fe/tools/
 2. 最小 IR 形状已起草并经评审，且有明确实施授权；  
 3. 测量/产品证明模板巨石已成为阻塞演进的主矛盾。
 
-**近端替代重心**：[`fe-tools-project-store`](../fe-tools-project-store/README.md)（**in_progress**：PS1 已交付）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；**session 唯一管会话**。（目录归置与 TS-4 已完成。）
+**近端替代重心**：[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（**in_progress**：PS1 已交付）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；**session 唯一管会话**。（目录归置与 TS-4 已完成。）
 
 ## Readiness gaps
 
@@ -175,7 +175,7 @@ fe/tools/
 4. **CI**：tools 独立 job 与否。  
 5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md → sync-rhythm）。  
 6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
-7. **近端结构债**：[`project-store`](../fe-tools-project-store/README.md)（**in_progress**：PS1 已交付；PS2 待实施）+ [`build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；见 [architecture-notes.md](./architecture-notes.md)。
+7. **近端结构债**：[`project-store`](../_archive/complete/fe-tools-project-store/README.md)（**in_progress**：PS1 已交付；PS2 待实施）+ [`build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；见 [architecture-notes.md](./architecture-notes.md)。
 
 伞级在 gap 4（CI）与结构候补（阶段化）之外可维持 `draft`；**不授权伞级大实施**。TS-2 已 deferred；TS-4 文档门已闭合。TS-2 不阻塞近端另立「阶段化」等独立 Action。
 

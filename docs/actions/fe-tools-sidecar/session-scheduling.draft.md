@@ -1,7 +1,7 @@
 # Session scheduling draft
 
 Status: **discussion consensus**（2026-09-12）  
-Authority: [architecture-notes.md](./architecture-notes.md) · [`fe-tools-project-store`](../fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)
+Authority: [architecture-notes.md](./architecture-notes.md) · [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)
 Implements policy for **D-PS-SESSION**（session = 唯一会话管理者）。
 
 **未授权实施**；升 ready / 改 `session/index.js` 前须另授权。
