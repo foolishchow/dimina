@@ -1,6 +1,6 @@
 # Validation — fe-tools-session-unify
 
-Status: **ready（2026-09-13）** — P-SU01..07；D-SU 已拍板；升 `in_progress` 时记基线 SHA，Result 届时回填
+Status: **in_progress（2026-09-14）** — P-SU00..07；**基线（S1）= `ce14fa79`**（S2 基线 = S1 合入后 HEAD）；Result 届时回填
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |

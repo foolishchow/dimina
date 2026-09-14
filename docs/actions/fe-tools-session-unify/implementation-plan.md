@@ -1,6 +1,6 @@
 # Implementation plan — fe-tools-session-unify
 
-Status: **ready（2026-09-13）** — D-SU 已拍板；升 `in_progress` 时记基线 SHA；S1/S2 各自 PR，禁混（对齐 P5）
+Status: **in_progress（2026-09-14）** — S1 实施中；基线 `ce14fa79`；S1/S2 各自 PR，禁混（对齐 P5）
 
 ## S1 触达序（机械抽取 · 行为 0）
 

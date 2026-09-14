@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-session-unify
 
-Status: **ready（2026-09-13）** — A-SU01..06；D-SU 已拍板；实施另授权 `in_progress`，证据回填
+Status: **in_progress（2026-09-14）** — A-SU01..06；S1 实施中（基线 `ce14fa79`）；证据回填
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
