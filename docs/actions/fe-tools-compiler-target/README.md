@@ -27,9 +27,9 @@
 
 ## Goal
 
-1. 抽出**单一显式的编译目标描述**（暂名 CompileTarget/TargetSpec）：一次性承载 mode / platform / renderer（已验证）/ 启用阶段（含 mini-game 过滤语义）/ sourcemap 策略 / esTarget / 产物路径形态
+1. 抽出**单一显式的编译目标描述**（名 `CompileTarget`，D-CT-2）：一次性承载 mode / platform / renderer（已验证）/ 启用阶段（含 mini-game 过滤语义）/ sourcemap 策略 / esTarget / 产物路径形态
 2. 管线阶段组装从描述**派生**：workerOptions / stage 启用 / sourcemapTargetPath 不再内联散算
-3. **行为 0**：产物字节等价、CLI 输出、lifecycle 事件序列、公开 API 全不变
+3. **行为 0（T1/T2）**：产物字节等价、lifecycle 序列、公开 API 不变；**T0 为唯一行为变更门**（CLI help 文本 / build+web 拒绝），显式验收锁定
 
 ## Non-goals
 
@@ -105,3 +105,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | Review R3 F10/F11/F12/F15 修正：plan T2 Step 1 同步（阶段组装侧读取点 + cwd 签名）；产品门消融行 per-gate 化；A-CT1/CT2 证据标注 P-CT05 子集；plan T0 Step 3 落点定 bundler-session.spec |
 | 2026-09-14 | Review R4 F16：T1 判据辨析 E1 双义——「C1 私算消失」（管线内联 MODE_PRESETS/sourcemapStrategyFor/平台判断）与「双重调用保留 by design（R-CT4）」显式区分 |
 | 2026-09-14 | Review R5 F17/F18：T2 判据补 E6 显式两段性验收；E7 列为 Non-goal（仅记录、不修复，另立 Action 再议） |
+| 2026-09-14 | Review R6 F19/F20：Goal 3 补 T0 行为变更例外（行为 0 限定 T1/T2）；Goal 1 去「暂名」（定名 `CompileTarget`，D-CT-2） |
