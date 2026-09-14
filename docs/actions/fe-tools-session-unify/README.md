@@ -63,7 +63,7 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-14）：Readiness 六轮收敛完成（`ready`）；**S1 实施已授权开工**；基线 SHA 记于 [validation.md](validation.md)。
+- 当前 **`in_progress`**（2026-09-14）：**S1 已交付**（行为 0；495/74 全绿；nomap 94 / sourcemap 185 diff=0；消融 ✓）；**S2（调度收口）待授权开工**（S2 基线 = S1 合入后 HEAD）。基线 S1 = `c768e9a5`（记于 validation.md）。
 - **D-SU-1..5 已拍板（2026-09-13，全部照建议）**：
   1. S1/S2 两门切分（先机械后语义）—— D-SU-1
   2. 内核落点 `src/session/runner.js`、不公开导出 —— D-SU-2
@@ -95,3 +95,4 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 | 2026-09-13 | Review 四轮 F-G/F-H/F-I：P-SU00 映射修正（→ A-SU05③）；Status 残留行更新至四轮态（仅 F-D 开放）；P-SU02 补**基线随门递进**规则（S2 基线 = S1 合入后 HEAD）；plan 验证范围改 P-SU00..07 |
 | 2026-09-13 | Review 六轮 F-J：README 补「闭合条件」节（对齐仓库内容规范：两门交付 / 消融在档 / 行为 0 证据 / 结构不变量回流 / 一致变更 / 范围守恒） |
 | 2026-09-14 | 升 **`in_progress`**：S1 实施授权开工；基线 SHA 记于 validation.md（P-SU02 随门递进：S1 基线 = 升 in_progress 时 HEAD） |
+| 2026-09-14 | **S1 交付**（fe-tools-session-unify S1 内核抽取）：runner.js（composeOptions + runOnce）；index.js 三入口改道内核、删除分叉组装与 splitBuildOverrides（-76 行）、头注释 3→2（F3）；session-unify.spec 新建 7 用例（行为同构 + 结构锚定 + 内核单测）。验证：495/74 全绿；nomap 94 / sourcemap 185 diff=0（c768e9a5）；exports 6 ESM + CLI；消融 ✓（A-SU05② 结构锚定失败 → 恢复）。**S2 待授权** |

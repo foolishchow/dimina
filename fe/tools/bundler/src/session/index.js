@@ -24,28 +24,14 @@
  * they accumulate across dev cycles.
  */
 
-import build from '../index.js'
 import { createBuildWatcher } from '../watch/watch-runner.js'
 import { createLifecycle } from '../shared/lifecycle.js'
 import { createWebPreviewAdapter } from './preview-adapter.js'
 import { createProjectStore } from '../model/project-store.js'
-
-/** Compile profile keys (config C1) — never treat as a free-form bag */
-const COMPILE_KEYS = Object.freeze(['mode', 'platform', 'minify', 'sourcemap', 'esTarget'])
+import { createSessionRunner, COMPILE_KEYS } from './runner.js'
 
 /** server on Resolved / session — host/port only (D-R3) */
 const SERVER_KEYS = Object.freeze(['host', 'port'])
-
-/** Pipeline opts allowed beside compile when calling build/watch (not C1) */
-const PIPELINE_OPTION_KEYS = Object.freeze([
-	'fileTypes',
-	'stages',
-	'affectedEntries',
-	'seedPath',
-	'dependencyGraph',
-	'prepareConfig',
-	'prepareNpm',
-])
 
 export { resolveBundlerConfig } from './resolve.js'
 
@@ -71,6 +57,8 @@ export function createBundler(resolved) {
 		store: createProjectStore(),
 	}
 
+	  const runner = createSessionRunner(state)
+
 	const session = {
 		/**
 		 * Read-only: this session's unique lifecycle (Background gap ③).
@@ -80,27 +68,17 @@ export function createBundler(resolved) {
 		lifecycle: state.lifecycle,
 
 		/**
-		 * One-shot compile (O1). Delegates to today's public `build()` with the
-		 * session's lifecycle injected via options.lifecycle (forced last —
-		 * overrides.lifecycle never wins).
+		 * One-shot compile (O1). Delegates to the public `build()` facade via
+		 * the session runner (S1 kernel: runOnce composes options — C1/pipeline
+		 * whitelist merge + fileTypes default + store/lifecycle injection,
+		 * forced last — overrides.lifecycle never wins).
 		 *
 		 * @param {object} [overrides] C1 keys + pipeline keys (whitelist);
 		 *   unknown keys throw.
 		 */
 		async build(overrides = {}) {
 			assertNoActiveLoop(state, 'build')
-			const { compileOverrides, pipelineExtras } = splitBuildOverrides(overrides)
-			const options = {
-				...state.compile,
-				...compileOverrides,
-				...pipelineExtras,
-				fileTypes: pipelineExtras.fileTypes ?? state.fileTypes,
-				// PS1/RR4：session 注入 store（state.store）供 runBuild 使用
-				store: state.store,
-				// FORCED last — never allow overrides.lifecycle to win
-				lifecycle: state.lifecycle,
-			}
-			return build(state.targetPath, state.workPath, state.useAppIdDir, options)
+			return runner.runOnce(overrides)
 		},
 
 		/**
@@ -130,16 +108,11 @@ export function createBundler(resolved) {
 				throw new TypeError(`watch opts: unknown keys ${unknownKeys.join(', ')}`)
 			}
 
-			const { compileOverrides, pipelineExtras } = splitBuildOverrides(watchBuildOptions || {})
-			const baseOptions = {
-				...state.compile,
-				...compileOverrides,
-				...pipelineExtras,
-				fileTypes: pipelineExtras.fileTypes ?? state.fileTypes,
-				// FORCED last (H2): watch-runner takes lifecycle via options.lifecycle,
-				// NOT as a top-level param — so it must live inside `options`.
-				lifecycle: state.lifecycle,
-			}
+			// S1 (runner): shared options assembly (whitelist merge + fileTypes
+			// default + maybe store; lifecycle forced via options.lifecycle, NOT a
+			// top-level param — watch-runner reads it from options, matching
+			// bin/dev.js wiring).
+			const baseOptions = runner.composeOptions(watchBuildOptions || {})
 
 			const inner = createBuildWatcher({
 				targetPath: state.targetPath,
@@ -182,7 +155,7 @@ export function createBundler(resolved) {
 		 *
 		 * R7 (accepted limitation): on any startup failure below, stop the
 		 * started watcher, close the adapter, clear activeLoop, rethrow — the
-		 * session stays reusable (activeLoop/resources). The 3 lifecycle
+		 * session stays reusable (activeLoop/resources). The 2 lifecycle
 		 * listeners registered here stay mounted after rollback/close —
 		 * harmless (dev-server close clears clients; broadcast checks
 		 * readyState) but they accumulate across dev cycles.
@@ -270,10 +243,6 @@ export function createBundler(resolved) {
 	return session
 }
 
-// ---------------------------------------------------------------------------
-// option helpers
-// ---------------------------------------------------------------------------
-
 function assertResolved(resolved) {
 	if (!resolved || typeof resolved !== 'object') {
 		throw new TypeError('createBundler requires a ResolvedBundlerInput object')
@@ -295,37 +264,6 @@ function assertCanStartLoop(state, kind) {
 	if (state.activeLoop) {
 		throw new Error(`R3: cannot start ${kind}; activeLoop=${state.activeLoop}`)
 	}
-}
-
-/**
- * Split overrides into compile (C1) vs pipeline keys. Strips lifecycle
- * (session forces its own); unknown keys throw.
- */
-function splitBuildOverrides(overrides) {
-	if (!overrides || typeof overrides !== 'object') {
-		return { compileOverrides: {}, pipelineExtras: {} }
-	}
-	const compileOverrides = {}
-	const pipelineExtras = {}
-	const unknown = []
-	for (const [key, value] of Object.entries(overrides)) {
-		if (key === 'lifecycle') {
-			continue // never taken from overrides — session forces it
-		}
-		if (COMPILE_KEYS.includes(key)) {
-			compileOverrides[key] = value
-		}
-		else if (PIPELINE_OPTION_KEYS.includes(key)) {
-			pipelineExtras[key] = value
-		}
-		else {
-			unknown.push(key)
-		}
-	}
-	if (unknown.length > 0) {
-		throw new TypeError(`build overrides: unknown keys ${unknown.join(', ')}`)
-	}
-	return { compileOverrides, pipelineExtras }
 }
 
 function pickKeys(obj, keys) {
