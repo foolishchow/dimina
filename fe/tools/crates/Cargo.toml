@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["dimina-wxml-parser"]
+members = ["dimina-wxml-parser", "dimina-wxml-parser-napi"]
 
 [workspace.package]
 version = "0.1.0"

@@ -1,0 +1,15 @@
+{
+	"name": "@dimina/wxml-parser-napi",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "index.js",
+	"files": ["index.js", "index.node"],
+	"scripts": {
+		"build": "cargo build -p dimina-wxml-parser-napi --release --manifest-path ../crates/Cargo.toml && cp ../crates/target/release/libdimina_wxml_parser_napi.dylib index.node",
+		"build:all": "cargo build --release --manifest-path ../crates/Cargo.toml"
+	},
+	"engines": {
+		"node": ">=22"
+	}
+}
