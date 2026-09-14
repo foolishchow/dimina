@@ -38,6 +38,7 @@
 - 不剥 Listr（渲染即用户可见输出，非行为 0；留待 CI 消费方出现）
 - 不做 TS-2 模板 IR（deferred 保持）
 - 不改公开 API / `build()` 门面 / watch-runner 内部（除接线必需）
+- **E7 watch-plan 形态耦合仅记录、不修复**：`plan.options` / `affectedEntries` 契约保持；若未来让 watch-plan 直接消费 CompileTarget，另立 Action
 - 不动 session 层（session-unify 已交付；本门在其下方正交——**T0 的 resolve 对偶断言为唯一 session 层触碰**）
 
 ## 边界（与已完成工作正交）
@@ -54,7 +55,7 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | --- | --- | --- |
 | **T0** 组合校验（前置小门 · **行为变更**） | resolve 层对偶断言：`command:'build'` ⇒ `platform:'native'`，否则结构化报错（镜像 D-R2/C 风格，对齐 A4“不静默”哲学）；CLI help 同步；**不坍缩描述模型**（`sourcemapStrategyFor` web 分支保留） | 报错用例锁定（build+web 拒绝 / dev+native 维持 D-R2/C 消息不变）；现有 `/D-R2\/C/` 测试不破；直调 `build({platform:'web'})` 编程路径自由度不变 |
 | **T1** 描述抽取（静态段） | createCompileTarget（静态描述）+ 静态穿参（compileConfig / sourcemap / renderer 对象）；`_runBuild` 顶部改道；E1 不变量落地 | 行为 0（diff=0 + 测试全绿 + lifecycle 序列不变）；结构判据 **T1 子集**（E2 renderer 反查 + E1 之 **C1 私算**——管线内联 MODE_PRESETS/sourcemapStrategyFor/平台判断消失；双重调用保留 by design，R-CT4） |
-| **T2** 动态段 + 派生 | readLoadBindings + deriveStagePlan（final stages / sourcemapTargetPath / stylePages / 三捆 workerOptions）；编译组装改道 | 行为 0；结构判据 **T2 子集**（E3 mini-game 直耦 / E4 sourcemapTargetPath / E5 三捆消失）+ 消融 |
+| **T2** 动态段 + 派生 | readLoadBindings + deriveStagePlan（final stages / sourcemapTargetPath / stylePages / 三捆 workerOptions）；编译组装改道 | 行为 0；结构判据 **T2 子集**（E3 mini-game 直耦 / E4 sourcemapTargetPath / E5 三捆消失）+ **E6 显式两段性**（静态 create / 动态 readLoadBindings → deriveStagePlan；时序锁定 collect-config 后）+ 消融 |
 
 消融：**T1** 拔 createCompileTarget → ②T1 子集锚定失败；**T2** 拔 deriveStagePlan → ②T2 子集锚定失败（per-gate，见 validation P-CT08）。
 
@@ -103,3 +104,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | Review R2 F6–F9 修正：产品门 T1/T2 归属对齐 design（workerOptions/sourcemapTargetPath 归 T2）；P-CT05 锚定拆 T1/T2 双层；design 结构判据补 per-gate 收敛注记；A-CT2 措辞同步「阶段组装侧唯一读取点」 |
 | 2026-09-14 | Review R3 F10/F11/F12/F15 修正：plan T2 Step 1 同步（阶段组装侧读取点 + cwd 签名）；产品门消融行 per-gate 化；A-CT1/CT2 证据标注 P-CT05 子集；plan T0 Step 3 落点定 bundler-session.spec |
 | 2026-09-14 | Review R4 F16：T1 判据辨析 E1 双义——「C1 私算消失」（管线内联 MODE_PRESETS/sourcemapStrategyFor/平台判断）与「双重调用保留 by design（R-CT4）」显式区分 |
+| 2026-09-14 | Review R5 F17/F18：T2 判据补 E6 显式两段性验收；E7 列为 Non-goal（仅记录、不修复，另立 Action 再议） |

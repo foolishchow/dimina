@@ -13,7 +13,7 @@ Status: **冻结 v1（2026-09-14）** — D-CT-0..5 已拍板；实施中改设�
 | 最终阶段 / workerOptions / sourcemapTargetPath / stylePages | **deriveStagePlan**（T2） | 纯函数（target, bindings）→ 新对象 |
 | 组合校验（build⇒native） | `resolveBundlerConfig`（T0） | 对偶 `assertDevCompileCompatible`；入口纪律 |
 | Listr 渲染 / 阶段执行 | build-pipeline（不动） | 阶段任务从 plan 构建 |
-| watch-plan / rebuild 形态回灌 | 不动（E7 记录在案） | plan.options 继续喂 build()，由管线统一消化 |
+| watch-plan / rebuild 形态回灌 | 不动（E7 记录在案；残余范围，另立 Action 再议） | plan.options 继续喂 build()，由管线统一消化 |
 
 ## API 形状（三步显式 · D-CT-3）
 
