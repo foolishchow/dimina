@@ -4,7 +4,7 @@ Status: **ready（2026-09-14）** — A-WB0..05；D-WB 已拍板；实施另授�
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-WB0 | R-WB0 | VENDOR 在档（溯源/主从/桥约束）；workspace 483 tests 绿；docs 主从声明；D-WIR-1 修订入档 | P-WB00 / 源码审查 | pending |
+| A-WB0 | R-WB0 | VENDOR 在档（溯源/主从/桥约束/**vendored 修改记录**）；workspace 483 tests 绿；docs 主从声明；D-WIR-1 修订入档 | P-WB00 / 源码审查 | pending |
 | A-WB1 | R-WB1 | napi 子 crate 暴露 `parseWxmlSpanView` 输出 SpanView JSON（三层 span + raw + sourceFile 透传；无表达式负载）；JS 薄包可加载 `.node`；对拍一致 | P-WB01 / P-WB03 | pending |
 | A-WB2 | R-WB2 | view `inMap` 由真 span 构建（**双点**：主 :745 + 模板 :531）；include/import 跨文件归位（行级正确 + 列级可用）；映射 sourceFile 均 setSourcesContent | P-WB04 / P-WB02 | pending |
 | A-WB3 | R-WB3 | code 严格 diff=0；**行级不变量**（无 include/import 页 = 今日行级映射；列级新增允许）；更准断言（抽查集 = 真 {file,line}） | P-WB02 / P-WB04 | pending |

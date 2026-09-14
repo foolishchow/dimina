@@ -7,7 +7,8 @@ Status: **冻结（2026-09-14）** — 与 design v1 / acceptance 对齐；D-WB-
 - `fe/tools/crates/dimina-wxml-parser/VENDOR.md` 在档（溯源 / 同步责任 / docs 主从 / 桥约束）；
 - Cargo workspace `fe/tools/crates/` 正式化（members + workspace.package 继承 + `.gitignore` target/；**483 tests 绿**）；
 - **docs 主从**：仓库 `docs/wxml/` 为真源；crate `docs/` 冻结快照（VENDOR 声明，不双写）；
-- **D-WIR-1 修订入档**（架构注记）：Rust parser 作 napi 桥接组件进 tools（对齐 oxc-parser；边界=单 crate 桥）。
+- **D-WIR-1 修订入档**（架构注记）：Rust parser 作 napi 桥接组件进 tools（对齐 oxc-parser；边界=单 crate 桥）；
+- **vendored 修改授权（D-WB-7）**：为产出紧凑 JSON SpanView，授权对 vendored crate 的 AST 加 **serde derives**（仅 span/raw 面；swc 表达式类型不序列化），并记录于 VENDOR「Vendored modifications」；重随上游源码时重放。
 
 ## R-WB1（MUST）napi 桥 + SpanView（W1）
 

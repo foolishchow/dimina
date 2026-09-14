@@ -49,10 +49,10 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 
 ## 产品门
 
-| 门 | 内容 | 验收判据（草案） |
+| 门 | 内容 | 验收判据 |
 | --- | --- | --- |
 | **W0** 入树基建 | VENDOR.md（溯源 + 同步责任）；docs 主从定界；gitignore/workspace 正式化；**D-WIR-1 修订入档**（Rust-via-napi 对齐 oxc 先例，架构注记）；`.node` 构建脚本 | crate 在 workspace 构建 + 483 tests 绿；VENDOR/docs/gitignore 在档；修订决策可溯 |
-| **W1** napi 桥 + SpanView | napi 子 crate（`dimina-wxml-parser-napi`，暂名）暴露 `parseWxmlSpanView(source, sourceFile?)`：Document 树 + 半开 span + sourceFile + raw（丢 `.expr`/`.object`）；JS 侧加载 `.node` | JS 单测：SpanView 与 crate 测试同源用例对拍（span/raw/结构三一致）；性能基准记录 |
+| **W1** napi 桥 + SpanView | napi 子 crate（`dimina-wxml-parser-napi`）暴露 `parseWxmlSpanView(source, sourceFile?)`：Document 树 + 半开 span + sourceFile + raw（丢 `.expr`/`.object`）；JS 侧加载 `.node` | JS 单测：SpanView 与 crate 测试同源用例对拍（span/raw/结构三一致）；性能基准记录 |
 | **W2** sourcemap 修复 | view 路径 `inMap` 改由真 span 构建（跨文件行归位 + 列可用）；include/import 场景修复 | code 严格 diff=0；**map 质量断言**（include 页抽查：生成行 → 正确 {file,line}；无 include 页**行级不变量**（列级新增可验））；消融 |
 | **W3+** | 换投影 / 表达式消费 / style 切缝 | 按需另立（不在本门） |
 
@@ -88,3 +88,4 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 | 2026-09-14 | 初稿：sourcemap 病症实锚（1:1 猜射/include 错位）；crate 入树 + workspace + 483 tests 验证；D-WB-1..3 拍板；6 项待定 |
 | 2026-09-14 | **D-WB-1..6 全部拍板**；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；STATUS 同步 |
 | 2026-09-14 | Review R1 F1–F6：W2 覆盖**双 inMap 点**（:745 主 + :531 模板 render，经 startLine→SpanView）；README 行级措辞对齐 R-WB3；清「暂名/草案」；**D-WB-7**（serde 路径 + sourcesContent）入档 |
+| 2026-09-14 | Review R2 F7/F9/F10：表头/W1 行清「草案/暂名」残留；R-WB0+A-WB0 补 vendored 修改授权条款；plan 注明 JS 薄包禁用 prepare 钩子（防 pnpm install 污染） |
