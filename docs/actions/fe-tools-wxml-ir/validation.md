@@ -1,6 +1,6 @@
 # Validation — fe-tools-wxml-ir
 
-Status: **ready 计划面** — Experience §5/§6 已入档；无实施证据
+Status: **实施完成（2026-09-14）— T-IR0..3 交付 `a5262a53`；Actual 已填**
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -78,4 +78,23 @@ diff -rq "$WORK/base-sm" "$WORK/head-sm"
 
 ## Actual
 
-（实施后填写：P-WIR 结果、消融记录、Uncovered 勾选）
+**交付 commit `a5262a53`（基线 `744b732c`）**
+
+| ID | 结果 |
+| --- | --- |
+| P-WIR00 | **pass** — 每次对拍/CLI 前 `node scripts/sync-dist-from-src.js`（含基线快照前重同步） |
+| P-WIR01 | **pass** — 550/550 全绿（76 suites；wxml-ir.spec +25） |
+| P-WIR02 | **pass** — base nomap + sourcemap `diff -rq` **均为 0**（严格、无白名单；D-WIR-9） |
+| P-WIR03 | **pass** — wxml/** 六文件 `platform\s*===` 零命中（结构锚定测试在套内） |
+| P-WIR04 | **pass** — diff 限 `compiler/wxml/**`（686 行新模块）+ view-compiler（+54/−170）+ wxml-ir.spec；无 E7/Listr/PS3/S14；fe/packages 零触碰 |
+| P-WIR05 | **pass** — loc 半开自证用例（source.slice(start,end)==='abc'）；sourceTexts 主/include/import 三源可追溯 |
+| P-WIR06 | **pass ×2** — ①缝消融：恢复旧版熔断 toCompileTemplate → 结构锚定 4 failed（含目标锚定 + 注册断言；另 2 为注册缺失连带，如实记录）→ 恢复 550 绿；②loc 消融：nodeLoc 返回 null → loc 断言 2 failed（A-WIR6 目标）→ 恢复 25/25 |
+| P-WIR07 | **pass（审查）** — 归属表对照：展开/Wxs=load.js、Vue 降级=backends/vue.js；cheerio 仅 parse/load 投影；[wxml]+sourceFile/loc 在错误路径；过渡注记两处成文（component-host 源级包装 / compileTemplate 打包壳） |
+
+### Uncovered（声明：未验证 / 非本门）
+
+- [x] Web 预览冒烟（`dimina-cli dev`）——非 MUST，未执行
+- [x] 第二示例工程 / 多页专项——仅 base 对拍
+- [x] 真机 / 原生容器 / 视觉截图——非本门
+- [x] 微信真源语义逐条对拍——Residual 已声明
+- [x] 表达式 Accept/Reject 全量——Non-requirements
