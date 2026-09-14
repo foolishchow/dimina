@@ -1,10 +1,11 @@
 # FE Tools Compiler Target
 
-- Action: `fe-tools-compiler-target`（暂名，转正见待定 ⑤）
-- Status: `draft`
-- Updated: 2026-09-14（source audit 初稿；组合矩阵讨论后补 E8/T0，待定项 ⓪–⑤）
+- Action: `fe-tools-compiler-target`
+- Status: `ready`
+- Updated: 2026-09-14（D-CT-0..5 拍板；Readiness 五件套成稿；升 ready）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（S1+S2 已归档；其 README 预告本方向为正交 Action）；[`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（BP1 已归档；阶段表抽取、Listr 保留）；上游 A4 renderer 抽象边界（`src/compiler/renderers.js` 头注）
+- 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 问题陈述
@@ -37,7 +38,7 @@
 - 不剥 Listr（渲染即用户可见输出，非行为 0；留待 CI 消费方出现）
 - 不做 TS-2 模板 IR（deferred 保持）
 - 不改公开 API / `build()` 门面 / watch-runner 内部（除接线必需）
-- 不动 session 层（session-unify 已交付；本门在其下方正交）
+- 不动 session 层（session-unify 已交付；本门在其下方正交——**T0 的 resolve 对偶断言为唯一 session 层触碰**）
 
 ## 边界（与已完成工作正交）
 
@@ -47,13 +48,13 @@ session-unify（已归档）: 会话/调度层「怎么编译」—— 三入口
 TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件不变
 ```
 
-## 产品门（草案，切分见待定 ①）
+## 产品门（已冻结 · T0 前置 + T1/T2 两门）
 
-| 门 | 内容 | 验收判据（草案） |
+| 门 | 内容 | 验收判据 |
 | --- | --- | --- |
 | **T0** 组合校验（前置小门 · **行为变更**） | resolve 层对偶断言：`command:'build'` ⇒ `platform:'native'`，否则结构化报错（镜像 D-R2/C 风格，对齐 A4“不静默”哲学）；CLI help 同步；**不坍缩描述模型**（`sourcemapStrategyFor` web 分支保留） | 报错用例锁定（build+web 拒绝 / dev+native 维持 D-R2/C 消息不变）；现有 `/D-R2\/C/` 测试不破；直调 `build({platform:'web'})` 编程路径自由度不变 |
 | **T1** 描述抽取（静态段） | CompileTarget 对象 + 派生函数（enabledStages / renderer / per-stage workerOptions / sourcemapTargetPath）；管线改道消费 | 行为 0（diff=0 + 测试全绿 + lifecycle 序列不变）；结构判据（E2/E4/E5 的散点不再出现于阶段组装处，grep 级锚定） |
-| **T2** 动态段 + 收敛（若两门） | mini-game / appId / pages 的两段性表达；E1 成文不变量 | 同上 + 消融 |
+| **T2** 动态段 + 收敛 | mini-game / appId / pages 的两段性表达；E1 成文不变量 | 同上 + 消融 |
 
 消融：拔描述回落内联散算 → 结构锚定失败（沿用 session-unify P-SU07 模式）。
 
@@ -67,19 +68,29 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 
 ## Status / 授权
 
-- 当前 **`draft`**：source audit（E1–E8）+ 组合矩阵讨论完成；**未授权实施**
-- 升 `ready` 前需拍板 6 项待定（⓪–⑤，建议方案已入档）并补 Readiness 文档（requirements / design / plan / acceptance / validation）
+- 当前 **`ready`**（2026-09-14）：source audit（E1–E8）+ 组合矩阵讨论 + Readiness 五件套完成；Review 未开展；**未授权实施**。
+- **D-CT-0..5 已拍板（2026-09-14，全部照建议）**，见 [design.draft](design.draft.md) §决策记录。
+- 升 `in_progress` 需明确授权（届时记基线 SHA，随门递进）。
 
-## 待定（Readiness 前需确认；建议方案为 2026-09-14 讨论结果，待拍板）
+## 决策记录（已拍板 · 2026-09-14，全部照建议）
 
-| # | 决策点 | 建议方案 |
+| # | 决策点 | 拍板结论 |
 | --- | --- | --- |
-| **⓪** | build+web 组合处置（E8） | **T0 独立小门**（唯一非行为 0 门）：resolve 层对偶断言 + 结构化报错 + CLI help 同步 + 测试锁定；不坍缩 CompileTarget；compile-config 层自由度保留 |
-| **①** | 门切分 | 两门 T1 静态 / T2 动态（+ T0 前置）——对齐 S1/S2 先例；接受切面同链前后段的代价 |
-| **②** | 落点/对象名 | `src/compiler/compile-target.js`；对象名 `CompileTarget`（纪律：禁缩写 `target`，防与 targetPath 混淆；备胎 `CompileProfile`） |
-| **③** | 两段性表达（E6） | 三步显式 API：`createCompileTarget`（静态，fail-fast）→ `readLoadBindings`（唯一 env 读取点）→ `deriveStagePlan`（纯函数）；补全返回新对象无突变 |
-| **④** | E1 双重解析处置 | **不改代码**：改记分层不变量（同一纯函数、两合法路径）+ 结构判据（管线侧不得绕过 `resolveCompileConfig` 私算 C1） |
+| **⓪** | build+web 组合处置（E8） | **T0 独立小门**（唯一非行为 0 门）：resolve 对偶断言 + 结构化报错 + CLI help 同步 + 测试锁定；不坍缩 CompileTarget；compile-config 自由度保留 |
+| **①** | 门切分 | 三门 T0（前置）/ T1（静态）/ T2（动态），各自 PR |
+| **②** | 落点/对象名 | `src/compiler/compile-target.js`；对象名 `CompileTarget`（禁缩写 `target`） |
+| **③** | 两段性表达（E6） | 三步显式 API：`createCompileTarget` → `readLoadBindings` → `deriveStagePlan`（纯函数、无突变） |
+| **④** | E1 双重解析处置 | 不改代码：成文不变量 + 结构判据 |
 | **⑤** | Action 名 | `fe-tools-compiler-target` 转正 |
+
+## 闭合条件
+
+- **三门交付**：T0 + T1 + T2 均完成，A-CT0..06 全 pass，证据回填 acceptance / validation；
+- **消融在档**：P-CT08 消融 ×3（T0 拔断言 / T1 拔 create / T2 拔 derive）完成且失败点落在对应断言；
+- **行为 0 证据**：全量 vitest 绿 + T1/T2 各基线 nomap/sourcemap diff=0（基线随门递进，P-CT02）；T0 行为变更按验收锁定；
+- **持久发现回流**：target 形态单源化 + 「形态条件单源于 compile-target」结构不变量入档（写回 session-unify 已回流的 architecture-notes 或新建段）；
+- **一致变更**：STATUS / README / 归档位置随 `complete` 一次同步（→ `_archive/complete/`）；
+- **范围守恒**：非目标项（真 web target / renderer 扩展 / Listr / TS-2）确认维持，不新开范围。
 
 ## 修订记录
 
@@ -87,3 +98,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | --- | --- |
 | 2026-09-14 | 初稿：source audit（E1–E7 实锚）；产品门草案；5 项待定 |
 | 2026-09-14 | 组合矩阵讨论：新增 **E8**（build 侧假自由度）与 **T0 门**（入口收严、模型不坍缩）；E1 定性修正（by design，处置改为成文不变量）；①–⑤ 建议方案入档待拍板 |
+| 2026-09-14 | **D-CT-0..5 全部拍板**（照建议）；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；闭合条件入档；STATUS 同步 |

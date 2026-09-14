@@ -48,5 +48,5 @@
 | `fe-tools-worker-architecture` | `complete` | [README](_archive/complete/fe-tools-worker-architecture/README.md) | **决策 Action（已落地 + 归档）**：四阶段演进 + D-WA-1..6 + WorkerTask/Result 协议 v1/v2 + 超时防护 + stats 消费契约。被 build-model + module-cache 引用消费，无实施冲突。已归档。 | 2026-09-10 |
 | `fe-tools-bundler-unvite` | `complete` | [README](_archive/complete/fe-tools-bundler-unvite/README.md) | 卫生：下线 Vite 自打包；镜像 dist + watch shim；A-UV01..09 / P-001..008（含 dimina-cli build/dev）；已归档。 | 2026-09-10 |
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
-| `fe-tools-compiler-target` | `draft` | [README](fe-tools-compiler-target/README.md) | 产物形态切面收敛：CompileTarget 描述 + 阶段派生（E1–E8 实锚）；T0 组合校验（build⇒native，唯一行为变更门）+ T1/T2；6 项待定（⓪–⑤）后升 ready。 | 2026-09-14 |
+| `fe-tools-compiler-target` | `ready` | [README](fe-tools-compiler-target/README.md) | 产物形态切面收敛：CompileTarget 描述 + 阶段派生（E1–E8 实锚）；T0 组合校验（build⇒native，唯一行为变更门）+ T1/T2；D-CT-0..5 已拍板；实施待授权。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |
