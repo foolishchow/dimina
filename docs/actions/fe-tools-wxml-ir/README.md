@@ -1,8 +1,8 @@
 # FE Tools WXML IR
 
 - Action: `fe-tools-wxml-ir`
-- Status: `ready`
-- Updated: 2026-09-14
+- Status: `in_progress`
+- Updated: 2026-09-14（T-IR0..3 实施授权开工；基线 `744b732c`）
 - Status authority: [Action Status](../STATUS.md)
 - 伞门：[`fe-tools-sidecar`](../fe-tools-sidecar/README.md) **TS-2**（本 Action 为再激活载体）
 - 病症锚点：[compiler-symptom-inventory.md](../fe-tools-sidecar/compiler-symptom-inventory.md) **S13**（主）；**S14 本 Action 非目标**（见 Non-goals）
@@ -77,8 +77,7 @@ Backend:   LoadedGraph → 产物；registry 可挂 vue + stub
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-14）：Readiness R4/R6（含 Experience-Review）**pass**；R5 findings 已消；D-WIR-1..9 已冻。
-- **未授权实施**——升 `in_progress` / 开工 T-IR0 须另一次显式授权。
+- 当前 **`in_progress`**（2026-09-14）：Readiness R4/R6 pass；D-WIR-1..9 已冻；**T-IR0..3 实施已授权开工**；基线 `744b732c`（validation Actual 届时回填）。
 - 执行允许：满足 manage-actions「ready 后经明确执行请求」即可实施。
 
 ## 闭合条件（草案）
@@ -97,3 +96,4 @@ Backend:   LoadedGraph → 产物；registry 可挂 vue + stub
 | 2026-09-14 | **Review R2/R3 文案**：registry 同 id 抛错；生产仅 `vue`；Value `kind` 三态；P-WIR04 含 S14；Status/STATUS 反映 Readiness 已过 |
 | 2026-09-14 | **Review R5 修**：Residual（§3）；Uncovered（§5）；消融纪律（§6）；`[wxml]` 日志（§7）；Status 对齐 R4/R5 |
 | 2026-09-14 | **升 `ready`**（R6 Experience 对照 pass；未授权实施） |
+| 2026-09-14 | 升 **`in_progress`**：T-IR0..3 实施授权开工；基线 `744b732c` |
