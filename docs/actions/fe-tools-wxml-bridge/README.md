@@ -89,3 +89,4 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 | 2026-09-14 | **D-WB-1..6 全部拍板**；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；STATUS 同步 |
 | 2026-09-14 | Review R1 F1–F6：W2 覆盖**双 inMap 点**（:745 主 + :531 模板 render，经 startLine→SpanView）；README 行级措辞对齐 R-WB3；清「暂名/草案」；**D-WB-7**（serde 路径 + sourcesContent）入档 |
 | 2026-09-14 | Review R2 F7/F9/F10：表头/W1 行清「草案/暂名」残留；R-WB0+A-WB0 补 vendored 修改授权条款；plan 注明 JS 薄包禁用 prepare 钩子（防 pnpm install 污染） |
+| 2026-09-14 | Review R3 F13：Cargo.lock 入库决策（可复现构建；`fe/.gitignore` 加例外；W1 依赖变更时更新） |

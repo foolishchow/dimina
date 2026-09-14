@@ -4,6 +4,7 @@ dist
 dist-ssr
 *.local
 *.lock
+!tools/crates/Cargo.lock
 .vscode
 package-lock.json
 pnpm-lock.yaml
