@@ -56,7 +56,7 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | **T1** 描述抽取（静态段） | createCompileTarget（静态描述）+ 静态穿参（compileConfig / sourcemap / renderer 对象）；`_runBuild` 顶部改道；E1 不变量落地 | 行为 0（diff=0 + 测试全绿 + lifecycle 序列不变）；结构判据 **T1 子集**（E2 renderer 反查 + E1 C1 私算消失，grep 级锚定） |
 | **T2** 动态段 + 派生 | readLoadBindings + deriveStagePlan（final stages / sourcemapTargetPath / stylePages / 三捆 workerOptions）；编译组装改道 | 行为 0；结构判据 **T2 子集**（E3 mini-game 直耦 / E4 sourcemapTargetPath / E5 三捆消失）+ 消融 |
 
-消融：拔描述回落内联散算 → 结构锚定失败（沿用 session-unify P-SU07 模式）。
+消融：**T1** 拔 createCompileTarget → ②T1 子集锚定失败；**T2** 拔 deriveStagePlan → ②T2 子集锚定失败（per-gate，见 validation P-CT08）。
 
 ## 已确认设计输入（引用，不重定）
 
@@ -101,3 +101,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | **D-CT-0..5 全部拍板**（照建议）；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；闭合条件入档；STATUS 同步 |
 | 2026-09-14 | Review（Readiness 门 `fail`，健康态）F1–F4 修正：`readLoadBindings` 收窄为**阶段组装侧唯一读取点**（worker/编译器内部读取显式划出范围）；结构锚定范围定界（`'编译项目'` 闭包内 + BUILD_END appId 经 bindings）；`deriveStagePlan` cwd 显式入参；T0 与 compile-config.spec 直测关系明示 |
 | 2026-09-14 | Review R2 F6–F9 修正：产品门 T1/T2 归属对齐 design（workerOptions/sourcemapTargetPath 归 T2）；P-CT05 锚定拆 T1/T2 双层；design 结构判据补 per-gate 收敛注记；A-CT2 措辞同步「阶段组装侧唯一读取点」 |
+| 2026-09-14 | Review R3 F10/F11/F12/F15 修正：plan T2 Step 1 同步（阶段组装侧读取点 + cwd 签名）；产品门消融行 per-gate 化；A-CT1/CT2 证据标注 P-CT05 子集；plan T0 Step 3 落点定 bundler-session.spec |
