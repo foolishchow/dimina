@@ -115,6 +115,20 @@ Backend（registry）  LoadedGraph → 产物；vue = backend₀；同 id 注册
 
 **结构不变量（本伞 MUST）**：新模板后端（如第二 renderer 的模板面）**必须经 `wxml/backends/registry` 挂载**（WxmlBackend 接口），不得再以「WXML 源 → cheerio → 产物」熔断路径直连；view-compiler 仅为编排壳。过渡注记两处成文（component-host 源级包装 / compileTemplate 打包壳）——语义迁移期再收。style-compiler 同构切缝为 S13 书面剩余。
 
+## WXML SpanSource（fe-tools-wxml-bridge · D-WIR-1 修订 2026-09-14）
+
+**D-WIR-1 修订（D-WB-2）**：允许 Rust parser（`fe/tools/crates/dimina-wxml-parser`，483 tests）作为 **napi 桥接组件**进 tools 工具链（对齐 oxc-parser 先例）——边界 = **单 crate 桥**，非工具链 Rust 化；桥接实现限 `fe/tools/`，不触碰 `fe/packages/*`。原 wxml-ir「仅 JS」约束对此桥修正。
+
+**职责分配**：
+
+```text
+SpanView（napi 桥）:  WXML 源 → 树 + 半开 byte span + raw + sourceFile   ← Rust parser
+wxml/load + view:    展开/收集/产物（cheerio 投影继续）                    ← JS（不变）
+sourcemap 归位:      inMap 消费 SpanView 真 span（行级正确 + 列级可用）
+```
+
+**结构不变量**：SpanView 不含表达式负载（`.expr/.object`）；`sourceFile` 透传；span 语义与 PARSING-SPEC §0.4 / D-WIR-5 一致（半开 byte、文件内局部）。后续 W3+（换投影/表达式消费）沿用此桥面扩展。
+
 ## 命名
 
 | 概念 | 采用名 |

@@ -50,6 +50,6 @@
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
 | `fe-tools-compiler-target` | `complete` | [README](_archive/complete/fe-tools-compiler-target/README.md) | CompileTarget 形态层：T0 入口纪律 + T1 静态描述 + T2 阶段派生；A-CT0..06 全 pass；消融 ×3；回流 architecture-notes；已归档。 | 2026-09-14 |
 | `fe-tools-incremental-target` | `draft` | [README](fe-tools-incremental-target/README.md) | E7 增量形态回灌：watch/cache options 袋与 CompileTarget 对齐（S1/S2/S3/S9）；契约 A/B 待拍板；未授权实施。 | 2026-09-14 |
-| `fe-tools-wxml-bridge` | `ready` | [README](fe-tools-wxml-bridge/README.md) | Rust parser napi 桥 + sourcemap 跨文件归位（include 错位修复）；D-WB-1..6 已拍板（napi-rs / D-WIR-1 修订 / crates workspace）；实施待授权。 | 2026-09-14 |
+| `fe-tools-wxml-bridge` | `in_progress` | [README](fe-tools-wxml-bridge/README.md) | Rust parser napi 桥 + sourcemap 跨文件归位；D-WB-1..8 拍板；W0..W2 实施已授权（基线 `d75f001a`）。 | 2026-09-14 |
 | `fe-tools-wxml-ir` | `complete` | [README](_archive/complete/fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 缝 + registry；行为 0 严格 diff=0；消融 ×2；S13 view 收口（style 书面剩余）；不变量回流；已归档。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |

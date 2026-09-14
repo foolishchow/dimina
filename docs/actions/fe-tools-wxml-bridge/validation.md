@@ -1,6 +1,6 @@
 # Validation — fe-tools-wxml-bridge
 
-Status: **ready（2026-09-14）** — P-WB00..05；升 `in_progress` 时记基线 SHA（随门递进），Result 届时回填
+Status: **in_progress（2026-09-14）** — P-WB00..06；**基线（W0）= `d75f001a`**（W1 = W0 合入后；W2 = W1 合入后）；Result 届时回填
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |

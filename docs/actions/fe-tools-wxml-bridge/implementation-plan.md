@@ -1,6 +1,6 @@
 # Implementation plan — fe-tools-wxml-bridge
 
-Status: **ready（2026-09-14）** — D-WB 已拍板；升 `in_progress` 时记基线 SHA；W0/W1/W2 各自 PR，禁混（P5）
+Status: **in_progress（2026-09-14）** — W0..W2 实施中；基线 `d75f001a`；各门 PR，禁混（P5）
 
 ## W0 触达序（入树基建 · 无代码行为面）
 

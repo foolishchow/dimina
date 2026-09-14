@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-wxml-bridge
 
-Status: **ready（2026-09-14）** — A-WB0..05；D-WB 已拍板；实施另授权 `in_progress`，证据回填
+Status: **in_progress（2026-09-14）** — A-WB0..05；W0..W2 实施中（基线 `d75f001a`）；证据回填
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
