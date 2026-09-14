@@ -1,8 +1,8 @@
 # FE Tools Compiler Target
 
 - Action: `fe-tools-compiler-target`
-- Status: `ready`
-- Updated: 2026-09-14（D-CT-0..5 拍板；Readiness 五件套成稿；七轮 review 收敛（R1–R7，22 findings 全清）；升 ready）
+- Status: `in_progress`
+- Updated: 2026-09-14（七轮 review 收敛；T0 实施授权开工；基线 `4f7b712a`）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（S1+S2 已归档；其 README 预告本方向为正交 Action）；[`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（BP1 已归档；阶段表抽取、Listr 保留）；上游 A4 renderer 抽象边界（`src/compiler/renderers.js` 头注）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -69,9 +69,9 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-14）：source audit（E1–E8）+ 组合矩阵讨论 + Readiness 五件套完成；**七轮 review 收敛（R1–R7，22 findings 全清）**；**未授权实施**。
+- 当前 **`in_progress`**（2026-09-14）：七轮 review 收敛（R1–R7，22 findings 全清）；**T0（组合校验）实施已授权开工**；基线 `4f7b712a` 记于 [validation.md](validation.md)。
 - **D-CT-0..5 已拍板（2026-09-14，全部照建议）**，见 [design.draft](design.draft.md) §决策记录。
-- 升 `in_progress` 需明确授权（届时记基线 SHA，随门递进）。
+- T0 已授权实施；T1/T2 待各自授权（基线随门递进，见 P-CT02）。
 
 ## 决策记录（已拍板 · 2026-09-14，全部照建议）
 
@@ -107,3 +107,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | Review R5 F17/F18：T2 判据补 E6 显式两段性验收；E7 列为 Non-goal（仅记录、不修复，另立 Action 再议） |
 | 2026-09-14 | Review R6 F19/F20：Goal 3 补 T0 行为变更例外（行为 0 限定 T1/T2）；Goal 1 去「暂名」（定名 `CompileTarget`，D-CT-2） |
 | 2026-09-14 | Review R7 F21/F22：Status 行补七轮 review 事实（清「Review 未开展」陈旧声明）+ Updated 行同步；闭合条件范围守恒补 E7 |
+| 2026-09-14 | Review R8：零 findings（E 表全量实锚复检 + T0 测试影响面扫描）；收敛确认；升 **`in_progress`**：T0 实施授权开工，基线 `4f7b712a` |

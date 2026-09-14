@@ -1,6 +1,6 @@
 # Validation — fe-tools-compiler-target
 
-Status: **ready（2026-09-14）** — P-CT00..07；升 `in_progress` 时记基线 SHA（随门递进），Result 届时回填
+Status: **in_progress（2026-09-14）** — P-CT00..08；**基线（T0）= `4f7b712a`**（T1 = T0 合入后 HEAD；T2 = T1 合入后 HEAD）；Result 届时回填
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-compiler-target
 
-Status: **ready（2026-09-14）** — A-CT0..06；D-CT 已拍板；实施另授权 `in_progress`，证据回填
+Status: **in_progress（2026-09-14）** — A-CT0..06；T0 实施中（基线 `4f7b712a`）；证据回填
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
