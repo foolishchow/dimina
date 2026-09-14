@@ -31,7 +31,7 @@ span = { start, end }   // 半开 byte 偏移（D-WIR-5 / PARSING-SPEC §0.4 一
 
 **关键取舍**：W1 只要 span/raw/结构 → napi 返回值走**紧凑 JSON**（非 napi class 树）——绑定工作量降到「crate → JSON 序列化」，span 语义无损；后续需要深度消费时再加 napi struct 面。**不含 `.expr`/`.object`。**
 
-**序列化路径（D-WB-7）**：vendored crate 加 **serde derives**（仅 span/raw 面类型；`ExprContainer.expr` 等 swc 表达式类型不序列化/丢负载）。这是 **vendored 代码修改**——VENDOR.md 记入「vendored modification」并列入同步注意（重随上游时需重放）。
+**序列化路径（D-WB-7）**：vendored crate 加 **serde derives**（仅 span/raw 面类型；`ExprContainer.expr` 等 swc 表达式类型不序列化/丢负载）。这是 **vendored 代码修改**——VENDOR.md 记入「vendored modification」并列入同步注意（重随上游时需重放）。**兜底（F20）**：若 `#[ast_node]` 宏与 `#[derive(Serialize)]` 冲突或序列化面比预期宽，改**手写 serializer**（仅遍历 span/raw 面，天然排除表达式负载）——二选一在 W1 首步骤定，可测锚：SpanView 输出不含 swc 表达式字段。
 
 ## napi 工程形态（D-WB-3）
 

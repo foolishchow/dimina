@@ -15,7 +15,7 @@ Status: **ready（2026-09-14）** — D-WB 已拍板；升 `in_progress` 时记�
 
 | Step | 文件 | 动作 |
 | --- | --- | --- |
-| 1 | `crates/dimina-wxml-parser-napi/`（新） | napi-rs 子 crate；`parseWxmlSpanView(source, sourceFile?)` → 紧凑 JSON（span/raw/结构；不含 `.expr`/`.object`）。**前提（D-WB-7）**：vendored crate 加 serde derives（span/raw 面；非表达式）并被 VENDOR 记修改 |
+| 1 | `crates/dimina-wxml-parser-napi/`（新） | napi-rs 子 crate；`parseWxmlSpanView(source, sourceFile?)` → 紧凑 JSON（span/raw/结构；不含 `.expr`/`.object`）。**前提（D-WB-7）**：vendored crate 加 serde derives（span/raw 面；非表达式）并被 VENDOR 记修改；**若 `#[ast_node]` 与 derive 冲突 → 手写 serializer 兜底（F20），首步定二选一，可测锚=SpanView 不含 swc 表达式字段** |
 | 2 | `fe/tools/wxml-parser-napi/package.json`（新 JS 薄包） | `@dimina/wxml-parser-napi`；`scripts.build = napi build`；**禁止 `prepare` 钩子自动构建**（防污染 `pnpm install`）；`main` 加载 `.node`；未构建时 `[wxml]` 指引 |
 | 3 | 测例 | JS 侧 SpanView 对拍：与 crate 测试同源用例（node span / attr span / expr-body span / raw / sourceFile 透传三一致） |
 | 4 | 验证 | `cargo test` 483 绿（crate 回归）；napi build 产出 `.node`；JS 单测绿；性能基准（parse 100 页耗时）记录；**`pnpm install` 复验 `tools/crates` 被静默跳过、`wxml-parser-napi` 被纳入 workspace（F15）**（注：W2 集成期可优先 worker 内解析，非硬验收） |
