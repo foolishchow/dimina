@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-compiler-target`
 - Status: `ready`
-- Updated: 2026-09-14（D-CT-0..5 拍板；Readiness 五件套成稿；升 ready）
+- Updated: 2026-09-14（D-CT-0..5 拍板；Readiness 五件套成稿；七轮 review 收敛（R1–R7，22 findings 全清）；升 ready）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（S1+S2 已归档；其 README 预告本方向为正交 Action）；[`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（BP1 已归档；阶段表抽取、Listr 保留）；上游 A4 renderer 抽象边界（`src/compiler/renderers.js` 头注）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -69,7 +69,7 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-14）：source audit（E1–E8）+ 组合矩阵讨论 + Readiness 五件套完成；Review 未开展；**未授权实施**。
+- 当前 **`ready`**（2026-09-14）：source audit（E1–E8）+ 组合矩阵讨论 + Readiness 五件套完成；**七轮 review 收敛（R1–R7，22 findings 全清）**；**未授权实施**。
 - **D-CT-0..5 已拍板（2026-09-14，全部照建议）**，见 [design.draft](design.draft.md) §决策记录。
 - 升 `in_progress` 需明确授权（届时记基线 SHA，随门递进）。
 
@@ -91,7 +91,7 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 - **行为 0 证据**：全量 vitest 绿 + T1/T2 各基线 nomap/sourcemap diff=0（基线随门递进，P-CT02）；T0 行为变更按验收锁定；
 - **持久发现回流**：target 形态单源化 + 「形态条件单源于 compile-target」结构不变量入档（写回 session-unify 已回流的 architecture-notes 或新建段）；
 - **一致变更**：STATUS / README / 归档位置随 `complete` 一次同步（→ `_archive/complete/`）；
-- **范围守恒**：非目标项（真 web target / renderer 扩展 / Listr / TS-2）确认维持，不新开范围。
+- **范围守恒**：非目标项（真 web target / renderer 扩展 / Listr / TS-2 / E7 watch-plan 耦合）确认维持，不新开范围。
 
 ## 修订记录
 
@@ -106,3 +106,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | Review R4 F16：T1 判据辨析 E1 双义——「C1 私算消失」（管线内联 MODE_PRESETS/sourcemapStrategyFor/平台判断）与「双重调用保留 by design（R-CT4）」显式区分 |
 | 2026-09-14 | Review R5 F17/F18：T2 判据补 E6 显式两段性验收；E7 列为 Non-goal（仅记录、不修复，另立 Action 再议） |
 | 2026-09-14 | Review R6 F19/F20：Goal 3 补 T0 行为变更例外（行为 0 限定 T1/T2）；Goal 1 去「暂名」（定名 `CompileTarget`，D-CT-2） |
+| 2026-09-14 | Review R7 F21/F22：Status 行补七轮 review 事实（清「Review 未开展」陈旧声明）+ Updated 行同步；闭合条件范围守恒补 E7 |
