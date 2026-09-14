@@ -1,10 +1,10 @@
 # FE Tools Session Unify
 
 - Action: `fe-tools-session-unify`
-- Status: `in_progress`
-- Updated: 2026-09-14（S1 实施已授权开工；基线 SHA 记于 validation.md）
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（O1–O3 已归档 complete）；[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（PS1+PS2 已归档）；[`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（BP1 已归档）；调度设计：[session-scheduling.draft.md](../fe-tools-sidecar/session-scheduling.draft.md)（L1–L4 / W1–W4 已确认）
+- Status: `complete`
+- Updated: 2026-09-14（S1+S2 交付；A-SU01..06 全 pass；消融 ×2；回流完成；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（O1–O3 已归档 complete）；[`fe-tools-project-store`](../fe-tools-project-store/README.md)（PS1+PS2 已归档）；[`fe-tools-build-pipeline`](../fe-tools-build-pipeline/README.md)（BP1 已归档）；调度设计：[session-scheduling.draft.md](../../../fe-tools-sidecar/session-scheduling.draft.md)（L1–L4 / W1–W4 已确认）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -63,7 +63,7 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-14）：**S1 + S2 均已交付**（行为 0；500/74 全绿；nomap 94 / sourcemap 185 diff=0 ×2 基线；消融 ×2 ✓）；A-SU01..06 全 pass。待 Close 评估（闭合条件见下）。基线 S1 = `c768e9a5` / S2 = `aa064037`。
+- **`complete`（2026-09-14）**：S1 + S2 均交付（`aa064037` / `85ae2750`）；A-SU01..06 全 pass；消融 ×2 在档；行为 0 双基线 diff=0；结构不变量已回流 architecture-notes。
 - **D-SU-1..5 已拍板（2026-09-13，全部照建议）**：
   1. S1/S2 两门切分（先机械后语义）—— D-SU-1
   2. 内核落点 `src/session/runner.js`、不公开导出 —— D-SU-2
@@ -78,7 +78,7 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 - **两门交付**：S1 + S2 均完成，A-SU01..06 全 pass，证据回填 acceptance / validation；
 - **消融在档**：P-SU07 消融 ×2（S1 拔内核 / S2 拔收口）完成且失败点落在对应断言，恢复后全绿；
 - **行为 0 证据**：全量 vitest 绿 + nomap/sourcemap diff=0（基线随门递进，P-SU02）；
-- **持久发现回流**：结构不变量「新增执行入口必须经内核」写入 [`fe-tools-sidecar/architecture-notes.md`](../fe-tools-sidecar/architecture-notes.md)（或伞 README）；
+- **持久发现回流**：结构不变量「新增执行入口必须经内核」写入 [`fe-tools-sidecar/architecture-notes.md`](../../../fe-tools-sidecar/architecture-notes.md)（或伞 README）；
 - **一致变更**：STATUS / README / 归档位置随 `complete` 一次同步（→ `_archive/complete/`）；
 - **范围守恒**：已知限制（lifecycle `off()` 等）确认维持 Non-requirements，不新开范围。
 
@@ -97,3 +97,4 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 | 2026-09-14 | 升 **`in_progress`**：S1 实施授权开工；基线 SHA 记于 validation.md（P-SU02 随门递进：S1 基线 = 升 in_progress 时 HEAD） |
 | 2026-09-14 | **S1 交付**（fe-tools-session-unify S1 内核抽取）：runner.js（composeOptions + runOnce）；index.js 三入口改道内核、删除分叉组装与 splitBuildOverrides（-76 行）、头注释 3→2（F3）；session-unify.spec 新建 7 用例（行为同构 + 结构锚定 + 内核单测）。验证：495/74 全绿；nomap 94 / sourcemap 185 diff=0（c768e9a5）；exports 6 ESM + CLI；消融 ✓（A-SU05② 结构锚定失败 → 恢复）。**S2 待授权** |
 | 2026-09-14 | **S2 交付**（调度收口）：runner.js + assertLoopFree / occupyLoop / releaseLoop；runOnce 内化 R4 断言；index.js 删壳内 activeLoop 置位 / finally 清环（全部经内核）；session-unify.spec +5 用例（双释放 / dev 标签 D-SU-4 / R4-during-dev / 挂载唯一）。验证：500/74 全绿；S2 对照 `aa064037` nomap 94 / sourcemap 185 diff=0；消融 ✓（拔 releaseLoop 单点 → 结构锚定失败 → 恢复 500 绿）。**A-SU01..06 全 pass；待 Close 评估** |
+| 2026-09-14 | **Close：升 `complete` 并归档**——闭合条件逐项核验通过（两门交付 / 消融在档 / 行为 0 双基线 / 回流 architecture-notes / 一致变更 / 范围守恒）；相对链接随归档调整 |

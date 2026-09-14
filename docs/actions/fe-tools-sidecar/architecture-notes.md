@@ -1,7 +1,7 @@
 # Architecture notes — session / ProjectStore / BuildPipeline
 
 Status: **discussion consensus**（2026-09-12）  
-Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · 已归档 session
+Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · 已归档 session
 
 ## 唯一会话管理者
 
@@ -60,6 +60,20 @@ stop/close → 释 activeLoop；store 保留
 .dev = session.watch + preview（编译路径同构）
 ```
 
+## Session 执行内核（fe-tools-session-unify · 已交付 2026-09-14）
+
+三入口（`.build` / `.watch` / `.dev`）共享 `src/session/runner.js` 执行内核（`createSessionRunner(state)`）：
+
+```text
+composeOptions(overrides)   // options 组装：白名单合并 + fileTypes 缺省 + store/lifecycle 注入（forced-last）
+runOnce(overrides)          // one-shot 编译（仅 .build；内化 R4 idle-check，消息文本冻结）
+assertLoopFree(kind)        // R3 检查（消息含 kind；dev 经此保留 dev-flavor 消息，D-SU-4 标签保持 'watch'）
+occupyLoop(kind)            // R3 断言 + 置位（watcher 创建成功后；创建失败不得占用）
+releaseLoop()               // 幂等释放（stop / close / R7 回滚统一出口）
+```
+
+**结构不变量（本伞 MUST）**：新增执行入口（如 target 方向 build 变体）**必须经内核**（composeOptions / runOnce / loop 三件套），不得在壳内另起分叉组装、断言或释放。壳（`session/index.js`）零 `state.activeLoop` 访问、零内联 options 组装——由 `session-unify.spec` 结构锚定与消融保障（回归基线见归档 Action）。
+
 ## 命名
 
 | 概念 | 采用名 |
@@ -106,3 +120,4 @@ stop/close → 释 activeLoop；store 保留
 | 2026-09-12 | **确认 R1–R4**；两门 requirements/acceptance/validation 草稿 |
 | 2026-09-12 | Readiness Round 3：RR1–RR12；stages → build-pipeline/stages.md；设计冻结 v1 |
 | 2026-09-12 | Final Readiness FR1–FR9；implementation-plan；待升 ready |
+| 2026-09-14 | **回流 fe-tools-session-unify（complete）**：Session 执行内核（composeOptions / runOnce / assertLoopFree / occupyLoop / releaseLoop）+ 结构不变量「新增执行入口必须经内核」入档 |
