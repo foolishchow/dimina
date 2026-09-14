@@ -6,7 +6,7 @@ Status: **ready（2026-09-14）** — A-CT0..06；D-CT 已拍板；实施另授�
 | --- | --- | --- | --- | --- |
 | A-CT0 | R-CT0 | build+web 在 resolve 层拒绝（消息 `D-R2/C: command:'build' requires compile.platform:'native'`）；dev 侧 D-R2/C 行为与消息**不变**（既有 `/D-R2\/C/` 断言不改）；CLI help 同步；直调 `build({platform:'web'})` 编程路径自由度不变 | P-CT04 / P-CT06 + 源码审查 | pending |
 | A-CT1 | R-CT1 | 存在 `src/compiler/compile-target.js` 且 `createCompileTarget` 可用；`_runBuild` 顶部三件事（C1 / renderer 解析+校验 / stages 白名单）改道描述；**错误消息逐字不变**；静态穿参从描述取（renderer 对象非字符串） | P-CT05 / P-CT02 + 源码审查 | pending |
-| A-CT2 | R-CT2 | `readLoadBindings` 为唯一 env 读取点（时机在 collect-config 后）；`deriveStagePlan` 纯函数返回新对象；最终 stages（mini-game 过滤）/ sourcemapTargetPath / stylePages / 三 stage workerOptions 全部派生 | P-CT05 / P-CT03 + 源码审查 | pending |
+| A-CT2 | R-CT2 | `readLoadBindings` 为**阶段组装侧**唯一 env 读取点（时机在 collect-config 后；worker/编译器内部读取属既有契约，不迁移）；`deriveStagePlan` 纯函数返回新对象；最终 stages（mini-game 过滤）/ sourcemapTargetPath / stylePages / 三 stage workerOptions 全部派生 | P-CT05 / P-CT03 + 源码审查 | pending |
 | A-CT3 | R-CT3 | vitest 全绿（既有断言不改）；nomap + sourcemap diff=0；lifecycle 事件序列不变（session-unify 同构断言全绿）；exports 面零变化（compile-target 不进公开面） | P-CT01 / P-CT02 / P-CT03 / P-CT06 | pending |
 | A-CT4 | R-CT4 | E1 成文不变量入档；结构判据：`build-pipeline.js` 无内联 `MODE_PRESETS` / `sourcemapStrategyFor` / 平台私算 | P-CT05 ③ + 文档审查 | pending |
 | A-CT5 | R-CT5 | 阶段组装处无 renderer 反查 / 内联 sourcemapTargetPath / mini-game 直耦 / 手工三捆（测试锚定 + review 核对） | P-CT05 ①② | pending |

@@ -59,7 +59,7 @@ Listr ─ 初始化项目  collect-config（store.load；ALS 建档）
 
 ## 结构判据（反散点 · R-CT5）
 
-模式名（描述/派生/两段性）仅作评审词汇；验收以病症反向要求表达——阶段组装处不得再现 renderer 反查 / 内联 sourcemapTargetPath / mini-game 直耦 / 手工三捆 workerOptions。**锚定范围与 BUILD_END 载荷处置见 §两段性时序（F2）**。**交付后「形态条件单源于 compile-target」为结构不变量**（新增形态轴必须经描述 + 派生，不得在闭包内散算）。
+模式名（描述/派生/两段性）仅作评审词汇；验收以病症反向要求表达——阶段组装处不得再现 renderer 反查 / 内联 sourcemapTargetPath / mini-game 直耦 / 手工三捆 workerOptions。**锚定范围与 BUILD_END 载荷处置见 §两段性时序（F2）**。**分两步收敛**：T1 清 renderer 反查 + C1 私算（E2/E1）；T2 清 mini-game 直耦 / 内联 sourcemapTargetPath / 手工三捆（E3/E4/E5）——per-gate 锚定子集见 validation P-CT05。**交付后「形态条件单源于 compile-target」为结构不变量**（新增形态轴必须经描述 + 派生，不得在闭包内散算）。
 
 ## T0 细则（D-CT-0）
 
@@ -99,3 +99,4 @@ A4 renderer 抽象边界 / CF-1（C1 唯一语义源）/ CF-2（platform + sourc
 | --- | --- |
 | 2026-09-14 | v1 成稿：职责表、三步 API、两段性时序、三门切分、T0 细则、D-CT-0..5 拍板 |
 | 2026-09-14 | Review F1–F4 修正：readLoadBindings 收窄为**阶段组装侧**唯一读取点（worker 内部读取显式划出范围）；结构锚定范围定界（`'编译项目'` 闭包内 + BUILD_END appid 经 bindings）；`deriveStagePlan` cwd 显式入参；**冻结 v1** |
+| 2026-09-14 | Review R2 F8：结构判据段补 per-gate 收敛注记（T1 清 E2/E1；T2 清 E3/E4/E5）——与 validation P-CT05 双层锚定对齐 |

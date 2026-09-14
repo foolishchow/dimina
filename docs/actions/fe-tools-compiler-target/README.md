@@ -53,8 +53,8 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 门 | 内容 | 验收判据 |
 | --- | --- | --- |
 | **T0** 组合校验（前置小门 · **行为变更**） | resolve 层对偶断言：`command:'build'` ⇒ `platform:'native'`，否则结构化报错（镜像 D-R2/C 风格，对齐 A4“不静默”哲学）；CLI help 同步；**不坍缩描述模型**（`sourcemapStrategyFor` web 分支保留） | 报错用例锁定（build+web 拒绝 / dev+native 维持 D-R2/C 消息不变）；现有 `/D-R2\/C/` 测试不破；直调 `build({platform:'web'})` 编程路径自由度不变 |
-| **T1** 描述抽取（静态段） | CompileTarget 对象 + 派生函数（enabledStages / renderer / per-stage workerOptions / sourcemapTargetPath）；管线改道消费 | 行为 0（diff=0 + 测试全绿 + lifecycle 序列不变）；结构判据（E2/E4/E5 的散点不再出现于阶段组装处，grep 级锚定） |
-| **T2** 动态段 + 收敛 | mini-game / appId / pages 的两段性表达；E1 成文不变量 | 同上 + 消融 |
+| **T1** 描述抽取（静态段） | createCompileTarget（静态描述）+ 静态穿参（compileConfig / sourcemap / renderer 对象）；`_runBuild` 顶部改道；E1 不变量落地 | 行为 0（diff=0 + 测试全绿 + lifecycle 序列不变）；结构判据 **T1 子集**（E2 renderer 反查 + E1 C1 私算消失，grep 级锚定） |
+| **T2** 动态段 + 派生 | readLoadBindings + deriveStagePlan（final stages / sourcemapTargetPath / stylePages / 三捆 workerOptions）；编译组装改道 | 行为 0；结构判据 **T2 子集**（E3 mini-game 直耦 / E4 sourcemapTargetPath / E5 三捆消失）+ 消融 |
 
 消融：拔描述回落内联散算 → 结构锚定失败（沿用 session-unify P-SU07 模式）。
 
@@ -100,3 +100,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | 组合矩阵讨论：新增 **E8**（build 侧假自由度）与 **T0 门**（入口收严、模型不坍缩）；E1 定性修正（by design，处置改为成文不变量）；①–⑤ 建议方案入档待拍板 |
 | 2026-09-14 | **D-CT-0..5 全部拍板**（照建议）；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；闭合条件入档；STATUS 同步 |
 | 2026-09-14 | Review（Readiness 门 `fail`，健康态）F1–F4 修正：`readLoadBindings` 收窄为**阶段组装侧唯一读取点**（worker/编译器内部读取显式划出范围）；结构锚定范围定界（`'编译项目'` 闭包内 + BUILD_END appId 经 bindings）；`deriveStagePlan` cwd 显式入参；T0 与 compile-config.spec 直测关系明示 |
+| 2026-09-14 | Review R2 F6–F9 修正：产品门 T1/T2 归属对齐 design（workerOptions/sourcemapTargetPath 归 T2）；P-CT05 锚定拆 T1/T2 双层；design 结构判据补 per-gate 收敛注记；A-CT2 措辞同步「阶段组装侧唯一读取点」 |
