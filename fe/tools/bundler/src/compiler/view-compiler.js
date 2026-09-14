@@ -15,6 +15,16 @@ import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSo
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from './env.js'
 import { parseBindings } from './expression-parser.js'
 import { concatSourcemap, createLineSourcemap, mergeSourcemap, remapSourcemap } from './sourcemap.js'
+import { attachProjection } from './wxml/document.js'
+import { parseWxml } from './wxml/parse.js'
+import { loadTemplates } from './wxml/load.js'
+import { getBackend, registerBackend } from './wxml/backends/registry.js'
+import { vueBackend, VUE_BACKEND_ID } from './wxml/backends/vue.js'
+
+// TS-2（fe-tools-wxml-ir）：backend₀ 注册（registry 同 id 抛错；测例可先 unregister）
+if (!getBackend(VUE_BACKEND_ID)) {
+	registerBackend(vueBackend)
+}
 
 /**
  * 根据扩展名列表生成匹配尾部扩展名的正则，如 ['.wxs', '.qds'] -> /(\.wxs|\.qds)$/
@@ -1149,7 +1159,12 @@ function collectIncludedComponentTags($, components) {
 }
 
 /**
- * 转换成底层框架模板
+ * 转换成底层框架模板 —— TS-2 缝编排（fe-tools-wxml-ir）：
+ * parse（wxml/parse.js · Document 投影）→ load（wxml/load.js · 展开/收集）
+ * → getBackend('vue').render（wxml/backends/vue.js · Vue 特有降级）。
+ * 编排壳保留：读盘/空守卫/兼容检查/component-host 源级包装（过渡注记：
+ * 保 startIndex 偏移 → sourcemap 字节 0；DOM 级迁移属语义迁移期）与
+ * compileTemplate/缓存/打包（模块落点图「既有缓存/打包壳」）。
  * @param {*} isComponent
  * @param {*} path
  * @param {*} components
@@ -1180,191 +1195,60 @@ function toCompileTemplate(isComponent, path, components, componentPlaceholder, 
 		if (isComponent) {
 			// componentPlaceholder 作为模块元数据交给渲染层解析；模板仍保留目标组件别名。
 			// 自定义组件统一添加宿主节点，承载组件边界、属性、事件与样式隔离语义。
+			// v1 过渡注记：源级包装保留在编排壳（保 loc 偏移 → 行为 0）；DOM 级迁移属语义迁移期。
 			content = `<component-host name="${path}">${content}</component-host>`
 		}
 	}
 
-	const templateModule = []
-	const scriptModule = []
-	const $ = cheerio.load(content, {
-		xmlMode: true,
-		decodeEntities: false,
-		_useHtmlParser2: true,
-		// 减少内存占用的配置
-		lowerCaseTags: false,
-		lowerCaseAttributeNames: false,
-		withStartIndices: true,
-		withEndIndices: true,
-	})
-	if (!isComponent && originalContent.trim()) {
-		// 在主 DOM 上完成多根节点包装，避免仅为计数再次解析模板。
-		const root = $.root()
-		if (root.children().length > 1) {
-			const wrapper = $('<view></view>')
-			wrapper.append(root.contents())
-			root.append(wrapper)
-		}
-	}
-
-	// 处理 include 节点
-	// 可以将目标文件除了 <template/> <wxs/> 外的整个代码引入，相当于是拷贝到 include 位置
-	const includeNodes = $('include')
-	includeNodes.each((_, elem) => {
-		const src = $(elem).attr('src')
-		// 将目标文件除了 <template/> <wxs/> 外的整个代码引入，相当于是拷贝到 include 位置
-		if (src) {
-			const includeFullPath = resolveTemplateDependencyPath(workPath, sourcePath, src)
-			getDependencyGraph().addFile(path, includeFullPath, 'view')
-			// 计算被包含文件的路径（去掉扩展名），用于 wxs 路径解析
-			let includePath = includeFullPath.replace(workPath, '').replace(buildExtStripRegex(getTemplateExts()), '')
-			const includeDiagnosticSource = includeFullPath.startsWith(workPath)
-				? includeFullPath.slice(workPath.length)
-				: includePath
-
-			// 确保路径以 / 开头
-			if (!includePath.startsWith('/')) {
-				includePath = '/' + includePath
-			}
-
-			const includeContent = getContentByPath(includeFullPath)
-			if (includeContent.trim()) {
-				checkTemplateCompatibility(includeContent, includeDiagnosticSource, components)
-
-				const $includeContent = cheerio.load(includeContent, {
-					xmlMode: true,
-					decodeEntities: false,
-					_useHtmlParser2: true,
-					withStartIndices: true,
-					withEndIndices: true,
-				})
-				const componentTags = collectIncludedComponentTags($includeContent, components)
-
-				// 提取其中的 template 节点
-				transTagTemplate(
-					$includeContent,
-					templateModule,
-					includePath,
-					components,
-					componentPlaceholder,
-					{ path: includeDiagnosticSource, content: includeContent },
-					path,
-				)
-
-				// 提取其中的 wxs 节点
-				transTagWxs(
-					$includeContent,
-					scriptModule,
-					includePath,
-					path,
-				)
-
-				// 处理被引入文件中的组件 wxs 依赖
-				processIncludedFileWxsDependencies(componentTags, includePath, scriptModule, components, processedPaths)
-
-				$includeContent('template').remove()
-				$includeContent(getViewScriptTags().join(',')).remove()
-
-				// 处理条件属性并替换
-				const processedContent = processIncludeConditionalAttrs($, elem, $includeContent.html())
-				$(elem).replaceWith(processedContent)
-			} else {
-				// 如果没有内容，直接移除节点
-				$(elem).remove()
-			}
-		} else {
-			// 如果没有 src 属性，直接移除节点
-			$(elem).remove()
-		}
-	})
-
-	// 处理 template 节点
-	// https://developers.weixin.qq.com/miniprogram/dev/reference/wxml/template.html
-	transTagTemplate(
-		$,
-		templateModule,
+	// TS-2 缝：parse → Document → load → Backend（特殊节点在树上；展开/收集属 load）
+	const document = parseWxml(content, { sourceFile: diagnosticSource })
+	attachProjection(document, '_source', originalContent)
+	const loaded = loadTemplates(document, {
+		isComponent,
+		modulePath: path,
 		sourcePath,
 		components,
 		componentPlaceholder,
-		{ path: diagnosticSource, content: originalContent },
-		path,
-	)
-
-	// 处理 wxs 节点
-	// https://developers.weixin.qq.com/miniprogram/dev/reference/wxs/01wxs-module.html
-	transTagWxs($, scriptModule, sourcePath, path)
-
-	// 处理 import 节点
-	// https://developers.weixin.qq.com/miniprogram/dev/reference/wxml/import.html
-	const importNodes = $('import')
-	importNodes.each((_, elem) => {
-		const src = $(elem).attr('src')
-		if (src) {
-			const importFullPath = resolveTemplateDependencyPath(workPath, sourcePath, src)
-			getDependencyGraph().addFile(path, importFullPath, 'view')
-			let importPath = importFullPath.replace(workPath, '').replace(buildExtStripRegex(getTemplateExts()), '')
-			const importDiagnosticSource = importFullPath.startsWith(workPath)
-				? importFullPath.slice(workPath.length)
-				: importPath
-
-			// 确保路径以 / 开头
-			if (!importPath.startsWith('/')) {
-				importPath = '/' + importPath
-			}
-
-			const importContent = getContentByPath(importFullPath)
-			if (importContent.trim()) {
-				checkTemplateCompatibility(importContent, importDiagnosticSource, components)
-
-				const $$ = cheerio.load(importContent, {
-					xmlMode: true,
-					decodeEntities: false,
-					_useHtmlParser2: true,
-					withStartIndices: true,
-					withEndIndices: true,
-				})
-				const componentTags = collectIncludedComponentTags($$, components)
-				// 提取其中的 template 节点
-				transTagTemplate(
-					$$,
-					templateModule,
-					importPath,
-					components,
-					componentPlaceholder,
-					{ path: importDiagnosticSource, content: importContent },
-					path,
-				)
-
-				// 提取其中的 wxs 节点
-				transTagWxs(
-					$$,
-					scriptModule,
-					importPath,
-					path,
-				)
-
-				// 处理被导入文件中的组件 wxs 依赖
-				processIncludedFileWxsDependencies(componentTags, importPath, scriptModule, components, processedPaths)
-			}
-		}
+		processedPaths,
+		hasOriginalContent: Boolean(originalContent.trim()),
+		workPath,
+		stripTemplateExtsRegex: buildExtStripRegex(getTemplateExts()),
+		tools: {
+			transTagTemplate,
+			transTagWxs,
+			transAsses,
+			resolveTemplateDependencyPath,
+			collectIncludedComponentTags,
+			processIncludedFileWxsDependencies,
+			processIncludeConditionalAttrs,
+			checkTemplateCompatibility,
+		},
+		env: {
+			getContentByPath,
+			getDependencyGraph,
+			getViewScriptTags,
+		},
 	})
-	importNodes.remove()
 
-	transAsses($, $('image'), sourcePath, path)
-
-	const res = []
-
-	normalizeTemplateDom($, $.root(), components)
-	transHtmlTag($.html(), res, components, componentPlaceholder)
+	const backend = getBackend(VUE_BACKEND_ID)
+	if (!backend) {
+		throw new Error(`[wxml] view backend '${VUE_BACKEND_ID}' is not registered`)
+	}
+	const { code } = backend.render({ loaded }, {
+		components,
+		componentPlaceholder,
+		tools: { normalizeTemplateDom, transHtmlTag },
+	})
 
 	return {
-		tpl: res.join(''),
+		tpl: code,
 		sourceInfo: {
 			path: diagnosticSource,
 			content: originalContent,
 		},
 		instruction: {
-			templateModule,
-			scriptModule,
+			templateModule: loaded.templateModule,
+			scriptModule: loaded.scriptModule,
 		},
 	}
 }
