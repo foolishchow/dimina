@@ -1,8 +1,8 @@
 # FE Tools WXML Bridge
 
 - Action: `fe-tools-wxml-bridge`（暂名，转正见待定 ①）
-- Status: `draft`
-- Updated: 2026-09-14（sourcemap 病症实锚 + crate 入树验证后初稿）
+- Status: `ready`
+- Updated: 2026-09-14（D-WB-1..6 拍板；Readiness 五件套成稿；升 ready）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝已交付；D-WIR-1「仅 JS」约束由本门修订）；`docs/wxml/` 七份规范；`fe/tools/crates/dimina-wxml-parser`（Rust parser，483 tests 绿）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -64,19 +64,15 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 | **D-WB-2** | **D-WIR-1 修订**：允许 Rust parser 作为桥接组件进 tools 工具链（对齐 oxc-parser 先例；边界=单 crate 桥，非工具链 Rust 化） |
 | **D-WB-3** | Rust 归属 = `fe/tools/crates/` Cargo workspace（后续 Rust 组件同驻） |
 
-## 待定（Readiness 前需确认）
+## 决策记录（已拍板 · 2026-09-14，全部照建议）
 
-1. **Action 名**：`fe-tools-wxml-bridge`（建议）/ `spanbridge` / `wxml-napi`
-2. **SpanView 形状**：字段清单（span 三层：node/attr/expr-body？raw 含否 `{{}}` 定界？sourceFile 传递）——W1 design 冻结项
-3. **napi 工程形态**：独立子 crate（建议，oxc-parser 同款）vs feature 开关；npm 包装（`@dimina/wxml-parser`？）与 `.node` 加载策略（dev 本地构建）
-4. **docs 主从**：crate `docs/` vs 仓库 `docs/wxml/`（建议：仓库为真源、crate docs 改指针——Action 体系引用仓库路径）
-5. **W2 map 质量断言操作化**：抽查用例集（base 工程含 include 的页面清单）与「更准」的判定口径
-6. **VENDOR 溯源补全**：源工作区路径/commit（用户提供）
+见 [design.draft](design.draft.md) §决策记录：D-WB-1（napi-rs）/ D-WB-2（D-WIR-1 修订）/ D-WB-3（crates workspace + 独立 napi 子 crate + JS 薄包）/ D-WB-4（SpanView 紧凑 JSON）/ D-WB-5（docs 主从）/ D-WB-6（验证契约）。
+
+**待用户补录**：VENDOR 源工作区路径/commit（⑥，不影响 ready 门——同步责任与主从已成文）
 
 ## Status / 授权
 
-- 当前 **`draft`**：病症实锚 + 资产验证 + 三决策入档；待定 6 项拍板后补 Readiness 五件套
-- 未授权实施
+- 当前 **`ready`**（2026-09-14）：病症实锚 + 资产验证 + D-WB-1..6 拍板 + Readiness 五件套成稿；**未授权实施**（升 in_progress 需明确授权）
 
 ## 闭合条件（草案）
 
@@ -90,3 +86,4 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-14 | 初稿：sourcemap 病症实锚（1:1 猜射/include 错位）；crate 入树 + workspace + 483 tests 验证；D-WB-1..3 拍板；6 项待定 |
+| 2026-09-14 | **D-WB-1..6 全部拍板**；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；STATUS 同步 |
