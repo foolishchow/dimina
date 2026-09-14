@@ -22,7 +22,7 @@ program
 	.option('--no-app-id-dir', '产物根目录不包含appId')
 	.option('--sourcemap', '生成 sourcemap 文件用于调试')
 	.option('--minify', '压缩产物（覆盖 mode 缺省；可用 --no-minify 关闭）')
-	.option('--platform <name>', '运行时宿主平台：native | web（缺省 native）')
+	.option('--platform <name>', '运行时宿主平台：native（build 仅支持 native；web 由 dev 提供）')
 	.action(async (options) => {
 		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 		// argv defaults stay in bin (M-G1): resolve receives explicit values only

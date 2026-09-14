@@ -69,9 +69,9 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-14）：七轮 review 收敛（R1–R7，22 findings 全清）；**T0（组合校验）实施已授权开工**；基线 `4f7b712a` 记于 [validation.md](validation.md)。
+- 当前 **`in_progress`**（2026-09-14）：**T0 已交付**（resolve 对偶断言 + CLI help + 2 用例 + 消融 ✓；502/502；diff=0）；**T1（静态描述）待授权**（T1 基线 = T0 合入后 HEAD）。
 - **D-CT-0..5 已拍板（2026-09-14，全部照建议）**，见 [design.draft](design.draft.md) §决策记录。
-- T0 已授权实施；T1/T2 待各自授权（基线随门递进，见 P-CT02）。
+- T0 已交付；T1/T2 待各自授权（基线随门递进，见 P-CT02）。
 
 ## 决策记录（已拍板 · 2026-09-14，全部照建议）
 
@@ -108,3 +108,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | Review R6 F19/F20：Goal 3 补 T0 行为变更例外（行为 0 限定 T1/T2）；Goal 1 去「暂名」（定名 `CompileTarget`，D-CT-2） |
 | 2026-09-14 | Review R7 F21/F22：Status 行补七轮 review 事实（清「Review 未开展」陈旧声明）+ Updated 行同步；闭合条件范围守恒补 E7 |
 | 2026-09-14 | Review R8：零 findings（E 表全量实锚复检 + T0 测试影响面扫描）；收敛确认；升 **`in_progress`**：T0 实施授权开工，基线 `4f7b712a` |
+| 2026-09-14 | **T0 交付**：`assertBuildCompileCompatible` 对偶断言（D-R2/C 双侧对称）+ CLI help 同步 + 2 新用例（resolve 拒绝 / 直调自由度）。验证：502/502 全绿；CLI 冒烟（web→exit1+消息 / native→exit0）；对照 `4f7b712a` nomap 94 diff=0；消融 ✓（拔断言→拒绝用例失败→恢复）。**T1 待授权** |

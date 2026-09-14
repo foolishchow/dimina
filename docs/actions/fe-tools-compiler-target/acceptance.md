@@ -4,7 +4,7 @@ Status: **in_progress（2026-09-14）** — A-CT0..06；T0 实施中（基线 `4
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-CT0 | R-CT0 | build+web 在 resolve 层拒绝（消息 `D-R2/C: command:'build' requires compile.platform:'native'`）；dev 侧 D-R2/C 行为与消息**不变**（既有 `/D-R2\/C/` 断言不改）；CLI help 同步；直调 `build({platform:'web'})` 编程路径自由度不变 | P-CT04 / P-CT06 + 源码审查 | pending |
+| A-CT0 | R-CT0 | build+web 在 resolve 层拒绝（消息 `D-R2/C: command:'build' requires compile.platform:'native'`）；dev 侧 D-R2/C 行为与消息**不变**（既有 `/D-R2\/C/` 断言不改）；CLI help 同步；直调 `build({platform:'web'})` 编程路径自由度不变 | P-CT04 / P-CT06 + 源码审查 | **pass（T0）** — resolve.js `assertBuildCompileCompatible` 对偶断言；CLI `--platform web` exit=1 + stderr 消息锁定，显式 native exit=0；dev 侧既有用例不改全绿；直调 `build({platform:'web'})` 编译成功（新增测例锁定）；help 文本同步（选项声明保留，platforms.spec 正则兼容） |
 | A-CT1 | R-CT1 | 存在 `src/compiler/compile-target.js` 且 `createCompileTarget` 可用；`_runBuild` 顶部三件事（C1 / renderer 解析+校验 / stages 白名单）改道描述；**错误消息逐字不变**；静态穿参从描述取（renderer 对象非字符串） | P-CT05 ②T1 子集 + ③ / P-CT02 + 源码审查 | pending |
 | A-CT2 | R-CT2 | `readLoadBindings` 为**阶段组装侧**唯一 env 读取点（时机在 collect-config 后；worker/编译器内部读取属既有契约，不迁移）；`deriveStagePlan` 纯函数返回新对象；最终 stages（mini-game 过滤）/ sourcemapTargetPath / stylePages / 三 stage workerOptions 全部派生；**E6 两段性由显式 API + collect-config 后时序锁定** | P-CT05 ②T2 子集 / P-CT03 + 源码审查 | pending |
 | A-CT3 | R-CT3 | vitest 全绿（既有断言不改）；nomap + sourcemap diff=0；lifecycle 事件序列不变（session-unify 同构断言全绿）；exports 面零变化（compile-target 不进公开面） | P-CT01 / P-CT02 / P-CT03 / P-CT06 | pending |

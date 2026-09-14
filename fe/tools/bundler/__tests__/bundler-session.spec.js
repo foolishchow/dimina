@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createBundler } from '../src/session/index.js'
 import { resolveBundlerConfig } from '../src/session/resolve.js'
 import { createLifecycle } from '../src/shared/lifecycle.js'
+import build from '../src/index.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 
@@ -291,6 +292,21 @@ describe('bundler session (O1 build)', () => {
 				command: 'dev',
 				cli: { workPath: tempDir, targetPath: outputDir, platform: 'native' },
 			})).toThrow(/D-R2\/C/)
+		})
+
+		it('D-R2/C: build rejects platform web (T0 双侧对称，fe-tools-compiler-target)', () => {
+			expect(() => resolveBundlerConfig({
+				command: 'build',
+				cli: { workPath: tempDir, targetPath: outputDir, platform: 'web' },
+			})).toThrow(/D-R2\/C: command:'build' requires compile.platform:'native'/)
+		})
+
+		it('T0: 直调 build({platform:\'web\'}) 绕过 resolve，编程自由度保持', async () => {
+			// E8 处置：入口（resolveBundlerConfig）收严；compile-config 层自由度保留。
+			// 直调 build() 门面不经 resolve，platform:'web' 仍可编译（产物与 native 等价）。
+			const result = await build(outputDir, tempDir, false, { platform: 'web' })
+			expect(result).toBeTruthy()
+			expect(result.appId).toBe('bundler-session-app')
 		})
 
 		it('D-R3: dev server is host/port only', () => {

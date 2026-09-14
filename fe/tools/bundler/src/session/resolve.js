@@ -74,6 +74,7 @@ export function resolveBundlerConfig(input) {
 		platform: seeds.platform,
 	})
 	assertDevCompileCompatible(command, compile)
+	assertBuildCompileCompatible(command, compile)
 
 	const fileTypes = firstDefined(api.fileTypes, undefined)
 
@@ -137,6 +138,23 @@ function assertDevCompileCompatible(command, compile) {
 	if (compile.platform !== 'web') {
 		throw new TypeError(
 			`D-R2/C: command:'dev' requires compile.platform:'web', got ${JSON.stringify(compile.platform)}`,
+		)
+	}
+}
+
+/**
+ * D-R2/C 双侧对称（fe-tools-compiler-target T0）：command:'build' 要求
+ * platform:'native'。E8 处置——build+web 是无消费者的假自由度（产物与
+ * native 字节等价），入口收严为结构化报错；compile-config 层自由度保留
+ * （直调 build({platform:'web'}) 不经 resolve，仍可编译）。
+ */
+function assertBuildCompileCompatible(command, compile) {
+	if (command !== 'build') {
+		return
+	}
+	if (compile.platform !== 'native') {
+		throw new TypeError(
+			`D-R2/C: command:'build' requires compile.platform:'native', got ${JSON.stringify(compile.platform)}`,
 		)
 	}
 }
