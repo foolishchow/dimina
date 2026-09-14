@@ -1,6 +1,6 @@
 # Implementation plan — fe-tools-compiler-target
 
-Status: **in_progress（2026-09-14）** — T0 实施中；基线 `4f7b712a`；T0/T1/T2 各自 PR，禁混（P5）
+Status: **in_progress（2026-09-14）** — T0+T1+T2 已交付；待 Close；T0/T1/T2 各自 PR 禁混（P5；本轮 T1+T2 同工作区未单独合入）
 
 ## T0 触达序（组合校验 · 唯一行为变更门）
 

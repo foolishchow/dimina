@@ -12,22 +12,20 @@
 import path from 'node:path'
 import process from 'node:process'
 import { Listr, PRESET_TIMER } from 'listr2'
-import { resolveCompileConfig } from '../shared/compile-config.js'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.js'
-import { assertRendererSupportsPlatform } from '../shared/platforms.js'
-import { getRenderer, registerRenderer, resolveProjectRenderers } from './renderers.js'
+import { getRenderer, registerRenderer } from './renderers.js'
+import { createCompileTarget, deriveStagePlan, readLoadBindings, STAGE_TITLES } from './compile-target.js'
 import { createDist, publishToDist } from './publish.js'
 import { artCode, resetAssetCache } from '../shared/utils.js'
 import { NpmBuilder } from './npm-builder.js'
 import { compileConfig } from './index.js'
-import { getAppConfigInfo, getAppId, getAppName, getAppStyleScopeId, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from './env.js'
+import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from './env.js'
 import { runCompileStage } from './stage-channel.js'
 import { BuildModel, materialize } from '../model/build-model.js'
 import { createProjectStore } from '../model/project-store.js'
 
 let isPrinted = false
 const previousCompatibilityWarnings = new Map()
-const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
 const MAX_WARNING_PROJECTS = 32
 
 /**
@@ -72,27 +70,17 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			affectedEntries,
 			seedPath,
 			dependencyGraph,
-			stages,
 			prepareConfig = true,
 			prepareNpm = true,
 			store: runStore,
 			lifecycle: runLifecycle,
 		} = runOptions
 		const store = runStore ?? providedStore ?? createProjectStore()
-		if (stages !== undefined
-			&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
-			throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
-		}
-		const compileConfiguration = resolveCompileConfig({ apiOptions: runOptions })
-		const { sourcemap } = compileConfiguration
+		// T1：C1 / renderer 校验 / stages 白名单改道 createCompileTarget（消息不变）
+		const compileTarget = createCompileTarget(runOptions)
 		const lifecycle = runLifecycle || pipelineLifecycle || createLifecycle()
-
-		const { appRenderer } = resolveProjectRenderers(workPath)
-		const activeRenderer = getRenderer(appRenderer)
-		if (!activeRenderer) {
-			throw new Error(`Renderer adapter not registered: ${appRenderer}`)
-		}
-		assertRendererSupportsPlatform(activeRenderer, compileConfiguration.platform)
+		// T2：阶段组装侧 bindings；BUILD_END appId 复用（避免二次 env 读取）
+		let loadBindings = null
 
 		const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, store: _storeRef, targetPath: _t, workPath: _w, useAppIdDir: _u, ...serializableOptions } = runOptions
 		try {
@@ -103,9 +91,6 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 				options: serializableOptions,
 			})
 
-			const enabledStages = new Set(stages === undefined
-				? COMPILE_STAGE_ORDER
-				: COMPILE_STAGE_ORDER.filter(stage => stages.includes(stage)))
 			const shouldPrepareConfig = !seedPath || prepareConfig
 			const shouldPrepareNpm = !seedPath || prepareNpm
 			resetAssetCache()
@@ -164,46 +149,26 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 					{
 						title: `编译项目 · ${path.basename(path.resolve(workPath))}`,
 						task: (ctx, task) => {
-							const allPages = getPages()
-							const miniGame = isMiniGame()
-							ctx.allPages = allPages
-							ctx.pages = filterPagesByEntries(allPages, affectedEntries)
+							// T2：阶段组装侧唯一读取 + 纯派生；闭包内不再散算形态条件
+							loadBindings = readLoadBindings()
+							ctx.allPages = loadBindings.pages
+							ctx.pages = filterPagesByEntries(loadBindings.pages, affectedEntries)
 							ctx.compatibilityWarnings = new Set()
-							const compileTasks = []
 
-							if (enabledStages.has('view') && !miniGame) {
-								compileTasks.push(createStageTask('view', '编译视图', lifecycle, {
-									sourcemap,
-									compileConfig: compileConfiguration,
-								}, activeRenderer.name))
-							}
-							if (enabledStages.has('logic')) {
-								const sourcemapTargetPath = path.resolve(
-									process.cwd(),
-									targetPath,
-									useAppIdDir ? getAppId() : '',
+							const plan = deriveStagePlan(compileTarget, loadBindings, {
+								cwd: process.cwd(),
+								filteredPages: ctx.pages,
+							})
+							const compileTasks = plan.stages.map((stage) => {
+								const spec = plan.stageSpecs[stage]
+								return createStageTask(
+									stage,
+									STAGE_TITLES[stage],
+									lifecycle,
+									spec.workerOptions,
+									spec.renderer,
 								)
-								compileTasks.push(createStageTask('logic', '编译逻辑', lifecycle, {
-									sourcemap,
-									pages: ctx.allPages,
-									sourcemapTargetPath,
-									compileConfig: compileConfiguration,
-								}))
-							}
-							if (enabledStages.has('style') && !miniGame) {
-								const stylePages = {
-									...ctx.pages,
-									mainPages: [
-										{ path: 'app', id: getAppStyleScopeId() },
-										...ctx.pages.mainPages,
-									],
-								}
-								compileTasks.push(createStageTask('style', '编译样式', lifecycle, {
-									sourcemap,
-									pages: stylePages,
-									compileConfig: compileConfiguration,
-								}, activeRenderer.name))
-							}
+							})
 
 							if (compileTasks.length > 0) {
 								return task.newListr(compileTasks, { concurrent: true })
@@ -233,7 +198,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			const context = await tasks.run()
 			printCompatibilityWarnings(workPath, context.compatibilityWarnings)
 			const result = {
-				appId: getAppId(),
+				appId: loadBindings.appId,
 				name: getAppName(),
 				path: getAppConfigInfo().entryPagePath || context.allPages.mainPages[0].path,
 				dependencyGraph: context.dependencyGraph.toJSON(),
@@ -255,7 +220,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 
 // --- 以下为 pipeline 内部 helper（从 index.js 搬入） ---
 
-function createStageTask(stage, title, lifecycle, workerOptions = {}, renderer = 'webview') {
+function createStageTask(stage, title, lifecycle, workerOptions = {}, rendererAdapter = null) {
 	return {
 		title,
 		rendererOptions: { outputBar: true, persistentOutput: false },
@@ -268,8 +233,9 @@ function createStageTask(stage, title, lifecycle, workerOptions = {}, renderer =
 			})
 			const warningsBefore = new Set(ctx.compatibilityWarnings)
 			const startedAt = Date.now()
+			// T1：renderer 对象已由 createCompileTarget 校验；此处不再字符串反查
 			const runStage = stage === 'view' || stage === 'style'
-				? getRenderer(renderer)?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
+				? rendererAdapter?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
 				: null
 			try {
 				if (runStage) {

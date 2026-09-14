@@ -1,0 +1,193 @@
+/**
+ * CompileTarget — 编译产物形态描述（fe-tools-compiler-target）。
+ *
+ * E1 不变量（R-CT4 / D-CT-4）：
+ * - 管线侧必须自调用 resolveCompileConfig（直调 build() 路径自洽，L3）；
+ * - session 层另经 resolveBundlerConfig 解析（D-R2 seeds）；
+ * - 两合法路径，同一纯函数；不得在 build-pipeline 内联 MODE_PRESETS /
+ *   sourcemapStrategyFor / 平台合法性判断。
+ *
+ * 两段性（E6 / D-CT-3）：
+ *   createCompileTarget(runOptions)           // 静态段（Listr 前 fail-fast）
+ *   → readLoadBindings()                     // 动态段：阶段组装侧唯一 env 读取点
+ *   → deriveStagePlan(target, bindings, opts) // 纯派生：stages / workerOptions / paths
+ *
+ * 「形态条件单源于 compile-target」：新增形态轴须经描述 + 派生，不得在闭包内散算。
+ */
+
+import path from 'node:path'
+import { resolveCompileConfig } from '../shared/compile-config.js'
+import { assertRendererSupportsPlatform } from '../shared/platforms.js'
+import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from './env.js'
+import { getRenderer, resolveProjectRenderers } from './renderers.js'
+
+const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
+const STAGE_TITLES = Object.freeze({
+	view: '编译视图',
+	logic: '编译逻辑',
+	style: '编译样式',
+})
+
+/**
+ * 从单次 run 选项构建静态 CompileTarget（fail-fast，消息与改道前逐字一致）。
+ *
+ * @param {object} runOptions
+ * @returns {object} CompileTarget
+ */
+export function createCompileTarget(runOptions) {
+	const {
+		targetPath,
+		workPath,
+		useAppIdDir = true,
+		stages,
+	} = runOptions
+
+	if (stages !== undefined
+		&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
+		throw new TypeError(`Invalid compiler stages: ${JSON.stringify(stages)}`)
+	}
+
+	const compileConfig = resolveCompileConfig({ apiOptions: runOptions })
+
+	const { appRenderer } = resolveProjectRenderers(workPath)
+	const adapter = getRenderer(appRenderer)
+	if (!adapter) {
+		throw new Error(`Renderer adapter not registered: ${appRenderer}`)
+	}
+	assertRendererSupportsPlatform(adapter, compileConfig.platform)
+
+	const requestedStages = new Set(stages === undefined
+		? COMPILE_STAGE_ORDER
+		: COMPILE_STAGE_ORDER.filter(stage => stages.includes(stage)))
+
+	return {
+		mode: compileConfig.mode,
+		platform: compileConfig.platform,
+		esTarget: compileConfig.esTarget,
+		minify: compileConfig.minify,
+		sourcemap: compileConfig.sourcemap,
+		sourcemapStrategy: compileConfig.sourcemapStrategy,
+		compileConfig,
+		renderer: { name: adapter.name, adapter },
+		requestedStages,
+		targetPath,
+		useAppIdDir,
+		workPath,
+	}
+}
+
+/**
+ * 阶段组装侧唯一 env 读取点（时机：collect-config 之后，ALS 已就绪）。
+ * worker / 编译器内部读取不迁移（R-CT2 / F1）。
+ *
+ * @returns {{ miniGame: boolean, appId: string, pages: object, appStyleScopeId: string }}
+ */
+export function readLoadBindings() {
+	return {
+		miniGame: isMiniGame(),
+		appId: getAppId(),
+		pages: getPages(),
+		appStyleScopeId: getAppStyleScopeId(),
+	}
+}
+
+/**
+ * @param {unknown} bindings
+ */
+function assertLoadBindings(bindings) {
+	// appId 可为 undefined（无 project.config appid 时与改道前 path.resolve 行为一致）
+	if (!bindings
+		|| typeof bindings !== 'object'
+		|| typeof bindings.miniGame !== 'boolean'
+		|| !('appId' in bindings)
+		|| bindings.pages == null
+		|| !('appStyleScopeId' in bindings)) {
+		throw new TypeError(
+			'deriveStagePlan: incomplete load bindings (call readLoadBindings after collect-config)',
+		)
+	}
+}
+
+/**
+ * 纯函数：由静态 CompileTarget + 动态 bindings 派生阶段计划（返回新对象，无突变）。
+ *
+ * `filteredPages` 为组装输入（affectedEntries 过滤结果），非 env；缺省回落 bindings.pages。
+ *
+ * @param {object} compileTarget
+ * @param {object} bindings
+ * @param {{ cwd: string, filteredPages?: object }} options
+ */
+export function deriveStagePlan(compileTarget, bindings, { cwd, filteredPages } = {}) {
+	assertLoadBindings(bindings)
+	if (typeof cwd !== 'string' || !cwd) {
+		throw new TypeError('deriveStagePlan: cwd must be a non-empty string')
+	}
+
+	const pagesForStyle = filteredPages ?? bindings.pages
+	const stages = COMPILE_STAGE_ORDER.filter((stage) => {
+		if (!compileTarget.requestedStages.has(stage)) {
+			return false
+		}
+		if ((stage === 'view' || stage === 'style') && bindings.miniGame) {
+			return false
+		}
+		return true
+	})
+
+	const sourcemapTargetPath = path.resolve(
+		cwd,
+		compileTarget.targetPath,
+		compileTarget.useAppIdDir ? (bindings.appId ?? '') : '',
+	)
+
+	const stylePages = {
+		...pagesForStyle,
+		mainPages: [
+			{ path: 'app', id: bindings.appStyleScopeId },
+			...pagesForStyle.mainPages,
+		],
+	}
+
+	const { sourcemap, compileConfig, renderer } = compileTarget
+	const stageSpecs = {}
+
+	if (stages.includes('view')) {
+		stageSpecs.view = {
+			workerOptions: {
+				sourcemap,
+				compileConfig,
+			},
+			renderer: renderer.adapter,
+		}
+	}
+	if (stages.includes('logic')) {
+		stageSpecs.logic = {
+			workerOptions: {
+				sourcemap,
+				pages: bindings.pages,
+				sourcemapTargetPath,
+				compileConfig,
+			},
+			renderer: null,
+		}
+	}
+	if (stages.includes('style')) {
+		stageSpecs.style = {
+			workerOptions: {
+				sourcemap,
+				pages: stylePages,
+				compileConfig,
+			},
+			renderer: renderer.adapter,
+		}
+	}
+
+	return {
+		stages,
+		stageSpecs,
+		sourcemapTargetPath,
+		stylePages,
+	}
+}
+
+export { COMPILE_STAGE_ORDER, STAGE_TITLES }

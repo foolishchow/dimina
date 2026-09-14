@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-compiler-target`
 - Status: `in_progress`
-- Updated: 2026-09-14（七轮 review 收敛；T0 实施授权开工；基线 `4f7b712a`）
+- Updated: 2026-09-14（T0+T1+T2 已交付；待 Close 评估）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（S1+S2 已归档；其 README 预告本方向为正交 Action）；[`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（BP1 已归档；阶段表抽取、Listr 保留）；上游 A4 renderer 抽象边界（`src/compiler/renderers.js` 头注）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -69,9 +69,10 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-14）：**T0 已交付**（resolve 对偶断言 + CLI help + 2 用例 + 消融 ✓；502/502；diff=0）；**T1（静态描述）待授权**（T1 基线 = T0 合入后 HEAD）。
+- 当前 **`in_progress`**（2026-09-14）：**T0 + T1 + T2 均已交付**；待 Close 工作流独立评估闭合（A-CT0..06 / 消融 ×3 / 回流）。
+- **T1 基线** = T0 合入后 HEAD = `f89f4488`（T1 未单独合入；与 T2 同工作区递进）。
+- **T2 基线** = T1 工作区 tip（实施前产物快照；对照 nomap94/sm185 diff=0）。
 - **D-CT-0..5 已拍板（2026-09-14，全部照建议）**，见 [design.draft](design.draft.md) §决策记录。
-- T0 已交付；T1/T2 待各自授权（基线随门递进，见 P-CT02）。
 
 ## 决策记录（已拍板 · 2026-09-14，全部照建议）
 
@@ -109,3 +110,5 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | Review R7 F21/F22：Status 行补七轮 review 事实（清「Review 未开展」陈旧声明）+ Updated 行同步；闭合条件范围守恒补 E7 |
 | 2026-09-14 | Review R8：零 findings（E 表全量实锚复检 + T0 测试影响面扫描）；收敛确认；升 **`in_progress`**：T0 实施授权开工，基线 `4f7b712a` |
 | 2026-09-14 | **T0 交付**：`assertBuildCompileCompatible` 对偶断言（D-R2/C 双侧对称）+ CLI help 同步 + 2 新用例（resolve 拒绝 / 直调自由度）。验证：502/502 全绿；CLI 冒烟（web→exit1+消息 / native→exit0）；对照 `4f7b712a` nomap 94 diff=0；消融 ✓（拔断言→拒绝用例失败→恢复）。**T1 待授权** |
+| 2026-09-14 | **T1 交付**（用户授权继续实施）：新建 `compile-target.js`（`createCompileTarget`）+ `_runBuild` 顶部改道 + 静态穿参（renderer **adapter 对象**非字符串）；E1 不变量成文于模块头；`compile-target.spec` 10 用例（消息锁定 + P-CT05 ②T1 结构锚定）。验证：512/75 全绿；对照 `f89f4488` nomap 94 / sourcemap 185 diff=0（同 examples 路径）；消融 ✓（回落基线 pipeline → 结构锚定 3 failed → 恢复 512 绿）；exports 6 ESM + CLI。**T2 待授权** |
+| 2026-09-14 | **T2 交付**（用户授权实施）：`readLoadBindings` + `deriveStagePlan`；`'编译项目'` 闭包改道；BUILD_END `appId` 经 bindings；`compile-target.spec` +11（derive 矩阵 + ②T2 锚定）。验证：525/75 全绿；对照 T1 产物快照 nomap 94 / sourcemap 185 diff=0；消融 ✓（回落 T1 pipeline → ②T2 锚定 2 failed → 恢复 525 绿）。**三门齐；待 Close** |
