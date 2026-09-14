@@ -165,7 +165,7 @@ fe/tools/
 2. 最小 IR 形状已起草并经评审，且有明确实施授权；  
 3. 测量/产品证明模板巨石已成为阻塞演进的主矛盾。
 
-**近端替代重心**：[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（**complete / 已归档**：PS1+PS2）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）+ [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（**complete / 已归档**：S1+S2 三入口内核同构 + 调度收口，行为 0）；**session 唯一管会话**。（目录归置与 TS-4 已完成。）
+**近端替代重心**：[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（**complete / 已归档**：PS1+PS2）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）+ [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（**complete / 已归档**：S1+S2 三入口内核同构 + 调度收口，行为 0）+ [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md)（**complete / 已归档**：CompileTarget 形态层 T0+T1+T2）；**session 唯一管会话**；**形态条件单源于 compile-target**。（目录归置与 TS-4 已完成。）
 
 ### PS3 deferred（2026-09-12）
 

@@ -1,7 +1,7 @@
 # Architecture notes — session / ProjectStore / BuildPipeline
 
 Status: **discussion consensus**（2026-09-12）  
-Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · 已归档 session
+Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) · 已归档 session
 
 ## 唯一会话管理者
 
@@ -74,6 +74,33 @@ releaseLoop()               // 幂等释放（stop / close / R7 回滚统一出�
 
 **结构不变量（本伞 MUST）**：新增执行入口（如 target 方向 build 变体）**必须经内核**（composeOptions / runOnce / loop 三件套），不得在壳内另起分叉组装、断言或释放。壳（`session/index.js`）零 `state.activeLoop` 访问、零内联 options 组装——由 `session-unify.spec` 结构锚定与消融保障（回归基线见归档 Action）。
 
+## CompileTarget 形态层（fe-tools-compiler-target · 已交付 2026-09-14）
+
+与 session-unify **正交**：session 管「怎么编译」；CompileTarget 管「编译成什么」。
+
+```text
+createCompileTarget(runOptions)                 // 静态段：C1 + renderer 校验 + stages 白名单（Listr 前 fail-fast）
+  → readLoadBindings()                          // 动态段：阶段组装侧唯一 env 读取（collect-config 后）
+  → deriveStagePlan(target, bindings, { cwd… }) // 纯派生：stages / workerOptions / sourcemapTargetPath / stylePages
+        │
+        ▼
+BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形态条件）
+```
+
+| 关注点 | 归属 |
+| --- | --- |
+| C1 语义 | `shared/compile-config.js`（CF-1）；`createCompileTarget` 内部经它取值 |
+| renderer / stages 白名单 | `createCompileTarget` |
+| mini-game / appId / pages / appStyleScopeId（组装侧） | `readLoadBindings` |
+| 最终阶段 / workerOptions / paths | `deriveStagePlan`（纯、无突变） |
+| build⇒native 入口纪律 | `resolveBundlerConfig`（T0；不坍缩描述模型） |
+
+落点：`src/compiler/compile-target.js`（**不进**公开 `exports`）。
+
+**结构不变量（本伞 MUST）**：形态条件（mode / platform / renderer / 启用阶段 / sourcemap 策略 / 产物路径形态）**单源于 compile-target**——新增形态轴必须经描述 + 派生，不得在 `build-pipeline` 的 `'编译项目'` 闭包内散算（renderer 字符串反查、内联 `sourcemapTargetPath`、mini-game 直耦 stage push、手工三捆 workerOptions）。由 `compile-target.spec` 结构锚定与消融保障。
+
+**E1 不变量**：管线侧必须自调 `resolveCompileConfig`（直调 `build()` 自洽，L3）；session 层另经 `resolveBundlerConfig`（D-R2 seeds）——两合法路径，同一纯函数；不得在 pipeline 内联 `MODE_PRESETS` / `sourcemapStrategyFor` / 平台私算。
+
 ## 命名
 
 | 概念 | 采用名 |
@@ -121,3 +148,4 @@ releaseLoop()               // 幂等释放（stop / close / R7 回滚统一出�
 | 2026-09-12 | Readiness Round 3：RR1–RR12；stages → build-pipeline/stages.md；设计冻结 v1 |
 | 2026-09-12 | Final Readiness FR1–FR9；implementation-plan；待升 ready |
 | 2026-09-14 | **回流 fe-tools-session-unify（complete）**：Session 执行内核（composeOptions / runOnce / assertLoopFree / occupyLoop / releaseLoop）+ 结构不变量「新增执行入口必须经内核」入档 |
+| 2026-09-14 | **回流 fe-tools-compiler-target（complete）**：CompileTarget 两段 API + 结构不变量「形态条件单源于 compile-target」+ E1 双重解析不变量入档 |

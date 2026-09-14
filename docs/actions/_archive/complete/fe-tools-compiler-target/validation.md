@@ -1,6 +1,6 @@
 # Validation — fe-tools-compiler-target
 
-Status: **in_progress（2026-09-14）** — P-CT00..08；**基线（T0）= `4f7b712a`**；**基线（T1）= `f89f4488`**；**基线（T2）= T1 工作区 tip 产物快照**
+Status: **complete（2026-09-14）** — P-CT00..08 全 pass；已归档
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |

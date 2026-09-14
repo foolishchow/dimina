@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-compiler-target
 
-Status: **in_progress（2026-09-14）** — A-CT0..06；T0+T1+T2 已交付；待 Close
+Status: **complete（2026-09-14）** — A-CT0..06 全 pass；已归档
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
@@ -27,4 +27,4 @@ Status: **in_progress（2026-09-14）** — A-CT0..06；T0+T1+T2 已交付；待
 - **消融 ×3（MUST）**：T0 拔断言 → 拒绝用例失败；T1 拔 createCompileTarget → 结构锚定失败；T2 拔 deriveStagePlan → 结构锚定失败。纪律按 Experience-Review §6。**三门消融均已在档（P-CT08）**。
 - **基线随门递进**（P-CT02）：T0 = 升 in_progress 时 HEAD；T1 = T0 合入后；T2 = T1 tip（本轮 T1 未单独合入，以产物快照对照）。
 - **P-CT00 dist 前置**沿用 session-unify（exports 面在 dist，测试直连 src）。
-- 升 `in_progress` 需明确授权。闭合前仍需：持久发现回流 architecture-notes + Close 工作流。
+- 升 `in_progress` 需明确授权。**Close 已完成**：持久发现已回流 architecture-notes；Action 已归档。
