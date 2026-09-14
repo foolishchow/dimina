@@ -21,13 +21,13 @@
 
 需要一条新 umbrella：在 **`fe/tools/*` 旁路孵化**，主路径 `packages/*` 与 upstream 同构；私有能力只在 tools（整包复制启动 → 再内部改造）。
 
-**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md)、近端结构 [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) + [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) 均已 **complete / 归档**；[architecture-notes.md](./architecture-notes.md)。伞仍为 `draft`（CI 等 gap）。**TS-2（模板 IR）书面 deferred**；**PS3（增量装载 applyChanges / subscribe）书面 deferred**。
+**2026-09-12 现状**：独立 Action [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 已 `complete`——`fe/tools/{bundler,web-container-sdk}`、`dimina-cli`、workspace `tools/*` 已落地；工作分支 **`feature/fe-tools-sidecar`**；`git diff origin/main...HEAD -- fe/packages` 为空。卫生 [`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)、编排 [`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)、主线程 [`fe-tools-build-model`](../_archive/complete/fe-tools-build-model/README.md)、worker 缓存 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)、决策 [`fe-tools-worker-architecture`](../_archive/complete/fe-tools-worker-architecture/README.md)、目录归置 [`fe-tools-bundler-layout`](../_archive/complete/fe-tools-bundler-layout/README.md)、近端结构 [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) + [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) 均已 **complete / 归档**；[architecture-notes.md](./architecture-notes.md)。伞仍为 `draft`（CI 等 gap）。**TS-2（模板 IR）已再激活并交付**（[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md) complete：view 缝 + registry；style 剩余）；**PS3（增量装载 applyChanges / subscribe）书面 deferred**。
 
 ## Goal
 
 1. 建立 `fe/tools` 旁路战略与 TS-0 冻结约定（终态 B、命名、依赖方向）；与独立搬迁 Action 对齐但不父子绑定 — **约定已冻；落地已由 bootstrap 完成**；
 2. **搬迁冒烟本身**由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 独立交付（本伞 TS-1 仅记意图/前置）— **前置已 complete**；
-3. 在 tools 内再改造：**dev 编排**（session 已交付）、**模板管线**（parse → Document → Backend；载体 [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) **`ready`**）、按需深改私有 sdk — 模板切开 **ready、未实施**；
+3. 在 tools 内再改造：**dev 编排**（session 已交付）、**模板管线**（parse → Document → Backend；载体 [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md) **complete 已归档**——view 缝交付、行为 0）、按需深改私有 sdk；
 4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面 — **本分支 packages 已干净；同步节奏见 [sync-rhythm.md](./sync-rhythm.md)（TS-4 成文）**；
 5. 不向 didi 推送本伞交付物。
 
@@ -132,7 +132,7 @@ fe/tools/
 - ~~workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter~~ — **bootstrap 已交付**；
 - ~~`dimina-cli` 冷启动冒烟~~ — **bootstrap 已交付**；
 - `packages/*` 满足终态 B 可检查句 — **已满足；操作真源 [sync-rhythm.md](./sync-rhythm.md)**；
-- 后续：TS-2 → [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**`ready`**，JS）；E7 → incremental-target（**draft**）；TS-3 可选；CI job 仍为 gap；
+- 后续：~~TS-2~~ → **complete 已归档**（[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；style 剩余另议）；E7 → incremental-target（**draft**）；TS-3 可选；CI job 仍为 gap；
 - ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义；Sync 行指向 sync-rhythm。
 
 ## Umbrella 机制
@@ -149,7 +149,7 @@ fe/tools/
 | --- | --- | --- |
 | TS-0 | 冻结项 D-TS0-1..6 + workspace | **决策已冻；落地完成** |
 | TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
-| TS-2 | tools 内模板管线切开（parse / Document / Backend） | **`ready`**（2026-09-14）→ [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) |
+| TS-2 | tools 内模板管线切开（parse / Document / Backend） | **complete**（2026-09-14）→ [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（view 缝；style 剩余） |
 | TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 session 交付；剩余 sdk 深改 pending / 可 deferred |
 | TS-4 | 终态 B 门禁闭环与同步节奏成文 | **文档完成（2026-09-12）** — [sync-rhythm.md](./sync-rhythm.md)；packages 干净；可检查句已最终化 |
 
@@ -157,7 +157,7 @@ fe/tools/
 
 **历史（2026-09-12）**：曾书面 deferred——当时仅 webview→vue、无第二后端压力，近端优先结构债。
 
-**再激活理由**：目标升级为 **能换模板后端**（非仅可读性）；S13 熔断成为主矛盾。载体 Action：[`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**`ready`**；未授权实施）。
+**再激活理由**：目标升级为 **能换模板后端**（非仅可读性）；S13 熔断成为主矛盾。载体 Action：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**`ready`**；未授权实施）。
 
 **已冻（本伞记录）**：实现语言 **JS**；管线 `parse → Document → load → Backend`；Vue = backend₀；硬验收「第二 Backend 可注册」。形状指南见 `docs/wxml`（字段级分期）。**ready，未授权实施**。
 
@@ -177,7 +177,7 @@ fe/tools/
 ## Readiness gaps
 
 1. ~~复制源 / 目标包名 / 分支 / 目录 / bin~~ — **已冻**（D-TS0-2..6）。  
-2. ~~近端必须先做最小 IR~~ → TS-2 [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) 已 **`ready`**；未授权实施。  
+2. ~~近端必须先做最小 IR~~ → TS-2 [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md) 已 **`ready`**；未授权实施。  
 3. ~~终态 B 可检查句~~ — **已最终化**（[sync-rhythm.md](./sync-rhythm.md) §1；D-TS0-1）。  
 4. **CI**：tools 独立 job 与否。  
 5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md → sync-rhythm）。  

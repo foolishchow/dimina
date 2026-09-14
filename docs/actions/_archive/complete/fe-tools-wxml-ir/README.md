@@ -1,12 +1,12 @@
 # FE Tools WXML IR
 
 - Action: `fe-tools-wxml-ir`
-- Status: `in_progress`
-- Updated: 2026-09-14（T-IR0..3 交付 `a5262a53`；A-WIR0..9 全 pass；严格 diff=0；消融 ×2；待 Close 评估）
-- Status authority: [Action Status](../STATUS.md)
-- 伞门：[`fe-tools-sidecar`](../fe-tools-sidecar/README.md) **TS-2**（本 Action 为再激活载体）
-- 病症锚点：[compiler-symptom-inventory.md](../fe-tools-sidecar/compiler-symptom-inventory.md) **S13**（主）；**S14 本 Action 非目标**（见 Non-goals）
-- 形状输入：[`docs/wxml/WXML-AST-TYPES.md`](../../wxml/WXML-AST-TYPES.md)
+- Status: `complete`
+- Updated: 2026-09-14（T-IR0..3 交付；A-WIR0..9 全 pass；消融 ×2；S13 view 收口 + 回流；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 伞门：[`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md) **TS-2**（本 Action 为再激活载体）
+- 病症锚点：[compiler-symptom-inventory.md](../../../fe-tools-sidecar/compiler-symptom-inventory.md) **S13**（主）；**S14 本 Action 非目标**（见 Non-goals）
+- 形状输入：[`docs/wxml/WXML-AST-TYPES.md`](../../../../wxml/WXML-AST-TYPES.md)
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -29,7 +29,7 @@ WXML 字符串 → cheerio 预处理（include/import 当场展开）→ Vue com
 ## Non-goals
 
 - 不重写整份 `view-compiler` 算法细节（先切缝，再迁语义）
-- 不做 E7 增量形态（[`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)）
+- 不做 E7 增量形态（[`fe-tools-incremental-target`](../../../fe-tools-incremental-target/README.md)）
 - 不剥 Listr / BP2；不改 PS3；不向 didi 推送
 - 不把 `platform: native|web` 写进 parser / Document
 - 不在本 Action 引入第二种实现语言或跨语言绑定
@@ -77,7 +77,7 @@ Backend:   LoadedGraph → 产物；registry 可挂 vue + stub
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-14）：**T-IR0..3 已交付**（`a5262a53`）：wxml/{document,parse,load,backends/*} + view-compiler 缝编排；550/550 绿；base nomap+sourcemap 严格 diff=0；消融 ×2 ✓。**待 Close 评估**（闭合条件核对 + 回流 + 归档）。
+- 终局 **`complete`**（2026-09-14）：T-IR0..3 交付（`a5262a53`）；A-WIR0..9 全 pass；严格 diff=0 + 消融 ×2；S13 view 侧收口（style 书面剩余）；结构不变量已回流 architecture-notes；归档。
 - 执行允许：满足 manage-actions「ready 后经明确执行请求」即可实施。
 
 ## 闭合条件（草案）
@@ -98,3 +98,4 @@ Backend:   LoadedGraph → 产物；registry 可挂 vue + stub
 | 2026-09-14 | **升 `ready`**（R6 Experience 对照 pass；未授权实施） |
 | 2026-09-14 | 升 **`in_progress`**：T-IR0..3 实施授权开工；基线 `744b732c` |
 | 2026-09-14 | **T-IR0..3 交付**（`a5262a53`）：Document/parse/load/backends（686 行）+ view-compiler 缝编排（−170 熔断行）；过渡注记两处（component-host 源级包装 / compileTemplate 打包壳）。验证：550/550；严格 diff=0（nomap+sourcemap）；消融 ×2（缝→结构锚定失败；loc→loc 断言失败）；[wxml] 诊断。A-WIR0..9 全 pass |
+| 2026-09-14 | **Close：升 `complete` 并归档**——闭合条件逐项核验（三门交付 / 消融在档 / 行为 0 严格 / S13 view 收口 + style 书面剩余 / Uncovered 声明 / 回流 architecture-notes + 症状清单 / 归档一致变更 / packages 零污染）；相对链接随归档调整 |

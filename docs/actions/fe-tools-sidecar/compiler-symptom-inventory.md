@@ -38,7 +38,7 @@ session PIPELINE_OPTION_KEYS ─┘              │
 | **S10** | `sourcemapStrategy` 写入 CompileTarget 后无 worker 读者 | platform 轴描述性、无下游 | 形态 | med | **真 web** |
 | **S11** | session resolve + createCompileTarget 双调 `resolveCompileConfig` | E1 by design；仍是双入口心智负担 | session/形态 | low | E1 成文 |
 | **S12** | `COMPILE_KEYS` / `CONFIG_OPTION_KEYS` 拷贝 | C1 键表未单源 | shared/session | low | — |
-| **S13** | `view-compiler.js` / `style-compiler.js` | parse→vue/cheerio 熔断，无 IR 缝 | 模板 | high | **TS-2** |
+| **S13** | `view-compiler.js` / `style-compiler.js` | parse→vue/cheerio 熔断，无 IR 缝 | 模板 | high | **TS-2（view 已收口）**：view-compiler 缝已交付（fe-tools-wxml-ir complete `a5262a53`：parse→Document→load→Backend + registry）；**style-compiler 熔断为书面剩余**（同构切缝另立 Action，价值/时机同 TS-2 延迟纪律评估） |
 | **S14** | stage-channel 载荷无 renderer/platform | worker 恒走 webview/vue | worker/模板 | med | TS-2 |
 | **S15** | logic/view 内 `isMiniGame`；esbuild `platform:'browser'` | 与 CF-2 native/web 名碰撞、正交未表达 | worker | low | TS-2/web |
 | **S16** | pipeline 模块级 `isPrinted` / compat Map | 跨 run 状态落在模块闭包 | 组装 | low | — |
@@ -58,7 +58,7 @@ session PIPELINE_OPTION_KEYS ─┘              │
 
 目标是**梳理逻辑**；模板 IR 路径额外以「能换 Backend」为硬验收（见 fe-tools-wxml-ir）：
 
-- **优先 / 并列**：E7 簇（S1/S2/S3/S9）— [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（`draft`）；TS-2（S13）— [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**`ready`**；S14 非目标）
+- **优先 / 并列**：E7 簇（S1/S2/S3/S9）— [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（`draft`）；TS-2（S13）— [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**；S14 非目标；style 侧书面剩余）
 - **其次**：Listr 与阶段语义拆缝（S5/S6）— 可测性
 - **勿单独做**：为 platform/renderer 造空 adapter；S10 说明 platform 轴还没有真消费者
 
@@ -67,7 +67,7 @@ session PIPELINE_OPTION_KEYS ─┘              │
 | 项 | 值 |
 | --- | --- |
 | 选定（增量） | **E7** — [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（`draft`） |
-| 并列（模板） | **TS-2 / S13** — [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**`ready`**；未授权实施） |
+| 并列（模板） | **TS-2 / S13** — [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**：view 缝交付；style 剩余另议） |
 | 另立 | Listr/BP2（S5/S6） |
 
 ## 修订记录
@@ -76,3 +76,4 @@ session PIPELINE_OPTION_KEYS ─┘              │
 | --- | --- |
 | 2026-09-14 | 初稿：S1–S16；选定 E7 为下一刀；链到 `fe-tools-incremental-target` |
 | 2026-09-14 | 并列 TS-2/`fe-tools-wxml-ir`；S14 明确非 wxml-ir 目标；叙事改为「梳理 + 能换 Backend」 |
+| 2026-09-14 | **S13 view 侧收口**：fe-tools-wxml-ir complete（parse→Document→load→Backend + registry；行为 0 严格 diff=0）；style-compiler 书面剩余 |

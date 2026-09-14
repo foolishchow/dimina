@@ -4,7 +4,7 @@ Status: **draft（2026-09-14）** — Readiness 已过；随 Action `ready` 冻�
 
 ## R-WIR0（MUST）中立 Document
 
-`@dimina/bundler` 模板路径须能产出可单测的 **Document**（JS 对象树），节点至少能区分：普通元素、文本、以及 template 定义/引用、wxs、import、include、slot（与 [`WXML-AST-TYPES`](../../wxml/WXML-AST-TYPES.md) 分类对齐到「可指认」，字段级允许分期）。
+`@dimina/bundler` 模板路径须能产出可单测的 **Document**（JS 对象树），节点至少能区分：普通元素、文本、以及 template 定义/引用、wxs、import、include、slot（与 [`WXML-AST-TYPES`](../../../../wxml/WXML-AST-TYPES.md) 分类对齐到「可指认」，字段级允许分期）。
 
 ## R-WIR1（MUST）阶段不熔断
 

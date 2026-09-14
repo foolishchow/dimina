@@ -38,7 +38,7 @@
 | `platform-abstraction` | `complete` | [README](_archive/complete/platform-abstraction/README.md) | CF-2：platform native/web + sourcemapStrategy 标注；A-001~A-009 全 passed（含缺省 native 消融）；已归档。 | 2026-09-10 |
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
-| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（draft）；近端结构多已归档；**PS3 deferred**；TS-2 [`fe-tools-wxml-ir`](fe-tools-wxml-ir/README.md) **`ready`**；E7 incremental-target 仍 draft；TS-4 成文。 | 2026-09-14 |
+| `fe-tools-sidecar` | `draft` | [README](fe-tools-sidecar/README.md) | Umbrella（draft）；近端结构多已归档；**PS3 deferred**；TS-2 [`fe-tools-wxml-ir`](_archive/complete/fe-tools-wxml-ir/README.md) **complete 已归档**（view 缝；style 剩余）；E7 incremental-target 仍 draft；TS-4 成文。 | 2026-09-14 |
 | `fe-tools-project-store` | `complete` | [README](_archive/complete/fe-tools-project-store/README.md) | ProjectStore **PS1+PS2 已交付并归档**：壳 + 刀 A + M-A + 删闭包镜像（W3→仅 Store）；Store 唯一活图权威；消融 ×3（M-A-inject / PS2-store / PS2-plan）；PS3 未实施。 | 2026-09-12 |
 | `fe-tools-build-pipeline` | `complete` | [README](_archive/complete/fe-tools-build-pipeline/README.md) | BuildPipeline **BP1 已交付并归档**：阶段表等价抽取→`src/compiler/build-pipeline.js`；index.js 薄委托；Listr 仍在；行为 0（nomap 94 / sourcemap 185 diff=0）；485 tests / 73 suites 全绿；M-A 消融 ×1；A-BP01..05 全 pass。 | 2026-09-12 |
 | `fe-tools-bundler-layout` | `complete` | [README](_archive/complete/fe-tools-bundler-layout/README.md) | 目录双轴归置：`common/`/`core/`→`compiler|model|watch|dev|shared`；行为 0 变化（481 测绿；nomap 94 / sm 185 diff=0）；已归档。 | 2026-09-12 |
@@ -50,5 +50,5 @@
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
 | `fe-tools-compiler-target` | `complete` | [README](_archive/complete/fe-tools-compiler-target/README.md) | CompileTarget 形态层：T0 入口纪律 + T1 静态描述 + T2 阶段派生；A-CT0..06 全 pass；消融 ×3；回流 architecture-notes；已归档。 | 2026-09-14 |
 | `fe-tools-incremental-target` | `draft` | [README](fe-tools-incremental-target/README.md) | E7 增量形态回灌：watch/cache options 袋与 CompileTarget 对齐（S1/S2/S3/S9）；契约 A/B 待拍板；未授权实施。 | 2026-09-14 |
-| `fe-tools-wxml-ir` | `in_progress` | [README](fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 已交付（`a5262a53`；550/550 + 严格 diff=0 + 消融 ×2）；A-WIR0..9 全 pass；待 Close 评估。 | 2026-09-14 |
+| `fe-tools-wxml-ir` | `complete` | [README](_archive/complete/fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 缝 + registry；行为 0 严格 diff=0；消融 ×2；S13 view 收口（style 书面剩余）；不变量回流；已归档。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |

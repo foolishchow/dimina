@@ -1,7 +1,7 @@
 # Architecture notes — session / ProjectStore / BuildPipeline
 
 Status: **discussion consensus**（2026-09-12）  
-Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) · [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（draft） · [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**ready** · TS-2） · [compiler-symptom-inventory](./compiler-symptom-inventory.md) · 已归档 session
+Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) · [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（draft） · [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**ready** · TS-2） · [compiler-symptom-inventory](./compiler-symptom-inventory.md) · 已归档 session
 
 ## 唯一会话管理者
 
@@ -103,6 +103,18 @@ BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形
 
 **残余（E7 · 近端 draft）**：watch-plan / compile-cache 的碎片 `plan.options` 回灌仍使增量路径绕开形态单源——见 [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md) 与 [compiler-symptom-inventory](./compiler-symptom-inventory.md) S1/S2/S3/S9。
 
+## WXML 模板缝（fe-tools-wxml-ir · 已交付 2026-09-14）
+
+view 模板路径已切为中立缝（`src/compiler/wxml/`）：
+
+```text
+parse（parseWxml）   WXML 源 → Document（cheerio 仅投影；特殊节点保留；loc 半开）
+load（loadTemplates） 展开/收集（include 内联、import 收集、template/wxs、assets、图边、sourceTexts）
+Backend（registry）  LoadedGraph → 产物；vue = backend₀；同 id 注册抛错
+```
+
+**结构不变量（本伞 MUST）**：新模板后端（如第二 renderer 的模板面）**必须经 `wxml/backends/registry` 挂载**（WxmlBackend 接口），不得再以「WXML 源 → cheerio → 产物」熔断路径直连；view-compiler 仅为编排壳。过渡注记两处成文（component-host 源级包装 / compileTemplate 打包壳）——语义迁移期再收。style-compiler 同构切缝为 S13 书面剩余。
+
 ## 命名
 
 | 概念 | 采用名 |
@@ -150,5 +162,6 @@ BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形
 | 2026-09-12 | Readiness Round 3：RR1–RR12；stages → build-pipeline/stages.md；设计冻结 v1 |
 | 2026-09-12 | Final Readiness FR1–FR9；implementation-plan；待升 ready |
 | 2026-09-14 | **回流 fe-tools-session-unify（complete）**：Session 执行内核（composeOptions / runOnce / assertLoopFree / occupyLoop / releaseLoop）+ 结构不变量「新增执行入口必须经内核」入档 |
+| 2026-09-14 | **回流 fe-tools-wxml-ir（complete）**：WXML parse→Document→load→Backend 缝 + 结构不变量「新模板后端必须经 registry 挂载」入档；S13 view 侧收口 |
 | 2026-09-14 | **回流 fe-tools-compiler-target（complete）**：CompileTarget 两段 API + 结构不变量「形态条件单源于 compile-target」+ E1 双重解析不变量入档 |
 | 2026-09-14 | **病症地图 + 下一刀**：[compiler-symptom-inventory.md](./compiler-symptom-inventory.md)；选定 E7 → draft [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md) |

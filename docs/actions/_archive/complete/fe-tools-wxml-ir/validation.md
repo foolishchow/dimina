@@ -2,7 +2,7 @@
 
 Status: **实施完成（2026-09-14）— T-IR0..3 交付 `a5262a53`；Actual 已填**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 ## Planned
 

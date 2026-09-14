@@ -35,7 +35,7 @@ TS-3 编排可选拆包 + web-container-sdk 深改（按需）
 | --- | --- | --- | --- | --- |
 | TS-0 | 冻结 D-TS0-1..6；`tools/*` workspace | 决策已落 umbrella README | 无 | **已冻 + 已落地** |
 | TS-1 | 整包复制改名接线冒烟（意图） | **不立子门**。由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 交付 | — | **前置已 complete** |
-| TS-2 | 在 `@dimina/bundler` 内切开 parse→Document→load→Backend（JS） | [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) | D-WIR-1..9；Readiness R4/R6 pass | **ready**（2026-09-14；未授权实施） |
+| TS-2 | 在 `@dimina/bundler` 内切开 parse→Document→load→Backend（JS） | [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md) | D-WIR-1..9；Readiness R4/R6 pass | **ready**（2026-09-14；未授权实施） |
 | TS-3 | 可选抽出薄编排包；sdk 深改 | 可选；控制面已由 session 交付 | bootstrap-copy complete | pending / 可 deferred |
 | TS-4 | packages 终态 B + 同步节奏成文 | 并入伞文档（无独立 Action） | bootstrap-copy complete | **文档完成** — [sync-rhythm.md](sync-rhythm.md)；可检查句最终化；packages 干净 |
 

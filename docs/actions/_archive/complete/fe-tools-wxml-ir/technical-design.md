@@ -21,7 +21,7 @@ WXML source
 
 ## Document（最小）
 
-以 [`WXML-AST-TYPES`](../../wxml/WXML-AST-TYPES.md) 为 **分类指南**：
+以 [`WXML-AST-TYPES`](../../../../wxml/WXML-AST-TYPES.md) 为 **分类指南**：
 
 | 概念 | JS 侧最小约定 |
 | --- | --- |
