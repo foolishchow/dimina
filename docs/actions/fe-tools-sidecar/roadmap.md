@@ -18,9 +18,12 @@ TS-1 意图：整包复制冒烟
         ├─（已归档）→ fe-tools-bundler-layout（build/dev × session/compiler；L0–L3 complete）
         ├─（已归档）→ fe-tools-project-store（ProjectStore；PS1+PS2 complete；PS3 deferred）
         ├─（已归档）→ fe-tools-build-pipeline（BuildPipeline；按次；D-PS-SESSION；BP1 complete）
+        ├─（已归档）→ fe-tools-compiler-target（CompileTarget 全量形态；E7 另立）
+        │
+        ├─（近端 draft）→ fe-tools-incremental-target（E7：增量路径对齐形态单源）
         │
         ▼
-TS-2 模板管线 parse → IR → webview     【deferred 2026-09-12】
+TS-2 模板管线 parse → Document → Backend  【ready 2026-09-14 → fe-tools-wxml-ir】
         │
         ▼
 TS-3 编排可选拆包 + web-container-sdk 深改（按需）
@@ -32,7 +35,7 @@ TS-3 编排可选拆包 + web-container-sdk 深改（按需）
 | --- | --- | --- | --- | --- |
 | TS-0 | 冻结 D-TS0-1..6；`tools/*` workspace | 决策已落 umbrella README | 无 | **已冻 + 已落地** |
 | TS-1 | 整包复制改名接线冒烟（意图） | **不立子门**。由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 交付 | — | **前置已 complete** |
-| TS-2 | 在 `@dimina/bundler` 内切开 parse→IR→webview | `fe-tools-template`（未来） | 见 README「TS-2 deferred」再激活条件 | **deferred**（2026-09-12；目标保留，近端不做） |
+| TS-2 | 在 `@dimina/bundler` 内切开 parse→Document→load→Backend（JS） | [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) | D-WIR-1..9；Readiness R4/R6 pass | **ready**（2026-09-14；未授权实施） |
 | TS-3 | 可选抽出薄编排包；sdk 深改 | 可选；控制面已由 session 交付 | bootstrap-copy complete | pending / 可 deferred |
 | TS-4 | packages 终态 B + 同步节奏成文 | 并入伞文档（无独立 Action） | bootstrap-copy complete | **文档完成** — [sync-rhythm.md](sync-rhythm.md)；可检查句最终化；packages 干净 |
 
@@ -44,6 +47,8 @@ TS-3 编排可选拆包 + web-container-sdk 深改（按需）
 | A2 / A2.0 | 预览由 `dimina-cli`（bundler）+ web-container-sdk 资产承载 |
 | A3 HMR | 随复制关系保留在私有树；再改造在 tools 内 |
 | A4 / CF-1..3 | packages 侧保持上游合同；管线深化在 `@dimina/bundler` 内做 |
+| `fe-tools-compiler-target` | 全量形态单源；已归档 complete；残余 E7 → incremental-target |
+| 病症地图 | [compiler-symptom-inventory.md](compiler-symptom-inventory.md)（S1–S16；下一刀 E7） |
 | `fe-tools-bootstrap-copy` | TS-1 前置；已归档 complete |
 | session / build-model / module-cache / worker-architecture | 旁路编排与编译地基；已归档 complete |
 | `fe-tools-bundler-layout` | 目录双轴归置；已归档 complete |

@@ -1,7 +1,7 @@
 # Architecture notes — session / ProjectStore / BuildPipeline
 
 Status: **discussion consensus**（2026-09-12）  
-Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) · 已归档 session
+Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) · [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（draft） · [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**ready** · TS-2） · [compiler-symptom-inventory](./compiler-symptom-inventory.md) · 已归档 session
 
 ## 唯一会话管理者
 
@@ -101,6 +101,8 @@ BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形
 
 **E1 不变量**：管线侧必须自调 `resolveCompileConfig`（直调 `build()` 自洽，L3）；session 层另经 `resolveBundlerConfig`（D-R2 seeds）——两合法路径，同一纯函数；不得在 pipeline 内联 `MODE_PRESETS` / `sourcemapStrategyFor` / 平台私算。
 
+**残余（E7 · 近端 draft）**：watch-plan / compile-cache 的碎片 `plan.options` 回灌仍使增量路径绕开形态单源——见 [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md) 与 [compiler-symptom-inventory](./compiler-symptom-inventory.md) S1/S2/S3/S9。
+
 ## 命名
 
 | 概念 | 采用名 |
@@ -149,3 +151,4 @@ BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形
 | 2026-09-12 | Final Readiness FR1–FR9；implementation-plan；待升 ready |
 | 2026-09-14 | **回流 fe-tools-session-unify（complete）**：Session 执行内核（composeOptions / runOnce / assertLoopFree / occupyLoop / releaseLoop）+ 结构不变量「新增执行入口必须经内核」入档 |
 | 2026-09-14 | **回流 fe-tools-compiler-target（complete）**：CompileTarget 两段 API + 结构不变量「形态条件单源于 compile-target」+ E1 双重解析不变量入档 |
+| 2026-09-14 | **病症地图 + 下一刀**：[compiler-symptom-inventory.md](./compiler-symptom-inventory.md)；选定 E7 → draft [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md) |

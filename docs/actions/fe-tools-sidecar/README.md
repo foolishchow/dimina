@@ -27,7 +27,7 @@
 
 1. 建立 `fe/tools` 旁路战略与 TS-0 冻结约定（终态 B、命名、依赖方向）；与独立搬迁 Action 对齐但不父子绑定 — **约定已冻；落地已由 bootstrap 完成**；
 2. **搬迁冒烟本身**由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 独立交付（本伞 TS-1 仅记意图/前置）— **前置已 complete**；
-3. 在 tools 内再改造：**dev 编排**（session 已交付）、**模板管线**（parser → IR → webview；**TS-2 deferred**）、按需深改私有 sdk — 模板 IR **未开始且后置**；
+3. 在 tools 内再改造：**dev 编排**（session 已交付）、**模板管线**（parse → Document → Backend；载体 [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) **`ready`**）、按需深改私有 sdk — 模板切开 **ready、未实施**；
 4. **终态 B**：`packages/*` 无私有 improve 长期 diff；预览/改造以 tools 为唯一私有面 — **本分支 packages 已干净；同步节奏见 [sync-rhythm.md](./sync-rhythm.md)（TS-4 成文）**；
 5. 不向 didi 推送本伞交付物。
 
@@ -132,7 +132,7 @@ fe/tools/
 - ~~workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter~~ — **bootstrap 已交付**；
 - ~~`dimina-cli` 冷启动冒烟~~ — **bootstrap 已交付**；
 - `packages/*` 满足终态 B 可检查句 — **已满足；操作真源 [sync-rhythm.md](./sync-rhythm.md)**；
-- 后续：~~立即开 template IR（TS-2）~~ → **TS-2 deferred**；近端候选 **`runBuild` 阶段化**（待立 Action）；TS-3 可选；CI job 仍为 gap；
+- 后续：TS-2 → [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**`ready`**，JS）；E7 → incremental-target（**draft**）；TS-3 可选；CI job 仍为 gap；
 - ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义；Sync 行指向 sync-rhythm。
 
 ## Umbrella 机制
@@ -149,23 +149,19 @@ fe/tools/
 | --- | --- | --- |
 | TS-0 | 冻结项 D-TS0-1..6 + workspace | **决策已冻；落地完成** |
 | TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
-| TS-2 | tools 内模板管线切开（parse / IR / webview） | **deferred**（2026-09-12；见下） |
+| TS-2 | tools 内模板管线切开（parse / Document / Backend） | **`ready`**（2026-09-14）→ [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) |
 | TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 session 交付；剩余 sdk 深改 pending / 可 deferred |
 | TS-4 | 终态 B 门禁闭环与同步节奏成文 | **文档完成（2026-09-12）** — [sync-rhythm.md](./sync-rhythm.md)；packages 干净；可检查句已最终化 |
 
-### TS-2 deferred（2026-09-12）
+### TS-2（2026-09-14 再激活）
 
-**决定**：不将模板 IR / `fe-tools-template` 作为近端主线。
+**历史（2026-09-12）**：曾书面 deferred——当时仅 webview→vue、无第二后端压力，近端优先结构债。
 
-**理由**：在仍仅 webview→vue、无第二 renderer 压力时，IR 改造步子大、短期工程收益低；且治不好 `runBuild` 过程式中枢。R-006/R-007 仍为伞级 MUST，**延后实施**而非取消目标。
+**再激活理由**：目标升级为 **能换模板后端**（非仅可读性）；S13 熔断成为主矛盾。载体 Action：[`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（**`ready`**；未授权实施）。
 
-**再激活条件**（满足其一即可重开讨论并另立 Action）：
+**已冻（本伞记录）**：实现语言 **JS**；管线 `parse → Document → load → Backend`；Vue = backend₀；硬验收「第二 Backend 可注册」。形状指南见 `docs/wxml`（字段级分期）。**ready，未授权实施**。
 
-1. 明确需要第二模板后端（如 lynx）或必须大改模板算法；  
-2. 最小 IR 形状已起草并经评审，且有明确实施授权；  
-3. 测量/产品证明模板巨石已成为阻塞演进的主矛盾。
-
-**近端替代重心**：[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（**complete / 已归档**：PS1+PS2）+ [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）+ [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)（**complete / 已归档**：S1+S2 三入口内核同构 + 调度收口，行为 0）+ [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md)（**complete / 已归档**：CompileTarget 形态层 T0+T1+T2）；**session 唯一管会话**；**形态条件单源于 compile-target**。（目录归置与 TS-4 已完成。）
+**近端并列**：[`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（**draft**：E7）；已归档 project-store / build-pipeline / session-unify / compiler-target；病症地图 [compiler-symptom-inventory.md](./compiler-symptom-inventory.md)。
 
 ### PS3 deferred（2026-09-12）
 
@@ -181,14 +177,14 @@ fe/tools/
 ## Readiness gaps
 
 1. ~~复制源 / 目标包名 / 分支 / 目录 / bin~~ — **已冻**（D-TS0-2..6）。  
-2. ~~近端必须先做最小 IR~~ — **不再作为近端阻塞**：TS-2 **deferred**（目标保留，见上门表）；IR 草案仅在再激活时需要。  
+2. ~~近端必须先做最小 IR~~ → TS-2 [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) 已 **`ready`**；未授权实施。  
 3. ~~终态 B 可检查句~~ — **已最终化**（[sync-rhythm.md](./sync-rhythm.md) §1；D-TS0-1）。  
 4. **CI**：tools 独立 job 与否。  
 5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md → sync-rhythm）。  
 6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
 7. ~~近端结构债~~ — **已闭合**：[`project-store`](../_archive/complete/fe-tools-project-store/README.md)（**complete / 已归档**：PS1+PS2）+ [`build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；PS3 已书面 deferred；见 [architecture-notes.md](./architecture-notes.md)。
 
-伞级在 gap 4（CI）与结构候补（阶段化）之外可维持 `draft`；**不授权伞级大实施**。TS-2 已 deferred；TS-4 文档门已闭合。TS-2 不阻塞近端另立「阶段化」等独立 Action。
+伞级在 gap 4（CI）之外可维持 `draft`；**不授权伞级大实施**。TS-2 / E7 各有独立 draft Action；TS-4 文档门已闭合。
 
 ## Closure conditions
 
