@@ -5,7 +5,7 @@ Status: **in_progress（2026-09-14）** — A-SU01..06；S1 实施中（基线 `
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
 | A-SU01 | R-SU1 | 存在 `src/session/runner.js`；`composeOptions` / `runOnce` 可用；三入口共用内核组装的 options（`.build` 另经内核 `runOnce` 发起），经同构断言**可观测** | P-SU03 + 源码审查 | **pass（S1）** — runner.js 存在；`.build`→`runOnce`、`.watch`/`.dev`→`composeOptions`；session-unify.spec 7 用例覆盖（内核单测 / 行为同构 / 结构锚定） |
-| A-SU02 | R-SU2 | `occupyLoop` / `releaseLoop` 单点；壳无 activeLoop 置位 / finally 清环；R1–R4 / R7 既有测试**不改断言**全绿；无重复 lifecycle 挂载 | P-SU01 / P-SU04 + 源码审查 | **pending（S2）** |
+| A-SU02 | R-SU2 | `occupyLoop` / `releaseLoop` 单点；壳无 activeLoop 置位 / finally 清环；R1–R4 / R7 既有测试**不改断言**全绿；无重复 lifecycle 挂载 | P-SU01 / P-SU04 + 源码审查 | **pass（S2）** — 500/74 全绿（R1–R4 / R7 沿用不改断言）；occupyLoop / releaseLoop / assertLoopFree 单点于 runner.js，壳零 `state.activeLoop`（结构锚定 + 消融证实）；lifecycle 挂载唯一（registrar 测：dev 各事件恰注册 1 次；build/watch 零挂载） |
 | A-SU03 | R-SU3 | 三方法签名 / 白名单 / 返回值与 O1–O3 一致；`exports["./session"]` 与主入口面零变化；内核不公开 | P-SU05 + 源码审查 | **pass（S1）** — bundler-session.spec 全绿（签名 / 白名单 / 返回值未变）；P-SU05 6 ESM + CLI 通过；exports map 无 runner 子路径（内核不公开） |
 | A-SU04 | R-SU4 | vitest 全绿；nomap + sourcemap diff=0；错误消息文本不变（含 dev 期 `activeLoop='watch'`，D-SU-4） | P-SU01 / P-SU02 | **pass（S1）** — 495 / 74 全绿；nomap 94 / sourcemap 185 diff=0（对照 c768e9a5）；R3/R4 消息测试沿用全绿；dev 期 `activeLoop='watch'` 未变（D-SU-4） |
 | A-SU05 | R-SU5 | 同构三层全过：①规范化事件序列相等（入口特有事件白名单附加：dev preview 已知；watch 若有，以基线捕获登记）；②静态结构判据（三壳无内联组装 / 释放）；③产物字节等价 | P-SU03 / P-SU02 | **pass（S1）** — ①三入口事件序列相等（session-unify.spec 行为同构）②结构锚定（消融证实：拔内核回落内联 → 断言失败）③nomap 94 / sourcemap 185 diff=0 |

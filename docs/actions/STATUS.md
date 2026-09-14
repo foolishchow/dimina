@@ -48,4 +48,4 @@
 | `fe-tools-worker-architecture` | `complete` | [README](_archive/complete/fe-tools-worker-architecture/README.md) | **决策 Action（已落地 + 归档）**：四阶段演进 + D-WA-1..6 + WorkerTask/Result 协议 v1/v2 + 超时防护 + stats 消费契约。被 build-model + module-cache 引用消费，无实施冲突。已归档。 | 2026-09-10 |
 | `fe-tools-bundler-unvite` | `complete` | [README](_archive/complete/fe-tools-bundler-unvite/README.md) | 卫生：下线 Vite 自打包；镜像 dist + watch shim；A-UV01..09 / P-001..008（含 dimina-cli build/dev）；已归档。 | 2026-09-10 |
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
-| `fe-tools-session-unify` | `in_progress` | [README](fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；**S1 已交付**（行为 0，495/74 全绿，diff=0，消融 ✓）；S2 调度收口待授权。 | 2026-09-14 |
+| `fe-tools-session-unify` | `in_progress` | [README](fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；**S1+S2 均已交付**（500/74 全绿，diff=0 ×2 基线，消融 ×2 ✓），A-SU01..06 全 pass；待 Close 评估。 | 2026-09-14 |

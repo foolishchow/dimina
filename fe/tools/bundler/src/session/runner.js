@@ -13,8 +13,8 @@
  *   .watch()  → composeOptions() output into createBuildWatcher (loop path)
  *   .dev()    → session.watch() composition (no bypass; inherited)
  *
- * S2 adds loop occupation/release (occupyLoop / releaseLoop) and internalizes
- * the R4 idle-check into runOnce — see implementation-plan.
+ * S2 adds loop occupation/release (occupyLoop / releaseLoop / assertLoopFree)
+ * and internalizes the R4 idle-check into runOnce — see implementation-plan.
  *
  * Internal module — NOT re-exported from session/index.js and never part of
  * the package exports map (D-SU-2 / P3; exports map is explicit in
@@ -45,6 +45,9 @@ const PIPELINE_OPTION_KEYS = Object.freeze([
  * @returns {{
  *   composeOptions(overrides?: object): object,
  *   runOnce(overrides?: object): Promise<object>,
+ *   assertLoopFree(kind: 'watch' | 'dev'): void,
+ *   occupyLoop(kind: 'watch' | 'dev'): void,
+ *   releaseLoop(): void,
  * }}
  */
 export function createSessionRunner(state) {
@@ -65,11 +68,34 @@ export function createSessionRunner(state) {
 
 	/** One-shot compile through the public build() facade (O1 → S1 runner). */
 	async function runOnce(overrides = {}) {
+		// R4 (S2 internalized): one-shot .build() forbidden while a loop is active.
+		// Message text frozen (R-SU4) — runOnce is the .build-only path.
+		if (state.activeLoop) {
+			throw new Error(`R4: session.build() forbidden while activeLoop=${state.activeLoop}`)
+		}
 		const options = composeOptions(overrides)
 		return build(state.targetPath, state.workPath, state.useAppIdDir, options)
 	}
 
-	return { composeOptions, runOnce }
+	/** R3: assert no loop is active (kind-flavored message, e.g. 'dev'). */
+	function assertLoopFree(kind) {
+		if (state.activeLoop) {
+			throw new Error(`R3: cannot start ${kind}; activeLoop=${state.activeLoop}`)
+		}
+	}
+
+	/** R3: occupy the single active loop (assert + set). */
+	function occupyLoop(kind) {
+		assertLoopFree(kind)
+		state.activeLoop = kind
+	}
+
+	/** Release the active loop — idempotent (safe for double-stop / rollback). */
+	function releaseLoop() {
+		state.activeLoop = null
+	}
+
+	return { composeOptions, runOnce, assertLoopFree, occupyLoop, releaseLoop }
 }
 
 /**

@@ -16,6 +16,11 @@
  *   R4 .build() while watch/dev active → throw
  *   R7 (O3) dev startup-failure rollback
  *
+ * S2 (fe-tools-session-unify): R3/R4 assertion + activeLoop occupy/release
+ *   are kernel-owned (runner.js: assertLoopFree / occupyLoop / releaseLoop;
+ *   runOnce internalizes the R4 idle-check). Shells hold no direct
+ *   `state.activeLoop` access.
+ *
  * M-F1: this module imports default `build` from '../index.js' (runBuild is
  * private). src/index.js must NOT re-export this module (ESM cycle, M-K1/B);
  * the public surface is `exports["./session"]` (mirrors the ./watch
@@ -57,7 +62,7 @@ export function createBundler(resolved) {
 		store: createProjectStore(),
 	}
 
-	  const runner = createSessionRunner(state)
+		const runner = createSessionRunner(state)
 
 	const session = {
 		/**
@@ -69,15 +74,14 @@ export function createBundler(resolved) {
 
 		/**
 		 * One-shot compile (O1). Delegates to the public `build()` facade via
-		 * the session runner (S1 kernel: runOnce composes options — C1/pipeline
-		 * whitelist merge + fileTypes default + store/lifecycle injection,
-		 * forced last — overrides.lifecycle never wins).
+		 * the session runner — runOnce composes options (C1/pipeline whitelist
+		 * merge + fileTypes default + store/lifecycle injection, forced last)
+		 * and enforces the R4 idle-check (S2).
 		 *
 		 * @param {object} [overrides] C1 keys + pipeline keys (whitelist);
 		 *   unknown keys throw.
 		 */
 		async build(overrides = {}) {
-			assertNoActiveLoop(state, 'build')
 			return runner.runOnce(overrides)
 		},
 
@@ -93,7 +97,9 @@ export function createBundler(resolved) {
 		 *   throw; watchOpts.lifecycle is ignored (session forces its own).
 		 */
 		watch(watchOpts = {}) {
-			assertCanStartLoop(state, 'watch')
+			// R3 check first (message/text order preserved — R-SU4); occupyLoop
+			// below re-asserts, a no-op in the sync flow after creation succeeds.
+			runner.assertLoopFree('watch')
 			const {
 				autoListen,
 				beforeBuild,
@@ -127,7 +133,9 @@ export function createBundler(resolved) {
 				options: baseOptions,
 			})
 
-			state.activeLoop = 'watch'
+			// R3: occupy from CREATION — only after creation succeeded (a creation
+			// failure must NOT leave the loop occupied).
+			runner.occupyLoop('watch')
 
 			// waitForIdle is @internal (test-only via direct createBuildWatcher) —
 			// deliberately NOT forwarded on this handle.
@@ -139,7 +147,7 @@ export function createBundler(resolved) {
 						await inner.stop(...args)
 					}
 					finally {
-						state.activeLoop = null
+						runner.releaseLoop()
 					}
 				},
 			}
@@ -165,7 +173,9 @@ export function createBundler(resolved) {
 		 * @returns {Promise<{ appId: string, server: { host: string, port: number }, close(): Promise<void> }>}
 		 */
 		async dev(devOpts = {}) {
-			assertCanStartLoop(state, 'dev')
+			// R3 check with the dev flavor (message preserved — R-SU4); the actual
+			// occupy happens via session.watch below with label 'watch' (D-SU-4).
+			runner.assertLoopFree('dev')
 			const {
 				previewAdapter,
 				onError,
@@ -221,7 +231,7 @@ export function createBundler(resolved) {
 							await adapter.close()
 						}
 						finally {
-							state.activeLoop = null
+							runner.releaseLoop()
 						}
 					},
 				}
@@ -234,7 +244,7 @@ export function createBundler(resolved) {
 				catch {
 					// best-effort cleanup; original error wins
 				}
-				state.activeLoop = null
+				runner.releaseLoop()
 				throw error
 			}
 		},
@@ -249,20 +259,6 @@ function assertResolved(resolved) {
 	}
 	if (typeof resolved.workPath !== 'string' || typeof resolved.targetPath !== 'string') {
 		throw new TypeError('ResolvedBundlerInput.workPath / targetPath must be strings')
-	}
-}
-
-/** R4: .build() is forbidden while a watch/dev loop is active. */
-function assertNoActiveLoop(state, method) {
-	if (state.activeLoop) {
-		throw new Error(`R4: session.${method}() forbidden while activeLoop=${state.activeLoop}`)
-	}
-}
-
-/** R3: a second .watch()/.dev() throws until the loop is released. */
-function assertCanStartLoop(state, kind) {
-	if (state.activeLoop) {
-		throw new Error(`R3: cannot start ${kind}; activeLoop=${state.activeLoop}`)
 	}
 }
 

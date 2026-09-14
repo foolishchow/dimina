@@ -160,6 +160,95 @@ describe('session unify — S1 kernel', () => {
 		})
 	})
 
+	describe('S2 — 调度收口（activeLoop 单一化进内核）', () => {
+		it('shells hold no direct state.activeLoop access — kernel owns occupy/release (A-SU05②)', () => {
+			const indexSrc = fs.readFileSync(path.join(sourceRoot, 'index.js'), 'utf8')
+			// S2: occupation / release / R3-R4 assertions all live in runner.js
+			expect(indexSrc).not.toMatch(/\bstate\.activeLoop\s*=/)
+			expect(indexSrc).not.toContain('assertCanStartLoop')
+			expect(indexSrc).not.toContain('assertNoActiveLoop')
+
+			const runnerSrc = fs.readFileSync(path.join(sourceRoot, 'runner.js'), 'utf8')
+			expect(runnerSrc).toContain('assertLoopFree')
+			expect(runnerSrc).toContain('occupyLoop')
+			expect(runnerSrc).toContain('releaseLoop')
+			// message texts frozen (R-SU4 / D-SU-4) live in the kernel
+			expect(runnerSrc).toContain('R3: cannot start')
+			expect(runnerSrc).toContain('R4: session.build() forbidden while activeLoop=')
+		})
+
+		it('double release is safe — stop() twice / close() twice, session stays reusable', async () => {
+			const bundler = createBundler(makeResolved())
+			const watcher = bundler.watch({ autoListen: false })
+			await watcher.stop()
+			await watcher.stop() // no throw (releaseLoop idempotent; inner.stop safe)
+			await bundler.build() // loop released → build ok
+
+			const bundler2 = createBundler(makeResolved())
+			const handle = await bundler2.dev({ previewAdapter: makeStubAdapter() })
+			await handle.close()
+			await handle.close() // no throw
+			await bundler2.build()
+		})
+
+		it('D-SU-4: dev keeps the watch label — R3 dev-flavor message shows activeLoop=watch', async () => {
+			const bundler = createBundler(makeResolved())
+			const watcher = bundler.watch({ autoListen: false })
+			try {
+				const error = await bundler
+					.dev({ previewAdapter: makeStubAdapter() })
+					.catch((e) => e)
+				expect(error).toBeInstanceOf(Error)
+				expect(error.message).toMatch(/R3: cannot start dev; activeLoop=watch/)
+			}
+			finally {
+				await watcher.stop()
+			}
+		})
+
+		it('R4 message unchanged during dev — build() rejects with activeLoop=watch', async () => {
+			const bundler = createBundler(makeResolved())
+			const handle = await bundler.dev({ previewAdapter: makeStubAdapter() })
+			try {
+				const error = await bundler.build().catch((e) => e)
+				expect(error.message).toMatch(/R4: session.build\(\) forbidden while activeLoop=watch/)
+			}
+			finally {
+				await handle.close()
+			}
+		})
+
+		it('lifecycle mounting is unique — dev registers published/error exactly once; build/watch mount nothing', async () => {
+			function makeRegistrar() {
+				const registered = []
+				const lifecycle = createLifecycle()
+				const origOn = lifecycle.on
+				lifecycle.on = (event, fn) => {
+					registered.push(event)
+					return origOn.call(lifecycle, event, fn)
+				}
+				return { lifecycle, registered }
+			}
+
+			// dev: exactly the two preview listeners, one registration each
+			const devReg = makeRegistrar()
+			const bundler = createBundler({ ...makeResolved(), lifecycle: devReg.lifecycle })
+			const handle = await bundler.dev({ previewAdapter: makeStubAdapter() })
+			await handle.close()
+			expect(devReg.registered.filter((e) => e === 'bundle:published')).toHaveLength(1)
+			expect(devReg.registered.filter((e) => e === 'build:error')).toHaveLength(1)
+
+			// build / watch: no lifecycle listener mounting
+			const noMountReg = makeRegistrar()
+			const b = createBundler({ ...makeResolved(), lifecycle: noMountReg.lifecycle })
+			await b.build()
+			const w = b.watch({ autoListen: false })
+			await w.start()
+			await w.stop()
+			expect(noMountReg.registered).toEqual([])
+		})
+	})
+
 	describe('P-SU03 — behavioral isomorphism across the three entries', () => {
 		function record(session) {
 			const seq = []
