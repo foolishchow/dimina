@@ -56,7 +56,8 @@ view 渲染路径（vueBackend/编排壳）——**双 inMap 调用点均覆盖*
   inMap = 逐生成行/列 → 原 {file, line(由 span→行派生), column}
 ```
 
-- **行级不变量**：无 include/import 页面映射目标 = 今日（1:1 各生成行 → 主文件同行）；修复后 include 页不再错位。
+- **行级语义正确（不变量）**：映射行目标 = 真实 {file,line}；今日 1:1 猜射仅为对照基线（无 include 页若行结构保持则自然一致）。1:1 猜射对无 include 页也可能错（transHtmlTag 重排行），硬断言"= 今日"会卡死正确修复（F14）。
+- **实证决策门（F14）**：W2 首步在 base 无 include 页跑行保持率探针；若 transHtmlTag 对简单页保持行结构 → 不变量取"等于今日"硬形态（回归价值更高）；否则取"语义正确 + 差异观测"。两形态都不影响 include 页修复本身。
 - 抽查集：base 工程含 include/import 的页面清单（W2 实施时用 `rg <include|<import` 枚举，工作列表入 acceptance）。
 
 ## 决策记录（已拍板 · 2026-09-14，全部照建议）
