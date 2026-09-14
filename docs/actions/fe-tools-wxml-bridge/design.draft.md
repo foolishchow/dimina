@@ -31,6 +31,8 @@ span = { start, end }   // 半开 byte 偏移（D-WIR-5 / PARSING-SPEC §0.4 一
 
 **关键取舍**：W1 只要 span/raw/结构 → napi 返回值走**紧凑 JSON**（非 napi class 树）——绑定工作量降到「crate → JSON 序列化」，span 语义无损；后续需要深度消费时再加 napi struct 面。**不含 `.expr`/`.object`。**
 
+**序列化路径（D-WB-7）**：vendored crate 加 **serde derives**（仅 span/raw 面类型；`ExprContainer.expr` 等 swc 表达式类型不序列化/丢负载）。这是 **vendored 代码修改**——VENDOR.md 记入「vendored modification」并列入同步注意（重随上游时需重放）。
+
 ## napi 工程形态（D-WB-3）
 
 - 独立子 crate `crates/dimina-wxml-parser-napi`（oxc-parser 同款「parser + napi 分 crates」）：
@@ -44,7 +46,9 @@ span = { start, end }   // 半开 byte 偏移（D-WIR-5 / PARSING-SPEC §0.4 一
 ## W2 inMap 构建策略
 
 ```text
-view 渲染路径（vueBackend/编排壳）：
+view 渲染路径（vueBackend/编排壳）——**双 inMap 调用点均覆盖**：
+  A. :745 主文档 inMap（processedTpl）
+  B. :531 templateModuleRender inMap（tm.sourceInfo.startLine → SpanView 真定位；模板定义含从 include/import 文件收集者）
   tpl（组装后 Vue 模板串）─行/列→ SpanView 位置？
   ── 建“生成位置 → (sourceFile, span.start) ”两层映射：
      ① html() 行结构 ↔ SpanView 节点（load 后真实 span）
@@ -64,7 +68,8 @@ view 渲染路径（vueBackend/编排壳）：
 | D-WB-3 | Rust 归属 `fe/tools/crates/` workspace；napi 独立子 crate + JS 薄包 |
 | D-WB-4 | SpanView = 紧凑 JSON（span/raw/结构；无表达式负载；sourceFile 透传） |
 | D-WB-5 | docs 主从：仓库 `docs/wxml/` 真源；crate `docs/` 冻结快照 |
-| D-WB-6 | W2 验证契约：code 严格 diff=0 + 行级不变量 + 更准断言（抽查集）+ 列级新增 |
+| D-WB-6 | W2 验证契约：code 严格 diff=0 + 行级不变量 + 更准断言（抽查集）+ 列级新增（双 inMap 点） |
+| D-WB-7 | serde derives（vendored 修改，VENDOR 记）→ 紧凑 JSON；sourcesContent 覆盖所有映射文件 |
 
 ## 已确认设计输入（引用，不重定）
 
@@ -75,3 +80,4 @@ view 渲染路径（vueBackend/编排壳）：
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-14 | v1 成稿：SpanView 形状、napi 工程、W2 inMap 策略、D-WB-1..6 拍板 |
+| 2026-09-14 | Review R1 F1/F4/F5：W2 双调用点（:745+:531）；D-WB-7（serde 路径 + sourcesContent） |

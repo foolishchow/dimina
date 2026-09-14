@@ -6,9 +6,9 @@ Status: **ready（2026-09-14）** — P-WB00..05；升 `in_progress` 时记基�
 | --- | --- | --- | --- | --- |
 | P-WB00 | workspace + VENDOR | `cd fe/tools/crates && cargo test`（≥483 绿）；VENDOR/docs 主从/D-WIR-1 修订在档 | A-WB0 | pending |
 | P-WB01 | SpanView 对拍 | napi 单测：node/attr/expr-body span + raw + sourceFile 透传 与 crate 同源用例三一致；JS 薄包 require 未构建 → `[wxml]` 指引 | A-WB1 / A-WB5 | pending |
-| P-WB02 | 行为 0（code） | 基线快照 vs HEAD（base 工程），`node scripts/sync-dist-from-src.js` 前置；diff -rq（产物除 map 外）必须 0 | A-WB3 | pending |
+| P-WB02 | 行为 0（code） | 基线快照 vs HEAD（base 工程），`node scripts/sync-dist-from-src.js` 前置；`diff -rq --exclude=*.map base head` 必须 0（code 面；map 变化由 P-WB04 框架接纳） | A-WB3 | pending |
 | P-WB03 | napi 构建/加载 | `napi build` 产出 `.node`；`@dimina/wxml-parser-napi` require 成功 | A-WB1 | pending |
-| P-WB04 | map 断言 | 抽查集（含 include/import 页面）inMap 行目标 = 真 {file,line}；**无 include/import 页行级 = 今日 1:1**（不变量，对比线：实施前基线 map）；列级可验 | A-WB2 / A-WB3 / A-WB5 | pending |
+| P-WB04 | map 断言 | **双 inMap 点**（主 :745 + 模板 :531）抽查集（含 include/import 页面）行目标 = 真 {file,line}；**无 include/import 页行级 = 今日**（不变量，对比线：实施前基线 map）；列级可验；sourcesContent 覆盖所有映射文件 | A-WB2 / A-WB3 / A-WB5 | pending |
 | P-WB05 | diff 范围 | `git diff --stat`：限 crates/ + wxml-parser-napi + view 路径 + 测例；`fe/tools/bundler/../packages` 零命中 | A-WB4 | pending |
 | P-WB06 | 消融 ×2 | **W1**：拔桥（无 `.node`）→ P-WB01 失败 → 恢复；**W2**：拔 span（SpanView null）→ P-WB04 失败 → 恢复 | A-WB1 / A-WB2 Notes | pending |
 
