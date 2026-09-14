@@ -1,6 +1,6 @@
 {
   "name": "@didi-dimina/map-amap",
-  "version": "1.7.0",
+  "version": "1.7.2",
   "description": "Dimina optional AMap native map provider",
   "main": "Index.ets",
   "dependencies": {

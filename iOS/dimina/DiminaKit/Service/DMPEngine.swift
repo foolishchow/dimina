@@ -43,7 +43,10 @@ public class DMPEngine: NSObject {
     
     private var initCompletionHandlers: [() -> Void] = []
     
-    public init(appResolver: @escaping () -> DMPApp? = { nil }) {
+    private let debugEnabled: Bool
+
+    public init(debugEnabled: Bool = false, appResolver: @escaping () -> DMPApp? = { nil }) {
+        self.debugEnabled = debugEnabled
         self.appResolver = appResolver
         jsThread = Thread()
         
@@ -119,6 +122,14 @@ public class DMPEngine: NSObject {
         context.evaluateScript("DiminaServiceBridge = {};")
         context.evaluateScript("globalThis.__VIRTUAL_FILE_PREFIX__ = '\(DMPFileUtil.virtualFilePrefix)';")
 
+        context.setObject(debugEnabled, forKeyedSubscript: "__diminaDebug" as NSString)
+        if debugEnabled {
+            let storageSnapshot: @convention(block) () -> NSArray = { [weak self] in
+                guard let app = self?.appResolver() else { return [] }
+                return DMPStorage.storage(for: app.getAppId()).debugSnapshot() as NSArray
+            }
+            context.setObject(storageSnapshot, forKeyedSubscript: "__diminaDebugStorageSnapshot" as NSString)
+        }
         DMPEngineLog.injectConsole(to: context)
         // setTimeout/setInterval callbacks must land on this engine's own JS thread like
         // every other entry into `context`, not on the timer source queue — otherwise a timer

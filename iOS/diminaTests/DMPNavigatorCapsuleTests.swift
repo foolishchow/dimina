@@ -104,6 +104,85 @@ final class DMPNavigatorCapsuleTests: XCTestCase {
         XCTAssertFalse(capsules(in: navigationController.view)[0].isHidden)
     }
 
+    func testHostHiddenCapsuleStaysHiddenAcrossVisibilityUpdates() {
+        let manager = DMPAppManager.sharedInstance()
+        let previous = manager.showCapsule
+        defer { manager.showCapsule = previous }
+        manager.showCapsule = false
+        let navigationController = UINavigationController()
+        navigationController.loadViewIfNeeded()
+        let navigator = DMPNavigator()
+        navigator.setup(navigationController: navigationController)
+        navigator.setCapsuleVisible(true)
+        navigator.setCapsuleVisible(false)
+        navigator.setCapsuleVisible(true)
+        XCTAssertTrue(capsules(in: navigationController.view)[0].isHidden)
+    }
+
+    func testHiddenCapsuleRootBackReturnsToHostAndDetailBackPopsPage() async throws {
+        let manager = DMPAppManager.sharedInstance()
+        let previous = manager.showCapsule
+        defer { manager.showCapsule = previous }
+        manager.showCapsule = false
+        let fixture = await makeRoutingFixture(name: "hidden-capsule-back", registeredWithManager: true)
+        defer { fixture.app.destroy(); destroyRoutingFixture(fixture) }
+        _ = await fixture.navigator.launch(to: "pages/index/index", animated: false, showsLaunchLoading: false)
+        let root = try XCTUnwrap(fixture.navigationController.topViewController as? DMPPageController)
+        root.loadViewIfNeeded()
+        root.beginAppearanceTransition(true, animated: false)
+        root.endAppearanceTransition()
+        func backButton(in view: UIView, target: DMPPageController) -> UIButton? {
+            if let button = view as? UIButton,
+               button.actions(forTarget: target, forControlEvent: .touchUpInside)?.contains("customBackButtonTapped") == true {
+                return button
+            }
+            return view.subviews.compactMap { backButton(in: $0, target: target) }.first
+        }
+        let button = try XCTUnwrap(backButton(in: root.view, target: root))
+        XCTAssertFalse(button.isHidden)
+        await fixture.navigator.navigateTo(to: "pages/detail/index", animated: false)
+        let detail = try XCTUnwrap(fixture.navigationController.topViewController as? DMPPageController)
+        detail.loadViewIfNeeded()
+        detail.beginAppearanceTransition(true, animated: false)
+        detail.endAppearanceTransition()
+        let detailBack = try XCTUnwrap(backButton(in: detail.view, target: detail))
+        XCTAssertFalse(detailBack.isHidden)
+        detailBack.sendActions(for: .touchUpInside)
+        for _ in 0..<100 where fixture.navigationController.topViewController !== root {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertTrue(fixture.navigationController.topViewController === root)
+        root.beginAppearanceTransition(true, animated: false)
+        root.endAppearanceTransition()
+        XCTAssertFalse(button.isHidden)
+        button.sendActions(for: .touchUpInside)
+        for _ in 0..<100 where fixture.navigationController.viewControllers.count != 1 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(fixture.navigationController.viewControllers.count, 1)
+        XCTAssertTrue(fixture.navigator.isRetainedInBackground)
+    }
+
+    func testHostLaunchLoadingOptionCoversNormalAndTabRoots() async throws {
+        let manager = DMPAppManager.sharedInstance()
+        let previous = manager.showLaunchLoading
+        defer { manager.showLaunchLoading = previous }
+        func containsOverlay(_ view: UIView) -> Bool {
+            view.accessibilityIdentifier == "dimina.launchLoading" || view.subviews.contains(where: containsOverlay)
+        }
+        for tabbed in [false, true] {
+            for enabled in [true, false] {
+                manager.showLaunchLoading = enabled
+                let fixture = await makeRoutingFixture(name: "launch-overlay", bundleConfig: tabbed ? makeTabbedBundleConfig() : nil)
+                defer { destroyRoutingFixture(fixture) }
+                let launched = await fixture.navigator.launch(to: tabbed ? "pages/home/index" : "pages/index/index", animated: false)
+                XCTAssertTrue(launched)
+                XCTAssertEqual(containsOverlay(fixture.navigationController.view), enabled)
+                XCTAssertEqual(fixture.navigationController.viewControllers.count, 2)
+            }
+        }
+    }
+
     func testRepeatedSetupReplacesRatherThanDuplicatesCapsule() {
         let navigationController = UINavigationController()
         navigationController.loadViewIfNeeded()
@@ -1996,10 +2075,13 @@ final class DMPNavigatorCapsuleTests: XCTestCase {
     private func makeRoutingFixture(
         name: String,
         includesHost: Bool = true,
-        bundleConfig: DMPBundleAppConfig? = nil
+        bundleConfig: DMPBundleAppConfig? = nil,
+        registeredWithManager: Bool = false
     ) async -> RoutingFixture {
         let appConfig = DMPAppConfig(appName: name, appId: "\(name)-\(UUID().uuidString)")
-        let app = DMPApp(appConfig: appConfig, appIndex: -1)
+        let app = registeredWithManager
+            ? DMPAppManager.sharedInstance().appWithConfig(appConfig: appConfig)
+            : DMPApp(appConfig: appConfig, appIndex: -1)
         app.setBundleAppConfigForTesting(bundleConfig)
         let service = DMPService(app: app)
         app.service = service

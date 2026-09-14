@@ -1,5 +1,33 @@
 # Changelog
 
+## [v1.7.2] 2026-09-11
+
+### 新增
+
+- vConsole 的 `MiniProgram Storage` 面板支持使用 JSON 新增和编辑值，并可在确认后删除当前小程序的 MMKV 数据；操作完成后会重新读取原生存储。
+
+### 兼容性
+
+- HarmonyOS SDK 和高德地图扩展模块 `@didi-dimina/map-amap` 同步升级到 1.7.2。
+- JSSDK 升级到 1.0.44。
+
+## [v1.7.1] 2026-09-10
+
+### 新增
+
+- 调试模式下将逻辑线程的 `console.log/info/warn/error/debug` 转发到 vConsole，并在页面通道就绪前暂存最多 200 条启动日志。
+- vConsole 新增只读的 `MiniProgram Storage` 面板，按当前小程序读取原生 MMKV 数据，与 WebView 浏览器存储分开展示。
+
+### 优化
+
+- `wx.request` 的请求及成功、失败结果可在 vConsole Network 面板中查看；上传、下载和 WebSocket 流量暂不采集。
+- 调试开关同时控制逻辑层数据采集和 pageFrame 的 vConsole 初始化，未开启调试时不采集上述数据。
+
+### 兼容性
+
+- HarmonyOS SDK 和高德地图扩展模块 `@didi-dimina/map-amap` 同步升级到 1.7.1。
+- JSSDK 升级到 1.0.43。
+
 ## [v1.7.0] 2026-09-10
 
 ### 新增

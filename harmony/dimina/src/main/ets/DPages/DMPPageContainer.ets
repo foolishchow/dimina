@@ -179,7 +179,7 @@ export struct DMPPageContainer {
         .height('100%')
       }
 
-      if (this.pageRecord) {
+      if (this.pageRecord && DMPAppManager.sharedInstance().showCapsule) {
         DMPCapsuleButton({
           appIndex: this.appIndex,
           webViewId: this.webViewId,

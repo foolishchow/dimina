@@ -19,75 +19,68 @@ describe('data initialization', () => {
 })
 
 describe('数据监听器触发匹配逻辑', () => {
-	const funAB = vi.fn((numberA, numberB) => {
-		return numberA + numberB
-	})
-
-	const funB = vi.fn((numberB) => {
-		return numberB
-	})
-
-	const data = { numberA: 1, numberB: 2 }
-	const observers = {
-		'numberA, numberB': funAB,
-		'numberB': funB,
-	}
-
-	Object.keys(data).forEach((key) => {
-		filterInvokeObserver(key, observers, data)
-	})
-
 	it('执行函数B', () => {
+		const funB = vi.fn((numberB) => numberB)
+		const data = { numberA: 1, numberB: 2 }
+		const observers = { numberB: funB }
+
+		Object.keys(data).forEach((key) => {
+			filterInvokeObserver(key, observers, data)
+		})
+
+		expect(funB).toHaveBeenCalledExactlyOnceWith(2)
 		expect(funB).toHaveReturnedWith(2)
 	})
 
 	it('执行函数AB', () => {
+		const funAB = vi.fn((numberA, numberB) => numberA + numberB)
+		const data = { numberA: 1, numberB: 2 }
+		const observers = { 'numberA, numberB': funAB }
+
+		Object.keys(data).forEach((key) => {
+			filterInvokeObserver(key, observers, data)
+		})
+
+		expect(funAB).toHaveBeenCalledTimes(2)
+		expect(funAB).toHaveBeenNthCalledWith(1, 1, 2)
+		expect(funAB).toHaveBeenNthCalledWith(2, 1, 2)
 		expect(funAB).toHaveReturnedWith(3)
 	})
 
-	const data2 = {
-		some: {
-			subfield: 6,
-		},
-		arr: Array.from({ length: 14 }).fill(8),
-	}
-
-	const funSubfield = vi.fn((subfield) => {
-		// 1.设置 some.subfield 时触发
-		// 2.设置 some 也会触发
-		return subfield === data2.some.subfield
-	})
-
-	const funArr12 = vi.fn((arr12) => {
-		// 1.设置 arr[12] 时触发
-		return arr12 === data2.arr[12]
-	})
-
-	const funArr = vi.fn((arr) => {
-		// 精确监听 arr 不应被 arr[12] 的子路径赋值触发
-		return arr === data2.arr
-	})
-
-	const observers2 = {
-		'some.subfield': funSubfield,
-		'arr[12]': funArr12,
-		'arr': funArr,
-	}
-
-	const keys = ['some.subfield', 'arr[12]']
-	keys.forEach((key) => {
-		filterInvokeObserver(key, observers2, data2)
-	})
-
 	it('监听子数据字段', () => {
+		const data = { some: { subfield: 6 } }
+		const funSubfield = vi.fn((subfield) => subfield === data.some.subfield)
+		const observers = { 'some.subfield': funSubfield }
+
+		filterInvokeObserver('some.subfield', observers, data)
+		filterInvokeObserver('some', observers, data)
+
+		expect(funSubfield).toHaveBeenCalledTimes(2)
+		expect(funSubfield).toHaveBeenNthCalledWith(1, 6)
+		expect(funSubfield).toHaveBeenNthCalledWith(2, 6)
 		expect(funSubfield).toHaveReturnedWith(true)
 	})
 
 	it('监听子数据数组中某个字段', () => {
+		const data = { arr: Array.from({ length: 14 }).fill(8) }
+		const funArr12 = vi.fn((arr12) => arr12 === data.arr[12])
+		const observers = { 'arr[12]': funArr12 }
+
+		filterInvokeObserver('arr[12]', observers, data)
+
+		expect(funArr12).toHaveBeenCalledExactlyOnceWith(8)
 		expect(funArr12).toHaveReturnedWith(true)
 	})
 
 	it('精确监听器不监听子数据数组字段', () => {
+		const data = { arr: Array.from({ length: 14 }).fill(8) }
+		const funArr = vi.fn()
+		const funArr12 = vi.fn()
+		const observers = { 'arr': funArr, 'arr[12]': funArr12 }
+
+		filterInvokeObserver('arr[12]', observers, data)
+
+		expect(funArr12).toHaveBeenCalledExactlyOnceWith(8)
 		expect(funArr).not.toHaveBeenCalled()
 	})
 

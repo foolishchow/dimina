@@ -71,7 +71,12 @@ class MyApplication : Application() {
 
 #### 调试模式与 vConsole
 
-当 `setDebugMode(true)` 时，SDK 会在加载 pageFrame 时追加 `?vconsole=1`。JSSDK 直接依赖 vConsole，并随 pageFrame 静态同步打包；只有检测到该启用标记时，pageFrame 才会在 render 初始化前同步初始化 vConsole。
+在 `Dimina.init` 前配置 `setDebugMode(true)` 时，SDK 会在加载 pageFrame 时追加 `?vconsole=1`。该开关由宿主控制，对 Debug 和 Release AAR 均生效，默认关闭。JSSDK 直接依赖 vConsole，并随 pageFrame 静态同步打包；只有检测到该启用标记时，pageFrame 才会在 render 初始化前同步初始化 vConsole。
+
+调试模式下，逻辑线程的 `console.log/info/warn/error/debug` 会转发到 vConsole，`wx.request` 的请求和成功/失败结果显示在 Network 面板。启动阶段日志会暂存，待页面渲染通道就绪后送达（最多 200 条）。
+
+`MiniProgram Storage` 面板通过小程序 Storage API 读取当前 appId 的原生 MMKV 数据，包含现行存储和旧版存储中仍有效的键值，打开面板或点击 Refresh 时刷新；支持以 JSON 新增、编辑值和确认删除，成功后重新读取 MMKV；操作立即生效。vConsole 自带的 Storage 面板仍表示 WebView 的浏览器存储。上述逻辑线程采集仅在 Android SDK `setDebugMode(true)` 时启用；目前不包含 `uploadFile`、`downloadFile` 和 WebSocket 流量。
+
 
 ### 步骤 4: 启动小程序
 

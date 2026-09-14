@@ -13,7 +13,7 @@ import {
   DMPMiniProgramPathParser,
   DMPMiniProgramPresentationStack
 } from './DMPMiniProgramPresentationStack'
-import { DMPRemoteUpdateManager } from '../Bundle/DMPRemoteUpdateManager'
+import { DMPRemoteUpdateManager, DMPMiniProgramVersionInfo } from '../Bundle/DMPRemoteUpdateManager'
 import { DMPMMKVManager } from '../Bundle/Util/DMPMMKVManager'
 import { DMPPreference } from '../Utils/DMPPreference'
 
@@ -251,6 +251,48 @@ export class DMPAppManager {
       this.retainedSince.delete(index)
       this.appPools.delete(index)
       this.miniProgramPresentations.removeApp(index)
+    }
+  }
+
+  // Required before querying/installing packages without launching a mini program.
+  initialize(context: common.UIAbilityContext): void {
+    DMPContextUtils.init(context)
+  }
+
+  // Configure before launching. A hidden capsule requires a host-provided exit action.
+  public showCapsule: boolean = true
+  public showLaunchLoading: boolean = true
+
+  isExistsApp(appId: string): boolean {
+    return this.getAppVersionInfo(appId) !== undefined
+  }
+
+  getAppVersionInfo(appId: string): DMPMiniProgramVersionInfo | undefined {
+    return DMPRemoteUpdateManager.sharedInstance().getAppVersionInfo(appId.trim())
+  }
+
+  async installMiniProgram(appId: string, packagePath: string): Promise<DMPMiniProgramVersionInfo> {
+    const normalizedAppId = appId.trim()
+    if (this.miniProgramOperationInProgress) {
+      throw new Error('another mini program operation is in progress')
+    }
+    const manager = DMPRemoteUpdateManager.sharedInstance()
+    manager.beginUninstall(normalizedAppId)
+    this.miniProgramOperationInProgress = true
+    try {
+      const app = this.existApp(normalizedAppId)
+      const openerIndex = app === null ? undefined : this.miniProgramPresentations.openerAppIndex(app.appIndex)
+      const opener = openerIndex === undefined ? undefined : this.appPools.get(openerIndex)
+      if (app !== null) {
+        await app.closeDimina()
+        if (opener) {
+          opener.notifyMiniProgramShow(DMPScene.fromMiniProgramBack, new DMPMap({ appId: normalizedAppId }))
+        }
+      }
+      return await manager.installLocalPackage(normalizedAppId, packagePath)
+    } finally {
+      this.miniProgramOperationInProgress = false
+      manager.endUninstall(normalizedAppId)
     }
   }
 

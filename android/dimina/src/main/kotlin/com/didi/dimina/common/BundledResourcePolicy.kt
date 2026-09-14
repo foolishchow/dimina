@@ -11,7 +11,8 @@ internal object BundledResourcePolicy {
         bundledVersion: Int,
         installedVersion: Int,
         requiredResourcePresent: Boolean,
+        hostManaged: Boolean = false,
     ): Boolean {
-        return !requiredResourcePresent || bundledVersion > installedVersion
+        return !requiredResourcePresent || (!hostManaged && bundledVersion > installedVersion)
     }
 }

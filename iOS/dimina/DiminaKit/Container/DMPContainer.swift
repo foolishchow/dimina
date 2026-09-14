@@ -86,7 +86,8 @@ public class DMPContainer {
             pagePath: pagePath,
             root: root,
             runtimeType: config.runtimeType,
-            launchConfig: launchConfig
+            launchConfig: launchConfig,
+            debugEnabled: app.getAppConfig()?.isVConsoleEnabled ?? false
         )
         return DMPMap([
             "type": "loadResource",
@@ -100,7 +101,8 @@ public class DMPContainer {
         pagePath: String,
         root: String,
         runtimeType: String = "miniProgram",
-        launchConfig: DMPLaunchConfig?
+        launchConfig: DMPLaunchConfig?,
+        debugEnabled: Bool = false
     ) -> [String: Any] {
         var body: [String: Any] = [
             "bridgeId": webViewId,
@@ -109,6 +111,7 @@ public class DMPContainer {
             "query": launchConfig?.query ?? [:],
             "root": root,
             "runtimeType": runtimeType,
+            "debugEnabled": debugEnabled ? "true" : "false",
             "scene": launchConfig?.scene ?? DMPScene.fromMainEntry.rawValue,
         ]
         if let referrerInfo = launchConfig?.referrerInfo {

@@ -17,6 +17,15 @@ public struct DMPAppConfig : Identifiable {
     public var updateManifestUrl: String?
     public var isDebugMode: Bool = false
 
+    /// Keep service collection and pageFrame activation on the same policy.
+    var isVConsoleEnabled: Bool {
+        #if DEBUG
+        return true
+        #else
+        return isDebugMode
+        #endif
+    }
+
     var color: Color?
     var icon: String?
 

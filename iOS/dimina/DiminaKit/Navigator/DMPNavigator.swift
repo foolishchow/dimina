@@ -101,7 +101,7 @@ public class DMPNavigator: NSObject {
     }
 
     func setCapsuleVisible(_ visible: Bool) {
-        capsuleView?.isHidden = !visible
+        capsuleView?.isHidden = !(visible && DMPAppManager.sharedInstance().showCapsule)
         if visible {
             setCapsuleEnabled(true)
         }
@@ -432,6 +432,7 @@ public class DMPNavigator: NSObject {
         to path: String, query: [String: Any]? = nil, animated: Bool = true,
         showsLaunchLoading: Bool = true
     ) async -> Bool {
+        let showsLaunchLoading = showsLaunchLoading && DMPAppManager.sharedInstance().showLaunchLoading
         guard let navigationController = navigationController else {
             DMPLogger.debug("导航控制器未设置")
             return false

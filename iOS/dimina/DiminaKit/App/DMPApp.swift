@@ -77,6 +77,7 @@ public class DMPApp {
 
     @MainActor
     private func performLaunch(launchConfig: DMPLaunchConfig) async -> Bool {
+        guard !DMPRemoteUpdateManager.shared.isPackageOperationInProgress(appId: appId) else { return false }
         guard !isLaunching else {
             DMPLogger.debug("launch skipped: app is already launching")
             return false

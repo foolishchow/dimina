@@ -165,6 +165,12 @@ final class DMPRemoteUpdateManager {
         return operationGenerations[appId, default: 0]
     }
 
+    func isPackageOperationInProgress(appId: String) -> Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return uninstallingApps.contains(appId)
+    }
+
     func beginUninstall(appId: String) throws {
         try validateAppId(appId)
         stateLock.lock()
@@ -192,6 +198,39 @@ final class DMPRemoteUpdateManager {
             let downloadPath = (NSTemporaryDirectory() as NSString)
                 .appendingPathComponent("dimina-updates/\(appId)")
             DMPFileUtil.removeItem(at: downloadPath)
+        }
+    }
+
+    func getAppVersionInfo(appId: String) throws -> [String: Any]? {
+        try validateAppId(appId)
+        let path = DMPSandboxManager.appBundlePath(appId)
+        guard (try? validatePackage(at: path)) != nil,
+              let config = DMPFileUtil.loadJSONFromFile(filePath: DMPSandboxManager.appBundleConfigPath(appId: appId)),
+              config["appId"] as? String == appId,
+              let version = config["versionCode"] as? Int, version >= 0 else { return nil }
+        return config
+    }
+
+    func installLocalPackage(appId: String, packagePath: String) async throws -> [String: Any] {
+        try validateAppId(appId)
+        return try await appLock(for: appId).withLock {
+            let staging = (DMPSandboxManager.sandboxPath() as NSString)
+                .appendingPathComponent(".local/\(appId)-\(UUID().uuidString)")
+            defer { DMPFileUtil.removeItem(at: staging) }
+            guard DMPFileUtil.unzipFile(at: packagePath, to: staging) else {
+                throw RemoteUpdateError.install("failed to unzip local package")
+            }
+            try self.validatePackage(at: staging)
+            guard var config = DMPFileUtil.loadJSONFromFile(filePath: (staging as NSString).appendingPathComponent("config.json")),
+                  config["appId"] as? String == appId,
+                  let version = config["versionCode"] as? Int, version >= 0 else {
+                throw RemoteUpdateError.install("invalid local package config")
+            }
+            config["hostManaged"] = true
+            try JSONSerialization.data(withJSONObject: config).write(to: URL(fileURLWithPath: staging).appendingPathComponent("config.json"))
+            try self.replaceActivePackage(sourcePath: staging, appId: appId)
+            self.deletePendingPackage(appId: appId)
+            return config
         }
     }
 
@@ -372,7 +411,8 @@ final class DMPRemoteUpdateManager {
 
         for file in requiredFiles {
             let path = (packagePath as NSString).appendingPathComponent(file)
-            guard FileManager.default.fileExists(atPath: path) else {
+            let attributes = try? FileManager.default.attributesOfItem(atPath: path)
+            guard attributes?[.type] as? FileAttributeType == .typeRegular else {
                 throw RemoteUpdateError.install("package missing required file: \(file)")
             }
         }
@@ -468,7 +508,7 @@ final class DMPRemoteUpdateManager {
     }
 
     private func validateAppId(_ appId: String) throws {
-        let reservedAppIds: Set<String> = ["sdk", ".remote", ".backup", ".pending"]
+        let reservedAppIds: Set<String> = ["sdk", ".remote", ".backup", ".pending", ".local"]
         guard !appId.isEmpty,
               appId != ".",
               appId != "..",

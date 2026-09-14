@@ -11,3 +11,5 @@ export { DMPMap } from './src/main/ets/Utils/DMPMap';
 export { DMPDefaultVirtualFilePrefix, DMPVirtualFileConfig } from './src/main/ets/Bundle/Util/DMPFileUrlConvertor';
 
 export { DMPMapProviders, DMPNativeMapProvider, DMPNativeMapHandle, DMPNativeMapEvents } from './src/main/ets/Map/DMPMapProvider';
+
+export { DMPMiniProgramVersionInfo } from './src/main/ets/Bundle/DMPRemoteUpdateManager';

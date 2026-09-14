@@ -1,6 +1,5 @@
 import { CANVAS_CONTRACT_CHANGE_EVENT, CANVAS_OWNER_PROP } from '@dimina/common'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { JSDOM } from 'jsdom'
 import { createApp, h, nextTick, provide, resolveComponent, resolveDirective, Suspense, withDirectives } from 'vue'
 import Canvas from '../../components/src/component/canvas/Canvas.vue'
 import { createMiniProgramSlots } from '../src/core/slots'
@@ -20,23 +19,13 @@ const groupB = [
 ]
 
 describe('runtime template components', () => {
-	let dom
 	let runtime
 	let applyWxmlStyleProperty
 	let normalizeStaticBooleanAttributes
 
 	beforeEach(async () => {
-		dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' })
-		globalThis.window = dom.window
-		globalThis.document = dom.window.document
-		globalThis.Node = dom.window.Node
-		globalThis.Element = dom.window.Element
-		globalThis.HTMLElement = dom.window.HTMLElement
-		globalThis.SVGElement = dom.window.SVGElement
-		globalThis.MutationObserver = dom.window.MutationObserver
-		globalThis.navigator = dom.window.navigator
-		globalThis.requestAnimationFrame = dom.window.requestAnimationFrame ?? (cb => setTimeout(cb, 0))
-		globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame ?? (id => clearTimeout(id))
+		document.head.replaceChildren()
+		document.body.replaceChildren()
 
 		const runtimeModule = await import('../src/core/runtime.js')
 		runtime = runtimeModule.default
@@ -46,17 +35,11 @@ describe('runtime template components', () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks()
-		dom.window.close()
-		delete globalThis.window
-		delete globalThis.document
-		delete globalThis.Node
-		delete globalThis.Element
-		delete globalThis.HTMLElement
-		delete globalThis.SVGElement
-		delete globalThis.MutationObserver
-		delete globalThis.navigator
-		delete globalThis.requestAnimationFrame
-		delete globalThis.cancelAnimationFrame
+		document.head.replaceChildren()
+		document.body.replaceChildren()
+		delete window.DiminaRenderBridge
+		delete window.__message
+		delete window.__callback
 	})
 
 	it('acknowledges page attachment before page ready', async () => {
@@ -1783,18 +1766,11 @@ describe('mini-program dynamic slots', () => {
 // canvas-id 的判重作用域是宿主组件实例，「页面一个、组件里一个」同名 canvas 合法共存。
 // 页面作用域的查询会一路扫进组件内部，所以解析必须先认归属，不能按文档序取第一个。
 describe('canvas element resolution', () => {
-	let dom
 	let runtime
 
 	beforeEach(async () => {
-		dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' })
-		globalThis.window = dom.window
-		globalThis.document = dom.window.document
-		globalThis.Node = dom.window.Node
-		globalThis.Element = dom.window.Element
-		globalThis.HTMLElement = dom.window.HTMLElement
-		globalThis.MutationObserver = dom.window.MutationObserver
-		globalThis.navigator = dom.window.navigator
+		document.head.replaceChildren()
+		document.body.replaceChildren()
 
 		const runtimeModule = await import('../src/core/runtime.js')
 		runtime = runtimeModule.default
@@ -1803,7 +1779,11 @@ describe('canvas element resolution', () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks()
-		dom.window.close()
+		document.head.replaceChildren()
+		document.body.replaceChildren()
+		delete window.DiminaRenderBridge
+		delete window.__message
+		delete window.__callback
 	})
 
 	// 归属走 DOM property，名字与组件层写入时用的是同一个常量：分别写死字面量的话，

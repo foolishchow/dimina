@@ -30,6 +30,9 @@ export class DMPService {
     )
     // this.ww.updateWorkerAppData(new WorkerAppData())
     this.initJsEngine()
+    // Worker messages and native JS tasks preserve order: initialize this flag
+    // before any service.js or business bundle is enqueued.
+    this.executeScript(`globalThis.__diminaDebug = ${DMPContextUtils.debugMode || appConfig.isDebugMode};`)
   }
 
   public initJsEngine() {

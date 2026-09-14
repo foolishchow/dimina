@@ -308,3 +308,7 @@ updateManager.onUpdateFailed(() => {
 ```
 
 该代码只处理更新状态和用户确认。配置 `updateManifestUrl` 后，新包下载、校验、安装和待更新目录切换由 SDK 内置更新器处理；签名、灰度发布、服务端回滚和包体限制仍由宿主或发布平台负责。
+
+## 宿主自行安装与管理版本
+
+无需远程 manifest 的 App 内嵌场景，可使用[宿主管理小程序版本与胶囊](./Host-Package-Management.md)中的本地 ZIP 安装、版本查询和胶囊显隐配置。

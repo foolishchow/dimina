@@ -44,15 +44,8 @@ export struct DMPPageTitle {
             .height(55)
             .padding(15)
             .position({ x: 0, y: 0 })
-            .onClick((event?: ClickEvent) => {
-              const embedController =
-                DMPAppManager.sharedInstance().getApp(this.appIndex)?.getWebController(this.webViewId)?.subController
-              if (embedController?.accessBackward()) {
-                embedController.backward()
-              } else {
-                DMPAppManager.sharedInstance().getApp(this.appIndex)?.navigatorManager.getCurNavigator()?.pop()
-              }
-            })
+            .accessibilityText('返回')
+            .onClick(() => { this.goBack() })
         }
         // 返回首页按钮独立判定：homeButton: true 的内页与返回箭头并存
         // （微信实测样式），此时让出左槽紧随箭头之后
@@ -93,7 +86,7 @@ export struct DMPPageTitle {
     return undefined;
   }
 
-  // 返回箭头显示判据：tabBar 页永不显示（tab 页经 tabBar 即可离开，微信亦无箭头）；
+  // 隐藏胶囊时始终提供返回入口，栈底点击退出到宿主。默认胶囊模式下，tabBar 页不显示；
   // 栈深 > 1 显示；栈底页面仅当嵌入 web-view（同层渲染）自身有可回退历史时保留箭头
   // （点击优先回退嵌入历史，见 onClick）。读 pageRecord.embeddedCanGoBack 镜像而非直接
   // 轮询 controller——镜像赋值本身就是标题栏的重建信号（见 EmbedWebView.syncEmbeddedHistoryState），
@@ -102,6 +95,9 @@ export struct DMPPageTitle {
     const app = DMPAppManager.sharedInstance().getApp(this.appIndex)
     if (!app) {
       return true // app 尚不可用时维持既有箭头展示，不误藏
+    }
+    if (!DMPAppManager.sharedInstance().showCapsule) {
+      return true
     }
     const pageRecord = app.navigatorManager.getPageRecordById(this.webViewId)
     const pagePath = pageRecord?.pagePath
@@ -112,6 +108,24 @@ export struct DMPPageTitle {
       return true
     }
     return pageRecord?.embeddedCanGoBack === true
+  }
+
+  private goBack(): void {
+    const app = DMPAppManager.sharedInstance().getApp(this.appIndex)
+    if (app && !DMPAppManager.sharedInstance().showCapsule &&
+      app.navigatorManager.getPageCountForWebViewId(this.webViewId) <= 1) {
+      DMPAppManager.sharedInstance().exitMiniProgram(app, async () => {}).catch((error: Error) => {
+        DMPLogger.e(Tags.DMP_PAGE, `navigation close failed: ${error.message}`)
+      })
+      return
+    }
+    const embedController =
+      DMPAppManager.sharedInstance().getApp(this.appIndex)?.getWebController(this.webViewId)?.subController
+    if (embedController?.accessBackward()) {
+      embedController.backward()
+    } else {
+      DMPAppManager.sharedInstance().getApp(this.appIndex)?.navigatorManager.getCurNavigator()?.pop()
+    }
   }
 
   private showHomeButton(): boolean {

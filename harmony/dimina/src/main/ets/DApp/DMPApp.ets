@@ -341,6 +341,10 @@ export class DMPApp {
 
 
   async startDimina(context: common.UIAbilityContext, launchConfig: DMPLaunchConfig) {
+    DMPContextUtils.init(context)
+    if (DMPRemoteUpdateManager.sharedInstance().isPackageOperationInProgress(this.appConfig.appId)) {
+      throw new Error('package operation in progress')
+    }
     this.startPackageLoader(context, launchConfig).catch((error: Error) => {
       DMPLogger.e(Tags.LAUNCH, `startDimina failed: ${error.message}`)
       this._engineStatus.setStatus(EngineStatus.STOP)
@@ -350,11 +354,15 @@ export class DMPApp {
   }
 
   async startPackageLoader(context: common.UIAbilityContext, launchConfig?: DMPLaunchConfig) {
+    DMPContextUtils.init(context)
     await DMPAppManager.sharedInstance().collectRetainedApps()
     DMPLogger.i(Tags.LAUNCH, 'startPackageLoader start')
     const closeInProgress = this._closeInProgress
     if (closeInProgress) {
       await closeInProgress
+    }
+    if (DMPRemoteUpdateManager.sharedInstance().isPackageOperationInProgress(this.appConfig.appId)) {
+      throw new Error('package operation in progress')
     }
     this.restoreRuntimeIfDestroyed()
     const generation = this._runtimeGeneration

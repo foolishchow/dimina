@@ -136,6 +136,7 @@ class MiniApp private constructor() {
      * @param miniProgram The MiniProgram to open
      */
     fun openApp(context: Activity, miniProgram: MiniProgram) {
+        check(!RemoteUpdateManager.isPackageOperationInProgress(miniProgram.appId)) { "package operation in progress" }
         collectRetainedApps()
         // Initialize or get JsCore for this MiniProgram
         val alreadyRunning = isRunning(miniProgram.appId)

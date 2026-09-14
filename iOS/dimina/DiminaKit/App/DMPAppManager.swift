@@ -397,6 +397,35 @@ public class DMPAppManager {
         }
     }
 
+    /// Configure before launching mini programs. Defaults to the standard capsule UI.
+    public var showCapsule: Bool = true
+
+    /// Controls only the default mini-program launch overlay, not business loading dialogs.
+    public var showLaunchLoading: Bool = true
+
+    public func isExistsApp(appId: String) -> Bool {
+        (try? getAppVersionInfo(appId: appId)) != nil
+    }
+
+    public func getAppVersionInfo(appId: String) throws -> [String: Any]? {
+        try DMPRemoteUpdateManager.shared.getAppVersionInfo(appId: appId.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    @MainActor
+    public func installMiniProgram(appId: String, packagePath: String) async throws -> [String: Any] {
+        let appId = appId.trimmingCharacters(in: .whitespacesAndNewlines)
+        try DMPRemoteUpdateManager.shared.beginUninstall(appId: appId)
+        defer { DMPRemoteUpdateManager.shared.endUninstall(appId: appId) }
+        return try await withMiniProgramOperation {
+            if let app = existApp(appId: appId) {
+                await closeMiniProgram(app)
+                app.destroy()
+            }
+            FileAPI.clearOpenFiles(appId: appId)
+            return try await DMPRemoteUpdateManager.shared.installLocalPackage(appId: appId, packagePath: packagePath)
+        }
+    }
+
     /// Establishes the same opener/target relationship `navigateToMiniProgram`
     /// records after a successful launch, without requiring a real bundled
     /// launch. Exists so tests can exercise `navigateBackMiniProgram` /

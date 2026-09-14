@@ -48,7 +48,7 @@ public class DMPService {
         let appBinding = DMPServiceAppBinding(app: app)
         self.app = app
         self.appBinding = appBinding
-        self.engine = DMPEngine {
+        self.engine = DMPEngine(debugEnabled: app.getAppConfig()?.isVConsoleEnabled ?? false) {
             appBinding.resolve()
         }
     }

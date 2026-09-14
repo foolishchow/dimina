@@ -635,6 +635,7 @@ class DiminaActivity : ComponentActivity() {
                     val localVersion = VersionUtils.getAppVersion(appId)
                     BundledResourcePolicy.shouldExtract(
                         bundledVersion = miniProgram.versionCode,
+                        hostManaged = RemoteUpdateManager.getAppVersionInfo(applicationContext, appId)?.optBoolean("hostManaged") == true,
                         installedVersion = localVersion,
                         requiredResourcePresent =
                             findAppConfigFile("jsapp/$appId") != null &&
@@ -1736,14 +1737,16 @@ class DiminaActivity : ComponentActivity() {
                                 containerColor = navBarBgColor
                             ),
                             navigationIcon = {
-                                // 返回箭头（非栈底页面）与返回首页按钮可并存：
+                                // 返回箭头（非栈底页面，或宿主隐藏胶囊）与返回首页按钮可并存：
                                 // 页面配置 homeButton: true 的内页两者同时显示（微信实测样式）。
                                 // 两个 IconButton 默认触摸热区都比各自图标大（自带留白），
                                 // 不再额外叠加 Row 间距，否则视觉间距会远超微信原生
                                 // `.navigator-hd a+a{margin-left:10px}` 的 10dp
                                 Row {
-                                    if (!miniProgram.root) {
-                                        IconButton(onClick = { finish() }) {
+                                    if (!miniProgram.root || !Dimina.getInstance().shouldShowCapsule()) {
+                                        IconButton(onClick = {
+                                            if (miniProgram.root) hideMiniProgram() else finish()
+                                        }) {
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                                 contentDescription = "Back",
@@ -1833,7 +1836,7 @@ class DiminaActivity : ComponentActivity() {
 
                         // 加载遮罩层使用 AnimatedVisibility 只添加淡出效果
                         androidx.compose.animation.AnimatedVisibility(
-                            visible = isLoading.value && miniProgram.root,
+                            visible = isLoading.value && miniProgram.root && Dimina.getInstance().shouldShowLaunchLoading(),
                             exit = fadeOut(animationSpec = tween(300)),
                             modifier = Modifier.fillMaxSize()
                         ) {
@@ -1870,7 +1873,7 @@ class DiminaActivity : ComponentActivity() {
                 )
             }
 
-            if (!isLoading.value) {
+            if (!isLoading.value && com.didi.dimina.Dimina.getInstance().shouldShowCapsule()) {
                 val configuration = LocalConfiguration.current
                 val (windowInfo, menuRect) = remember(
                     configuration.screenWidthDp,
@@ -1906,6 +1909,11 @@ class DiminaActivity : ComponentActivity() {
 
     fun hideMiniProgram() {
         if (!isMiniProgramForeground() || isFinishing) return
+        if (!Dimina.getInstance().isMultiTaskEnabled()) {
+            // Shared-task pages must be popped; moving this task back would hide the host too.
+            exitMiniProgram()
+            return
+        }
         activityRegistry.snapshot(miniProgram.appId).forEach { it.retainedByHost = true }
         window.decorView.clearFocus()
         // Queue options before another task can receive onStart.
@@ -2524,6 +2532,10 @@ class DiminaActivity : ComponentActivity() {
         internal fun resumeRetainedMiniProgram(context: Context, appId: String): Boolean {
             val activity = activityRegistry.lastRegistered(appId) ?: return false
             if (activity.isFinishing || activity.isDestroyed) return false
+            if (!Dimina.getInstance().isMultiTaskEnabled()) {
+                // The host and mini program share a task; moving it forward cannot select a page.
+                return context === activity
+            }
             val manager = context.getSystemService(ActivityManager::class.java)
             val task = manager.appTasks.firstOrNull { it.taskInfo.taskId == activity.taskId } ?: return false
             task.moveToFront()
@@ -2557,7 +2569,9 @@ class DiminaActivity : ComponentActivity() {
             try {
                 // Excluded tasks are trimmed by Android when another task becomes active.
                 // Keep a normal task so switching mini programs does not destroy its pages.
-                launch(context, program, Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+                launch(context, program, if (Dimina.getInstance().isMultiTaskEnabled()) {
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                } else null)
             } catch (error: Exception) {
                 pendingLaunches.remove(program.appId)
                 throw error

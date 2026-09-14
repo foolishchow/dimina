@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A33500000000000000000001 /* DMPFileSystemCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33500000000000000000002 /* DMPFileSystemCacheTests.swift */; };
 		44A000002609090000000001 /* DMPRetainedMiniProgramTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44A000002609090000000002 /* DMPRetainedMiniProgramTests.swift */; };
 		14603AA5921BC560B952F3E9 /* DMPUtilPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61DD3E623362F9D7264941CD /* DMPUtilPathTests.swift */; };
 		1A2B3C4D5E6F700000000001 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D5E6F700000000101 /* Alamofire */; };
@@ -43,6 +44,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A33500000000000000000002 /* DMPFileSystemCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMPFileSystemCacheTests.swift; sourceTree = "<group>"; };
 		44A000002609090000000002 /* DMPRetainedMiniProgramTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMPRetainedMiniProgramTests.swift; sourceTree = "<group>"; };
 		0A6F85D82DAE3D7D0047A006 /* dimina.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dimina.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		23EDE52DA8E2C3DFF607829B /* DMPWebSocketManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DMPWebSocketManagerTests.swift; sourceTree = "<group>"; };
@@ -174,6 +176,7 @@
 				23EDE52DA8E2C3DFF607829B /* DMPWebSocketManagerTests.swift */,
 				898FFD601DB04AFEBBAAAE0A /* DMPEngineTimerThreadTests.swift */,
 				B41C7E52A0D34F0891C6D310 /* DMPServiceRenderOrderTests.swift */,
+				A33500000000000000000002 /* DMPFileSystemCacheTests.swift */,
 			);
 			path = DiminaKitTests;
 			sourceTree = "<group>";
@@ -361,6 +364,7 @@
 				9E9F7EDCE127D18B2331A8DC /* DMPWebSocketManagerTests.swift in Sources */,
 				E90FD67E791E4377923344EF /* DMPEngineTimerThreadTests.swift in Sources */,
 				B41C7E52A0D34F0891C6D311 /* DMPServiceRenderOrderTests.swift in Sources */,
+				A33500000000000000000001 /* DMPFileSystemCacheTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,7 +535,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7.0;
+				MARKETING_VERSION = 1.7.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.didi.dimina;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -569,7 +573,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7.0;
+				MARKETING_VERSION = 1.7.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.didi.dimina;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

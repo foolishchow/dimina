@@ -53,6 +53,13 @@ android {
     }
 }
 
+// Release AAR behavior (including host-controlled debugging) needs its own regression run.
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+    }
+}
+
 dependencies {
     implementation(project(":engine_qjs"))
 

@@ -176,11 +176,7 @@ public class DMPPageController: UIViewController {
         hasStartedLoading = true
         showPageLoadingIfNeeded()
         webview.poolState = .loading
-        var enableVConsole = false
-        #if DEBUG
-        enableVConsole = true
-        #endif
-        webview.loadPageFrame(enableVConsole: enableVConsole)
+        webview.loadPageFrame(enableVConsole: appConfig.isVConsoleEnabled)
     }
 
     public func preparePageLoading(in parentController: UIViewController) {
@@ -348,6 +344,7 @@ public class DMPPageController: UIViewController {
 
     private func makePageLoadingView() -> UIView {
         let container = UIView()
+        container.accessibilityIdentifier = "dimina.launchLoading"
         container.backgroundColor = .white
 
         let stackView = UIStackView()
@@ -532,7 +529,7 @@ public class DMPPageController: UIViewController {
     }
 
     @objc private func customBackButtonTapped() {
-        navigator?.handleBackButtonTapped()
+        backButtonTapped()
     }
 
     // 路由判定收敛在 DMPNavigator.navigateHome（switchTab / redirectTo 的选择），按钮只发起
@@ -881,7 +878,7 @@ public class DMPPageController: UIViewController {
     }
 
     /// 导航栏左侧的两个 affordance（微信真机实测语义）：
-    /// 返回箭头 = 非栈底页面；home 键 = 非首页 + 非 tabBar 页（这两条排除
+    /// 返回箭头 = 非栈底页面或宿主隐藏胶囊；home 键 = 非首页 + 非 tabBar 页（这两条排除
     /// `homeButton: true` 也不能突破）且（栈底自动显示 ‖ 页面配置
     /// `homeButton: true`——此时与返回箭头并存）。`wx.hideHomeButton()` 只压制
     /// home 键。
@@ -895,7 +892,7 @@ public class DMPPageController: UIViewController {
         }
 
         // isRoot 表示这个页面在栈底（没有可以返回的上一页）
-        let showBack = !isRoot
+        let showBack = !isRoot || !DMPAppManager.sharedInstance().showCapsule
 
         if homeButtonForceHidden {
             return (showBack, false)
@@ -933,6 +930,10 @@ public class DMPPageController: UIViewController {
 
     // Back button tap event
     @objc private func backButtonTapped() {
+        if isRoot && !DMPAppManager.sharedInstance().showCapsule {
+            closeMiniProgramFromCapsule()
+            return
+        }
         if let navigator = navigator {
             navigator.handleBackButtonTapped()
         } else {

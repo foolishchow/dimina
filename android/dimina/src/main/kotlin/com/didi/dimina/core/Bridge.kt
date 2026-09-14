@@ -108,6 +108,7 @@ class Bridge(
                 "resourceLoadId" to currentResourceLoadId,
                 "appId" to options.appId,
                 "runtimeType" to options.runtimeType,
+                "debugEnabled" to Dimina.getInstance().isDebugMode().toString(),
                 "pagePath" to options.pathInfo.pagePath,
                 "root" to options.root,
                 "baseUrl" to PathUtils.WEBVIEW_JSAPP_BASE_URL

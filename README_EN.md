@@ -90,7 +90,6 @@ When you are ready to integrate a bundle into a native app, start with the guide
 - [iOS integration guide](./iOS/README.md)
 - [Harmony integration guide](./harmony/dimina/README.md)
 - [Flutter host integration guide](./docs/Flutter-Integration.md)
-- [Flutter three-platform example](./examples/flutter/README.md)
 
 ## Capability boundaries and further reading
 

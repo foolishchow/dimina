@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
+import { onVConsoleBuildWarning } from '../../scripts/vconsole-build-warning.mjs'
 
 /**
  * 把 `@dimina/service?url` 落成 dist 里独立的静态文件 + 指向它的 URL 常量。
@@ -88,8 +89,9 @@ export default defineConfig({
 			fileName: (_format, entryName) => `${entryName}.js`,
 		},
 		rollupOptions: {
+			onwarn: onVConsoleBuildWarning,
 			// 只把真实发布到 registry 的三方运行时依赖标为 external（宿主装得到）；
-			// vconsole 还需保持 pageFrame 里按需动态 import 的懒加载语义。
+			// vconsole 随 pageFrame 内联，原生离线 JSSDK 不能解析外部依赖。
 			// @dimina/* workspace 依赖内联进产物：它们不在外部 registry 上，
 			// external 会把解析负担转嫁给每个宿主。内联是安全的——它们只被 pageFrame
 			// 入口引用，而每个 pageFrame.html 只在自己的 iframe 里加载一份，不存在
@@ -98,7 +100,6 @@ export default defineConfig({
 			// 残留到产物里会让消费方解析失败，必须交给 diminaServiceUrlPlugin 处理。
 			external: [
 				'mitt',
-				'vconsole',
 			],
 			output: {
 				preserveModules: false,

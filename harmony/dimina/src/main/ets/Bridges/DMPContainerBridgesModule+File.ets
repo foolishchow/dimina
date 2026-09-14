@@ -345,7 +345,13 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
   }
 
   copyFileSync(data: DMPMap): void {
-    fs.copyFileSync(this.resolve(data.getString('srcPath') ?? ''), this.resolve(data.getString('destPath') ?? ''));
+    const src = this.resolve(data.getString('srcPath') ?? '');
+    const dest = this.resolve(data.getString('destPath') ?? '');
+    if (!fs.statSync(src).isFile()) {
+      throw new Error(`not a regular file ${src}`);
+    }
+    if (src === dest) { return; }
+    fs.copyFileSync(src, dest);
   }
 
   fstat(data: DMPMap, callback: DMPBridgeCallback) {
@@ -399,7 +405,9 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
   }
 
   mkdirSync(data: DMPMap): void {
-    fs.mkdirSync(this.resolve(data.getString('dirPath') ?? ''), data.getBoolean('recursive') ?? false);
+    const path = this.resolve(data.getString('dirPath') ?? '');
+    if (fs.accessSync(path)) { throw new Error(`file already exists ${path}`); }
+    fs.mkdirSync(path, data.getBoolean('recursive') ?? false);
   }
 
   open(data: DMPMap, callback: DMPBridgeCallback) {
@@ -518,7 +526,11 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
   }
 
   renameSync(data: DMPMap): void {
-    fs.moveFileSync(this.resolve(data.getString('oldPath') ?? ''), this.resolve(data.getString('newPath') ?? ''), 0);
+    const src = this.resolve(data.getString('oldPath') ?? '');
+    const dest = this.resolve(data.getString('newPath') ?? '');
+    this.requireNonRoot(src);
+    this.requireNonRoot(dest);
+    fs.renameSync(src, dest);
   }
 
   rmdir(data: DMPMap, callback: DMPBridgeCallback) {
@@ -528,8 +540,18 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
     });
   }
 
+  private requireNonRoot(path: string): void {
+    if (path === this.userRoot() || path === this.tempRoot()) {
+      throw new Error(`permission denied, open ${path}`);
+    }
+  }
+
   rmdirSync(data: DMPMap): void {
     const path = this.resolve(data.getString('dirPath') ?? '');
+    this.requireNonRoot(path);
+    if (!fs.statSync(path).isDirectory()) {
+      throw new Error(`not a directory ${path}`);
+    }
     if (data.getBoolean('recursive')) {
       this.deleteRecursive(path);
     } else {
@@ -561,7 +583,23 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
 
   statSync(data: DMPMap): DMPMap {
     const path = this.resolve(data.getString('path') ?? data.getString('args') ?? '');
-    return this.statObject(path);
+    if (!data.getBoolean('recursive') || !fs.statSync(path).isDirectory()) {
+      return this.statObject(path);
+    }
+    const result = new DMPMap();
+    this.collectStats(path, '', result);
+    return result;
+  }
+
+  private collectStats(path: string, relative: string, result: DMPMap): void {
+    // Resolve every child as well so recursive traversal retains app confinement.
+    const resolved = this.resolve(path);
+    result.set(relative, this.statObject(resolved));
+    if (fs.statSync(resolved).isDirectory()) {
+      fs.listFileSync(resolved).forEach((name: string) => {
+        this.collectStats(`${resolved}/${name}`, `${relative}/${name}`, result);
+      });
+    }
   }
 
   truncate(data: DMPMap, callback: DMPBridgeCallback) {
@@ -623,10 +661,20 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
   writeFileSync(data: DMPMap): void {
     const path = this.resolve(data.getString('filePath') ?? '');
     const file = fs.openSync(path, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
-    const bytes = this.dataBytes(data);
-    fs.truncateSync(path, 0);
-    fs.writeSync(file.fd, bytes, { length: bytes.byteLength });
-    fs.closeSync(file);
+    try {
+      const bytes = this.dataBytes(data);
+      fs.truncateSync(path, 0);
+      let written = 0;
+      while (written < bytes.byteLength) {
+        const count = fs.writeSync(file.fd, bytes.slice(written), { offset: written, length: bytes.byteLength - written });
+        if (count <= 0) {
+          throw new Error('failed to write file');
+        }
+        written += count;
+      }
+    } finally {
+      fs.closeSync(file);
+    }
   }
 
   private callAsync(name: string, callback: DMPBridgeCallback, block: () => DMPMap): void {
@@ -737,7 +785,7 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
     const stat = fs.statSync(path);
     const isDirectory = stat.isDirectory();
     const result = new DMPMap();
-    result.set('mode', isDirectory ? 'directory' : 'file');
+    result.set('mode', stat.mode);
     result.set('size', isDirectory ? 0 : stat.size);
     result.set('lastAccessedTime', Math.floor(stat.atime / 1000));
     result.set('lastModifiedTime', Math.floor(stat.mtime / 1000));
@@ -760,10 +808,20 @@ export class DMPContainerBridgesModuleFile extends DMPContainerBridgesModule {
   private readFileBytes(path: string): ArrayBuffer {
     const stat = fs.statSync(path);
     const file = fs.openSync(path, fs.OpenMode.READ_ONLY);
-    const buffer = new ArrayBuffer(stat.size);
-    fs.readSync(file.fd, buffer, { length: stat.size });
-    fs.closeSync(file);
-    return buffer;
+    try {
+      const buffer = new ArrayBuffer(stat.size);
+      let read = 0;
+      while (read < stat.size) {
+        const chunk = new ArrayBuffer(stat.size - read);
+        const count = fs.readSync(file.fd, chunk, { offset: read, length: chunk.byteLength });
+        if (count === 0) break;
+        new Uint8Array(buffer).set(new Uint8Array(chunk, 0, count), read);
+        read += count;
+      }
+      return buffer.slice(0, read);
+    } finally {
+      fs.closeSync(file);
+    }
   }
 
   private async digestFile(path: string, algorithm: string): Promise<string> {

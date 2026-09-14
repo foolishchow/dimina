@@ -62,7 +62,7 @@ export struct DMPPage {
           // Use normal page container for non-TabBar pages
           DMPPageContainer({ appIndex: this.appIndex, webViewId: this.webViewId })
         }
-        if (this.isLaunching) {
+        if (this.isLaunching && DMPAppManager.sharedInstance().showLaunchLoading) {
           LaunchLoading({
             color: DMPColorUtils.generateColorFromName(this.app!.appConfig.appName),
             name: this.app!.appConfig.appName

@@ -2,6 +2,7 @@ package com.didi.dimina.core
 
 import android.os.Handler
 import android.os.Looper
+import com.didi.dimina.Dimina
 import com.didi.dimina.common.JavaScriptUtils
 import com.didi.dimina.common.LogUtils
 import com.didi.dimina.common.PathUtils
@@ -36,6 +37,9 @@ class JsCore {
         jsEngine = QuickJSEngine()
         val initialized = jsEngine.initialize(PathUtils.VIRTUAL_DOMAIN_URL)
         LogUtils.d(tag, "QuickJS engine initialized: $initialized")
+        if (initialized && Dimina.getInstance().isDebugMode()) {
+            jsEngine.evaluate("globalThis.__diminaDebug = true;")
+        }
         // Notify callback if provided
         callback?.invoke(initialized)
 

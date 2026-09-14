@@ -287,6 +287,20 @@ public class DMPStorage {
         return (keys: allKeys, currentSize: totalSize, limitSize: 10 * 1024)  // 10MB converted to KB
     }
     
+    /// Debug-only callers receive decoded MMKV values from this app's two namespaces.
+    func debugSnapshot() -> [[String: Any]] {
+        let namespaces: [(Bool, [String])] = queue.sync {
+            [(false, mmkv?.allKeys() as? [String] ?? []),
+             (true, encryptedMMKV?.allKeys() as? [String] ?? [])]
+        }
+        return namespaces.flatMap { encrypted, keys in
+            keys.sorted().compactMap { key in
+                guard let value = get(key: key, encrypted: encrypted) else { return nil }
+                return ["key": key, "data": value, "encrypted": encrypted]
+            }
+        }
+    }
+
     // Destroy instances
     public func destroy() {
         queue.sync(flags: .barrier) {

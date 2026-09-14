@@ -137,6 +137,8 @@ await DMPAppManager.sharedInstance().uninstallMiniProgram('appId', true)
 
 JSSDK 直接依赖 vConsole，并随 pageFrame 静态同步打包；只有检测到该启用标记时，pageFrame 才会在 render 初始化前同步初始化 vConsole。
 
+启用后，逻辑线程的 `console.log/info/warn/error/debug` 和 `wx.request` 请求记录会转发到 vConsole。`MiniProgram Storage` 是当前小程序 MMKV 缓存的编辑面板，通过原生 Storage API 读取，支持以 JSON 新增、编辑值和确认删除，操作立即生效并重新读取 MMKV；也可点击 Refresh 手动刷新；vConsole 自带的 Storage 页仍显示 WebView 存储。未开启调试时不采集这些数据，目前不包含上传、下载和 WebSocket 流量。
+
 逻辑层 QuickJS 的断点、单步、变量查看和表达式求值需要 Debug HAP、DMCC `--sourcemap`
 产物及显式调试端口。完整配置与 HDC 端口转发步骤见
 [Harmony 逻辑层 JavaScript 断点调试](../../docs/JavaScript-Debugging.md)。

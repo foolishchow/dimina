@@ -2,6 +2,7 @@ import { DMPBridges } from '../Bridges/DMPBridges';
 import { DMPApp } from '../DApp/DMPApp';
 import { DMPChannelProxyNext } from '../Service/DMPChannelProxyNext';
 import { DMPMap } from '../Utils/DMPMap';
+import { DMPContextUtils } from '../Utils/DMPContextUtils';
 import { DMPHostEnvBuilder } from '../Utils/DMPHostEnvBuilder';
 
 export enum ResourceLoadType {
@@ -48,6 +49,7 @@ export class DMPContainer {
         appId: this.app.appConfig.appId,
         pagePath: pagePath,
         runtimeType: appConfig?.runtimeType ?? 'miniProgram',
+        debugEnabled: (DMPContextUtils.debugMode || this.app.appConfig.isDebugMode) ? 'true' : 'false',
         query: pageRecord?.params?.get('query') ?? new DMPMap(),
         scene: launchConfig?.scene,
         referrerInfo: launchConfig?.referrerInfo,
@@ -69,6 +71,7 @@ export class DMPContainer {
         appId: this.app.appConfig.appId,
         pagePath: pagePath,
         runtimeType: appConfig?.runtimeType ?? 'miniProgram',
+        debugEnabled: (DMPContextUtils.debugMode || this.app.appConfig.isDebugMode) ? 'true' : 'false',
         root: root
       }
     })

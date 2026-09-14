@@ -32,7 +32,8 @@ interface DMPRemoteManifestPayload {
   sha256?: string;
 }
 
-interface DMPRemoteManifestConfig {
+export interface DMPMiniProgramVersionInfo {
+  hostManaged?: boolean;
   appId: string;
   name: string;
   path: string;
@@ -179,6 +180,10 @@ export class DMPRemoteUpdateManager {
     return this.operationGenerations.get(appId) ?? 0;
   }
 
+  public isPackageOperationInProgress(appId: string): boolean {
+    return this.uninstallingApps.has(appId);
+  }
+
   public beginUninstall(appId: string): void {
     this.validateAppId(appId);
     if (this.uninstallingApps.has(appId)) {
@@ -207,6 +212,74 @@ export class DMPRemoteUpdateManager {
     });
   }
 
+  public getAppVersionInfo(appId: string): DMPMiniProgramVersionInfo | undefined {
+    this.validateAppId(appId);
+    try {
+      if (!this.isPackageReady(appId)) { return undefined; }
+      const config = JSON.parse(fs.readTextSync(this.fileManager.getJSAppConfigPath(appId))) as DMPMiniProgramVersionInfo;
+      if (config.appId !== appId || !Number.isInteger(config.versionCode) || config.versionCode < 0) {
+        return undefined;
+      }
+      config.name = typeof config.name === 'string' ? config.name : '';
+      config.path = typeof config.path === 'string' ? config.path : '';
+      config.versionName = typeof config.versionName === 'string' ? config.versionName : '';
+      return config;
+    } catch (_) {
+      return undefined;
+    }
+  }
+
+  public async installLocalPackage(appId: string, packagePath: string): Promise<DMPMiniProgramVersionInfo> {
+    this.validateAppId(appId);
+    return this.withAppLock(appId, async (): Promise<DMPMiniProgramVersionInfo> => {
+      const root = this.fileManager.getJSAppDir(appId);
+      const staging = `${root}/.local-${Date.now()}`;
+      const backup = `${root}/.local-backup-${Date.now()}`;
+      let target = '';
+      let backedUp = false;
+      let moved = false;
+      let committed = false;
+      try {
+        fs.mkdirSync(staging, true);
+        if (!await DMPUnzipManager.unzipFileAtPathAsync(packagePath, staging)) {
+          throw new Error('failed to unzip local package');
+        }
+        this.validatePackage(staging);
+        const config = JSON.parse(fs.readTextSync(`${staging}/config.json`)) as DMPMiniProgramVersionInfo;
+        if (config.appId !== appId || !Number.isInteger(config.versionCode) || config.versionCode < 0) {
+          throw new Error('invalid local package config');
+        }
+        config.name = typeof config.name === 'string' ? config.name : '';
+        config.path = typeof config.path === 'string' ? config.path : '';
+        config.versionName = typeof config.versionName === 'string' ? config.versionName : '';
+        config.hostManaged = true;
+        if (!this.fileManager.writeJsonToFile(`${staging}/config.json`, JSON.stringify(config))) {
+          throw new Error('failed to write local package config');
+        }
+        target = this.fileManager.getJSAppVersionDir(appId, config.versionCode.toString());
+        if (fs.accessSync(target)) {
+          fs.renameSync(target, backup);
+          backedUp = true;
+        }
+        fs.renameSync(staging, target);
+        moved = true;
+        this.writeConfigAtomically(this.fileManager.getJSAppConfigPath(appId), JSON.stringify(config));
+        committed = true;
+        this.deletePendingPackage(appId);
+        return config;
+      } catch (error) {
+        if (!committed) {
+          if (moved) { this.removeDirectoryIfExists(target); }
+          if (backedUp) { fs.renameSync(backup, target); }
+        }
+        throw error as Error;
+      } finally {
+        this.removeDirectoryIfExists(staging);
+        if (committed) { this.removeDirectoryIfExists(backup); }
+      }
+    });
+  }
+
   private isPackageReady(appId: string): boolean {
     const config = this.fileManager.loadJSAppConfig(appId);
     if (!config) {
@@ -217,8 +290,10 @@ export class DMPRemoteUpdateManager {
       return false;
     }
     const versionDir = this.fileManager.getJSAppVersionDir(appId, versionCode.toString());
-    return fs.accessSync(`${versionDir}/main/app-config.json`)
-      && fs.accessSync(`${versionDir}/main/logic.js`);
+    try {
+      this.validatePackage(versionDir);
+      return true;
+    } catch (_) { return false; }
   }
 
   private validateManifestAppId(
@@ -363,7 +438,7 @@ export class DMPRemoteUpdateManager {
     }
   }
 
-  private manifestConfig(manifest: DMPRemoteUpdateManifest): DMPRemoteManifestConfig {
+  private manifestConfig(manifest: DMPRemoteUpdateManifest): DMPMiniProgramVersionInfo {
     return {
       appId: manifest.appId,
       name: manifest.name,
@@ -378,7 +453,7 @@ export class DMPRemoteUpdateManager {
       `${versionDir}/main/app-config.json`,
       `${versionDir}/main/logic.js`,
     ];
-    const missingFile = requiredFiles.find((file) => !fs.accessSync(file));
+    const missingFile = requiredFiles.find((file: string): boolean => !fs.accessSync(file) || !fs.statSync(file).isFile());
     if (missingFile) {
       throw new Error(`package missing required file: ${missingFile.replace(versionDir + '/', '')}`);
     }
@@ -392,13 +467,13 @@ export class DMPRemoteUpdateManager {
     return `${this.pendingDir(appId)}/config.json`;
   }
 
-  private loadPendingConfig(appId: string): DMPRemoteManifestConfig | undefined {
+  private loadPendingConfig(appId: string): DMPMiniProgramVersionInfo | undefined {
     const path = this.pendingConfigPath(appId);
     if (!fs.accessSync(path)) {
       return undefined;
     }
     try {
-      const config = JSON.parse(fs.readTextSync(path)) as DMPRemoteManifestConfig;
+      const config = JSON.parse(fs.readTextSync(path)) as DMPMiniProgramVersionInfo;
       if (config.appId !== appId || !Number.isInteger(config.versionCode)) {
         throw new Error('invalid pending package config');
       }

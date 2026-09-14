@@ -5,6 +5,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BundledResourcePolicyTest {
+    @Test fun `host managed downgrade survives newer bundle but missing files recover`() {
+        assertFalse(BundledResourcePolicy.shouldExtract(10, 1, true, hostManaged = true))
+        assertTrue(BundledResourcePolicy.shouldExtract(10, 1, false, hostManaged = true))
+    }
+
     @Test
     fun `release first launch extracts JSSDK and jsapp independently`() {
         val shouldExtractJSSdk = BundledResourcePolicy.shouldExtract(

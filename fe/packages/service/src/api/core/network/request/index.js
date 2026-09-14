@@ -1,3 +1,4 @@
+import { debugRequest } from '../../../../core/debug'
 import { invokeAPI } from '@/api/common'
 
 /**
@@ -6,5 +7,5 @@ import { invokeAPI } from '@/api/common'
  * @param {*} opts
  */
 export function request(opts) {
-	return invokeAPI('request', opts)
+	return invokeAPI('request', debugRequest(opts))
 }

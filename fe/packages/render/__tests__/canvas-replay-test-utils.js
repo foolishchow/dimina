@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, vi } from 'vitest'
-import { JSDOM } from 'jsdom'
 
 // A real CanvasRenderingContext2D silently ignores an assignment of an
 // illegal enum value for these properties and keeps whatever was set
@@ -237,21 +236,11 @@ export class FailingImage {
 export let runtime
 
 export function useCanvasRuntimeHarness() {
-	let dom
+	const originalImage = globalThis.Image
 
 	beforeEach(async () => {
-		dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' })
-		globalThis.window = dom.window
-		globalThis.document = dom.window.document
-		globalThis.Node = dom.window.Node
-		globalThis.Element = dom.window.Element
-		globalThis.HTMLElement = dom.window.HTMLElement
-		globalThis.SVGElement = dom.window.SVGElement
-		globalThis.MutationObserver = dom.window.MutationObserver
-		globalThis.navigator = dom.window.navigator
-		globalThis.Image = dom.window.Image
-		globalThis.requestAnimationFrame = dom.window.requestAnimationFrame ?? (cb => setTimeout(cb, 0))
-		globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame ?? (id => clearTimeout(id))
+		document.head.replaceChildren()
+		document.body.replaceChildren()
 
 		const runtimeModule = await import('../src/core/runtime.js')
 		runtime = runtimeModule.default
@@ -260,18 +249,12 @@ export function useCanvasRuntimeHarness() {
 	afterEach(() => {
 		vi.restoreAllMocks()
 		vi.useRealTimers()
-		dom.window.close()
-		delete globalThis.window
-		delete globalThis.document
-		delete globalThis.Node
-		delete globalThis.Element
-		delete globalThis.HTMLElement
-		delete globalThis.SVGElement
-		delete globalThis.MutationObserver
-		delete globalThis.navigator
-		delete globalThis.Image
-		delete globalThis.requestAnimationFrame
-		delete globalThis.cancelAnimationFrame
+		globalThis.Image = originalImage
+		document.head.replaceChildren()
+		document.body.replaceChildren()
+		delete window.DiminaRenderBridge
+		delete window.__message
+		delete window.__callback
 	})
 }
 

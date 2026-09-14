@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import CommonCrypto
 import Compression
 import QuickLook
@@ -169,7 +170,8 @@ public class FileAPI: DMPContainerApi {
 
     @BridgeMethod(PREFIX + "access")
     var access: DMPBridgeMethodHandler = { param, env, callback in FileAPI.async(name: PREFIX + "access", param: param, env: env, callback: callback) {
-        _ = try FileAPI.resolve(env: env, path: FileAPI.pathParam(param.getMap()))
+        let file = try FileAPI.resolve(env: env, path: FileAPI.pathParam(param.getMap()))
+        guard FileManager.default.fileExists(atPath: file.path) else { throw FileError.message("no such file or directory") }
         return [:]
     }}
 
@@ -532,13 +534,27 @@ public class FileAPI: DMPContainerApi {
         let map = param.getMap()
         let src = try resolve(env: env, path: map.getString(key: "srcPath") ?? "")
         let dest = try resolve(env: env, path: map.getString(key: "destPath") ?? "")
-        if FileManager.default.fileExists(atPath: dest.path) { try FileManager.default.removeItem(at: dest) }
-        try FileManager.default.copyItem(at: src, to: dest)
+        let attributes = try FileManager.default.attributesOfItem(atPath: src.path)
+        guard attributes[.type] as? FileAttributeType == .typeRegular else {
+            throw FileError.message("not a regular file \(src.path)")
+        }
+        if src.path == dest.path { return }
+        // Stage beside the destination: a failed source read must preserve the old file.
+        let staging = dest.deletingLastPathComponent().appendingPathComponent(".dimina-copy-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: staging) }
+        try FileManager.default.copyItem(at: src, to: staging)
+        guard Darwin.rename(staging.path, dest.path) == 0 else {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+        }
     }
 
     private static func mkdirSync(param: DMPBridgeParam, env: DMPBridgeEnv) throws {
         let map = param.getMap()
-        try FileManager.default.createDirectory(at: try resolve(env: env, path: map.getString(key: "dirPath") ?? ""), withIntermediateDirectories: map.getBool(key: "recursive") ?? false, attributes: nil)
+        let url = try resolve(env: env, path: map.getString(key: "dirPath") ?? "")
+        guard !FileManager.default.fileExists(atPath: url.path) else {
+            throw FileError.message("file already exists \(url.path)")
+        }
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: map.getBool(key: "recursive") ?? false, attributes: nil)
     }
 
     private static func writeFileSync(param: DMPBridgeParam, env: DMPBridgeEnv) throws {
@@ -563,16 +579,46 @@ public class FileAPI: DMPContainerApi {
     }
 
     private static func unlink(path: String, env: DMPBridgeEnv) throws {
-        try FileManager.default.removeItem(at: try resolve(env: env, path: path))
+        let url = try resolve(env: env, path: path)
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard attributes[.type] as? FileAttributeType != .typeDirectory else {
+            throw FileError.message("illegal operation on a directory, unlink \(path)")
+        }
+        try FileManager.default.removeItem(at: url)
     }
 
     private static func renameSync(param: DMPBridgeParam, env: DMPBridgeEnv) throws {
         let map = param.getMap()
-        try FileManager.default.moveItem(at: try resolve(env: env, path: map.getString(key: "oldPath") ?? ""), to: try resolve(env: env, path: map.getString(key: "newPath") ?? ""))
+        let src = try resolve(env: env, path: map.getString(key: "oldPath") ?? "")
+        let dest = try resolve(env: env, path: map.getString(key: "newPath") ?? "")
+        try requireNonRoot(src, env: env)
+        try requireNonRoot(dest, env: env)
+        guard Darwin.rename(src.path, dest.path) == 0 else {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+        }
+    }
+
+    private static func requireNonRoot(_ url: URL, env: DMPBridgeEnv) throws {
+        for user in [true, false] {
+            if url.standardizedFileURL.path == URL(fileURLWithPath: root(env: env, user: user)).standardizedFileURL.path {
+                throw FileError.message("permission denied, open \(url.path)")
+            }
+        }
     }
 
     private static func rmdirSync(param: DMPBridgeParam, env: DMPBridgeEnv) throws {
-        try FileManager.default.removeItem(at: try resolve(env: env, path: param.getMap().getString(key: "dirPath") ?? ""))
+        let map = param.getMap()
+        let url = try resolve(env: env, path: map.getString(key: "dirPath") ?? "")
+        try requireNonRoot(url, env: env)
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard attributes[.type] as? FileAttributeType == .typeDirectory else {
+            throw FileError.message("not a directory \(url.path)")
+        }
+        if !(map.getBool(key: "recursive") ?? false),
+           !(try FileManager.default.contentsOfDirectory(atPath: url.path)).isEmpty {
+            throw FileError.message("directory not empty \(url.path)")
+        }
+        try FileManager.default.removeItem(at: url)
     }
 
     private static func truncateSync(param: DMPBridgeParam, env: DMPBridgeEnv) throws {
@@ -694,14 +740,15 @@ public class FileAPI: DMPContainerApi {
         let map = param.getMap()
         let path = map.getString(key: "path") ?? map.getString(key: "args") ?? ""
         let url = try resolve(env: env, path: path)
-        if !(map.getBool(key: "recursive") ?? false) {
-            return try stat(path: url.path)
+        let rootStat = try stat(path: url.path)
+        if !(map.getBool(key: "recursive") ?? false) || rootStat["isDirectory"] as? Bool != true {
+            return rootStat
         }
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil) else { return try stat(path: url.path) }
-        var result: [String: Any] = [".": try stat(path: url.path)]
+        var result: [String: Any] = ["": rootStat]
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil) else { return result }
         for item in enumerator {
             guard let child = item as? URL else { continue }
-            result[child.path.replacingOccurrences(of: url.path + "/", with: "")] = try stat(path: child.path)
+            result[String(child.path.dropFirst(url.path.count))] = try stat(path: child.path)
         }
         return result
     }
@@ -711,7 +758,8 @@ public class FileAPI: DMPContainerApi {
         let type = attrs[.type] as? FileAttributeType
         let isDir = type == .typeDirectory
         let modified = Int((attrs[.modificationDate] as? Date ?? Date()).timeIntervalSince1970)
-        return ["mode": isDir ? "directory" : "file", "size": attrs[.size] as? Int ?? 0, "lastAccessedTime": modified, "lastModifiedTime": modified, "isDirectory": isDir, "isFile": type == .typeRegular]
+        let mode = (attrs[.posixPermissions] as? Int ?? 0) | Int(isDir ? S_IFDIR : S_IFREG)
+        return ["mode": mode, "size": attrs[.size] as? Int ?? 0, "lastAccessedTime": modified, "lastModifiedTime": modified, "isDirectory": isDir, "isFile": type == .typeRegular]
     }
 
     private static func unzip(param: DMPBridgeParam, env: DMPBridgeEnv) throws {

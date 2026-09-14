@@ -127,6 +127,51 @@ object RemoteUpdateManager {
     }
 
     /** Invalidates queued update checks before the host starts runtime teardown. */
+    fun getAppVersionInfo(context: Context, appId: String): JSONObject? {
+        requireValidAppId(appId)
+        return lockFor(appId).withLock {
+            runCatching {
+                val directory = appDirectory(jsAppRoot(context), appId)
+                check(File(directory, "main/app-config.json").isFile && File(directory, "main/logic.js").isFile)
+                val configFile = File(directory, "config.json")
+                val json = if (configFile.isFile) configFile.readText() else
+                    context.assets.open("jsapp/$appId/config.json").bufferedReader().use { it.readText() }
+                JSONObject(json).also {
+                    check(it.getString("appId") == appId && it.getInt("versionCode") >= 0)
+                }
+            }.getOrNull()
+        }
+    }
+
+    internal fun isPackageOperationInProgress(appId: String): Boolean = uninstallingApps.contains(appId)
+
+    internal fun installLocalPackage(context: Context, appId: String, packagePath: String): JSONObject {
+        requireValidAppId(appId)
+        check(uninstallingApps.contains(appId)) { "package operation must be reserved first" }
+        return lockFor(appId).withLock {
+            val archive = File(packagePath)
+            require(archive.isFile) { "local ZIP package does not exist" }
+            val target = appDirectory(jsAppRoot(context), appId)
+            var installedConfig: JSONObject? = null
+            check(AtomicZipInstaller.install(
+                inputProvider = { archive.inputStream() },
+                targetDir = target,
+                requiredPaths = requiredPackagePaths,
+                afterExtract = { staging ->
+                    require(validatePackage(staging, appId) >= 0) { "invalid versionCode" }
+                    installedConfig = JSONObject(File(staging, "config.json").readText()).put("hostManaged", true)
+                    val version = installedConfig!!.opt("versionCode")
+                    require(version is Number && version.toDouble() >= 0 &&
+                        version.toDouble() == version.toInt().toDouble()) { "versionCode must be a non-negative integer" }
+                    File(staging, "config.json").writeText(installedConfig.toString())
+                },
+            )) { "failed to extract or validate local package" }
+            VersionUtils.setAppVersion(appId, installedConfig!!.getInt("versionCode"))
+            deletePendingPackage(context, appId)
+            installedConfig!!
+        }
+    }
+
     internal fun beginUninstall(appId: String) {
         requireValidAppId(appId)
         check(uninstallingApps.add(appId)) { "mini program $appId is already being uninstalled" }

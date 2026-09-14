@@ -1,4 +1,5 @@
 import { modDefine, modRequire } from '@dimina/common'
+import { installDebug } from './debug'
 import globalApi, { registerEnumerableApiNames } from '../api'
 import { ComponentModule } from '../instance/component/component-module'
 import { PageModule } from '../instance/page/page-module'
@@ -14,6 +15,7 @@ class Env {
 	}
 
 	init() {
+		installDebug()
 		installBackgroundScheduler()
 		// common 层的 AMD loader 无法反向依赖 service；通过一个仅 service
 		// 上下文安装的 hook，把 app/page 模块求值错误送进 App.onError/wx.onError。

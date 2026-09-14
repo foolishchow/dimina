@@ -17,6 +17,48 @@ import XCTest
 
 final class DMPServiceRenderOrderTests: XCTestCase {
 
+    func testDebugFlagIsAvailableBeforeFirstServiceScript() async {
+        for enabled in [false, true] {
+            let engine = DMPEngine(debugEnabled: enabled)
+            let result = await engine.evaluateScript("globalThis.__diminaDebug === \(enabled ? "true" : "false")")
+            XCTAssertEqual(result?.toBool(), true)
+            let snapshotHook = await engine.evaluateScript("typeof globalThis.__diminaDebugStorageSnapshot === '\(enabled ? "function" : "undefined")'")
+            XCTAssertEqual(snapshotHook?.toBool(), true)
+            engine.destroy()
+        }
+    }
+
+    func testResourceMessageAdvertisesNativeStorageOnlyWhenEnabled() {
+        for enabled in [false, true] {
+            let body = DMPContainer.makeResourceBody(
+                webViewId: 7, appId: "debug-app", pagePath: "pages/index", root: "main",
+                launchConfig: nil, debugEnabled: enabled
+            )
+            XCTAssertEqual(body["debugEnabled"] as? String, enabled ? "true" : "false")
+        }
+    }
+
+    func testStorageSnapshotReadsPersistedMMKVForCurrentAppOnly() {
+        let appId = "vconsole-test-\(UUID().uuidString)"
+        let otherId = "vconsole-test-\(UUID().uuidString)"
+        defer {
+            DMPStorage.storage(for: appId).clearAllStorage()
+            DMPStorage.teardownModule(appId: appId)
+            DMPStorage.teardownModule(appId: otherId)
+        }
+        XCTAssertTrue(DMPStorage.storage(for: appId).set(key: "persisted", value: ["issue": 334]))
+        XCTAssertTrue(DMPStorage.storage(for: appId).set(key: "persisted", value: "encrypted", encrypted: true))
+        DMPStorage.teardownModule(appId: appId)
+        let storage = DMPStorage.storage(for: appId)
+        XCTAssertTrue(storage.getAllStorageInfo().keys.contains("persisted"))
+        XCTAssertEqual((storage.get(key: "persisted") as? [String: Int])?["issue"], 334)
+        let snapshot = storage.debugSnapshot()
+        XCTAssertEqual(snapshot.count, 2)
+        XCTAssertEqual(snapshot.first { $0["encrypted"] as? Bool == true }?["data"] as? String, "encrypted")
+        XCTAssertEqual((snapshot.first { $0["encrypted"] as? Bool == false }?["data"] as? [String: Int])?["issue"], 334)
+        XCTAssertFalse(DMPStorage.storage(for: otherId).getAllStorageInfo().keys.contains("persisted"))
+    }
+
     private func makeService() -> DMPService {
         let app = DMPApp(appConfig: DMPAppConfig(appName: "order", appId: "orderApp"), appIndex: 0)
         let service = DMPService(app: app)

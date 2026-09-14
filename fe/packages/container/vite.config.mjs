@@ -2,13 +2,7 @@ import { resolve } from 'node:path'
 import process from 'node:process'
 import { defineConfig } from 'vite'
 import htmlMinifier from 'vite-plugin-html-minifier'
-
-function isVConsoleEvalWarning(warning) {
-	const message = warning?.message || ''
-	const id = warning?.id || warning?.loc?.file || ''
-
-	return warning?.code === 'EVAL' && (message.includes('vconsole') || id.includes('vconsole'))
-}
+import { onVConsoleBuildWarning } from '../../scripts/vconsole-build-warning.mjs'
 
 export default defineConfig(({ command, mode }) => {
 	// CI 不预构建 container-sdk；测试 mock 也需要先解析到存在的源码入口。
@@ -57,17 +51,15 @@ export default defineConfig(({ command, mode }) => {
 		build: {
 			modulePreload: false,
 			minify: mode === 'production',
+			// 离线 JSSDK 的 pageFrame 内联渲染层、组件和 vConsole。
+			// 为完整入口设置 750 kB 预算，继续提示超出预算的体积增长。
+			chunkSizeWarningLimit: 750,
 			rollupOptions: {
 				input: {
 					index: resolve(import.meta.dirname, 'index.html'),
 					pageFrame: resolve(import.meta.dirname, 'pageFrame.html'),
 				},
-				onwarn(warning, warn) {
-					if (isVConsoleEvalWarning(warning)) {
-						return
-					}
-					warn(warning)
-				},
+				onwarn: onVConsoleBuildWarning,
 				output: {
 					// 设置入口文件（通常为主JavaScript文件）的命名规则
 					entryFileNames: 'assets/[name].js',

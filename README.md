@@ -90,7 +90,6 @@ pnpm dev
 - [iOS 接入说明](./iOS/README.md)
 - [Harmony 接入说明](./harmony/dimina/README.md)
 - [Flutter 宿主接入说明](./docs/Flutter-Integration.md)
-- [Flutter 三端接入示例](./examples/flutter/README.md)
 
 ## 能力边界与延伸阅读
 

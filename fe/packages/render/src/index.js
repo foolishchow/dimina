@@ -20,9 +20,18 @@ class Render {
 	}
 
 	init() {
+		let debugBridgeId
+		window.addEventListener('dimina:debug-storage-request', (event) => {
+			if (window.vConsole && debugBridgeId) {
+				this.message.send({ type: 'debugStorage', target: 'service', body: { action: event.detail?.action, key: event.detail?.key, data: event.detail?.data, encrypted: event.detail?.encrypted, bridgeId: debugBridgeId } })
+			}
+		})
+
 		// 资源加载消息
 		this.message.on('loadResource', (msg) => {
 			const { bridgeId, appId, pagePath, root = '.', baseUrl = '/', resourceLoadId, runtimeType } = msg
+			debugBridgeId = bridgeId
+			if (msg.debugEnabled === 'true') window.dispatchEvent(new Event('dimina:debug-ready'))
 			runtime.registerResourceLoad(bridgeId, resourceLoadId)
 			loader.loadResource({ bridgeId, appId, pagePath, root, baseUrl, resourceLoadId, runtimeType })
 		})
@@ -61,7 +70,7 @@ class Render {
 			success && callback.invoke(success, data)
 		})
 
-		if (__DEV__) {
+		if (__DEV__ || window.vConsole) {
 			// 可接收端容器或引擎日志
 			this.message.on('print', (msg) => {
 				const { type, detail } = msg
@@ -87,7 +96,14 @@ class Render {
 
 				if (typeof parsedDetail === 'object' && parsedDetail !== null) {
 					const { group, value } = parsedDetail
-					if (group === 'network' && window.vConsole) {
+					if (group === 'console') {
+						const method = ['log', 'info', 'warn', 'error', 'debug'].includes(parsedDetail.type) ? parsedDetail.type : 'log'
+						console[method](...value)
+					}
+					else if (group === 'storage') {
+						window.dispatchEvent(new CustomEvent('dimina:debug-storage', { detail: parsedDetail }))
+					}
+					else if (group === 'network' && window.vConsole) {
 						window.vConsole.network.add(value)
 					}
 					else {

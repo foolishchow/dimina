@@ -111,7 +111,7 @@ describe('file api service adapter', () => {
 
 	it('wraps stat results with Stats methods', () => {
 		vi.mocked(invokeAPI).mockReturnValueOnce({
-			mode: 'file',
+			mode: 0o100644,
 			size: 2,
 			lastAccessedTime: 1,
 			lastModifiedTime: 1,
@@ -121,9 +121,21 @@ describe('file api service adapter', () => {
 
 		const stats = getFileSystemManager().statSync('difile://usr/a.txt')
 
+		expect(stats.mode).toBe(0o100644)
 		expect(stats.size).toBe(2)
 		expect(stats.isFile()).toBe(true)
 		expect(stats.isDirectory()).toBe(false)
+	})
+
+	it('preserves DevTools recursive stat keys and hydrates each entry', async () => {
+		const directory = { mode: 0o40755, size: 0, isDirectory: true, isFile: false }
+		const file = { mode: 0o100644, size: 2, isDirectory: false, isFile: true }
+		vi.mocked(invokeAPI).mockResolvedValueOnce({ stats: { '': directory, '/nested/cache.json': file } })
+		const result = await getFileSystemManager().stat({ path: 'difile://usr/cache', recursive: true })
+		expect(Object.keys(result.stats)).toEqual(['', '/nested/cache.json'])
+		expect(result.stats[''].isDirectory()).toBe(true)
+		expect(result.stats['/nested/cache.json'].isFile()).toBe(true)
+		expect(result.stats['/nested/cache.json'].mode).toBe(0o100644)
 	})
 
 	it('transforms promise read results', async () => {

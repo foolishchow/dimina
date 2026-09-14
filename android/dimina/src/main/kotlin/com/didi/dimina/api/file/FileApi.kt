@@ -387,15 +387,17 @@ class FileApi : BaseApiHandler() {
     private fun copyFileSync(activity: DiminaActivity, appId: String, params: JSONObject) {
         val src = resolve(activity, appId, params.optString("srcPath"))
         val dest = resolve(activity, appId, params.optString("destPath"))
-        if (!src.exists() || src.isDirectory || dest.parentFile?.exists() != true) {
+        if (!src.isFile || dest.parentFile?.exists() != true) {
             throw IllegalArgumentException("no such file or directory, copyFile ${params.optString("srcPath")} -> ${params.optString("destPath")}")
         }
+        if (dest.isDirectory) throw IllegalArgumentException("Is a directory ${dest.path}")
+        if (src == dest) return
         src.copyTo(dest, overwrite = true)
     }
 
     private fun mkdirSync(activity: DiminaActivity, appId: String, params: JSONObject) {
         val dir = resolve(activity, appId, params.optString("dirPath"))
-        val ok = if (params.optBoolean("recursive", false)) dir.mkdirs() || dir.exists() else dir.mkdir()
+        val ok = if (params.optBoolean("recursive", false)) dir.mkdirs() else dir.mkdir()
         if (!ok) throw IllegalArgumentException("fail mkdir ${params.optString("dirPath")}")
     }
 
@@ -438,8 +440,17 @@ class FileApi : BaseApiHandler() {
         }
     }
 
+    private fun requireNonRoot(activity: DiminaActivity, appId: String, file: File) {
+        if (file.canonicalFile == userRoot(activity, appId).canonicalFile ||
+            file.canonicalFile == tempRoot(activity, appId).canonicalFile) {
+            throw IllegalArgumentException("permission denied, open ${file.path}")
+        }
+    }
+
     private fun rmdirSync(activity: DiminaActivity, appId: String, params: JSONObject) {
         val dir = resolve(activity, appId, params.optString("dirPath"))
+        requireNonRoot(activity, appId, dir)
+        if (!dir.isDirectory) throw IllegalArgumentException("not a directory ${params.optString("dirPath")}")
         val ok = if (params.optBoolean("recursive", false)) dir.deleteRecursively() else dir.delete()
         if (!ok) throw IllegalArgumentException("fail rmdir ${params.optString("dirPath")}")
     }
@@ -447,6 +458,8 @@ class FileApi : BaseApiHandler() {
     private fun renameSync(activity: DiminaActivity, appId: String, params: JSONObject) {
         val oldFile = resolve(activity, appId, params.optString("oldPath"))
         val newFile = resolve(activity, appId, params.optString("newPath"))
+        requireNonRoot(activity, appId, oldFile)
+        requireNonRoot(activity, appId, newFile)
         if (!oldFile.exists() || newFile.parentFile?.exists() != true || !oldFile.renameTo(newFile)) {
             throw IllegalArgumentException("fail rename ${params.optString("oldPath")} -> ${params.optString("newPath")}")
         }
@@ -499,7 +512,7 @@ class FileApi : BaseApiHandler() {
     private fun statObject(file: File): JSONObject {
         val isDir = file.isDirectory
         return JSONObject()
-            .put("mode", if (isDir) "directory" else "file")
+            .put("mode", android.system.Os.stat(file.path).st_mode)
             .put("size", if (isDir) 0 else file.length())
             .put("lastAccessedTime", file.lastModified() / 1000)
             .put("lastModifiedTime", file.lastModified() / 1000)
@@ -516,7 +529,8 @@ class FileApi : BaseApiHandler() {
         }
         return JSONObject().apply {
             file.walkTopDown().forEach { child ->
-                val key = child.relativeTo(file).path.ifBlank { "." }
+                val relative = child.relativeTo(file).path
+                val key = if (relative.isEmpty()) "" else "/$relative"
                 put(key, statObject(child))
             }
         }

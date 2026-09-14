@@ -657,3 +657,7 @@ DMPAppManager.sharedInstance().registerExtModule("UserModule") { event, data, ca
 | `wx.extOffBridge` 调用 | 框架执行取消函数，清除订阅记录               |
 | 重复订阅同一事件        | 框架自动先取消旧订阅，再建立新订阅           |
 | 小程序销毁             | 框架执行所有未取消的订阅的取消函数，防止泄漏  |
+
+### 本地文件缓存
+
+Android、iOS、Harmony 的 FileSystemManager 读写、目录操作、Promise/回调用法和容量边界见 [FileSystemManager 本地文件缓存](./FileSystemManager.md)。

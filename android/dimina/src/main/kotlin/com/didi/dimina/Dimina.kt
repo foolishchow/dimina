@@ -52,11 +52,23 @@ class Dimina private constructor(context: Context) {
 
     // 配置类
     class DiminaConfig private constructor(builder: Builder) {
+        val showCapsule: Boolean = builder.showCapsule
+        val enableMultiTask: Boolean = builder.enableMultiTask
+        val showLaunchLoading: Boolean = builder.showLaunchLoading
         val debugMode: Boolean = builder.debugMode
         val apiNamespaces: List<String> = builder.apiNamespaces
         val virtualFilePrefix: String = builder.virtualFilePrefix
 
         class Builder {
+            var enableMultiTask: Boolean = true
+            fun setEnableMultiTask(enable: Boolean): Builder { enableMultiTask = enable; return this }
+
+            var showLaunchLoading: Boolean = true
+            fun setShowLaunchLoading(show: Boolean): Builder { showLaunchLoading = show; return this }
+
+            var showCapsule: Boolean = true
+            fun setShowCapsule(show: Boolean): Builder { showCapsule = show; return this }
+
             var debugMode: Boolean = false
             internal var apiNamespaces: MutableList<String> = mutableListOf()
             internal var virtualFilePrefix: String = PathUtils.DEFAULT_VIRTUAL_DOMAIN_URL
@@ -87,11 +99,11 @@ class Dimina private constructor(context: Context) {
     }
 
     /**
-     * 检查当前是否处于调试模式
+     * 检查宿主是否显式启用调试模式，与 SDK AAR 的构建类型无关。
      * @return 是否为调试模式
      */
     fun isDebugMode(): Boolean {
-        return BuildConfig.DEBUG && config.debugMode
+        return config.debugMode
     }
 
     @MainThread
@@ -135,7 +147,7 @@ class Dimina private constructor(context: Context) {
         this.config = config
         PathUtils.configureVirtualFilePrefix(config.virtualFilePrefix)
 
-		// A mini-program setting must never enable host logs in a release build.
+		// Debugging is explicitly controlled by the host, including with a release AAR.
 		LogUtils.initialize(isDebugMode())
     }
 
@@ -171,6 +183,41 @@ class Dimina private constructor(context: Context) {
         val normalizedAppId = appId.trim()
         if (normalizedAppId.isEmpty()) return false
         return DiminaActivity.closeMiniProgramFromHost(normalizedAppId)
+    }
+
+    fun isMultiTaskEnabled(): Boolean = config.enableMultiTask
+
+    fun shouldShowLaunchLoading(): Boolean = config.showLaunchLoading
+
+    fun shouldShowCapsule(): Boolean = config.showCapsule
+
+    /** Queries installed disk contents, not whether a runtime is currently alive. */
+    fun isExistsApp(appId: String): Boolean = getAppVersionInfo(appId) != null
+
+    fun getAppVersionInfo(appId: String): org.json.JSONObject? =
+        RemoteUpdateManager.getAppVersionInfo(appContext, appId.trim())
+
+    /** Installs a Dimina ZIP containing config.json and main/. Keeps the source ZIP and user data. */
+    fun installMiniProgram(appId: String, packagePath: String,
+        completion: (Result<org.json.JSONObject>) -> Unit) {
+        val normalizedAppId = appId.trim()
+        try {
+            RemoteUpdateManager.beginUninstall(normalizedAppId)
+        } catch (error: Throwable) {
+            completion(Result.failure(error))
+            return
+        }
+        operationScope.launch {
+            val result = runCatching {
+                withContext(Dispatchers.Main.immediate) {
+                    DiminaActivity.closeForUninstall(normalizedAppId)
+                    MiniApp.getInstance().clear(normalizedAppId)
+                }
+                RemoteUpdateManager.installLocalPackage(appContext, normalizedAppId, packagePath)
+            }
+            RemoteUpdateManager.endUninstall(normalizedAppId)
+            withContext(Dispatchers.Main.immediate) { completion(result) }
+        }
     }
 
     /**

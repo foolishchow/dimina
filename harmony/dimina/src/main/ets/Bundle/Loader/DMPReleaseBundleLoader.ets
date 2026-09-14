@@ -203,6 +203,10 @@ export class DMPReleaseBundleLoader implements DMPBundleLoader {
     if (bundleLoadInfo.localJSAppBundleConfig != null) {
       let cacheJSAppConfig = this.fileManager.loadJSAppConfig(bundleLoadInfo.appId);
       bundleLoadInfo.cacheJSAppBundleConfig = DMJSAppBundleConfig.fromJson(cacheJSAppConfig);
+      if (cacheJSAppConfig?.getBoolean('hostManaged') &&
+        DMPRemoteUpdateManager.sharedInstance().getAppVersionInfo(bundleLoadInfo.appId)) {
+        return;
+      }
       if (this.isDebugMode()
         || bundleLoadInfo.cacheJSAppBundleConfig == null
         || bundleLoadInfo.localJSAppBundleConfig.versionCode > bundleLoadInfo.cacheJSAppBundleConfig.versionCode) {

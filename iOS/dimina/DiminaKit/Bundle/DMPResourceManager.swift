@@ -33,7 +33,8 @@ class DMPResourceManager {
                 filePath: sourceConfigPath)
             let versionCodeNew = configBundle?["versionCode"] as? Int ?? 0
 
-            if versionCodeOld >= versionCodeNew {
+            if (config?["hostManaged"] as? Bool == true &&
+                (try? DMPRemoteUpdateManager.shared.getAppVersionInfo(appId: appId)) != nil) || versionCodeOld >= versionCodeNew {
                 DMPLogger.debug("App 目标路径已存在，跳过复制操作")
                 return
             }
