@@ -69,7 +69,7 @@ view 渲染路径（vueBackend/编排壳）——**双 inMap 调用点均覆盖*
 | D-WB-3 | Rust 归属 `fe/tools/crates/` workspace；napi 独立子 crate + JS 薄包 |
 | D-WB-4 | SpanView = 紧凑 JSON（span/raw/结构；无表达式负载；sourceFile 透传） |
 | D-WB-5 | docs 主从：仓库 `docs/wxml/` 真源；crate `docs/` 冻结快照 |
-| D-WB-6 | W2 验证契约：code 严格 diff=0 + 行级不变量 + 更准断言（抽查集）+ 列级新增（双 inMap 点） |
+| D-WB-6 | W2 验证契约：code 严格 diff=0 + 行级语义正确不变量（+ 观测；行保持探针后升级硬形态，F14）+ 更准断言（抽查集）+ 列级新增（双 inMap 点） |
 | D-WB-7 | serde derives（vendored 修改，VENDOR 记）→ 紧凑 JSON；sourcesContent 覆盖所有映射文件 |
 
 ## 已确认设计输入（引用，不重定）

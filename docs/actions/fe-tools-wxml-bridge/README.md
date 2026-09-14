@@ -77,7 +77,7 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 ## 闭合条件
 
 - W0–W2 交付；A-\* 全 pass；消融（桥拔除 → SpanView 测试失败；span 断供 → map 断言失败）按 Experience §6；
-- map 质量断言框架成文（code 严格 diff=0 + **行级不变量**（无 include/import 页 = 今日行级）+ 更准断言 + 列级新增可验 + 所有映射 sourceFile setSourcesContent）；
+- map 质量断言框架成文（code 严格 diff=0 + **行级语义正确不变量**（无 include/import 页 = 真实 {file,line}；今日为基线 + 观测；行保持探针后升级硬形态）+ 更准断言 + 列级新增可验 + 所有映射 sourceFile setSourcesContent）；
 - D-WIR-1 修订回流入 architecture-notes / wxml-ir 归档注记；
 - VENDOR/docs 主从/gitignore 在档；STATUS/归档一致；`fe/packages` 零污染。
 
@@ -90,4 +90,5 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 | 2026-09-14 | Review R1 F1–F6：W2 覆盖**双 inMap 点**（:745 主 + :531 模板 render，经 startLine→SpanView）；README 行级措辞对齐 R-WB3；清「暂名/草案」；**D-WB-7**（serde 路径 + sourcesContent）入档 |
 | 2026-09-14 | Review R2 F7/F9/F10：表头/W1 行清「草案/暂名」残留；R-WB0+A-WB0 补 vendored 修改授权条款；plan 注明 JS 薄包禁用 prepare 钩子（防 pnpm install 污染） |
 | 2026-09-14 | Review R4 F14/F15/F16：行级不变量改「语义正确 + 差异观测」（今日 1:1 降为对照基线；W2 Step 0 实证探针决策门）；pnpm-workspace `tools/*` 命中 crates 复验注记；acceptance 行结构残余口径统一 |
+| 2026-09-14 | Review R5 F17/F18/F19：validation P-WB04 同步 F14 口径（语义正确 + 观测 + 探针升级）；design D-WB-6 摘录与闭合条件行同口径 |
 | 2026-09-14 | Review R3 F13：Cargo.lock 入库决策（可复现构建；`fe/.gitignore` 加例外；W1 依赖变更时更新） |
