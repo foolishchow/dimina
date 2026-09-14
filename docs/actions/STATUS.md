@@ -48,4 +48,4 @@
 | `fe-tools-worker-architecture` | `complete` | [README](_archive/complete/fe-tools-worker-architecture/README.md) | **决策 Action（已落地 + 归档）**：四阶段演进 + D-WA-1..6 + WorkerTask/Result 协议 v1/v2 + 超时防护 + stats 消费契约。被 build-model + module-cache 引用消费，无实施冲突。已归档。 | 2026-09-10 |
 | `fe-tools-bundler-unvite` | `complete` | [README](_archive/complete/fe-tools-bundler-unvite/README.md) | 卫生：下线 Vite 自打包；镜像 dist + watch shim；A-UV01..09 / P-001..008（含 dimina-cli build/dev）；已归档。 | 2026-09-10 |
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
-| `fe-tools-session-unify` | `ready` | [README](fe-tools-session-unify/README.md) | session 三入口（build/watch/dev）内核抽取 + 调度收口；S1（机械）/S2（语义）两门；公开 API 零变化；D-SU-1..5 已拍板（`src/session/runner.js` 不导出 / 同构三层 / dev 期标签保持 `'watch'` / 名转正）；实施待授权。 | 2026-09-13 |
+| `fe-tools-session-unify` | `in_progress` | [README](fe-tools-session-unify/README.md) | session 三入口（build/watch/dev）内核抽取 + 调度收口；S1（机械）/S2（语义）两门；公开 API 零变化；D-SU-1..5 已拍板；S1 实施已授权（基线 SHA 记于 validation.md）。 | 2026-09-14 |

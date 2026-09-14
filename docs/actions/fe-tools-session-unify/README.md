@@ -1,8 +1,8 @@
 # FE Tools Session Unify
 
 - Action: `fe-tools-session-unify`
-- Status: `ready`
-- Updated: 2026-09-13（D-SU-1..5 拍板；Review 两轮修正 F1/F2 + F-A/B/C；Readiness 完成升 ready）
+- Status: `in_progress`
+- Updated: 2026-09-14（S1 实施已授权开工；基线 SHA 记于 validation.md）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-bundler-session`](../_archive/complete/fe-tools-bundler-session/README.md)（O1–O3 已归档 complete）；[`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md)（PS1+PS2 已归档）；[`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（BP1 已归档）；调度设计：[session-scheduling.draft.md](../fe-tools-sidecar/session-scheduling.draft.md)（L1–L4 / W1–W4 已确认）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -63,14 +63,14 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-13）：Readiness 完成（问题→需求→设计→计划→验收→验证链闭合）；Review F1/F2 已修正，文档层缺陷清零。
+- 当前 **`in_progress`**（2026-09-14）：Readiness 六轮收敛完成（`ready`）；**S1 实施已授权开工**；基线 SHA 记于 [validation.md](validation.md)。
 - **D-SU-1..5 已拍板（2026-09-13，全部照建议）**：
   1. S1/S2 两门切分（先机械后语义）—— D-SU-1
   2. 内核落点 `src/session/runner.js`、不公开导出 —— D-SU-2
   3. 同构判据三层操作化（行为/结构/产物）—— D-SU-3
   4. dev 期间 activeLoop 标签保持今日 `'watch'`（行为 0；现有测试仅断言 /R3/ /R4/，不改系纪律而非测试约束）—— D-SU-4
   5. Action 名 `fe-tools-session-unify` 转正 —— D-SU-5
-- 未授权实施；升 `in_progress` 需明确授权（届时记基线 SHA）。
+- S1 已授权实施；S2 待 S1 验证通过后另行授权。
 - Review 残留：六轮 findings（R1 F1/F2、R2 F-A/B/C、R3 F-E/F、R4 F-G/H/I、R6 F-J）均已清；仅 **F-D**（伞文档 / TODO 导航指针，可选便利项）开放；F3/F4 已落 plan 触达序；F5 无需动作。
 
 ## 闭合条件
@@ -94,3 +94,4 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 | 2026-09-13 | Review 三轮 F-E/F-F：validation 增 **P-SU00**（dist 镜像同步前置，堵 exports 校验对旧镜像空转的假阳性）+ P-SU02/P-SU05 前置标注；plan S2 定 `runOnce` 内化 `assertNoActiveLoop`（消息文本不变） |
 | 2026-09-13 | Review 四轮 F-G/F-H/F-I：P-SU00 映射修正（→ A-SU05③）；Status 残留行更新至四轮态（仅 F-D 开放）；P-SU02 补**基线随门递进**规则（S2 基线 = S1 合入后 HEAD）；plan 验证范围改 P-SU00..07 |
 | 2026-09-13 | Review 六轮 F-J：README 补「闭合条件」节（对齐仓库内容规范：两门交付 / 消融在档 / 行为 0 证据 / 结构不变量回流 / 一致变更 / 范围守恒） |
+| 2026-09-14 | 升 **`in_progress`**：S1 实施授权开工；基线 SHA 记于 validation.md（P-SU02 随门递进：S1 基线 = 升 in_progress 时 HEAD） |
