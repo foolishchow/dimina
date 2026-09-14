@@ -99,3 +99,4 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 | 2026-09-14 | 初稿：source audit（E1–E7 实锚）；产品门草案；5 项待定 |
 | 2026-09-14 | 组合矩阵讨论：新增 **E8**（build 侧假自由度）与 **T0 门**（入口收严、模型不坍缩）；E1 定性修正（by design，处置改为成文不变量）；①–⑤ 建议方案入档待拍板 |
 | 2026-09-14 | **D-CT-0..5 全部拍板**（照建议）；Readiness 五件套（requirements/design/plan/acceptance/validation）成稿；升 **`ready`**；闭合条件入档；STATUS 同步 |
+| 2026-09-14 | Review（Readiness 门 `fail`，健康态）F1–F4 修正：`readLoadBindings` 收窄为**阶段组装侧唯一读取点**（worker/编译器内部读取显式划出范围）；结构锚定范围定界（`'编译项目'` 闭包内 + BUILD_END appId 经 bindings）；`deriveStagePlan` cwd 显式入参；T0 与 compile-config.spec 直测关系明示 |

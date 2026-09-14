@@ -10,6 +10,7 @@ Status: **冻结（2026-09-14）** — 与 design v1 / acceptance 对齐；D-CT-
 - **dev 侧 D-R2/C 行为与消息不变**（现有 `/D-R2\/C/` 测试不改断言全绿）；
 - build 命令 CLI `--platform` 帮助文本同步（T0 验收锁定的一部分）；
 - **直调 `build({platform:'web'})` 编程路径自由度不变**（compile-config 层保留 web 解析；`sourcemapStrategyFor` web 分支保留）。
+- **compile-config.spec 直测不受 T0 影响**：其 build+web 用例全部直测 `resolveCompileConfig`（不经 `resolveBundlerConfig`）；T0 仅在 resolve 层拦截（F4 明示）。
 
 ## R-CT1（MUST）CompileTarget 静态描述（T1）
 
@@ -21,10 +22,11 @@ Status: **冻结（2026-09-14）** — 与 design v1 / acceptance 对齐；D-CT-
 
 ## R-CT2（MUST）动态补全 + 派生（T2）
 
-- `readLoadBindings()`：**唯一 env 读取点**（`isMiniGame()` / `getAppId()` / `getPages()`），调用时机钉死在 collect-config 之后（ALS 就绪）；
-- `deriveStagePlan(target, bindings)`：**纯函数**，产出最终阶段序列（含 mini-game 过滤）、logic `sourcemapTargetPath`、style `stylePages` 合成（synthetic app）、per-stage workerOptions 完整包；
+- `readLoadBindings()`：**阶段组装侧唯一 env 读取点**（`isMiniGame()` / `getAppId()` / `getPages()`），调用时机钉死在 collect-config 之后（ALS 就绪）；阶段组装决策所需的全部动态值在此一次性捕获；
+- **范围**：view/logic/style 编译器、config-compiler、publish 等模块**阶段执行内部**的 env 读取属各模块既有契约，**不迁移、不在本门范围**（R-CT6）；
+- `deriveStagePlan(target, bindings, { cwd })`：**纯函数**（`cwd` 显式入参；行为 0 下与今日 `process.cwd()` 等价），产出最终阶段序列（含 mini-game 过滤）、logic `sourcemapTargetPath`、style `stylePages` 合成（synthetic app）、per-stage workerOptions 完整包；
 - 补全与派生**返回新对象，无突变**；
-- `build-pipeline.js` 的编译任务组装改从 `deriveStagePlan` 产物构建。
+- `build-pipeline.js` 的编译任务组装（`'编译项目'` 闭包内）改从 `deriveStagePlan` 产物构建。
 
 ## R-CT3（MUST）行为 0（T1/T2）
 

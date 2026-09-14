@@ -9,7 +9,7 @@ Status: **冻结 v1（2026-09-14）** — D-CT-0..5 已拍板；实施中改设�
 | C1 语义 | `shared/compile-config.js`（CF-1 不动） | `createCompileTarget` 内部经它取值（E1 管线侧自洽，R-CT4） |
 | renderer 解析 + 平台校验 | **createCompileTarget**（T1） | 从 `_runBuild` 顶部移入；fail-fast 时机不变（Listr 启动前）；消息逐字不变 |
 | stages 白名单校验 | **createCompileTarget**（T1） | `Invalid compiler stages: ...` 消息不变 |
-| mini-game / appId / pages 读取 | **readLoadBindings**（T2） | 唯一 env 访问点；时机钉死 collect-config 后（ALS） |
+| mini-game / appId / pages 读取（阶段组装侧） | **readLoadBindings**（T2） | 阶段组装侧**唯一**访问点；时机钉死 collect-config 后（ALS）；worker/编译器内部读取不迁移（F1） |
 | 最终阶段 / workerOptions / sourcemapTargetPath / stylePages | **deriveStagePlan**（T2） | 纯函数（target, bindings）→ 新对象 |
 | 组合校验（build⇒native） | `resolveBundlerConfig`（T0） | 对偶 `assertDevCompileCompatible`；入口纪律 |
 | Listr 渲染 / 阶段执行 | build-pipeline（不动） | 阶段任务从 plan 构建 |
@@ -26,9 +26,9 @@ createCompileTarget(runOptions)      // 静态段：内部 resolveCompileConfig 
       requestedStages: Set<'view'|'logic'|'style'>,
       targetPath, useAppIdDir, workPath }
 
-readLoadBindings()                   // 动态段：{ miniGame, appId, pages }——env 唯一读取点
+readLoadBindings()                   // 动态段：{ miniGame, appId, pages }——阶段组装侧唯一读取点
 
-deriveStagePlan(target, bindings)    // 纯函数 → 新对象：
+deriveStagePlan(target, bindings, { cwd })   // 纯函数（cwd 显式，行为 0 等价）→ 新对象：
   → { stages: ['view'|'logic'|'style'],  // requestedStages ∩ 非 mini-game 灭除
       stageSpecs: { view?: {workerOptions, renderer}, logic?: {...}, style?: {...} },
       sourcemapTargetPath, stylePages }
@@ -42,9 +42,11 @@ Listr ─ 初始化项目  collect-config（store.load；ALS 建档）
                    const bindings = readLoadBindings()              // ALS 就绪，唯一读取点
                    const plan = deriveStagePlan(target, bindings)   // 纯
         ─ 编译项目  compile tasks 从 plan.stageSpecs 构建
+        BUILD_END 载荷的 appId 复用 bindings（避免二次 env 读取；行为等价）
 ```
 
 - 补全/派生**返回新对象**，无突变；`deriveStagePlan` 只接受完整 bindings（形状校验挡时序误用）；
+- **结构锚定范围 = `'编译项目'` 任务闭包内（阶段组装处）**；`BUILD_END` 载荷的 `getAppId()` 改经 bindings 捕获（F2 定界）；锚定后该闭包零 env 读取；
 - 三函数各自可单测（create 用 runOptions；derive 用构造的 (target, bindings) 组合）。
 
 ## 门切分（D-CT-1：T0 前置 + T1 静态 / T2 动态，各自 PR 禁混）
@@ -57,7 +59,7 @@ Listr ─ 初始化项目  collect-config（store.load；ALS 建档）
 
 ## 结构判据（反散点 · R-CT5）
 
-模式名（描述/派生/两段性）仅作评审词汇；验收以病症反向要求表达——阶段组装处不得再现 renderer 反查 / 内联 sourcemapTargetPath / mini-game 直耦 / 手工三捆 workerOptions。**交付后「形态条件单源于 compile-target」为结构不变量**（新增形态轴必须经描述 + 派生，不得在闭包内散算）。
+模式名（描述/派生/两段性）仅作评审词汇；验收以病症反向要求表达——阶段组装处不得再现 renderer 反查 / 内联 sourcemapTargetPath / mini-game 直耦 / 手工三捆 workerOptions。**锚定范围与 BUILD_END 载荷处置见 §两段性时序（F2）**。**交付后「形态条件单源于 compile-target」为结构不变量**（新增形态轴必须经描述 + 派生，不得在闭包内散算）。
 
 ## T0 细则（D-CT-0）
 
@@ -96,3 +98,4 @@ A4 renderer 抽象边界 / CF-1（C1 唯一语义源）/ CF-2（platform + sourc
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-14 | v1 成稿：职责表、三步 API、两段性时序、三门切分、T0 细则、D-CT-0..5 拍板 |
+| 2026-09-14 | Review F1–F4 修正：readLoadBindings 收窄为**阶段组装侧**唯一读取点（worker 内部读取显式划出范围）；结构锚定范围定界（`'编译项目'` 闭包内 + BUILD_END appid 经 bindings）；`deriveStagePlan` cwd 显式入参；**冻结 v1** |
