@@ -21,7 +21,7 @@
 	},
 	"scripts": {
 		"prebuild": "node scripts/sync-compatibility-reference.js",
-		"build": "node scripts/sync-dist-from-src.js",
+		"build": "tsc -p tsconfig.build.json",
 		"postbuild": "node scripts/copy-sdk-assets.js && node scripts/check-package-exports.js",
 		"sync:compat": "node scripts/sync-compatibility-reference.js",
 		"check:compat": "node scripts/sync-compatibility-reference.js --check",
