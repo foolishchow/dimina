@@ -1,8 +1,8 @@
 # FE Tools WXML Parser Dist
 
 - Action: `fe-tools-wxml-parser-dist`
-- Status: `ready`
-- Updated: 2026-09-15（Review R1 F1–F7 收敛：D-WX-9 三文件分层等；实施未授权）
+- Status: `in_progress`
+- Updated: 2026-09-15（授权 `in_progress`；基线 `dd2cb451`；R2/R3 Readiness 已 pass）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView；parser/binding 分 crates 按 oxc 先例）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（`WXML_PARSER` 默认 **napi**——放大分发缺口）；`fe/tools/crates/dimina-wxml-parser`（483 tests，swc 类型库 + `swc_ecma_parser`）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -39,8 +39,8 @@
 
 ## Goal
 
-1. **P0（止血）**：fe-tests.yml 增加 Rust 构建（`cargo build -p dimina-wxml-parser-napi --release` + `napi build` 或等价）+ cargo cache → CI 恢复绿。
-2. **P1（分发正规化）**：napi-rs 多平台 matrix（主流平台）；`@dimina/wxml-parser-napi` 子包化（`optionalDependencies` 自动选择）；`index.js` 双态解析（本地 dev 优先 workspace 现场 `.node`，发布态走子包）；发版流打通。
+1. **P0（止血）**：fe-tests.yml 增 Rust/`napi build --platform` + cargo cache；`*.node` 退 git；**`index.js` 最小加载** `index.<platform>.node`（与 build 同交付）→ CI 恢复绿。
+2. **P1（分发正规化）**：napi-rs 五平台 matrix；主包 `optionalDependencies` 子包化；`index.js` **完整双态**（本地 `index.<platform>.node` → `binding.js` 子包 → 抛错）；发版流打通。
 
 ## Non-goals
 
@@ -52,7 +52,7 @@
 ## 边界
 
 ```text
-本 Action:  P0 CI 止血 → P1 napi 矩阵 + 子包化 + 双态解析 + 发版流
+本 Action:  P0 CI 止血 + 最小平台后缀加载 → P1 napi 矩阵 + 子包化 + 完整双态 + 发版流
 观察（TODO）: B 路线 wasm——触发条件 = web 端 WXML parse 消费需求落地
 ```
 
@@ -60,31 +60,42 @@
 
 | 门 | 内容 | 验收判据 |
 | --- | --- | --- |
-| **P0 止血** | CI 增 Rust 构建步骤 + cargo cache（key=Cargo.lock） | CI 全绿（本地模拟已证现状必红）；增量构建时长可接受（记录数字） |
-| **P1 矩阵** | matrix 构建 N 平台；子包 `optionalDependencies`；`index.js` 双态解析；发版流 | 各平台产物存在且可加载；本地 dev（`pnpm build`）与发布态（子包）双路径验证；发版演练或等价 dry-run |
+| **P0 止血** | CI 增 Rust 构建 + cache；build=`napi --platform`；最小加载 `index.<platform>.node`；`*.node` 退 git | CI 全绿（run 锚定）；本地 `pnpm build` → vitest 绿 |
+| **P1 矩阵** | 5 平台 matrix；`optionalDependencies` 子包；完整双态；发版流 | 各平台可加载；本地/发布双路径实证；dry-run 或首版发布 |
 
-## 决策记录（建议 · 2026-09-15，待拍板）
+## 决策记录（已拍板 · 2026-09-15）
 
-| ID | 建议 | 备注 |
+| ID | 决策 | 备注 |
 | --- | --- | --- |
 | **D-WX-1** | A 路线（napi 矩阵）；wasm 记观察项（触发=浏览器端 parse 消费需求）；swc wasm plugin 机制不适用（概念澄清入档） | 讨论收敛表见上 |
 | **D-WX-2** | 平台集 = 主流 5：`darwin-arm64` / `darwin-x64` / `linux-x64-gnu` / `linux-arm64-gnu` / `win32-x64-msvc`；musl 后补 | napi-rs build-action 按需开 |
-| **D-WX-3** | `index.js` 双态解析：本地 dev 优先加载 workspace 现场 `.node`（`pnpm build` 产出）；发布态走 `optionalDependencies` 子包（平台检测） | oxc 同款 |
-| **D-WX-4** | `index.node` **退出 git 追踪**（`.gitignore`）——本地由 `pnpm build` 产出、CI 由构建步骤产出 | 消除二进制入库；过渡策略见待定 ② |
+| **D-WX-3** | `index.js` 双态：本地优先 `index.<platform>.node`（`pnpm build --platform`）；发布态走 `binding.js` → `optionalDependencies` 子包 | oxc 同款；P0 仅最小加载（无子包回退） |
+| **D-WX-4** | 全部 `*.node` **退出 git 追踪**（`.gitignore`；含旧 `index.node` 与 `index.*.node`）——本地/CI 由 `pnpm build` 产出 | 消除二进制入库 |
 | **D-WX-5** | cargo cache 键 = `fe/tools/crates/Cargo.lock` hash；CI 增量构建 | 首次全量分钟数记录入 validation |
 | **D-WX-6**（拍板） | bundler **会发布 npm** → P1 全深度：5 平台子包 + `optionalDependencies` + 发版流 | 原待定 ① |
-| **D-WX-7**（拍板） | `.node` **P0 即退 git 追踪**（`git rm --cached` + `.gitignore`）；dev 前置 = Rust 工具链 + `pnpm build`（wxml-parser-napi）；P0 的 CI 构建同时让 x64 立即可用 | 原待定 ②——不等 P1 |
+| **D-WX-7**（拍板） | `*.node` **P0 即退 git**（`git rm --cached` + `.gitignore`）；dev 前置 = Rust + `pnpm build`；P0 CI 构建让 x64 立即可用 | 原待定 ②——不等 P1 |
 | **D-WX-8**（拍板） | CI 时长**无预算** → 单 job 内构建（不拆 matrix job、不做产物 artifact 缓存）；cargo cache 照做（D-WX-5 保留，便宜且标准） | 原待定 ③ |
-| **D-WX-9**（R1-F1） | **三文件分层**：`index.<platform>.node`（CLI 产，退 git）+ `binding.js`（CLI 平台检测 glue，ESM，入库）+ `index.js`（**手写保留**：双态 + `parseWxmlSpanView` 包装）；build = `napi build --platform --release --js binding.js --format esm --no-dts --manifest-path ../crates/Cargo.toml` | CLI help 实证：`--js/--no-js` 仅 `--platform` 下有效（否则 glue 覆盖手写 index.js）；`--format` 默认 cjs 与 `type:module` 冲突 |
+| **D-WX-9**（R1-F1） | **三文件分层**：`index.<platform>.node`（CLI 产，退 git）+ `binding.js`（CLI glue，ESM，入库）+ `index.js`（手写：P0 最小加载 / P1 完整双态 + `parseWxmlSpanView`）；build = `napi build --platform --release --js binding.js --format esm --no-dts --manifest-path ../crates/Cargo.toml` | `--js/--no-js` 仅 `--platform` 下有效；`--format` 默认 cjs 与 `type:module` 冲突 |
+
+**平台三元组映射（P0 最小加载 / D-WX-2，与 napi-rs 命名一致）**：
+
+| `process.platform` + arch | `index.<platform>.node` |
+| --- | --- |
+| `darwin` + `arm64` | `darwin-arm64` |
+| `darwin` + `x64` | `darwin-x64` |
+| `linux` + `x64` | `linux-x64-gnu` |
+| `linux` + `arm64` | `linux-arm64-gnu` |
+| `win32` + `x64` | `win32-x64-msvc` |
 
 ## 待定
 
-无（D-WX-1..8 已全拍板）；Readiness 五件套补齐后升 `ready`
+无（D-WX-1..9 已全拍板）。
 
 ## Status / 授权
 
-- 当前 **`ready`**：五件套齐（R-WX0..5 / P0+P1 门 / P-WX00..07）；**实施未授权**（须另授 `in_progress`）
-- 未授权实施
+- 当前 **`in_progress`**（2026-09-15 授权）：Readiness R4 **pass**；实施基线 **`dd2cb451`**（授权前 HEAD；本提交含 R2/R3 文档修）。
+- 执行允许：按 plan 从 **P0** 开工（build `--platform` + 最小加载 + 退 git + CI）；P1 另序推进。
+- 残留：F-R2-004（P1 接 ESM `binding.js` 加载方式）P1 step3 前冻。
 
 ## 闭合条件
 
@@ -101,3 +112,6 @@
 | 2026-09-15 | **待定拍板 → D-WX-6..8**：bundler 会发布 npm（P1 全深度）；`.node` P0 即退 git（dev 前置 = Rust + pnpm build）；CI 无时长预算（单 job 构建，cache 照做）。**待定清空** |
 | 2026-09-15 | **Readiness 五件套成稿，升 `ready`**：R-WX0..5 + design（现状锚定含 build script darwin 专属硬编码 `.dylib` 实证 / P0 napi CLI 迁移 / P1 napi-rs 标准流 + 双态 index.js）+ plan（P0 独立可交付）+ A-WX0..5 + P-WX00..07。实施未授权 |
 | 2026-09-15 | **Review R1（F1–F7）收敛**：F1 🔴 `--platform` 语义错位 + glue 覆盖风险 → **D-WX-9 三文件分层**（路线乙，design §2.1/§3.2 重写）；F2 显式 `dtolnay/rust-toolchain@stable`；F3 darwin-x64 走 arm64 runner + `--target` 交叉（Intel runner 退役）；F4 x64-linux 首跑 residual + `WXML_PARSER=cheerio` 应急阀；F5 P-WX00 措辞限定（win 归 P1）；F6 双态单测落点 + `_resolveNative()` 钩；F7 `prepublish` 命令形态 P1 校准 |
+| 2026-09-15 | **R2 F-R2-001..003**：P0 纳入最小加载 `index.<platform>.node`（与 `--platform` build 同交付）；R-WX3/P-WX02 改平台后缀口径；gitignore=`*.node` |
+| 2026-09-15 | **R3 文案**：Goal/产品门/决策表标题对齐；五平台三元组映射表入 README |
+| 2026-09-15 | **Readiness R4 pass** → 授权 **`in_progress`**（基线 `dd2cb451`） |

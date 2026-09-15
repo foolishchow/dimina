@@ -51,7 +51,7 @@
 | `fe-tools-compiler-target` | `complete` | [README](_archive/complete/fe-tools-compiler-target/README.md) | CompileTarget 形态层：T0 入口纪律 + T1 静态描述 + T2 阶段派生；A-CT0..06 全 pass；消融 ×3；回流 architecture-notes；已归档。 | 2026-09-14 |
 | `fe-tools-incremental-target` | `draft` | [README](fe-tools-incremental-target/README.md) | E7 增量形态回灌：watch/cache options 袋与 CompileTarget 对齐（S1/S2/S3/S9）；契约 A/B 待拍板；未授权实施。 | 2026-09-14 |
 | `fe-tools-compiler-layering` | `complete` | [README](_archive/complete/fe-tools-compiler-layering/README.md) | compiler 目录归位（两轴 + WORKER_ENTRY + 根级 index.js 删除）；559/559 + diff=0；A-CL1 修正（函数拆散推迟）；已归档。 | 2026-09-15 |
-| `fe-tools-wxml-parser-dist` | `ready` | [README](fe-tools-wxml-parser-dist/README.md) | napi 分发矩阵：P0 CI 止血 + `.node` 退 git + build 跨平台化；P1 五平台子包 + 双态解析 + 发版流；五件套齐；实施待授权。 | 2026-09-15 |
+| `fe-tools-wxml-parser-dist` | `in_progress` | [README](fe-tools-wxml-parser-dist/README.md) | napi 分发：授权实施（基线 `dd2cb451`）；P0=CI+`*.node`退git+跨平台 build+最小平台后缀加载；P1=五平台子包+完整双态+发版。 | 2026-09-15 |
 | `fe-tools-wxml-refactor` | `complete` | [README](_archive/complete/fe-tools-wxml-refactor/README.md) | W1–W3：23 函数归位 + 标准 Document + 默认 napi；A-WR0..5 / P-WR00..07 全 pass；Close 复验 `13c9c902` 580/580 + P-WR06 diff=0；不变量回流；已归档。 | 2026-09-15 |
 | `fe-tools-wxml-layout` | `complete` | [README](_archive/complete/fe-tools-wxml-layout/README.md) | L0–L2：napi/cheerio + load/ + compile.js + renderer/vue/；同门删净；A-WL0..5 / P-WL00..07 全 pass；Close 复验 `4259ebdd` 580/580 + diff=0；不变量回流；已归档。 | 2026-09-15 |
 | `fe-tools-bundler-typecheck` | `complete` | [README](_archive/complete/fe-tools-bundler-typecheck/README.md) | S0+S1 交付（`eb3b2bc4`）：allowJs+CI `tsc --noEmit` + 七文件 `@ts-check` + 集中 typedef；580/580 + diff=0；已归档。 | 2026-09-15 |

@@ -8,7 +8,7 @@ Status: **冻结（随 Action `ready`）** — 实施后回填 Result。
 | --- | --- | --- | --- | --- |
 | P-WX00 | build 跨平台 | `cd fe/tools/wxml-parser-napi && pnpm build`（napi CLI `--platform` 路线乙）；产物 `index.<platform>.node` + `binding.js`（ESM）就位且手写 `index.js` 未被覆盖；**P0 验 darwin（本地）+ linux（CI）**，win32 真验归 P1 matrix（**R1-F5 限定**） | A-WX0 | pending |
 | P-WX01 | CI 绿 | push 后 fe-tests Actions 全绿；首次全量 Rust 编译分钟数记录；cache 命中增量对比（第二次 push） | A-WX0 | pending |
-| P-WX02 | 退 git + dev 流 | `git ls-files` 无 `index.node`；本地 `pnpm build` → vitest 全绿（580）；`mv index.node` → 编译测试炸（延迟抛错文案）→ 恢复绿 | A-WX1 | pending |
+| P-WX02 | 退 git + 最小加载 + dev 流 | `git ls-files` 无 `*.node`（含旧 `index.node` / `index.*.node`）；`.gitignore` 含 `*.node`；本地 `pnpm build` → 存在 `index.<platform>.node` 且 vitest 全绿（580）；移走该文件 → 编译测试炸（延迟抛错）→ 恢复绿 | A-WX0/A-WX1 | pending |
 | P-WX03 | 子包结构 | `napi create-npm-dirs`/`prepublish` 产五子包；主包 `optionalDependencies` 声明；`private` 已除 | A-WX2 | pending |
 | P-WX04 | 双态解析 | 单测三态（本地 `index.<platform>.node` 优先 / `binding.js` 子包检测路径 / 皆无抛错）——落 bundler `__tests__/wxml-parser-loader.spec.js`，经 `_resolveNative()` 可测钩（**R1-F6**）；有本地产物时子包路径不被触碰 | A-WX3 | pending |
 | P-WX05 | 行为 0 | parser crates `git diff` 零语义；CI vitest 全绿（跨平台证据）；`fe/packages` 零 diff | A-WX4 | pending |
