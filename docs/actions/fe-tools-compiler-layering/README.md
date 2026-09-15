@@ -103,6 +103,8 @@ src/compiler/
 │   ├── npm-builder.js     npm 包构建
 │   ├── sourcemap.js       sourcemap 工具
 │   ├── compatibility.js   兼容性检查
+│   ├── compatibility-reference.js  兼容性参考数据
+│   ├── renderers.js      renderer 注册表（A4）
 │   └── expression-parser.js  表达式解析【独立文件，D-CL-1 拍板归 core；与 view/expression/ 子域是两回事（F4）】
 └── pipeline/              ← 轴二：编排
     ├── build-pipeline.js  编排壳
@@ -162,3 +164,4 @@ src/compiler/
 | 2026-09-15 | **方案 A + wxml 改造移出**：域名 wxml→view（view 渲染域含 wxml/wxs/expression/asset/template 子域——wxs 寄生 view 是架构现实）；L1 dom 抽象 + L2 napi 移到 TODO 候选（前置 = 本 Action 合入）；本 Action 收窄为纯 L0（唯一门，零函数体变更）；函数归属表入档 |
 | 2026-09-15 | **D-CL-1..3 全部拍板**（照建议）：expression-parser → core/；编排入口 → view/index.js；Action 名转正 `fe-tools-compiler-layering` |
 | 2026-09-15 | Review R1 F1–F6 修正：归属表补全为 61 函数穷举清单；纯移动例外成文（worker spawn 显式映射 + 12 spec import 更新）；expression-parser 撞名澄清；view/index.js 聚合注记 |
+| 2026-09-15 | Review R2 F7：结构图漏 2 文件（compatibility-reference.js / renderers.js）→ 补入 core/；R2 结论 pass-with-findings 清零 |
