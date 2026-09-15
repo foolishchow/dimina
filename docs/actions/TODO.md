@@ -69,6 +69,15 @@
 | 待定 | 无（D-TD-1..16 已拍板） |
 | 前置 | typecheck Close/合入后再实施（D-TD-12） |
 
+### WXML parser wasm target（B 路线）——观察项（2026-09-15）
+
+| Field | Value |
+| --- | --- |
+| 内容 | dimina-wxml-parser 编 wasm（wasi/component，非 swc plugin 机制——那是 JS/TS transform 宿主，我们是 parser 宿主） |
+| 独占收益 | 浏览器端 WXML parse（web 容器 dev/预览场景：高亮/诊断/预览） |
+| 触发条件 | web 端 WXML parse 消费需求落地；此前 YAGNI（A 路线 napi 矩阵已覆盖分发，见 `fe-tools-wxml-parser-dist`） |
+| 可行性 | @swc/wasm 先例证明 swc 全家（含 swc_ecma_parser）可编 wasm，无硬阻塞 |
+
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
 | Field | Value |
