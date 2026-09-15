@@ -28,7 +28,7 @@ Status: **冻结（2026-09-15）** — D-TC-1..10 已拍板；随 Action `ready`
 
 ## R-TC2（MUST）行为 0 与污染
 
-- 不改编译产物语义；本门**不**改 build 为 tsc emit、**不**强制 rename `.ts`（build/迁 ts → [`fe-tools-bundler-tsc-dist`](../../../fe-tools-bundler-tsc-dist/README.md)）。
+- 不改编译产物语义；本门**不**改 build 为 tsc emit、**不**强制 rename `.ts`（build/迁 ts → [`fe-tools-bundler-tsc-dist`](../fe-tools-bundler-tsc-dist/README.md)）。
 - 全量 vitest 通过；`fe/packages` 零改动。
 - 相对实施基线：产物 code+sourcemap **MUST** diff=0（D-TC-6）。
 

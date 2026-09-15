@@ -226,3 +226,5 @@ wxml/
 | 2026-09-14 | **回流 fe-tools-wxml-ir（complete）**：WXML parse→Document→load→Backend 缝 + 结构不变量「新模板后端必须经 registry 挂载」入档；S13 view 侧收口 |
 | 2026-09-14 | **回流 fe-tools-compiler-target（complete）**：CompileTarget 两段 API + 结构不变量「形态条件单源于 compile-target」+ E1 双重解析不变量入档 |
 | 2026-09-15 | **回流 fe-tools-wxml-refactor（complete `13c9c902`）**：标准 Document + Document 操作面；`WXML_PARSER` 默认 napi；零 cheerio 泄漏不变量入档；已归档 |
+| 2026-09-15 | **回流 fe-tools-bundler-typecheck（complete `eb3b2bc4`）**：类型门禁不变量入档（CI `tsc --noEmit` 必过；白名单 `@ts-check`；集中 typedef 不以 vue/index 为类型源） |
+| 2026-09-15 | **回流 fe-tools-bundler-tsc-dist（complete）**：**B2 build 模型**——dist 唯一生产者 = `tsc -p tsconfig.build.json`（`rootDir:src`/`outDir:dist`）；整树 sync-dist 已删除；postbuild（copy-sdk-assets + check-exports）保留。**绿场规则**：`src/` 新文件允许 `.ts`。**后缀约定（D-TD-20）**：运行时消费方写显式 `.ts` 后缀 + `rewriteRelativeImportExtensions`（emit 重写回 `.js`）；`.js`→`.ts` 隐式映射只存在于 tsc program——vitest/worker 直跑 src 不解析，显式 `.ts` 是唯一可运行写法。**worker 注记**：src 链 spawn 需 `--experimental-strip-types`（stage-channel 已按 `/src/` 探测注入）。**迁徙边界**：view/index.js、renderer/vue/tools.js、vue/index.js 禁迁；第 2 刀（document/document-ops/load）另立 |

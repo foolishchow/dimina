@@ -18,7 +18,7 @@
 
 ## Goal
 
-在 **不改运行时语义、不强制 rename `.ts`** 的前提下（本门交付期内 dist 仍可为 sync；**build 改 tsc emit 另见** [`fe-tools-bundler-tsc-dist`](../../../fe-tools-bundler-tsc-dist/README.md)）：
+在 **不改运行时语义、不强制 rename `.ts`** 的前提下（本门交付期内 dist 仍可为 sync；**build 改 tsc emit 另见** [`fe-tools-bundler-tsc-dist`](../fe-tools-bundler-tsc-dist/README.md)）：
 
 1. **S0**：为 bundler 增加 `tsconfig`（`allowJs` / `noEmit`）+ `typecheck` 脚本；CI 跑 `tsc --noEmit` **必过**。
 2. **S1**：在 `src/compiler/` 范围内，对第一刀白名单文件开启 `// @ts-check`（含 `load/index.js`），补齐必要 JSDoc / typedef，使 typecheck 绿。
@@ -26,7 +26,7 @@
 ## Non-goals
 
 - 整仓或 `compiler/**` 一次性全开 `checkJs`
-- 本门把现有 `.js` rename 为 `.ts`（选择性迁 ts / B2 emit → [`fe-tools-bundler-tsc-dist`](../../../fe-tools-bundler-tsc-dist/README.md)）
+- 本门把现有 `.js` rename 为 `.ts`（选择性迁 ts / B2 emit → [`fe-tools-bundler-tsc-dist`](../fe-tools-bundler-tsc-dist/README.md)）
 - 本门改 `sync-dist` 为 `tsc` emit（同上另立；**非**本门永久禁止全局改 build）
 - `session` / `model` / `watch` / `dev` / `bin` 纳入本门交付时的 `include`（tsc-dist 可将 typecheck include 扩至全 `src/`）
 - S2/S3（`view/index.js`、`vue/tools.js`、style/logic/npm 等重灾区）本门不承诺绿
@@ -37,7 +37,7 @@
 - 白名单文件 import 未 check 的模块时，类型可能退化为隐式 `any`——可接受；不得借机大改算法。
 - 本门交付时 `include` 以 `src/compiler/**` 为主；域外（如 `shared/`）模块形状不保证被 check。
 - `strict: true` 可能迫使少量断言/`@ts-expect-error`（须注释理由，禁止无说明吞错）。
-- **Build 模型**：本门 Close 时 dist 仍可能是 sync；**后续权威**以 [`fe-tools-bundler-tsc-dist`](../../../fe-tools-bundler-tsc-dist/README.md)（B2：tsc emit、删 sync）为准。
+- **Build 模型**：本门 Close 时 dist 仍可能是 sync；**后续权威**以 [`fe-tools-bundler-tsc-dist`](../fe-tools-bundler-tsc-dist/README.md)（B2：tsc emit、删 sync）为准。
 
 ## 边界
 
@@ -62,7 +62,7 @@
 | **D-TC-3** | 第一刀范围 = **`src/compiler/`**（S0 include）；非 compiler 轴另立 |
 | **D-TC-4** | 全局 **`checkJs: false`**；核心文件用 **`// @ts-check`** |
 | **D-TC-5** | S1 白名单含：`wxml/common/*`、`renderer/registry.js`、`renderer/stub.js`、`pipeline/compile-target.js`、**`load/index.js`** |
-| **D-TC-6** | 本门交付：运行时仍 JS；**dist 生产者在本门内不改**（交付时可为 sync）；行为 0（产物+sourcemap MUST diff=0）。**B2 tsc emit / 删 sync** 移交 [`fe-tools-bundler-tsc-dist`](../../../fe-tools-bundler-tsc-dist/README.md) |
+| **D-TC-6** | 本门交付：运行时仍 JS；**dist 生产者在本门内不改**（交付时可为 sync）；行为 0（产物+sourcemap MUST diff=0）。**B2 tsc emit / 删 sync** 移交 [`fe-tools-bundler-tsc-dist`](../fe-tools-bundler-tsc-dist/README.md) |
 | **D-TC-7** | `strict: true`（本门一次到位） |
 | **D-TC-8** | `typescript` 为 **`@dimina/bundler` devDependency**；version range **与 `fe/package.json` 的 typescript 同 major/range 对齐**（当前 workspace 为 ^7） |
 | **D-TC-9** | CI 接线：`.github/workflows/fe-tests.yml`，在既有 FE test job 中增加 bundler `typecheck`（与 `pnpm test` 并列，失败阻断） |

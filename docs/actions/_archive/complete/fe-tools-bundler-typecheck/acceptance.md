@@ -13,4 +13,4 @@ Status: **complete（2026-09-15）** — A-TC0..4 全 pass；证据见 validatio
 ## Non-acceptance
 
 - 整仓 `.ts` 迁移；S2/S3 全量 check 绿；语义/产物变更。
-- 本门范围内改 build 为 tsc emit（属 [`fe-tools-bundler-tsc-dist`](../../../fe-tools-bundler-tsc-dist/README.md)，非本门交付）。
+- 本门范围内改 build 为 tsc emit（属 [`fe-tools-bundler-tsc-dist`](../fe-tools-bundler-tsc-dist/README.md)，非本门交付）。
