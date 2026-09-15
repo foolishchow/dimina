@@ -1,6 +1,6 @@
 # Implementation plan — fe-tools-compiler-layering
 
-Status: **ready（2026-09-15）** — D-CL + R1/R2 review 已收敛；升 `in_progress` 时记基线 SHA；唯一门 L0
+Status: **in_progress（2026-09-15）** — L0 实施中；基线 `5c4ce74f`；唯一门
 
 ## L0 触达序（目录归位 · 行为 0）
 

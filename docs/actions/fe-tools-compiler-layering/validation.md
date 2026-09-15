@@ -1,6 +1,6 @@
 # Validation — fe-tools-compiler-layering
 
-Status: **ready（2026-09-15）** — P-CL00..06；升 `in_progress` 时记基线 SHA，Result 届时回填
+Status: **in_progress（2026-09-15）** — P-CL00..06；**基线 = `5c4ce74f`**；Result 届时回填
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |

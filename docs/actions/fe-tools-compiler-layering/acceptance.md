@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-compiler-layering
 
-Status: **ready（2026-09-15）** — A-CL0..04；实施另授权 `in_progress`，证据回填
+Status: **in_progress（2026-09-15）** — A-CL0..04；L0 实施中（基线 `5c4ce74f`）；证据回填
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
