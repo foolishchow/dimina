@@ -41,7 +41,13 @@ export function runCompileStage({ script, ctx, task, options = {}, lifecycle = n
 		}
 		const worker = new Worker(
 			path.join(path.dirname(fileURLToPath(import.meta.url)), WORKER_ENTRY[script]),
-			workerPool.getWorkerOptions(),
+			{
+				...workerPool.getWorkerOptions(),
+				// D-TD-20：src 直跑（vitest）链含 .ts 模块时需类型剥离；dist 全 .js 时无影响
+				...(import.meta.url.includes('/src/')
+					? { execArgv: [...process.execArgv, '--experimental-strip-types'] }
+					: {}),
+			},
 		)
 		const pages = options.pages || ctx.pages
 		const totalTasks = Object.keys(pages.mainPages).length

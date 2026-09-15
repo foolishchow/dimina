@@ -18,8 +18,8 @@ import {
 import { serialize } from '../src/compiler/view/wxml/common/document-ops.js'
 import { parseWxml } from '../src/compiler/view/wxml/parse.js'
 import { loadTemplates } from '../src/compiler/view/wxml/load/index.js'
-import { getWxmlRenderer, listWxmlRenderers, registerWxmlRenderer, unregisterWxmlRenderer } from '../src/compiler/view/wxml/renderer/registry.js'
-import { createStubWxmlRenderer } from '../src/compiler/view/wxml/renderer/stub.js'
+import { getWxmlRenderer, listWxmlRenderers, registerWxmlRenderer, unregisterWxmlRenderer } from '../src/compiler/view/wxml/renderer/registry.ts'
+import { createStubWxmlRenderer } from '../src/compiler/view/wxml/renderer/stub.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(testDir, '../src/compiler')
@@ -28,9 +28,9 @@ const wxmlFiles = [
 	'view/wxml/common/document.js',
 	'view/wxml/parse.js',
 	'view/wxml/load/index.js',
-	'view/wxml/renderer/registry.js',
+	'view/wxml/renderer/registry.ts',
 	'view/wxml/renderer/vue/index.js',
-	'view/wxml/renderer/stub.js',
+	'view/wxml/renderer/stub.ts',
 ]
 
 function toCompileTemplateSpan() {

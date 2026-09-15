@@ -7,7 +7,9 @@
     "rootDir": "src",
     "outDir": "dist",
     "declaration": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true
   },
   "include": [
     "src/**/*.js",

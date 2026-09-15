@@ -12,7 +12,7 @@ import { toMiniProgramModuleId } from '../../shared/path-utils.js'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../core/env.js'
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
-import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.js'
+import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'
 import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.js'
 import {
 	getAttr,

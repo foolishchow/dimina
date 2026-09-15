@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * CompileTarget — 编译产物形态描述（fe-tools-compiler-target）。
  *
@@ -15,12 +14,7 @@
  *
  * 「形态条件单源于 compile-target」：新增形态轴须经描述 + 派生，不得在闭包内散算。
  */
-
-/**
- * @typedef {import('./compile-target.types.js').CompileTarget} CompileTarget
- * @typedef {import('./compile-target.types.js').LoadBindings} LoadBindings
- * @typedef {import('./compile-target.types.js').StagePlan} StagePlan
- */
+import type { CompileTarget, LoadBindings } from './compile-target.types.js'
 
 import path from 'node:path'
 import { resolveCompileConfig } from '../../shared/compile-config.js'
@@ -37,11 +31,8 @@ const STAGE_TITLES = Object.freeze({
 
 /**
  * 从单次 run 选项构建静态 CompileTarget（fail-fast，消息与改道前逐字一致）。
- *
- * @param {any} runOptions
- * @returns {CompileTarget}
  */
-export function createCompileTarget(runOptions) {
+export function createCompileTarget(runOptions: any): CompileTarget {
 	const {
 		targetPath,
 		workPath,
@@ -86,10 +77,8 @@ export function createCompileTarget(runOptions) {
 /**
  * 阶段组装侧唯一 env 读取点（时机：collect-config 之后，ALS 已就绪）。
  * worker / 编译器内部读取不迁移（R-CT2 / F1）。
- *
- * @returns {LoadBindings}
  */
-export function readLoadBindings() {
+export function readLoadBindings(): LoadBindings {
 	return {
 		miniGame: isMiniGame(),
 		appId: getAppId(),
@@ -98,11 +87,7 @@ export function readLoadBindings() {
 	}
 }
 
-/**
- * @param {any} bindings
- * @returns {asserts bindings is LoadBindings}
- */
-function assertLoadBindings(bindings) {
+function assertLoadBindings(bindings: any): asserts bindings is LoadBindings {
 	// appId 可为 undefined（无 project.config appid 时与改道前 path.resolve 行为一致）
 	if (!bindings
 		|| typeof bindings !== 'object'
@@ -120,13 +105,13 @@ function assertLoadBindings(bindings) {
  * 纯函数：由静态 CompileTarget + 动态 bindings 派生阶段计划（返回新对象，无突变）。
  *
  * `filteredPages` 为组装输入（affectedEntries 过滤结果），非 env；缺省回落 bindings.pages。
- *
- * @param {CompileTarget} compileTarget
- * @param {LoadBindings} bindings
- * @param {any} [options]
- * @returns {object}
  */
-export function deriveStagePlan(compileTarget, bindings, { cwd, filteredPages } = {}) {
+export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBindings, { cwd, filteredPages }: { cwd?: string, filteredPages?: any } = {}): {
+	stages: string[]
+	stageSpecs: Record<string, any>
+	sourcemapTargetPath: string
+	stylePages: any
+} {
 	assertLoadBindings(bindings)
 	if (typeof cwd !== 'string' || !cwd) {
 		throw new TypeError('deriveStagePlan: cwd must be a non-empty string')
@@ -158,7 +143,7 @@ export function deriveStagePlan(compileTarget, bindings, { cwd, filteredPages } 
 	}
 
 	const { sourcemap, compileConfig, renderer } = compileTarget
-	const stageSpecs = {}
+	const stageSpecs: Record<string, any> = {}
 
 	if (stages.includes('view')) {
 		stageSpecs.view = {

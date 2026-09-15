@@ -10,7 +10,7 @@ import {
 import { attachProjection } from './common/document.js'
 import { parseWxml } from './parse.js'
 import { loadTemplates } from './load/index.js'
-import { getWxmlRenderer } from './renderer/registry.js'
+import { getWxmlRenderer } from './renderer/registry.ts'
 import { VUE_RENDERER_ID } from './renderer/vue/index.js'
 import { normalizeTemplateDom, transHtmlTag } from './renderer/vue/tools.js'
 import { buildExtStripRegex, getViewPath, resolveTemplateDependencyPath } from './load/paths.js'

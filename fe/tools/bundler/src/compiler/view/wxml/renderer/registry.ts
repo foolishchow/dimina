@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * WxmlRenderer 注册表（fe-tools-wxml-ir · T-IR3）。
  *
@@ -6,23 +5,15 @@
  * 生产路径默认且仅使用 'vue'（wxml renderer₀）；其它 id 仅测例 / 消融注册。
  * R-WIR9：registry 配置错误带 `[wxml]` 前缀。
  */
+import type { WxmlRenderer } from '../common/wxml-ir.types.js'
 
-/**
- * @typedef {import('../common/wxml-ir.types.js').WxmlRenderer} WxmlRenderer
- */
+const registry = new Map<string, WxmlRenderer>()
 
-/** @type {Map<string, WxmlRenderer>} */
-const registry = new Map()
-
-/**
- * @param {unknown} renderer
- * @param {string} [label]
- */
-function assertWxmlRendererShape(renderer, label = 'registerWxmlRenderer') {
+function assertWxmlRendererShape(renderer: unknown, label = 'registerWxmlRenderer'): void {
 	if (!renderer || typeof renderer !== 'object') {
 		throw new TypeError(`[wxml] ${label}: renderer must be an object`)
 	}
-	const r = /** @type {{ id?: unknown, render?: unknown }} */ (renderer)
+	const r = renderer as { id?: unknown, render?: unknown }
 	if (typeof r.id !== 'string' || !r.id) {
 		throw new TypeError(`[wxml] ${label}: renderer.id must be a non-empty string`)
 	}
@@ -31,10 +22,7 @@ function assertWxmlRendererShape(renderer, label = 'registerWxmlRenderer') {
 	}
 }
 
-/**
- * @param {WxmlRenderer} renderer
- */
-export function registerWxmlRenderer(renderer) {
+export function registerWxmlRenderer(renderer: WxmlRenderer): void {
 	assertWxmlRendererShape(renderer)
 	if (registry.has(renderer.id)) {
 		throw new Error(`[wxml] registerWxmlRenderer: renderer id '${renderer.id}' already registered (silent overwrite forbidden)`)
@@ -42,26 +30,15 @@ export function registerWxmlRenderer(renderer) {
 	registry.set(renderer.id, renderer)
 }
 
-/**
- * @param {string} id
- * @returns {boolean}
- */
-export function unregisterWxmlRenderer(id) {
+export function unregisterWxmlRenderer(id: string): boolean {
 	return registry.delete(id)
 }
 
-/**
- * @param {string} id
- * @returns {WxmlRenderer|null}
- */
-export function getWxmlRenderer(id) {
+export function getWxmlRenderer(id: string): WxmlRenderer | null {
 	return registry.get(id) ?? null
 }
 
-/**
- * @returns {string[]}
- */
-export function listWxmlRenderers() {
+export function listWxmlRenderers(): string[] {
 	return [...registry.keys()]
 }
 
