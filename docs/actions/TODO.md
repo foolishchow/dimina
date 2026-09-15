@@ -22,7 +22,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；[`fe-tools-wxml-refactor`](_archive/complete/fe-tools-wxml-refactor/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
+| 下一步 | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；[`fe-tools-wxml-refactor`](_archive/complete/fe-tools-wxml-refactor/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
 | 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
@@ -42,6 +42,15 @@
 | Action | [`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md)（**`complete` 已归档**；交付 `4259ebdd`） |
 | 结果 | L0 目录轴 + API 同门删净；L1 580/580 + 相对 `0074396c` / napi↔cheerio diff=0；L2 architecture-notes 回流 |
 | 待定 | 无（D-WL-1..9 已拍板并交付） |
+
+### Bundler allowJs 类型门禁——已 formalize 为 `fe-tools-bundler-typecheck`（2026-09-15）
+
+| Field | Value |
+| --- | --- |
+| Action | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**） |
+| 问题 | bundler 无 tsc 门禁；整仓改 .ts 过重 |
+| 目标 | allowJs + CI `tsc --noEmit`（fe-tests.yml）；S0+S1（common/load/registry/stub/compile-target）；strict；集中 typedef |
+| 待定 | 无（D-TC-1..10 已拍板） |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
