@@ -168,6 +168,14 @@ wxml/
 4. `compile.js` 仅编排，不承载展开/降级算法体；vue 工具在 `renderer/vue/`。
 5. 本门行为 0：相对实施基线产物+sourcemap diff=0；默认 napi vs cheerio diff=0。
 
+## Bundler allowJs 类型门禁（fe-tools-bundler-typecheck · 2026-09-15）
+
+- `fe/tools/bundler/tsconfig.json`：`allowJs: true`、`checkJs: false`、`strict: true`、`noEmit: true`；`include` = `src/compiler/**`。
+- CI：`.github/workflows/fe-tests.yml` 跑 `pnpm --filter @dimina/bundler typecheck`（`tsc --noEmit`）**必过**。
+- S1 白名单文件带 `// @ts-check`：`wxml/common/{document,document-ops,parity}.js`、`wxml/load/index.js`、`wxml/renderer/{registry,stub}.js`、`pipeline/compile-target.js`。
+- `WxmlRenderer` / `LoadedGraph` 等契约以白名单内集中 typedef 为权威（`wxml/common/wxml-ir.types.js`、`pipeline/compile-target.types.js`）；**不以**未 check 的 `vue/index.js` 为类型源。
+- **非本门**：整仓 `.ts` 迁移；`sync-dist` → tsc emit；S2/S3（`view/index.js` / vue-tools / style|logic|npm）全开 check。
+
 ## 命名
 
 | 概念 | 采用名 |

@@ -22,7 +22,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；[`fe-tools-wxml-refactor`](_archive/complete/fe-tools-wxml-refactor/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
+| 下一步 | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**，待 Close）；[`fe-tools-bundler-tsc-dist`](fe-tools-bundler-tsc-dist/README.md)（**`ready`**，待实施授权）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
 | 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
@@ -47,10 +47,20 @@
 
 | Field | Value |
 | --- | --- |
-| Action | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**） |
+| Action | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**；S0–S1 已交付，待 Close） |
 | 问题 | bundler 无 tsc 门禁；整仓改 .ts 过重 |
 | 目标 | allowJs + CI `tsc --noEmit`（fe-tests.yml）；S0+S1（common/load/registry/stub/compile-target）；strict；集中 typedef |
 | 待定 | 无（D-TC-1..10 已拍板） |
+
+### Bundler tsc dist + 选择性迁 TS——已 formalize 为 `fe-tools-bundler-tsc-dist`（2026-09-15）
+
+| Field | Value |
+| --- | --- |
+| Action | [`fe-tools-bundler-tsc-dist`](fe-tools-bundler-tsc-dist/README.md)（**`ready`**；实施未授权） |
+| 问题 | JSDoc 类型不直观；sync 无法安全绿场 `.ts`；决定 B2 全交 tsc emit |
+| 目标 | B2 build（emit 全 src；删 sync、留 postbuild）+ 第0/1刀迁 `.ts`；typecheck include 对齐 |
+| 待定 | 无（D-TD-1..16 已拍板） |
+| 前置 | typecheck Close/合入后再实施（D-TD-12） |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
