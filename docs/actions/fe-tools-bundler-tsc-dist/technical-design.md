@@ -22,6 +22,25 @@ T2  回归行为0 + 消融 + architecture-notes
 
 （实锚：`src/` 当前无非 `.js` 文件；SDK 资源本就不经 sync，而经 `copy-sdk-assets`。）
 
+### 2.1 TS5055 风险与前置修复（R1-F1 实证 · D-TD-17）
+
+dry-run 实测（tsconfig 同构配置）：
+
+```text
+src/compiler/view/wxml/napi/parse.js:8:
+  import { parseWxmlSpanView } from '../../../../../../wxml-parser-napi/index.js'
+  → error TS5055: Cannot write file '.../wxml-parser-napi/index.js'
+           because it would overwrite input file
+  → exit 1；仅 emit 49/69；bin/ 目录全缺（字母序最后）
+```
+
+机制：rootDir=src 下 tsc 将 src 外被 import 文件纳入 program，输出路径与输入重叠 → 硬阻断。今日 sync 能工作是因为镜像复制保持相对路径；tsc 不行。**修复**：`napi/parse.js` 改包名 import `@dimina/wxml-parser-napi`（workspace 依赖；NodeNext 解析走 node_modules 不进 program）——顺带修复 npm 发布后 6 级相对路径本就指向安装者机器不存在位置的隐疾。
+
+### 2.2 exports / compat 漂移热修（R1-F2/F3 实证 · D-TD-18/19）
+
+- **F2（阻塞 T0）**：`package.json` exports 三子路径（`./view-compiler` 等）指 layering 前旧文件；postbuild `check-package-exports` `ERR_MODULE_NOT_FOUND` exit 1（实测）。repo 内唯一消费方是该脚本自身。T0 须重映射或删除（与用户确认处置）。
+- **F3（独立热修）**：`sync-compatibility-reference.js` outputPath 指旧位置 → `npm test` pretest 必炸（实测）。一行修复（`core/`），建议本门授权前先行合入。
+
 建议 `tsconfig.build.json`（权威）：
 
 ```jsonc
@@ -37,13 +56,19 @@ T2  回归行为0 + 消融 + architecture-notes
     "sourceMap": false
   },
   "include": ["src/**/*.js", "src/**/*.ts"],
-  "exclude": ["**/__tests__/**", "dist", "node_modules"]
+  "exclude": ["**/__tests__/**", "dist", "node_modules", "scripts"]
 }
-```
+```（exclude 显式含 `scripts/`——R1-F5）
 
 - `package.json`：`build` 调用 `tsc -p tsconfig.build.json`（随后跑既有 `postbuild`）。
 - **删除** `scripts/sync-dist-from-src.js`（或等价停用，不再作为 build 步骤）（D-TD-13）。
 - **不**第一刀上 `tsc -b`（D-TD-10）；**不** emit `scripts/`（D-TD-14）。
+
+### emit 文本差异实测（R1-F4）
+
+ESM 模式（`type:module` + NodeNext）下 tsc emit 对 `.js` 输入：
+- **shebang 保留** ✓（`dist/bin/index.js` CLI 入口安全）；
+- **非逐字节**：tsc printer 重排版（补分号 `console.log(x)` → `console.log(x);`）——D-TD-9 已声明 dist 字节对齐非 MUST，验收锚定应用产物 diff=0；P-TD00 补 CLI `--version` 可执行门。
 
 ## 3. 与 typecheck 的关系
 

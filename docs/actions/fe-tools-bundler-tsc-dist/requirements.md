@@ -1,12 +1,18 @@
 # Requirements — fe-tools-bundler-tsc-dist
 
-Status: **冻结（2026-09-15）** — D-TD-1..16 已拍板；随 Action `ready`。
+Status: **冻结（2026-09-15）** — D-TD-1..19 已拍板（含 Review R1 前置修复）；随 Action `ready`。
 
 ## R-TD0（MUST）B2 build
 
 - `build` 使用 `tsc` + `tsconfig.build.json`（`allowJs`、emit 至 `dist/`，`rootDir: src` / `outDir: dist`，与现 `exports` 同构）（D-TD-14）。
 - **删除**整树 `sync-dist-from-src`（D-TD-13）；**保留** `postbuild`（`copy-sdk-assets` + `check-package-exports`）。
 - `pnpm typecheck`（`tsc --noEmit`）保持 CI 必过；`include` **对齐**全 `src/`，`checkJs: false`（D-TD-15）。
+
+## R-TD0a（MUST）T0 前置修复（Review R1 实证）
+
+- **D-TD-17（TS5055）**：`src/compiler/view/wxml/napi/parse.js` 的 6 级相对 import 改包名 `@dimina/wxml-parser-napi`（入 `dependencies`）；dry-run 实证今日 tsc emit 必炸（exit 1、仅 49/69、bin/ 全缺）。
+- **D-TD-18（exports 漂移）**：`package.json` 三子路径 exports（`./view-compiler` 等）指 layering 前旧文件 → `npm run build` postbuild 必炸（实测）；重映射或删除（处置与用户确认）+ `check-package-exports.js` 同步。
+- **D-TD-19（compat 漂移，独立热修先行）**：`sync-compatibility-reference.js` outputPath → `core/`（`npm test` pretest 当前必炸）。
 
 ## R-TD1（MUST）第 0 刀类型模块
 

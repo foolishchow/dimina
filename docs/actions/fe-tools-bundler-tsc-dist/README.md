@@ -2,9 +2,9 @@
 
 - Action: `fe-tools-bundler-tsc-dist`
 - Status: `ready`
-- Updated: 2026-09-15（D-TD-1..16；Readiness findings 修；实施未授权）
+- Updated: 2026-09-15（D-TD-1..18；Review R1 F1–F5 修正：TS5055 前置、exports/compat 漂移热修；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-bundler-typecheck`](../_archive/complete/fe-tools-bundler-typecheck/README.md)（`in_progress`；S0–S1 已交付，CI `tsc --noEmit`）；[`fe-tools-bundler-unvite`](../_archive/complete/fe-tools-bundler-unvite/README.md)（曾以 sync-dist 镜像为卫生模型）
+- 前置：[`fe-tools-bundler-typecheck`](../_archive/complete/fe-tools-bundler-typecheck/README.md)（**complete 已归档**；S0–S1 已合入 `eb3b2bc4`——CI `tsc --noEmit` + 白名单 `@ts-check` 在档）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -73,6 +73,9 @@
 | **D-TD-14** | emit 范围 = 整棵 **`src/**`**（`rootDir: src`，`outDir: dist`）；与今日 sync / `files`/`exports` 同构；**不** emit `scripts/` |
 | **D-TD-15** | typecheck `include` **对齐**全 `src/`；保持 `checkJs: false`；仅 `@ts-check` / `.ts` 报类型错（不对齐全仓强制 checkJs） |
 | **D-TD-16** | 仅 `export type`/`interface` 的模块 emit 出空/极薄 `.js` **可接受**；消费方 `import type` |
+| **D-TD-17**（R1-F1） | T0 前置：`napi/parse.js` 的 6 级相对 import `../../../../../../wxml-parser-napi/index.js` 改为**包名 import `@dimina/wxml-parser-napi`**（pnpm workspace 解析）并加入 `dependencies`——修复 TS5055（tsc emit 将 src 外文件纳入 program 输出重叠）**及** npm 发布后相对路径本就失效的隐疾；NodeNext 解析走 node_modules 不进 program |
+| **D-TD-18**（R1-F2） | T0 前置：package.json `exports` 三个子路径（`./view-compiler` / `./logic-compiler` / `./style-compiler`）**重映射到 layering 后路径**（`./dist/compiler/view/index.js` 等）**或删除**（repo 内唯一消费方是 `check-package-exports.js` 自身）；`check-package-exports.js` 同步——修复 `npm run build` postbuild 必炸的 pre-existing 破损。**处置（删 vs 留）实施时与用户确认** |
+| **D-TD-19**（R1-F3） | 独立热修（不属本门）：`sync-compatibility-reference.js` outputPath 改 `src/compiler/core/compatibility-reference.js`（layering 漂移；`npm test` pretest 当前必炸）；建议在本门授权前先行合入 |
 
 ## 待定
 
@@ -80,8 +83,8 @@
 
 ## Status / 授权
 
-- 当前 **`ready`**：D-TD-1..16 已拍板；五件套齐；**实施未授权**（须另授 `in_progress`）
-- **实施前置**：`fe-tools-bundler-typecheck` 交付已合入（或本分支已具备 S0–S1 事实）后再授 `in_progress`
+- 当前 **`ready`**：D-TD-1..19 已拍板（R1 F1–F5 已收敛）；五件套齐；**实施未授权**（须另授 `in_progress`）
+- **实施前置**：✅ typecheck 已合入归档（`eb3b2bc4`）；⛔ D-TD-19 热修建议先行合入；⛔ T0 首步先做 D-TD-17/18 前置修复（否则 TS5055 / postbuild 必炸）
 
 ## 闭合条件
 
@@ -96,3 +99,4 @@
 | 2026-09-15 | Review Finding 1：P-TD-1 → **D-TD-13**（删整树 sync、留 postbuild） |
 | 2026-09-15 | P-TD-2/3 按建议 → **D-TD-14/15**；升 **`ready`** |
 | 2026-09-15 | Readiness findings 修：typecheck 跨文档债；D-TD-16 type-only emit；R-TD1 第0刀范围收紧 |
+| 2026-09-15 | **Review R1（F1–F5）**：❶ **TS5055 硬阻断**（dry-run 实证：`napi/parse.js` 6 级相对 import 令 tsc emit exit 1、只出 49/69、bin/ 全缺）→ D-TD-17（包名 import）；❷ **`npm run build` pre-existing 破损**（exports 三子路径指 layering 前旧文件，postbuild `ERR_MODULE_NOT_FOUND` exit 1）→ D-TD-18；❸ **`npm test` pretest 同样必炸**（compat sync outputPath 漂移）→ D-TD-19 独立热修；❹ dist 重排版实测（ESM 下 shebang 保留 ✓、补分号非逐字节）——D-TD-9 已覆盖，P-TD00 补 CLI --version 门；❺ README 前置描述过时修正 |
