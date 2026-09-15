@@ -16,10 +16,10 @@
  */
 
 import path from 'node:path'
-import { resolveCompileConfig } from '../shared/compile-config.js'
-import { assertRendererSupportsPlatform } from '../shared/platforms.js'
-import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from './env.js'
-import { getRenderer, resolveProjectRenderers } from './renderers.js'
+import { resolveCompileConfig } from '../../shared/compile-config.js'
+import { assertRendererSupportsPlatform } from '../../shared/platforms.js'
+import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from '../core/env.js'
+import { getRenderer, resolveProjectRenderers } from '../core/renderers.js'
 
 const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
 const STAGE_TITLES = Object.freeze({

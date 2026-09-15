@@ -7,13 +7,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 // 副作用：注册 webview renderer（与管线启动路径一致）
-import '../src/compiler/build-pipeline.js'
+import '../src/compiler/pipeline/build-pipeline.js'
 import {
 	COMPILE_STAGE_ORDER,
 	createCompileTarget,
 	deriveStagePlan,
 	readLoadBindings,
-} from '../src/compiler/compile-target.js'
+} from '../src/compiler/pipeline/compile-target.js'
 
 const sourceRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/compiler')
 
@@ -250,8 +250,8 @@ describe('deriveStagePlan (T2)', () => {
 })
 
 describe('P-CT05 ②T1 — structural anchors (build-pipeline)', () => {
-	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'build-pipeline.js'), 'utf8')
-	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'compile-target.js'), 'utf8')
+	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.js'), 'utf8')
+	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.js'), 'utf8')
 
 	it('rewires _runBuild top through createCompileTarget', () => {
 		expect(pipelineSrc).toContain("from './compile-target.js'")
@@ -281,8 +281,8 @@ describe('P-CT05 ②T1 — structural anchors (build-pipeline)', () => {
 })
 
 describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
-	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'build-pipeline.js'), 'utf8')
-	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'compile-target.js'), 'utf8')
+	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.js'), 'utf8')
+	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.js'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + deriveStagePlan', () => {
 		expect(pipelineSrc).toContain('readLoadBindings()')

@@ -2,9 +2,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkTemplateCompatibility, getTemplateDirectiveName } from '../src/compiler/compatibility.js'
-import { getPages, storeInfo } from '../src/compiler/env.js'
-import { compileML } from '../src/compiler/view-compiler.js'
+import { checkTemplateCompatibility, getTemplateDirectiveName } from '../src/compiler/core/compatibility.js'
+import { getPages, storeInfo } from '../src/compiler/core/env.js'
+import { compileML } from '../src/compiler/view/index.js'
 
 describe('template directive prefixes', () => {
 	let tempDir

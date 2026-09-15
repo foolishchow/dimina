@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { getPages, storeInfo } from '../src/compiler/env.js'
-import { compileJS } from '../src/compiler/logic-compiler.js'
+import { getPages, storeInfo } from '../src/compiler/core/env.js'
+import { compileJS } from '../src/compiler/logic/index.js'
 
 describe('Import Statement Support', () => {
 	let tempDir

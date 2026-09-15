@@ -9,7 +9,7 @@ const {
 	checkTemplateCompatibility,
 	takeCompatibilityWarnings,
 	warnUnsupportedWxApi,
-} = await import('../src/compiler/compatibility.js')
+} = await import('../src/compiler/core/compatibility.js')
 
 describe('worker compatibility diagnostics', () => {
 	afterEach(() => {

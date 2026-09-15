@@ -1,9 +1,9 @@
 import { Parser } from 'htmlparser2'
 import { isHTMLTag } from '@vue/shared'
 import { isMainThread } from 'node:worker_threads'
-import { getTemplateDirectivePrefixes, getViewScriptTags } from './env.js'
-import { supportedBuiltinComponents, supportedWxApis } from './compatibility-reference.js'
-import { miniProgramBuiltinTags, tagWhiteList } from '../shared/utils.js'
+import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.js'
+import { supportedBuiltinComponents, supportedWxApis } from '../core/compatibility-reference.js'
+import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.js'
 
 let cachedReference = null
 const warnedItems = new Set()

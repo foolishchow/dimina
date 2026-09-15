@@ -12,7 +12,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // 副作用：view-compiler 模块加载时注册 backend₀ 'vue'（renderers 先例模式）
-import '../src/compiler/view-compiler.js'
+import '../src/compiler/view/index.js'
 import {
 	attachProjection,
 	deriveLineColumn,
@@ -20,16 +20,16 @@ import {
 	plainTree,
 	templateNodeKind,
 	valueKind,
-} from '../src/compiler/wxml/document.js'
-import { parseWxml } from '../src/compiler/wxml/parse.js'
-import { loadTemplates } from '../src/compiler/wxml/load.js'
-import { getBackend, listBackends, registerBackend, unregisterBackend } from '../src/compiler/wxml/backends/registry.js'
-import { createStubBackend } from '../src/compiler/wxml/backends/stub.js'
+} from '../src/compiler/view/wxml/document.js'
+import { parseWxml } from '../src/compiler/view/wxml/parse.js'
+import { loadTemplates } from '../src/compiler/view/wxml/load.js'
+import { getBackend, listBackends, registerBackend, unregisterBackend } from '../src/compiler/view/wxml/backends/registry.js'
+import { createStubBackend } from '../src/compiler/view/wxml/backends/stub.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(testDir, '../src/compiler')
-const viewCompilerSrc = fs.readFileSync(path.join(srcRoot, 'view-compiler.js'), 'utf8')
-const wxmlFiles = ['wxml/document.js', 'wxml/parse.js', 'wxml/load.js', 'wxml/backends/registry.js', 'wxml/backends/vue.js', 'wxml/backends/stub.js']
+const viewCompilerSrc = fs.readFileSync(path.join(srcRoot, 'view/index.js'), 'utf8')
+const wxmlFiles = ['view/wxml/document.js', 'view/wxml/parse.js', 'view/wxml/load.js', 'view/wxml/backends/registry.js', 'view/wxml/backends/vue.js', 'view/wxml/backends/stub.js']
 
 function toCompileTemplateSpan() {
 	const start = viewCompilerSrc.indexOf('function toCompileTemplate(')

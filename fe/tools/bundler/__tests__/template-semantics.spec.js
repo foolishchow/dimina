@@ -52,9 +52,9 @@ describe('mini-program template semantics', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { getPages, storeInfo } = await import('../src/compiler/env.js')
+		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
 		storeInfo(tempDir)
-		const { compileML } = await import('../src/compiler/view-compiler.js')
+		const { compileML } = await import('../src/compiler/view/index.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 		return fs.readFileSync(path.join(outputDir, `main/${pagePath.replace(/\//g, '_')}.js`), 'utf8')
 	}

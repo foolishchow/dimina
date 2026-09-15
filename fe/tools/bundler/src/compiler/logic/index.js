@@ -5,11 +5,11 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
-import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from './compatibility.js'
-import { effectiveJsMinify } from '../shared/compile-config.js'
-import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../shared/utils.js'
-import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from './env.js'
-import { mergeSourcemap, remapSourcemap } from './sourcemap.js'
+import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from '../core/compatibility.js'
+import { effectiveJsMinify } from '../../shared/compile-config.js'
+import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
+import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.js'
+import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
 
 // 用于缓存已处理的模块
 const processedModules = new Set()

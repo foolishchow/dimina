@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { _rendererRegistryForTest, getRenderer, registerRenderer } from '../src/compiler/renderers.js'
+import { _rendererRegistryForTest, getRenderer, registerRenderer } from '../src/compiler/core/renderers.js'
 
 describe('renderer registry (A4 P-002)', () => {
 	beforeEach(() => {
