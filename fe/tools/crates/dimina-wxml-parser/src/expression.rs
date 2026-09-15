@@ -94,13 +94,53 @@ pub(crate) fn parse_expression_internal(
                 expr,
             })
         }
-        Err(e) => Err(WxmlExpressionError {
-            span: Span::default(),
-            source_file: source_file_for_errors.clone(),
-            kind: WxmlExpressionErrorKind::Syntax,
-            message: format!("{:?}", e),
-        }),
+        Err(e) => {
+            // SWC 把 `class`/`enum` 等保留字当关键字，无法作 Ident；WXML 数据字段允许这些名字。
+            // SpanView / 编译管线目前只消费 raw，合成 Ident 保解析畅通。
+            if let Some(ident) = reserved_word_ident(source) {
+                let trimmed = source.trim();
+                let lead = source.len() - source.trim_start().len();
+                let relative_span = Span::new(
+                    swc_common::BytePos(lead as u32),
+                    swc_common::BytePos((lead + trimmed.len()) as u32),
+                );
+                return Ok(ExprContainer {
+                    span: relative_span,
+                    raw: Atom::from(source),
+                    expr: Box::new(ident),
+                });
+            }
+            Err(WxmlExpressionError {
+                span: Span::default(),
+                source_file: source_file_for_errors.clone(),
+                kind: WxmlExpressionErrorKind::Syntax,
+                message: format!("{:?}", e),
+            })
+        }
     }
+}
+
+fn reserved_word_ident(source: &str) -> Option<swc_ecma_ast::Expr> {
+	let trimmed = source.trim();
+	if trimmed.is_empty() {
+		return None;
+	}
+	// 单标识符形态（含保留字）
+	let mut chars = trimmed.chars();
+	let first = chars.next()?;
+	if !(first.is_ascii_alphabetic() || first == '_' || first == '$') {
+		return None;
+	}
+	if !chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$') {
+		return None;
+	}
+	use swc_ecma_ast::{Expr, Ident};
+	Some(Expr::Ident(Ident {
+		span: Span::default(),
+		ctxt: Default::default(),
+		sym: Atom::from(trimmed),
+		optional: false,
+	}))
 }
 
 /// Validate call arguments (used by both normal Call and OptChainBase::Call)

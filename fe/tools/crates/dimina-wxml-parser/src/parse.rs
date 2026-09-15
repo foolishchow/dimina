@@ -776,11 +776,12 @@ impl Parser {
                 Ok(Directive::Elif(ElifDirective { test, span }))
             }
             "wx:else" => Ok(Directive::Else(ElseDirective { span })),
-            "wx:for" => {
+            // wx:for-items：微信兼容别名，语义同 wx:for（bundler getProps 同等处理）
+            "wx:for" | "wx:for-items" => {
                 let source = match &attr.value {
                     Some(Value::Expr(expr)) => expr.clone(),
                     _ => {
-                        let msg = "wx:for requires expression value".to_string();
+                        let msg = format!("{name} requires expression value");
                         return Err(ParseError {
                             span,
                             source_file: self.source_file.clone(),
@@ -1141,12 +1142,33 @@ impl Parser {
                 None
             };
 
-            Ok(Some(Node::TemplateRef(TemplateRef {
-                span: self.make_span(start, self.index),
-                target: Some(target),
-                data,
-                self_closing,
-            })))
+            Ok({
+                // TemplateRef — 非自闭合时仍须消费 </template>（子内容忽略；微信允许空体显式闭合）
+                let end = if self_closing {
+                    self.index
+                } else {
+                    self.skip_whitespace();
+                    if self.source[self.index..].starts_with("</template>") {
+                        self.index += 11; // </template>
+                        self.index
+                    } else if self.source[self.index..].starts_with("</") {
+                        return Err(self.error(ParseErrorKind::MismatchedTag {
+                            open: "template".to_string(),
+                            close: "template".to_string(),
+                        }));
+                    } else {
+                        return Err(self.error(ParseErrorKind::UnclosedTag {
+                            tag: "template".to_string(),
+                        }));
+                    }
+                };
+                Some(Node::TemplateRef(TemplateRef {
+                    span: self.make_span(start, end),
+                    target: Some(target),
+                    data,
+                    self_closing,
+                }))
+            })
         } else {
             // TemplateDef
             let mut body = Vec::new();

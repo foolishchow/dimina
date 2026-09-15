@@ -15,7 +15,7 @@ export function createStubBackend({ onRender } = {}) {
 		render(input, ctx) {
 			const loaded = input?.loaded
 			const record = {
-				hasProjectionHandle: Boolean(loaded?._$),
+				hasDocumentBody: Array.isArray(loaded?.body),
 				templateModule: loaded?.templateModule ?? null,
 				scriptModule: loaded?.scriptModule ?? null,
 				ctxKeys: Object.keys(ctx || {}),

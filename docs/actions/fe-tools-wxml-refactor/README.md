@@ -1,8 +1,8 @@
 # FE Tools WXML Refactor
 
 - Action: `fe-tools-wxml-refactor`（已转正，2026-09-15）
-- Status: `ready`
-- Updated: 2026-09-15（F-WR-R1 / R2 / R3 已消；实施未授权）
+- Status: `in_progress`
+- Updated: 2026-09-15（W1–W3 已实施；P-WR05 580/580；P-WR06 napi↔cheerio diff=0）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)；`fe/tools/crates/dimina-wxml-parser` + `dimina-wxml-parser-napi`
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -86,7 +86,7 @@ Rust parser + napi + SpanView 已交付但**只在测试中可用**。
 
 ## Status / 授权
 
-- 当前 **`ready`**：D-WR-1..9 + 五件套；**F-WR-R1 / R2 / R3 已消**；**实施未授权**（须另授 `in_progress` / W1）
+- 当前 **`in_progress`**：基线 `342af2f5`；**W1–W3 已交付**（A-WR0..5 / P-WR00..07 全 pass；580/580）；architecture-notes 已回流；**待 Close / 归档**
 
 ## 闭合条件
 

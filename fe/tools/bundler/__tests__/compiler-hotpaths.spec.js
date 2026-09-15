@@ -86,7 +86,7 @@ describe('compiler CPU hot paths', () => {
 		const { compileML } = await import('../src/compiler/view/index.js')
 		await compileML(getPages().mainPages, null, { completedTasks: 0 })
 
-		expect(hotpathSpies.cheerioLoad).toHaveBeenCalledTimes(3)
+		expect(hotpathSpies.cheerioLoad).toHaveBeenCalledTimes(0) // 默认 napi；cheerio 不在热路径
 		expect(hotpathSpies.esbuildTransform).toHaveBeenCalledTimes(1)
 		const bundleSource = hotpathSpies.esbuildTransform.mock.calls[0][0]
 		expect(bundleSource).toContain("modDefine('pages/index'")

@@ -5,41 +5,46 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
-import * as cheerio from 'cheerio'
 import { transform } from 'esbuild'
-import * as htmlparser2 from 'htmlparser2'
 import { checkTemplateCompatibility, getTemplateDirectiveName, takeCompatibilityWarnings } from '../core/compatibility.js'
 import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { toMiniProgramModuleId } from '../../shared/path-utils.js'
-import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.js'
+import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../core/env.js'
-import { parseBindings } from '../core/expression-parser.js'
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
-import { attachProjection } from './wxml/document.js'
-import { parseWxml } from './wxml/parse.js'
-import { loadTemplates } from './wxml/load.js'
 import { getBackend, registerBackend } from './wxml/backends/registry.js'
 import { vueBackend, VUE_BACKEND_ID } from './wxml/backends/vue.js'
+import {
+	getAttr,
+	queryAll,
+	removeAll,
+	serializeChildren,
+	setAttr,
+} from './wxml/document-ops.js'
+import {
+	buildExtStripRegex,
+	stripViewScriptExt,
+} from './wxml/transform/paths.js'
+import {
+	toCompileTemplate,
+	processIncludeConditionalAttrs,
+} from './wxml/transform/index.js'
+import { bindTransformOrchestrator } from './wxml/transform/orchestrator-live.js'
+import {
+	normalizeTemplateSyntax,
+	generateSlotDirective,
+	generateVModelTemplate,
+	getTemplateCompilerOptions,
+	compileTemplateModuleRender,
+} from './wxml/backends/vue-tools.js'
+import { bindVueToolsLive } from './wxml/backends/vue-tools-live.js'
+import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/backends/vue-tools-state.js'
 
 // TS-2（fe-tools-wxml-ir）：backend₀ 注册（registry 同 id 抛错；测例可先 unregister）
 if (!getBackend(VUE_BACKEND_ID)) {
 	registerBackend(vueBackend)
 }
 
-/**
- * 根据扩展名列表生成匹配尾部扩展名的正则，如 ['.wxs', '.qds'] -> /(\.wxs|\.qds)$/
- */
-function buildExtStripRegex(exts) {
-	const alt = exts.map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
-	return new RegExp(`(${alt})$`)
-}
-
-/**
- * 移除视图脚本文件路径末尾的扩展名，支持 .wxs 和自定义扩展名
- */
-function stripViewScriptExt(p) {
-	return p.replace(buildExtStripRegex(getViewScriptExts()), '')
-}
 
 /**
  * 解析 JavaScript 代码
@@ -210,12 +215,6 @@ function transformTextInterpolation(text) {
 // 页面文件编译内容缓存
 const compileResCache = new Map()
 
-// 共享模板模块（如被多个页面 import 的同一份模板文件）的 render 编译结果缓存。
-// codegen 固定为 mode:'function'（见 getTemplateCompilerOptions），@vue/compiler-core
-// 只在 module 模式下把 scopeId 写进产物，因此 id/scoped 与页面无关、不入缓存 key；
-// scriptModule 决定注入的 require 声明与 _ctx 成员重写，必须入 key。
-const templateRenderCache = new Map()
-
 // wxs 模块注册表，用于记录确定的 wxs 模块
 const wxsModuleRegistry = new Set()
 
@@ -223,7 +222,7 @@ const wxsModuleRegistry = new Set()
 const wxsFilePathMap = new Map()
 let wxsScannedWorkPath = null
 
-let enableSourcemap = false
+// enableSourcemap / templateRenderCache: see wxml/backends/vue-tools-state.js
 /** 产物是否回传（build-model M1 阶段二：collectOutput=true 时不写盘、逐页 postMessage output） */
 let collectOutput = false
 let outputCount = 0
@@ -238,7 +237,7 @@ if (!isMainThread) {
 	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig, collectOutput: collectFlag }) => {
 		try {
 			resetStoreInfo(storeInfo)
-			enableSourcemap = !!sourcemap
+			setEnableSourcemap(!!sourcemap)
 			collectOutput = !!collectFlag
 			outputCount = 0
 			activeCompileConfig = {
@@ -481,65 +480,6 @@ function registerWxsModule(modulePath) {
 	wxsModuleRegistry.add(modulePath)
 }
 
-function getTemplateCompilerOptions(scopeId) {
-	return {
-		// https://template-explorer.vuejs.org/
-		prefixIdentifiers: true,
-		hoistStatic: false,
-		cacheHandlers: true,
-		scopeId,
-		mode: 'function',
-		inline: true,
-		// transTag has already rewritten registered built-ins and custom
-		// components to the reserved dd-* namespace. Every remaining unknown WXML
-		// tag follows glass-easel's unused-native-node fallback instead of Vue's
-		// component resolution.
-		isCustomElement: tag => !tag.startsWith('dd-'),
-	}
-}
-
-/**
- * 编译单个模板模块（<template name>）的 render 结果，并跨页面复用。
- * 被多个页面 import 的同一份模板文件在每个页面里会产出完全相同的
- * compileTemplate codegen 与 insertWxsToRenderResult 结果，只需计算一次。
- * moduleId 不入 key：function 模式下 scopeId 不进入产物（见 templateRenderCache 处说明）。
- */
-function compileTemplateModuleRender(tm, moduleId, scriptModule, scriptRes) {
-	const scriptSig = scriptModule.map(sm => `${sm.path}\u0000${sm.originalName ?? ''}`).join('\u0001')
-	// sourceInfo.content 是 sourceInfo.path 对应文件的原文，在同一个 worker 任务内该文件
-	// 不会被改写（与 compileResCache 直接按 module.path 做键的既有假设一致），path 已经
-	// 唯一决定 content，不必把可能上百 KB 的原文本身也塞进 key（那样会随具名模板数线性放大）。
-	const sourceSig = tm.sourceInfo
-		? `${tm.sourceInfo.path}\u0000${tm.sourceInfo.startLine ?? ''}`
-		: ''
-	const cacheKey = `${tm.path}\u0002${sourceSig}\u0002${scriptSig}\u0002${tm.tpl}`
-	const cached = templateRenderCache.get(cacheKey)
-	if (cached) {
-		// 跳过 insertWxsToRenderResult 时，补上它对 scriptRes 的登记副作用
-		for (const sm of scriptModule) {
-			if (!scriptRes.has(sm.path)) {
-				scriptRes.set(sm.path, sm.code)
-			}
-		}
-		return cached
-	}
-	const compiledTemplate = compileTemplate({
-		source: tm.tpl,
-		filename: tm.path,
-		id: `data-v-${moduleId}`,
-		scoped: true,
-		inMap: enableSourcemap && tm.sourceInfo
-			? createLineSourcemap(tm.tpl, tm.sourceInfo.path, tm.sourceInfo.content, tm.sourceInfo.startLine)
-			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${moduleId}`),
-	})
-	const result = {
-		path: tm.path,
-		...insertWxsToRenderResult(compiledTemplate.code, scriptModule, scriptRes, tm.path, compiledTemplate.map),
-	}
-	templateRenderCache.set(cacheKey, result)
-	return result
-}
 
 /**
  * 检查是否为已注册的 wxs 模块
@@ -1062,46 +1002,6 @@ function compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapR
 	}
 }
 
-/**
- * 处理 include 节点的条件属性，并返回处理后的内容
- * @param {Object} $ - cheerio 实例
- * @param {Object} elem - include 元素
- * @param {string} includeContent - 要包含的内容
- * @returns {string} 处理后的 HTML 字符串
- */
-function processIncludeConditionalAttrs($, elem, includeContent) {
-	// 检查 include 元素是否有条件属性（:if, :elif, :else）
-	const allAttrs = $(elem).attr()
-	const conditionAttrs = {}
-	let hasCondition = false
-
-	// 遍历所有属性，查找以 :if, :elif, :else 结尾的属性
-	for (const attrName in allAttrs) {
-		if (['if', 'elif', 'else'].includes(getTemplateDirectiveName(attrName))) {
-			conditionAttrs[attrName] = allAttrs[attrName]
-			hasCondition = true
-		}
-	}
-
-	if (hasCondition) {
-		// 如果有条件属性，用 block 包裹内容并保留条件属性
-		let blockAttrs = ''
-		for (const attrName in conditionAttrs) {
-			const attrValue = conditionAttrs[attrName]
-			if (attrValue !== undefined && attrValue !== '') {
-				blockAttrs += ` ${attrName}="${attrValue}"`
-			} else {
-				// 处理 :else 这种没有值的属性
-				blockAttrs += ` ${attrName}`
-			}
-		}
-
-		return `<block${blockAttrs}>${includeContent}</block>`
-	} else {
-		// 如果没有条件属性，直接返回内容（保持原有行为）
-		return includeContent
-	}
-}
 
 /**
  * 递归处理被引入文件中的组件 wxs 依赖
@@ -1146,182 +1046,15 @@ function processIncludedFileWxsDependencies(componentTags, includePath, scriptMo
 	}
 }
 
-function collectIncludedComponentTags($, components) {
-	const componentTags = new Set()
-	if (!components) {
-		return componentTags
-	}
 
-	$('*').each((_, elem) => {
-		if (components[elem.tagName]) {
-			componentTags.add(elem.tagName)
+function transAsses(document, imageNodes, path, graphOwnerPath = path) {
+	const nodes = Array.isArray(imageNodes) ? imageNodes : queryAll(document, 'image')
+	for (const elem of nodes) {
+		const srcRaw = getAttr(elem, 'src')
+		if (srcRaw == null) {
+			continue
 		}
-	})
-	return componentTags
-}
-
-/**
- * 转换成底层框架模板 —— TS-2 缝编排（fe-tools-wxml-ir）：
- * parse（wxml/parse.js · Document 投影）→ load（wxml/load.js · 展开/收集）
- * → getBackend('vue').render（wxml/backends/vue.js · Vue 特有降级）。
- * 编排壳保留：读盘/空守卫/兼容检查/component-host 源级包装（过渡注记：
- * 保 startIndex 偏移 → sourcemap 字节 0；DOM 级迁移属语义迁移期）与
- * compileTemplate/缓存/打包（模块落点图「既有缓存/打包壳」）。
- * @param {*} isComponent
- * @param {*} path
- * @param {*} components
- * @param {*} componentPlaceholder
- * @param {Set} processedPaths 已处理的路径集合,防止循环引用和栈溢出
- */
-function toCompileTemplate(isComponent, path, components, componentPlaceholder, processedPaths = new Set()) {
-	const workPath = getWorkPath()
-	const fullPath = getViewPath(workPath, path)
-	if (!fullPath) {
-		return { tpl: undefined }
-	}
-	getDependencyGraph().addFile(path, fullPath, 'view')
-	const sourcePath = toMiniProgramModuleId(fullPath, workPath)
-		.replace(buildExtStripRegex(getTemplateExts()), '')
-	const diagnosticSource = fullPath.startsWith(workPath)
-		? fullPath.slice(workPath.length)
-		: path
-	const originalContent = getContentByPath(fullPath)
-	let content = originalContent
-	if (!content.trim()) {
-		// 空文件内容，防止编译出错
-		content = '<block></block>'
-	}
-	else {
-		checkTemplateCompatibility(content, diagnosticSource, components)
-
-		if (isComponent) {
-			// componentPlaceholder 作为模块元数据交给渲染层解析；模板仍保留目标组件别名。
-			// 自定义组件统一添加宿主节点，承载组件边界、属性、事件与样式隔离语义。
-			// v1 过渡注记：源级包装保留在编排壳（保 loc 偏移 → 行为 0）；DOM 级迁移属语义迁移期。
-			content = `<component-host name="${path}">${content}</component-host>`
-		}
-	}
-
-	// TS-2 缝：parse → Document → load → Backend（特殊节点在树上；展开/收集属 load）
-	const document = parseWxml(content, { sourceFile: diagnosticSource })
-	attachProjection(document, '_source', originalContent)
-	const loaded = loadTemplates(document, {
-		isComponent,
-		modulePath: path,
-		sourcePath,
-		components,
-		componentPlaceholder,
-		processedPaths,
-		hasOriginalContent: Boolean(originalContent.trim()),
-		workPath,
-		stripTemplateExtsRegex: buildExtStripRegex(getTemplateExts()),
-		tools: {
-			transTagTemplate,
-			transTagWxs,
-			transAsses,
-			resolveTemplateDependencyPath,
-			collectIncludedComponentTags,
-			processIncludedFileWxsDependencies,
-			processIncludeConditionalAttrs,
-			checkTemplateCompatibility,
-		},
-		env: {
-			getContentByPath,
-			getDependencyGraph,
-			getViewScriptTags,
-		},
-	})
-
-	const backend = getBackend(VUE_BACKEND_ID)
-	if (!backend) {
-		throw new Error(`[wxml] view backend '${VUE_BACKEND_ID}' is not registered`)
-	}
-	const { code, meta } = backend.render({ loaded }, {
-		components,
-		componentPlaceholder,
-		tools: { normalizeTemplateDom, transHtmlTag },
-	})
-
-	return {
-		tpl: code,
-		sourceInfo: {
-			path: diagnosticSource,
-			content: originalContent,
-		},
-		instruction: {
-			templateModule: loaded.templateModule,
-			scriptModule: loaded.scriptModule,
-		},
-		// W2：行源表（跨文件归位）+ 源内容（compileModule inMap 消费）
-		origins: meta?.lineOrigins,
-		sourceContents: meta?.sourceContents,
-	}
-}
-
-function transTagTemplate($, templateModule, path, components, componentPlaceholder, sourceInfo, graphOwnerPath = path) {
-	const templateNodes = $('template[name]')
-	// 同一 sourceInfo.content 会被本循环内每个具名 template 节点各查询一次行号，
-	// 换行位置只需算一次，逐节点二分查找，避免每节点都从头重新扫描全文。
-	const newlineOffsets = sourceInfo ? collectNewlineOffsets(sourceInfo.content) : null
-	templateNodes.each((_, elem) => {
-		const name = $(elem).attr('name')
-		const templateContent = $(elem)
-		// 转化模板内代码
-		templateContent.find('import').remove()
-		templateContent.find('include').remove()
-		templateContent.find(getViewScriptTags().join(',')).remove()
-		transAsses($, templateContent.find('image'), path, graphOwnerPath)
-		const res = []
-		normalizeTemplateDom($, templateContent, components)
-		transHtmlTag(templateContent.html(), res, components, componentPlaceholder)
-
-		templateModule.push({
-			path: `tpl-${name}`,
-			tpl: res.join(''),
-			sourceInfo: sourceInfo
-				? {
-					...sourceInfo,
-					startLine: getSourceLine(newlineOffsets, elem.children?.[0]?.startIndex ?? elem.startIndex),
-				}
-				: null,
-		})
-	})
-	templateNodes.remove()
-}
-
-function collectNewlineOffsets(content) {
-	const offsets = []
-	for (let i = 0; i < content.length; i++) {
-		if (content.charCodeAt(i) === 10) {
-			offsets.push(i)
-		}
-	}
-	return offsets
-}
-
-function getSourceLine(newlineOffsets, index = 0) {
-	if (!newlineOffsets) {
-		return 1
-	}
-	const target = Math.max(0, index)
-	let lo = 0
-	let hi = newlineOffsets.length
-	while (lo < hi) {
-		const mid = (lo + hi) >>> 1
-		if (newlineOffsets[mid] < target) {
-			lo = mid + 1
-		}
-		else {
-			hi = mid
-		}
-	}
-	return lo + 1
-}
-
-function transAsses($, imageNodes, path, graphOwnerPath = path) {
-	imageNodes.each((_, elem) => {
-		// 获取所有的图片，不支持动态引用本地资源
-		const imgSrc = $(elem).attr('src').trim()
+		const imgSrc = String(srcRaw).trim()
 		if (!imgSrc.startsWith('{{')) {
 			if (!imgSrc.startsWith('http')
 				&& !imgSrc.startsWith('//')
@@ -1332,501 +1065,11 @@ function transAsses($, imageNodes, path, graphOwnerPath = path) {
 					'view',
 				)
 			}
-			$(elem).attr('src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId()))
-		}
-	})
-}
-
-const DIMINA_SLOT_GROUP_TAG = 'dimina-slot-group'
-const DIMINA_FOR_SCOPE_TAG = 'dimina-for-scope'
-
-function getDirectiveAttributeNames(attrs, suffixes) {
-	const directiveNames = new Set(suffixes.map(suffix => suffix.replace(/^:/, '')))
-	return Object.keys(attrs || {}).filter(name => directiveNames.has(getTemplateDirectiveName(name)))
-}
-
-function hasForAndIf(attrs) {
-	return getDirectiveAttributeNames(attrs, [':for', ':for-items']).length > 0
-		&& getDirectiveAttributeNames(attrs, [':if']).length > 0
-}
-
-function groupDuplicateNamedSlots($, root, components) {
-	const slotHosts = root.find('*').toArray().filter((element) => {
-		const tag = element.tagName
-		return tag === 'component' || Boolean(components?.[tag])
-	})
-
-	for (const host of slotHosts) {
-		const groups = new Map()
-		for (const child of $(host).children().toArray()) {
-			const slotName = child.attribs?.slot
-			if (!slotName) continue
-			const group = groups.get(slotName) || []
-			group.push(child)
-			groups.set(slotName, group)
-		}
-
-		for (const [slotName, nodes] of groups) {
-			// 单个普通插槽继续使用原转换，保留既有 v-if/fallback 行为。
-			if (nodes.length === 1 && !hasForAndIf(nodes[0].attribs)) {
-				continue
-			}
-
-			const wrapper = $(`<${DIMINA_SLOT_GROUP_TAG}></${DIMINA_SLOT_GROUP_TAG}>`)
-			wrapper.attr('name', slotName)
-			$(nodes[0]).before(wrapper)
-			for (const node of nodes) {
-				$(node).removeAttr('slot')
-				wrapper.append(node)
-			}
+			setAttr(elem, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId()))
 		}
 	}
 }
 
-function wrapForIfScopes($, root) {
-	const nodes = root.find('*').toArray()
-	for (const node of nodes) {
-		if (node.tagName === DIMINA_FOR_SCOPE_TAG || !hasForAndIf(node.attribs)) {
-			continue
-		}
-
-		const attrsToMove = getDirectiveAttributeNames(node.attribs, [
-			':for',
-			':for-items',
-			':for-item',
-			':for-index',
-			':key',
-		])
-		const wrapper = $(`<${DIMINA_FOR_SCOPE_TAG}></${DIMINA_FOR_SCOPE_TAG}>`)
-		for (const name of attrsToMove) {
-			wrapper.attr(name, node.attribs[name])
-			$(node).removeAttr(name)
-		}
-		$(node).before(wrapper)
-		wrapper.append(node)
-	}
-}
-
-function normalizeTemplateDom($, root, components) {
-	groupDuplicateNamedSlots($, root, components)
-	wrapForIfScopes($, root)
-}
-
-function normalizeTemplateSyntax(html, components) {
-	const $ = cheerio.load(html, {
-		xmlMode: true,
-		decodeEntities: false,
-		_useHtmlParser2: true,
-		lowerCaseTags: false,
-		lowerCaseAttributeNames: false,
-	})
-	normalizeTemplateDom($, $.root(), components)
-	return $.html()
-}
-
-function transHtmlTag(html, res, components, componentPlaceholder) {
-	const attrsList = []
-	const parser = new htmlparser2.Parser(
-		{
-			onopentag(tag, attrs) {
-				attrsList.push(attrs)
-				res.push(transTag({ isStart: true, tag, attrs, components, componentPlaceholder }))
-			},
-			ontext(text) {
-				res.push(transformTextInterpolation(text))
-			},
-			onclosetag(tag) {
-				res.push(transTag({ tag, attrs: attrsList.pop(), components }))
-			},
-			onerror(error) {
-				console.error(error)
-			},
-		},
-		{ xmlMode: true },
-	)
-
-	parser.write(html)
-	parser.end()
-}
-
-/**
- * 处理组件标签
- * @param {*} opts
- */
-function transTag(opts) {
-	const { isStart, tag, attrs, components } = opts
-	let res
-	if (tag === DIMINA_SLOT_GROUP_TAG) {
-		if (isStart) {
-			return `<template ${generateSlotDirective(attrs.name)}>`
-		}
-		return '</template>'
-	}
-	else if (tag === DIMINA_FOR_SCOPE_TAG) {
-		res = 'template'
-	}
-	else if (tag === 'slot') {
-		// https://cn.vuejs.org/guide/components/slots.html#slots
-		// 保留插槽节点和自定义组件节点
-		res = tag
-	}
-	else if (components && components[tag]) {
-		res = `dd-${tag}`
-	}
-	else if (tag === 'component') {
-		// 动态组件
-		res = tag
-	}
-	else if (tagWhiteList.includes(tag)) {
-		res = `dd-${tag}`
-	}
-	else {
-		// glass-easel: local/global usingComponents resolution wins; an
-		// undeclared tag is kept as an unused native node with its original name.
-		res = tag
-	}
-
-	let tagRes
-	const propsAry = isStart ? getProps(attrs, tag, components) : []
-	// 多 slot 支持，目前在组件定义时的选项中 multipleSlots 未生效
-	const multipleSlots = attrs?.slot
-	if (attrs?.slot) {
-		// 检查是否为动态插槽（slot 属性值被 {{}} 包裹）
-		const isDynamicSlot = isWrappedByBraces(multipleSlots)
-
-		if (isStart) {
-			// 如果存在 if/else 属性，则需要转移到 template 中
-			const withVIf = []
-			const withoutVIf = []
-
-			for (let i = 0; i < propsAry.length; i++) {
-				const prop = propsAry[i]
-				if (prop.includes('v-if') || prop.includes('v-else-if') || prop.includes('v-else')) {
-					withVIf.push(prop)
-				}
-				else if(!prop.includes('slot')){
-					withoutVIf.push(prop)
-				}
-			}
-			const vIfProps = withVIf.length > 0 ? `${withVIf.join(' ')} ` : ''
-			const vOtherProps = withoutVIf.length > 0 ? ` ${withoutVIf.join(' ')}` : ''
-
-			// 构建共同的 template 内容
-			const templateContent = `<template ${vIfProps}${generateSlotDirective(multipleSlots)}><${res}${vOtherProps}>`
-
-			if (isDynamicSlot) {
-				// 动态插槽无法正常编译，添加 dd-block 包装器。
-				// Error: Codegen node is missing for element/if/for node. Apply appropriate transforms first.
-				tagRes = `<dd-block>${templateContent}`
-			} else {
-				tagRes = templateContent
-			}
-		}
-		else {
-			if (isDynamicSlot) {
-				tagRes = `</${res}></template></dd-block>`
-			} else {
-				tagRes = `</${res}></template>`
-			}
-		}
-	}
-	else {
-		if (isStart) {
-			const props = propsAry.join(' ')
-			tagRes = props ? `<${res} ${props}>` : `<${res}>`
-		}
-		else {
-			tagRes = `</${res}>`
-		}
-	}
-
-	return tagRes
-}
-
-/**
- * 处理动态slot指令生成，比如 slot="{{xxx}}"
- *
- * @param {string} slotValue - slot属性值
- * @returns {string} 生成的slot指令
- */
-function generateSlotDirective(slotValue) {
-	if (isWrappedByBraces(slotValue)) {
-		// 动态 slot 值，使用 v-slot 指令
-		const slotExpression = parseBraceExp(slotValue)
-		return `#[${slotExpression}]`
-	} else {
-		// 静态 slot 值，使用命名插槽语法
-		return `#${slotValue}`
-	}
-}
-
-/**
- * 转换语法
- * @param {*} attrs
- * @param {*} tag
- * @param {*} components - 组件映射，用于判断是否为自定义组件
- */
-function getProps(attrs, tag, components) {
-	const attrsList = []
-	const isCustomComponent = Boolean(components && components[tag])
-	// 用于记录属性绑定关系：{ 子组件属性名: 父组件数据路径 }
-	const propBindings = {}
-	const hasEventBindings = Object.keys(attrs).some(name => /^(?:capture-)?(?:bind|catch)(?::)?.+/.test(name))
-
-	// New packages use vw as the rpx transport unit. Keep that contract on the
-	// compiled node so PageMeta can distinguish them from legacy rem packages.
-	if (tag === 'page-meta') {
-		attrsList.push({
-			name: 'dimina-rpx-unit',
-			value: 'vw',
-		})
-	}
-
-	if (hasEventBindings) {
-		// exparser 的自定义事件沿 WXML 节点树派发，而 Vue 没有对应的
-		// ShadowRoot/slot 路径。在真实 DOM 节点上保留事件绑定和节点类型，
-		// render 层才能为 service 层重建 composed/capture 路径。
-		attrsList.push({
-			name: 'v-c-event-node',
-			value: components && components[tag] ? "'component'" : "'node'",
-		})
-	}
-
-	Object.entries(attrs).forEach(([name, value]) => {
-		const templateDirective = getTemplateDirectiveName(name)
-		if (templateDirective === 'if') {
-			attrsList.push({
-				name: 'v-if',
-				value: parseSafeBraceExp(value),
-			})
-		}
-		else if (templateDirective === 'elif') {
-			attrsList.push({
-				name: 'v-else-if',
-				value: parseSafeBraceExp(value),
-			})
-		}
-		else if (templateDirective === 'else') {
-			attrsList.push({
-				name: 'v-else',
-				value: '',
-			})
-		}
-		else if (templateDirective === 'for' || templateDirective === 'for-items') {
-			attrsList.push({
-				name: 'v-for',
-				value: parseForExp(value, attrs),
-			})
-		}
-		else if (templateDirective === 'for-item' || templateDirective === 'for-index') {
-			// do noting
-		}
-		else if (templateDirective === 'key') {
-			const tranValue = parseKeyExpression(value, getForItemName(attrs), getForIndexName(attrs))
-			attrsList.push({
-				name: ':key',
-				value: tranValue,
-			})
-		}
-		else if (name === 'style') {
-			const parsedStyle = parseSafeBraceExp(value)
-			// 内联样式
-			attrsList.push({
-				name: 'v-c-style',
-				value: transformRpx(parsedStyle),
-			})
-			// style 是小程序自定义组件可声明的 property，同时也会作用于
-			// 组件宿主。Vue 会把 style 规范化为 DOM 样式对象，因此通过内部
-			// transport prop 保留原始字符串，render 层再映射回 style property。
-			if (isCustomComponent) {
-				attrsList.push({
-					name: ':dimina-wxml-style',
-					value: parsedStyle,
-				})
-				if (isWrappedByBraces(value) && parsedStyle) {
-					propBindings.style = parsedStyle
-				}
-			}
-		}
-		else if (name === 'class') {
-			if (isWrappedByBraces(value)) {
-				attrsList.push({
-					name: ':class',
-					value: parseClassRules(value),
-				})
-			}
-			else {
-				attrsList.push({
-					name: 'class',
-					value,
-				})
-			}
-			// 使用自定义指令处理可能的外部样式类 https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/wxml-wxss.html#外部样式类
-			attrsList.push({
-				name: 'v-c-class',
-				value: '',
-			})
-		}
-		else if (name === 'is' && tag === 'component') {
-			attrsList.push({
-				name: ':is',
-				value: '\'dd-\'+' + `${parseSafeBraceExp(value)}`,
-			})
-		}
-		else if (name === 'animation' && (tag !== 'movable-view' && tagWhiteList.includes(tag))) {
-			// movable-view 有自己的 animation 属性
-			// 自定义组件的属性有可能是 animation，所以只在普通组件节点生效
-			attrsList.push({
-				name: 'v-c-animation',
-				value: parseSafeBraceExp(value),
-			})
-		}
-		else if ((name === 'value' && (tag === 'input' || tag === 'textarea'))
-			|| ((name === 'x' || name === 'y') && tag === 'movable-view')
-		) {
-			const parsedValue = parseSafeBraceExp(value)
-			const conditionExp = generateVModelTemplate(parsedValue)
-			if (conditionExp) {
-				// v-model 不支持表达式
-				attrsList.push({
-					name: `:${name}`,
-					value: parsedValue,
-				})
-
-				attrsList.push({
-					name: `update:${name}`,
-					value: conditionExp,
-				})
-			}
-			else {
-				attrsList.push({
-					name: `v-model:${name}`,
-					value: parsedValue,
-				})
-			}
-		}
-		else if (name.startsWith('data-')) {
-			if (isWrappedByBraces(value)) {
-				attrsList.push({
-					name: 'v-c-data',
-					value: '',
-				})
-
-				attrsList.push({
-					name: `:${name}`,
-					value: parseSafeBraceExp(value),
-				})
-			}
-			else {
-				attrsList.push({
-					name,
-					value,
-				})
-			}
-		}
-		else if (isWrappedByBraces(value)) {
-			const pVal = tag === 'template' && name === 'data'
-				? parseTemplateDataExp(value)
-				: parseSafeBraceExp(value)
-
-			// 如果是自定义组件的属性绑定，记录绑定关系
-			if (isCustomComponent) {
-				// 记录：子组件属性名 -> 父组件数据表达式
-				// 例如：count2="{{count}}" => propBindings['count2'] = 'count'
-				//       value="{{item.name}}" => propBindings['value'] = 'item.name'
-				//       total="{{count + defaultValue}}" => propBindings['total'] = 'count + defaultValue'
-				// 确保 pVal 是有效的字符串值
-				if (pVal && typeof pVal === 'string') {
-					propBindings[name] = pVal
-				}
-			}
-
-			// 转换 {{}}，绑定属性
-			attrsList.push({
-				name: `:${name}`,
-				value: pVal,
-			})
-		}
-		else if (name !== 'slot') {
-			attrsList.push({
-				name,
-				value,
-			})
-		}
-	})
-
-	const propsRes = []
-	attrsList.forEach((attr) => {
-		const { name, value } = attr
-		if (value === '') {
-			propsRes.push(`${name}`)
-		}
-		else if (/\$\{[^}]*\}/.test(value)) {
-			// 内容中含有 ${...} 为模板字符串
-			propsRes.push(`:${name}="\`${value}\`"`)
-		}
-		else {
-			// 统一转义属性值，避免生成的 Vue 模板被值中的引号截断。
-			propsRes.push(`${name}="${escapeQuotes(value)}"`)
-		}
-	})
-
-	// 如果是自定义组件且有属性绑定，添加绑定信息
-	if (isCustomComponent && Object.keys(propBindings).length > 0) {
-		// 解析绑定表达式，提取依赖信息
-		try {
-			// 过滤掉无效值，确保所有值都是可序列化的字符串
-			const validBindings = {}
-			for (const [key, value] of Object.entries(propBindings)) {
-				if (value !== undefined && value !== null && typeof value === 'string') {
-					validBindings[key] = value
-				}
-			}
-
-		if (Object.keys(validBindings).length > 0) {
-			// 解析表达式，生成包含依赖信息的绑定对象
-			const parsedBindings = parseBindings(validBindings)
-			// 使用动态绑定 + HTML 实体转义，Vue 会自动解码并解析为对象
-			const bindingsJson = JSON.stringify(parsedBindings)
-			const escapedJson = bindingsJson.replace(/"/g, '&quot;')
-			propsRes.push(`v-c-prop-bindings="${escapedJson}"`)
-		}
-		} catch (error) {
-			console.warn('[compiler] 序列化 propBindings 失败:', error.message, '标签:', tag, '绑定数据:', propBindings)
-		}
-	}
-
-	return propsRes
-}
-
-function generateVModelTemplate(expression) {
-	let var1, var2, updateExpression
-
-	if (expression.includes('&&')) {
-		// 处理 "x && y"
-		[var1, var2] = expression.split('&&').map(v => v.trim())
-		// 对于 x && y，x 为真时更新 y，x 为假时更新 x
-		updateExpression = `${var1} ? (${var2} = $event) : (${var1} = $event)`
-	}
-	else if (expression.includes('||')) {
-		// 处理 "x || y"
-		[var1, var2] = expression.split('||').map(v => v.trim())
-		// 对于 x || y，x 为真时更新 x，x 为假时更新 y
-		updateExpression = `${var1} ? (${var1} = $event) : (${var2} = $event)`
-	}
-	else if (expression.includes('?')) {
-		// 处理 "x ? x : y"
-		const parts = expression.split(/[?:]/).map(v => v.trim())
-		var1 = parts[0]
-		var2 = parts[2]
-		// 对于 x ? x : y，x 为真时更新 x，x 为假时更新 y
-		updateExpression = `${var1} ? (${var1} = $event) : (${var2} = $event)`
-	}
-	else {
-		return false
-	}
-	return updateExpression
-}
 
 /**
  * 兼容 :key="{{ index }}" 或 :key="{{ item.index }}"的情况
@@ -1884,50 +1127,6 @@ function parseKeyExpression(exp, itemName = 'item', indexName = 'index') {
 	return result.endsWith('+\'\'') ? result.slice(0, -3) : result
 }
 
-/**
- * 根据工作目录获取 ml 文件绝对路径
- * @param {string} workPath
- * @param {string} src
- * @returns 返回绝对路径
- */
-function getViewPath(workPath, src) {
-	const aSrc = src.startsWith('/') ? src : `/${src}`
-	for (const mlType of getTemplateExts()) {
-		const mlFullPath = `${workPath}${aSrc}${mlType}`
-		if (fs.existsSync(mlFullPath)) {
-			return mlFullPath
-		}
-
-		const indexMlFullPath = `${workPath}${aSrc}/index${mlType}`
-		if (fs.existsSync(indexMlFullPath)) {
-			return indexMlFullPath
-		}
-	}
-}
-
-/**
- * 解析 import/include 的模板文件路径。
- * 微信允许省略 .wxml；显式扩展名保持原样，无扩展名时按当前模板类型优先级补全。
- */
-function resolveTemplateDependencyPath(workPath, ownerPath, src) {
-	const resolvedPath = getAbsolutePath(workPath, ownerPath, src)
-	if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
-		return resolvedPath
-	}
-
-	if (path.extname(resolvedPath)) {
-		return resolvedPath
-	}
-
-	for (const ext of getTemplateExts()) {
-		const candidate = `${resolvedPath}${ext}`
-		if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-			return candidate
-		}
-	}
-
-	return resolvedPath
-}
 
 /**
  * 将字符串内部的双引号进行替换
@@ -2102,19 +1301,19 @@ function parseTemplateDataExp(exp) {
 	return `{${parseSafeBraceExp(exp)}}`
 }
 
-function transTagWxs($, scriptModule, filePath, graphOwnerPath = filePath) {
+function transTagWxs(document, scriptModule, filePath, graphOwnerPath = filePath) {
 	// 同时处理所有视图脚本标签（wxs、dds 及自定义标签），避免同一文件混用多种标签时漏编译。
-	const wxsNodes = $(getViewScriptTags().join(','))
+	const wxsNodes = queryAll(document, getViewScriptTags().join(','))
 
-	wxsNodes.each((_, elem) => {
-		const smName = $(elem).attr('module')
+	for (const elem of wxsNodes.slice()) {
+		const smName = getAttr(elem, 'module')
 
 		if (smName) {
 			let wxsContent
 			let uniqueModuleName = smName
 			let cacheKey = smName
 
-			const src = $(elem).attr('src')
+			const src = getAttr(elem, 'src')
 			let wxsFilePath = null
 			const workPath = getWorkPath()
 
@@ -2154,15 +1353,15 @@ function transTagWxs($, scriptModule, filePath, graphOwnerPath = filePath) {
 						wxsContent = getContentByPath(wxsFilePath).trim()
 					} else {
 						console.warn(`[view] wxs 文件不存在: ${wxsFilePath}`)
-						return
+						continue
 					}
 				}
 				else {
-					wxsContent = $(elem).html()
+					wxsContent = serializeChildren(elem)
 				}
 
 				if (!wxsContent) {
-					return
+					continue
 				}
 
 				// 使用公共的处理函数
@@ -2181,8 +1380,8 @@ function transTagWxs($, scriptModule, filePath, graphOwnerPath = filePath) {
 				})
 			}
 		}
-	})
-	wxsNodes.remove()
+	}
+	removeAll(wxsNodes)
 }
 
 /**
@@ -2402,6 +1601,28 @@ function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'rend
 	const transformedAst = parseJs(transformed, filename)
 	return { code: getProgramCode(transformed, transformedAst), map }
 }
+
+
+// W1 live bindings — break index ↔ transform/vue-tools cycles (bodies stay in modules)
+bindVueToolsLive({
+	transformTextInterpolation,
+	isWrappedByBraces,
+	parseBraceExp,
+	parseSafeBraceExp,
+	parseForExp,
+	getForItemName,
+	getForIndexName,
+	parseKeyExpression,
+	parseClassRules,
+	parseTemplateDataExp,
+	escapeQuotes,
+	insertWxsToRenderResult,
+})
+bindTransformOrchestrator({
+	transTagWxs,
+	transAsses,
+	processIncludedFileWxsDependencies,
+})
 
 export {
 	compileML,

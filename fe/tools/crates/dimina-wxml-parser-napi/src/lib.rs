@@ -195,19 +195,53 @@ fn value_to_view(v: &wxml::Value, source: &str) -> Value {
 }
 
 fn directive_to_view(d: &wxml::Directive) -> Value {
-	let (kind, test, sp): (&str, Option<&wxml::ExprContainer>, Span) = match d {
-		wxml::Directive::If(i) => ("if", Some(&i.test), i.span),
-		wxml::Directive::Elif(e) => ("elif", Some(&e.test), e.span),
-		wxml::Directive::Else(e) => ("else", None, e.span),
-		wxml::Directive::For(f) => ("for", Some(&f.source), f.span),
-		wxml::Directive::Key(k) => ("key", None, k.span),
-		wxml::Directive::Hidden(h) => ("hidden", None, h.span),
-	};
-	json!({
-		"kind": kind,
-		"test": test.map(|t| json!({ "raw": atom(&t.raw), "span": span(t.span) })),
-		"span": span(sp),
-	})
+	match d {
+		wxml::Directive::If(i) => json!({
+			"kind": "if",
+			"test": { "raw": atom(&i.test.raw), "span": span(i.test.span) },
+			"span": span(i.span),
+		}),
+		wxml::Directive::Elif(e) => json!({
+			"kind": "elif",
+			"test": { "raw": atom(&e.test.raw), "span": span(e.test.span) },
+			"span": span(e.span),
+		}),
+		wxml::Directive::Else(e) => json!({
+			"kind": "else",
+			"test": null,
+			"span": span(e.span),
+		}),
+		wxml::Directive::For(f) => json!({
+			"kind": "for",
+			"test": { "raw": atom(&f.source.raw), "span": span(f.source.span) },
+			"item": f.item.as_ref().map(|a| atom(a)),
+			"index": f.index.as_ref().map(|a| atom(a)),
+			"span": span(f.span),
+		}),
+		wxml::Directive::Key(k) => json!({
+			"kind": "key",
+			"test": null,
+			"value": key_value_to_view(&k.value),
+			"span": span(k.span),
+		}),
+		wxml::Directive::Hidden(h) => json!({
+			"kind": "hidden",
+			"test": h.test.as_ref().map(|v| match v {
+				wxml::Value::Static(s) => json!({ "kind": "static", "raw": atom(&s.raw), "span": span(s.span) }),
+				wxml::Value::Expr(e) => json!({ "kind": "expr", "raw": atom(&e.raw), "span": span(e.span), "relative": true }),
+				wxml::Value::Template(t) => json!({ "kind": "template", "raw": atom(&t.raw), "span": span(t.span) }),
+			}),
+			"span": span(h.span),
+		}),
+	}
+}
+
+fn key_value_to_view(v: &wxml::KeyValue) -> Value {
+	match v {
+		wxml::KeyValue::StarThis => json!({ "kind": "starThis", "raw": "*this" }),
+		wxml::KeyValue::Identifier(a) => json!({ "kind": "identifier", "raw": atom(a) }),
+		wxml::KeyValue::Expr(e) => json!({ "kind": "expr", "raw": atom(&e.raw), "span": span(e.span), "relative": true }),
+	}
 }
 
 fn parse_error_to_view(e: &wxml::ParseError) -> Value {

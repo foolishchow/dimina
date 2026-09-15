@@ -1,10 +1,10 @@
 # Implementation Plan — fe-tools-wxml-refactor
 
-Status: **ready（实施未授权）** — 三门禁混，W1→W2→W3。
+Status: **`in_progress`** — 基线 `342af2f5`；**W1–W3 已交付**；待 Close。
 
 ## 基线与纪律
 
-- 授权 `in_progress` 时记录 HEAD；每门以前一门合入后 HEAD 为基线。
+- 授权基线：`342af2f5`；每门以前一门合入后 HEAD 为基线。
 - `fe/packages` 零触碰；不做无关格式化。
 - **W1：** 函数体/签名逐字；**W2：** 允许改访问面与签名，禁止改编译语义；**W3：** 装配开关，不改 transform 语义。
 - 每门独立跑 P-WR05 + 对拍（W1/W2：相对基线；W3：napi vs cheerio，见 validation P-WR06）。
@@ -32,6 +32,8 @@ Status: **ready（实施未授权）** — 三门禁混，W1→W2→W3。
 2. `WXML_PARSER` 缺省 napi；非法值 `[wxml]`。
 3. 语义对拍 + P-WR06 产物对拍 + P-WR05。
 4. P-WR07 分项消融。
+
+**W3 完成（2026-09-15）：** 默认 napi；cheerio 回退；P-WR05 580/580；P-WR06 diff=0；P-WR07 消融有效。
 
 ## 文档与闭合
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import * as cheerio from 'cheerio'
+import { parseWxml } from '../src/compiler/view/wxml/parse.js'
+import { query, serialize, replaceNode } from '../src/compiler/view/wxml/document-ops.js'
 import { processIncludeConditionalAttrs } from '../src/compiler/view/index.js'
 
 describe('Include 节点条件属性处理', () => {
@@ -7,20 +8,20 @@ describe('Include 节点条件属性处理', () => {
 	 * 测试辅助函数：处理 HTML 中的 include 节点
 	 */
 	function processIncludeNode(html, includeContent) {
-		const $ = cheerio.load(html, {
-			xmlMode: true,
-			decodeEntities: false,
-		})
-		
-		const includeNodes = $('include')
-		
-		includeNodes.each((_, elem) => {
-			// 使用真实导出的函数处理条件属性
-			const processedContent = processIncludeConditionalAttrs($, elem, includeContent)
-			$(elem).replaceWith(processedContent)
-		})
-		
-		return $.html()
+		const doc = parseWxml(html)
+		const includeNode = query(doc, 'include')
+		if (!includeNode) {
+			return serialize(doc)
+		}
+		const includeDoc = parseWxml(includeContent)
+		const nodes = processIncludeConditionalAttrs(includeNode, includeDoc)
+		if (typeof nodes === 'string') {
+			replaceNode(includeNode, parseWxml(nodes).body)
+		}
+		else {
+			replaceNode(includeNode, nodes)
+		}
+		return serialize(doc)
 	}
 
 	it('应该正确处理 include 节点的 wx:else 属性', () => {
@@ -39,15 +40,10 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证结果包含 block 和 wx:else
 		expect(result).toContain('wx:else')
 		expect(result).toContain('<block')
 		expect(result).toContain('</block>')
-		
-		// 验证包含了 calendar-content
 		expect(result).toContain('calendar-content')
-		
-		// 验证不包含 include 标签（已被替换）
 		expect(result).not.toContain('<include')
 	})
 
@@ -69,16 +65,11 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证结果包含 block 和 wx:if
 		expect(result).toContain('wx:if')
 		expect(result).toContain('showHeader')
 		expect(result).toContain('<block')
 		expect(result).toContain('</block>')
-		
-		// 验证包含了 header
 		expect(result).toContain('header')
-		
-		// 验证不包含 include 标签
 		expect(result).not.toContain('<include')
 	})
 
@@ -93,13 +84,10 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证结果包含 block 和 wx:elif
 		expect(result).toContain('wx:elif')
 		expect(result).toContain("mode === 'b'")
 		expect(result).toContain('<block')
 		expect(result).toContain('</block>')
-		
-		// 验证包含了内容
 		expect(result).toContain('模式 B')
 	})
 
@@ -116,17 +104,14 @@ describe('Include 节点条件属性处理', () => {
 		const resultB = processIncludeNode(htmlB, contentB)
 		const resultC = processIncludeNode(htmlC, contentC)
 		
-		// 验证 wx:if
 		expect(resultA).toContain('wx:if')
 		expect(resultA).toContain("mode === 'a'")
 		expect(resultA).toContain('模式 A')
 		
-		// 验证 wx:elif
 		expect(resultB).toContain('wx:elif')
 		expect(resultB).toContain("mode === 'b'")
 		expect(resultB).toContain('模式 B')
 		
-		// 验证 wx:else
 		expect(resultC).toContain('wx:else')
 		expect(resultC).toContain('模式 C')
 	})
@@ -147,15 +132,10 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证结果包含 dd:else
 		expect(result).toContain('dd:else')
 		expect(result).toContain('<block')
 		expect(result).toContain('</block>')
-		
-		// 验证包含了 fallback
 		expect(result).toContain('fallback')
-		
-		// 验证不包含 include 标签
 		expect(result).not.toContain('<include')
 	})
 
@@ -178,12 +158,10 @@ describe('Include 节点条件属性处理', () => {
 		const resultIf = processIncludeNode(htmlIf, loadingContent)
 		const resultElse = processIncludeNode(htmlElse, contentContent)
 		
-		// 验证 a:if
 		expect(resultIf).toContain('a:if')
 		expect(resultIf).toContain('loading')
 		expect(resultIf).toContain('加载中')
 		
-		// 验证 a:else
 		expect(resultElse).toContain('a:else')
 		expect(resultElse).toContain('content')
 		expect(resultElse).toContain('内容区')
@@ -207,16 +185,11 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证包含了 footer 内容
 		expect(result).toContain('footer')
 		expect(result).toContain('页脚')
 		
-		// 验证不应该有条件属性的 block 包裹
-		// 由于直接替换，block 不应该出现在 footer 周围
 		const footerMatch = result.match(/<view class="footer">[\s\S]*?<\/view>/)
 		expect(footerMatch).toBeTruthy()
-		
-		// 验证不包含 include 标签
 		expect(result).not.toContain('<include')
 	})
 
@@ -233,14 +206,11 @@ describe('Include 节点条件属性处理', () => {
 		const contentB = `<text>内容 B</text>`
 		const contentC = `<text>内容 C</text>`
 		
-		// 模拟处理多个 include（实际场景中每个 include 引用不同文件）
-		// 这里为了简化，我们分别处理每个
 		let result = html
 		result = result.replace(/<include wx:if="{{[^"]*}}" src="[^"]*" \/>/, `<block wx:if="{{ mode === 'a' }}">${contentA}</block>`)
 		result = result.replace(/<include wx:elif="{{[^"]*}}" src="[^"]*" \/>/, `<block wx:elif="{{ mode === 'b' }}">${contentB}</block>`)
 		result = result.replace(/<include wx:else src="[^"]*" \/>/, `<block wx:else>${contentC}</block>`)
 		
-		// 验证所有条件分支都存在
 		expect(result).toContain('wx:if')
 		expect(result).toContain('wx:elif')
 		expect(result).toContain('wx:else')
@@ -258,12 +228,9 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证只保留了条件属性
 		expect(result).toContain('wx:if')
 		expect(result).toContain('show')
 		expect(result).toContain('<block')
-		
-		// data-id 不应该出现在 block 上（只保留条件属性）
 		expect(result).not.toContain('data-id')
 	})
 
@@ -278,7 +245,6 @@ describe('Include 节点条件属性处理', () => {
 		
 		const result = processIncludeNode(html, includeContent)
 		
-		// 验证有 block 标签，即使内容为空
 		expect(result).toContain('<block')
 		expect(result).toContain('wx:if')
 	})
