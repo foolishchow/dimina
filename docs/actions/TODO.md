@@ -39,7 +39,7 @@
 
 | Field | Value |
 | --- | --- |
-| Action | [`fe-tools-wxml-layout`](fe-tools-wxml-layout/README.md)（**`in_progress`**） |
+| Action | [`fe-tools-wxml-layout`](fe-tools-wxml-layout/README.md)（**`in_progress`**；L0–L2 已交付，待 Close） |
 | 问题 | parse 引擎藏文件名；`transform/` 名实不符；`backends/` 撞平台 renderer 且塞 vue-tools |
 | 目标 | napi/cheerio + `common/` + `load/` + `compile.js` + `renderer/vue/`；行为 0；旧 Backend API 同门删净 |
 | 待定 | 无（D-WL-1..9 已拍板） |

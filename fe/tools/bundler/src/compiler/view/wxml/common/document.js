@@ -3,7 +3,7 @@
  *
  * 真源：docs/wxml/WXML-AST-TYPES.md + technical-design §2。
  * 契约字段始终存在；null = parser 暂不可提供；[] = 空集合。
- * cheerio 仅作 parse 投影工具，不得经 Document 向 load/backend/tools 泄漏。
+ * cheerio 仅作 parse 投影工具，不得经 Document 向 load/renderer/tools 泄漏。
  */
 
 /** @typedef {{ start: number, end: number }} Span */

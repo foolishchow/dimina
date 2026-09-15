@@ -52,7 +52,7 @@
 | `fe-tools-incremental-target` | `draft` | [README](fe-tools-incremental-target/README.md) | E7 增量形态回灌：watch/cache options 袋与 CompileTarget 对齐（S1/S2/S3/S9）；契约 A/B 待拍板；未授权实施。 | 2026-09-14 |
 | `fe-tools-compiler-layering` | `complete` | [README](_archive/complete/fe-tools-compiler-layering/README.md) | compiler 目录归位（两轴 + WORKER_ENTRY + 根级 index.js 删除）；559/559 + diff=0；A-CL1 修正（函数拆散推迟）；已归档。 | 2026-09-15 |
 | `fe-tools-wxml-refactor` | `complete` | [README](_archive/complete/fe-tools-wxml-refactor/README.md) | W1–W3：23 函数归位 + 标准 Document + 默认 napi；A-WR0..5 / P-WR00..07 全 pass；Close 复验 `13c9c902` 580/580 + P-WR06 diff=0；不变量回流；已归档。 | 2026-09-15 |
-| `fe-tools-wxml-layout` | `in_progress` | [README](fe-tools-wxml-layout/README.md) | 目录轴：napi/cheerio + load/ + compile.js + renderer/vue/；D-WL-1..9；同门删净；首刀单文件 OK；实施中。 | 2026-09-15 |
+| `fe-tools-wxml-layout` | `in_progress` | [README](fe-tools-wxml-layout/README.md) | L0–L2 已交付：napi/cheerio + load/ + compile.js + renderer/vue/；同门删净；580/580 + diff=0；待 Close。 | 2026-09-15 |
 | `fe-tools-wxml-bridge` | `complete` | [README](_archive/complete/fe-tools-wxml-bridge/README.md) | Rust parser napi 桥 + sourcemap 跨文件归位（W0/W1/W2）；559/559 + 无 include 页 sourcemap diff=0 + 消融 ×2；D-WIR-1 修订回流；已归档。 | 2026-09-14 |
 | `fe-tools-wxml-ir` | `complete` | [README](_archive/complete/fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 缝 + registry；行为 0 严格 diff=0；消融 ×2；S13 view 收口（style 书面剩余）；不变量回流；已归档。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |

@@ -1,10 +1,10 @@
 import * as htmlparser2 from 'htmlparser2'
 import { compileTemplate } from '@vue/compiler-sfc'
-import { getTemplateDirectiveName } from '../../../core/compatibility.js'
-import { parseBindings } from '../../../core/expression-parser.js'
-import { createLineSourcemap } from '../../../core/sourcemap.js'
-import { tagWhiteList, transformRpx } from '../../../../shared/utils.js'
-import { attrsToRecord } from '../document.js'
+import { getTemplateDirectiveName } from '../../../../core/compatibility.js'
+import { parseBindings } from '../../../../core/expression-parser.js'
+import { createLineSourcemap } from '../../../../core/sourcemap.js'
+import { tagWhiteList, transformRpx } from '../../../../../shared/utils.js'
+import { attrsToRecord } from '../../common/document.js'
 import {
 	append,
 	attrsRecord,
@@ -17,9 +17,9 @@ import {
 	removeAttr,
 	serialize,
 	setAttr,
-} from '../document-ops.js'
-import { parseWxml } from '../parse.js'
-import { enableSourcemap, templateRenderCache } from './vue-tools-state.js'
+} from '../../common/document-ops.js'
+import { parseWxml } from '../../parse.js'
+import { enableSourcemap, templateRenderCache } from './state.js'
 import {
 	transformTextInterpolation,
 	isWrappedByBraces,
@@ -33,7 +33,7 @@ import {
 	parseTemplateDataExp,
 	escapeQuotes,
 	insertWxsToRenderResult,
-} from './vue-tools-live.js'
+} from './live.js'
 
 export function getTemplateCompilerOptions(scopeId) {
 	return {

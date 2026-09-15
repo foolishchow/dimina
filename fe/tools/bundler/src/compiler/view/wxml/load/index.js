@@ -4,7 +4,7 @@
  * 只经 Document 操作面访问树；投影工具句柄不得进入本模块。
  * include 内联节点经 Symbol(WIR_SRC) 标记源文件，供 vue 行源表使用。
  */
-import { attachProjection } from './document.js'
+import { attachProjection } from '../common/document.js'
 import {
 	bindDocument,
 	getAttr,
@@ -15,8 +15,8 @@ import {
 	replaceNode,
 	serialize,
 	wrapRootIfMulti,
-} from './document-ops.js'
-import { parseWxml } from './parse.js'
+} from '../common/document-ops.js'
+import { parseWxml } from '../parse.js'
 
 function requireTools(tools) {
 	const missing = ['transTagTemplate', 'transTagWxs', 'transAsses', 'resolveTemplateDependencyPath', 'collectIncludedComponentTags', 'processIncludedFileWxsDependencies', 'processIncludeConditionalAttrs', 'checkTemplateCompatibility']

@@ -7,9 +7,9 @@ import {
 	parseWxmlCheerio,
 	parseWxmlNapi,
 	resolveWxmlParserEngine,
-} from '../src/compiler/view/wxml/parser/index.js'
-import { compareDocumentsSemantic } from '../src/compiler/view/wxml/parser/parity.js'
-import { serialize } from '../src/compiler/view/wxml/document-ops.js'
+} from '../src/compiler/view/wxml/parse.js'
+import { compareDocumentsSemantic } from '../src/compiler/view/wxml/common/parity.js'
+import { serialize } from '../src/compiler/view/wxml/common/document-ops.js'
 
 describe('WXML_PARSER switch（A-WR3）', () => {
 	it('缺省为 napi', () => {

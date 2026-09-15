@@ -12,37 +12,35 @@ import { toMiniProgramModuleId } from '../../shared/path-utils.js'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../core/env.js'
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
-import { getBackend, registerBackend } from './wxml/backends/registry.js'
-import { vueBackend, VUE_BACKEND_ID } from './wxml/backends/vue.js'
+import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.js'
+import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.js'
 import {
 	getAttr,
 	queryAll,
 	removeAll,
 	serializeChildren,
 	setAttr,
-} from './wxml/document-ops.js'
+} from './wxml/common/document-ops.js'
 import {
 	buildExtStripRegex,
 	stripViewScriptExt,
-} from './wxml/transform/paths.js'
-import {
-	toCompileTemplate,
-	processIncludeConditionalAttrs,
-} from './wxml/transform/index.js'
-import { bindTransformOrchestrator } from './wxml/transform/orchestrator-live.js'
+} from './wxml/load/paths.js'
+import { toCompileTemplate } from './wxml/compile.js'
+import { processIncludeConditionalAttrs } from './wxml/load/include.js'
+import { bindTransformOrchestrator } from './wxml/load/orchestrator-live.js'
 import {
 	normalizeTemplateSyntax,
 	generateSlotDirective,
 	generateVModelTemplate,
 	getTemplateCompilerOptions,
 	compileTemplateModuleRender,
-} from './wxml/backends/vue-tools.js'
-import { bindVueToolsLive } from './wxml/backends/vue-tools-live.js'
-import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/backends/vue-tools-state.js'
+} from './wxml/renderer/vue/tools.js'
+import { bindVueToolsLive } from './wxml/renderer/vue/live.js'
+import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.js'
 
-// TS-2（fe-tools-wxml-ir）：backend₀ 注册（registry 同 id 抛错；测例可先 unregister）
-if (!getBackend(VUE_BACKEND_ID)) {
-	registerBackend(vueBackend)
+// TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）
+if (!getWxmlRenderer(VUE_RENDERER_ID)) {
+	registerWxmlRenderer(vueWxmlRenderer)
 }
 
 
@@ -222,7 +220,7 @@ const wxsModuleRegistry = new Set()
 const wxsFilePathMap = new Map()
 let wxsScannedWorkPath = null
 
-// enableSourcemap / templateRenderCache: see wxml/backends/vue-tools-state.js
+// enableSourcemap / templateRenderCache: see wxml/renderer/vue/state.js
 /** 产物是否回传（build-model M1 阶段二：collectOutput=true 时不写盘、逐页 postMessage output） */
 let collectOutput = false
 let outputCount = 0
@@ -1603,7 +1601,7 @@ function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'rend
 }
 
 
-// W1 live bindings — break index ↔ transform/vue-tools cycles (bodies stay in modules)
+// W1 live bindings — break index ↔ load / vue renderer tools cycles (bodies stay in modules)
 bindVueToolsLive({
 	transformTextInterpolation,
 	isWrappedByBraces,

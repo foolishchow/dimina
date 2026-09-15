@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-wxml-layout`（已转正，2026-09-15）
 - Status: `in_progress`
-- Updated: 2026-09-15（授权 `in_progress`；基线见 validation Actual / 实施起点 HEAD）
+- Updated: 2026-09-15（L0–L2 已交付；A-WL0..5 / P-WL00..07 pass；待 Close）
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（complete `13c9c902`）；[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -83,7 +83,7 @@
 
 ## Status / 授权
 
-- 当前 **`in_progress`**：用户授权实施（2026-09-15）；D-WL-1..9 冻结；按 L0→L1→L2 执行
+- 当前 **`in_progress`**：L0–L2 已交付（目录轴 + 同门删净 + 行为 0 + architecture-notes）；**待 Close**（复验 → complete / 归档）
 
 ## 闭合条件
 
@@ -98,3 +98,4 @@
 | 2026-09-15 | **拍板待定**：① 旧 Backend API 同门删净；② 编排=`compile.js`；③ 首刀允许引擎/vue 单文件 → 升 `ready` |
 | 2026-09-15 | Readiness findings 修：STATUS 竖线、删净符号表补全、TODO draft→ready、产品门去「草案」 |
 | 2026-09-15 | 授权 **`in_progress`** |
+| 2026-09-15 | **L0–L2 交付**：目录轴落位；API 同门删净；580/580；相对 `0074396c` nomap/sm diff=0；napi↔cheerio diff=0；消融 ✓；architecture-notes 回流 |

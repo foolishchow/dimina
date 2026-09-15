@@ -103,17 +103,17 @@ BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形
 
 **残余（E7 · 近端 draft）**：watch-plan / compile-cache 的碎片 `plan.options` 回灌仍使增量路径绕开形态单源——见 [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md) 与 [compiler-symptom-inventory](./compiler-symptom-inventory.md) S1/S2/S3/S9。
 
-## WXML 模板缝（fe-tools-wxml-ir · 已交付 2026-09-14）
+## WXML 模板缝（fe-tools-wxml-ir · 已交付 2026-09-14；目录轴见 layout）
 
-view 模板路径已切为中立缝（`src/compiler/wxml/`）：
+view 模板路径已切为中立缝（`src/compiler/view/wxml/`，layering 后落点）：
 
 ```text
 parse（parseWxml）   WXML 源 → Document（cheerio 仅投影；特殊节点保留；loc 半开）
 load（loadTemplates） 展开/收集（include 内联、import 收集、template/wxs、assets、图边、sourceTexts）
-Backend（registry）  LoadedGraph → 产物；vue = backend₀；同 id 注册抛错
+WxmlRenderer（registry）  LoadedGraph → 产物；vue = renderer₀；同 id 注册抛错
 ```
 
-**结构不变量（本伞 MUST）**：新模板后端（如第二 renderer 的模板面）**必须经 `wxml/backends/registry` 挂载**（WxmlBackend 接口），不得再以「WXML 源 → cheerio → 产物」熔断路径直连；view-compiler 仅为编排壳。过渡注记两处成文（component-host 源级包装 / compileTemplate 打包壳）——语义迁移期再收。style-compiler 同构切缝为 S13 书面剩余。
+**结构不变量（本伞 MUST）**：新模板目标（如第二 WxmlRenderer）**必须经 `wxml/renderer/registry` 挂载**（`WxmlRenderer` 接口），不得再以「WXML 源 → cheerio → 产物」熔断路径直连；view-compiler / `compile.js` 仅为编排壳。过渡注记两处成文（component-host 源级包装 / compileTemplate 打包壳）——语义迁移期再收。style-compiler 同构切缝为 S13 书面剩余。
 
 ## WXML SpanSource（fe-tools-wxml-bridge · D-WIR-1 修订 2026-09-14）
 
@@ -131,25 +131,42 @@ sourcemap 归位:      inMap 消费 SpanView 真 span（行级正确 + 列级可
 
 ## WXML 标准 Document + 双 Parser（fe-tools-wxml-refactor · complete 2026-09-15）
 
-路径：`fe/tools/bundler/src/compiler/view/wxml/`（layering 后落点）。
-
-```text
-parser/index.js     WXML_PARSER ?? 'napi' → napi | cheerio（非法值 [wxml]）
-parser/napi.js      SpanView → 标准 JS Document（Attr[]、特殊 type、字段始终存在）
-parser/cheerio.js   cheerio 投影 → 同构 Document（attr.span 可 null）
-document-ops.js     §4.2 操作面（JS 树可变；load/vue/vue-tools 零 cheerio/_$）
-transform/          W1 归位的展开/路径工具
-backends/vue-tools  Vue 降级工具袋（Document normalize；无 cheerio 环路）
-```
+路径：`fe/tools/bundler/src/compiler/view/wxml/`（目录轴以 layout 为准）。
 
 **结构不变量（本伞 MUST）**：
 
-1. transform / load / backend（含 vue-tools）**不得** import cheerio，不得消费 `_$` / `_elem`；树访问仅经 Document 操作面。
+1. load / WxmlRenderer（含 `renderer/vue/tools`）**不得** import cheerio，不得消费 `_$` / `_elem`；树访问仅经 Document 操作面（`common/`）。
 2. 编译默认 parser = **napi**；`WXML_PARSER=cheerio` 为可验证回退；两路产物+sourcemap 必须 diff=0。
 3. Document 契约字段始终存在（可选=值可 null，非缺键）；特殊节点用 `type`（`include`/`wxs`/`template-def`…）而非标签名字符串判别语义。
 4. 行为 0 锚定当前 bundler view 产物语义（含 Vue 降级），非微信真源重标定。
 
-**非本门**：wxs/asset **目录**归位；表达式 SWC AST 消费；transform 纯化；第二 backend。
+**非本门（仍适用）**：wxs/asset **目录**归位；表达式 SWC AST 消费；IR 纯化 / 通用 transform pass；第二 WxmlRenderer 实现。
+
+## WXML 目录轴（fe-tools-wxml-layout · 2026-09-15）
+
+权威树：
+
+```text
+wxml/
+  parse.js              # 开关 + 对外入口（默认 napi）
+  compile.js            # toCompileTemplate 编排（parse→load→renderer）
+  common/               # document / document-ops / parity
+  napi/parse.js         # SpanView → Document
+  cheerio/parse.js      # cheerio 投影 → Document
+  load/                 # LoadedGraph + paths / include / template / orchestrator-live
+  renderer/             # ≠ 平台 app.json.renderer
+    registry.js         # registerWxmlRenderer / getWxmlRenderer / …
+    stub.js
+    vue/                # index + tools(+live/state)
+```
+
+**结构不变量（本伞 MUST）**：
+
+1. 顶层不得再出现权威入口 `parser/`、`transform/`、`backends/`；生产路径不得 import 上述旧目录。
+2. parse 轴（`napi/`|`cheerio/`）仅源串→Document；`load/` 不 import cheerio；引擎目录不 import `renderer/`。
+3. 公开 API 使用 `Wxml` 前缀（`getWxmlRenderer` 等）；旧 `getBackend` / `vueBackend` / `WxmlBackend` 等**无** re-export。
+4. `compile.js` 仅编排，不承载展开/降级算法体；vue 工具在 `renderer/vue/`。
+5. 本门行为 0：相对实施基线产物+sourcemap diff=0；默认 napi vs cheerio diff=0。
 
 ## 命名
 

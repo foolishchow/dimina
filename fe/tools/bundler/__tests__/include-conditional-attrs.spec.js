@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseWxml } from '../src/compiler/view/wxml/parse.js'
-import { query, serialize, replaceNode } from '../src/compiler/view/wxml/document-ops.js'
+import { query, serialize, replaceNode } from '../src/compiler/view/wxml/common/document-ops.js'
 import { processIncludeConditionalAttrs } from '../src/compiler/view/index.js'
 
 describe('Include 节点条件属性处理', () => {

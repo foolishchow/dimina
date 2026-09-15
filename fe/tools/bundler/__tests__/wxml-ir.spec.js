@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-// 副作用：view-compiler 模块加载时注册 backend₀ 'vue'
+// 副作用：view-compiler 模块加载时注册 wxml renderer₀ 'vue'
 import '../src/compiler/view/index.js'
 import {
 	attachProjection,
@@ -14,24 +14,29 @@ import {
 	plainTree,
 	templateNodeKind,
 	valueKind,
-} from '../src/compiler/view/wxml/document.js'
-import { serialize } from '../src/compiler/view/wxml/document-ops.js'
+} from '../src/compiler/view/wxml/common/document.js'
+import { serialize } from '../src/compiler/view/wxml/common/document-ops.js'
 import { parseWxml } from '../src/compiler/view/wxml/parse.js'
-import { loadTemplates } from '../src/compiler/view/wxml/load.js'
-import { getBackend, listBackends, registerBackend, unregisterBackend } from '../src/compiler/view/wxml/backends/registry.js'
-import { createStubBackend } from '../src/compiler/view/wxml/backends/stub.js'
+import { loadTemplates } from '../src/compiler/view/wxml/load/index.js'
+import { getWxmlRenderer, listWxmlRenderers, registerWxmlRenderer, unregisterWxmlRenderer } from '../src/compiler/view/wxml/renderer/registry.js'
+import { createStubWxmlRenderer } from '../src/compiler/view/wxml/renderer/stub.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(testDir, '../src/compiler')
-const transformSrc = fs.readFileSync(path.join(srcRoot, 'view/wxml/transform/index.js'), 'utf8')
-const wxmlFiles = ['view/wxml/document.js', 'view/wxml/parse.js', 'view/wxml/load.js', 'view/wxml/backends/registry.js', 'view/wxml/backends/vue.js', 'view/wxml/backends/stub.js']
+const compileSrc = fs.readFileSync(path.join(srcRoot, 'view/wxml/compile.js'), 'utf8')
+const wxmlFiles = [
+	'view/wxml/common/document.js',
+	'view/wxml/parse.js',
+	'view/wxml/load/index.js',
+	'view/wxml/renderer/registry.js',
+	'view/wxml/renderer/vue/index.js',
+	'view/wxml/renderer/stub.js',
+]
 
 function toCompileTemplateSpan() {
-	const start = transformSrc.indexOf('export function toCompileTemplate(')
-	const end = transformSrc.indexOf('export function transTagTemplate(', start)
+	const start = compileSrc.indexOf('export function toCompileTemplate(')
 	expect(start).toBeGreaterThan(-1)
-	expect(end).toBeGreaterThan(start)
-	return transformSrc.slice(start, end)
+	return compileSrc.slice(start)
 }
 
 describe('wxml parse（T-IR0 · A-WIR0/A-WIR1/A-WIR6）', () => {
@@ -246,44 +251,44 @@ describe('wxml load（T-IR1 · A-WIR1）', () => {
 	})
 })
 
-describe('wxml backend registry（T-IR3 · A-WIR2）', () => {
-	it("backend₀ 'vue' 已由 view-compiler 模块注册", () => {
-		expect(getBackend('vue')).toBeTruthy()
-		expect(getBackend('vue').render).toBeTypeOf('function')
-		expect(listBackends()).toContain('vue')
+describe('wxml renderer registry（T-IR3 · A-WIR2）', () => {
+	it("wxml renderer₀ 'vue' 已由 view-compiler 模块注册", () => {
+		expect(getWxmlRenderer('vue')).toBeTruthy()
+		expect(getWxmlRenderer('vue').render).toBeTypeOf('function')
+		expect(listWxmlRenderers()).toContain('vue')
 	})
 
 	it('同 id 注册抛错（禁静默覆盖）', () => {
-		const stub = createStubBackend()
-		registerBackend(stub)
-		expect(getBackend('stub')).toBe(stub)
-		expect(() => registerBackend(createStubBackend())).toThrow(/\[wxml\] registerBackend: backend id 'stub' already registered/)
-		unregisterBackend('stub')
-		expect(getBackend('stub')).toBeNull()
+		const stub = createStubWxmlRenderer()
+		registerWxmlRenderer(stub)
+		expect(getWxmlRenderer('stub')).toBe(stub)
+		expect(() => registerWxmlRenderer(createStubWxmlRenderer())).toThrow(/\[wxml\] registerWxmlRenderer: renderer id 'stub' already registered/)
+		unregisterWxmlRenderer('stub')
+		expect(getWxmlRenderer('stub')).toBeNull()
 	})
 
 	it('形状校验：[wxml] 前缀', () => {
-		expect(() => registerBackend(null)).toThrow(/\[wxml\] registerBackend/)
-		expect(() => registerBackend({ id: 'x' })).toThrow(/\[wxml\] registerBackend: backend\.render/)
+		expect(() => registerWxmlRenderer(null)).toThrow(/\[wxml\] registerWxmlRenderer/)
+		expect(() => registerWxmlRenderer({ id: 'x' })).toThrow(/\[wxml\] registerWxmlRenderer: renderer\.render/)
 	})
 
 	it('stub 收到 LoadedGraph（标准 Document 与收集物），非原始 WXML 字符串', () => {
 		const loaded = parseWxml('<view>x</view>', { sourceFile: '/i.wxml' })
 		loaded.templateModule = [{ path: 'tpl-1' }]
 		loaded.scriptModule = []
-		const stub = createStubBackend()
-		registerBackend(stub)
+		const stub = createStubWxmlRenderer()
+		registerWxmlRenderer(stub)
 		const result = stub.render({ loaded }, { sourcemap: false })
-		unregisterBackend('stub')
+		unregisterWxmlRenderer('stub')
 		expect(result.meta.stub).toBe(true)
 		expect(stub.calls[0].hasDocumentBody).toBe(true)
 		expect(stub.calls[0].templateModule).toEqual([{ path: 'tpl-1' }])
 	})
 })
 
-describe('vue backend render（T-IR2）', () => {
+describe('vue wxml renderer render（T-IR2）', () => {
 	it('经 Document 驱动 normalizeTemplateDom / transHtmlTag → code', () => {
-		const vue = getBackend('vue')
+		const vue = getWxmlRenderer('vue')
 		const loaded = parseWxml('<view>hi</view>', { sourceFile: '/i.wxml' })
 		loaded.templateModule = []
 		loaded.scriptModule = []
@@ -301,20 +306,20 @@ describe('vue backend render（T-IR2）', () => {
 	})
 
 	it('缺工具 / 缺 Document：[wxml] 前缀（R-WIR9）', () => {
-		const vue = getBackend('vue')
-		expect(() => vue.render({ loaded: {} }, {})).toThrow(/\[wxml\] vue backend: LoadedGraph document body is missing/)
+		const vue = getWxmlRenderer('vue')
+		expect(() => vue.render({ loaded: {} }, {})).toThrow(/\[wxml\] vue wxml renderer: LoadedGraph document body is missing/)
 		const withBody = parseWxml('<view/>')
-		expect(() => vue.render({ loaded: withBody }, {})).toThrow(/\[wxml\] vue backend: ctx\.tools\.transHtmlTag/)
+		expect(() => vue.render({ loaded: withBody }, {})).toThrow(/\[wxml\] vue wxml renderer: ctx\.tools\.transHtmlTag/)
 	})
 })
 
 describe('seam 结构锚定（fe-tools-wxml-ir）', () => {
-	it('toCompileTemplate 经 parse → load → getBackend（缝真实；直连内联即失败）', () => {
+	it('toCompileTemplate 经 parse → load → getWxmlRenderer（缝真实；直连内联即失败）', () => {
 		const span = toCompileTemplateSpan()
 		expect(span).toContain('parseWxml(')
 		expect(span).toContain('loadTemplates(')
-		expect(span).toContain('getBackend(')
-		expect(span).toContain("backend.render(")
+		expect(span).toContain('getWxmlRenderer(')
+		expect(span).toContain('renderer.render(')
 		expect(span).not.toContain('cheerio.load(')
 		expect(span).not.toContain('transHtmlTag(')
 	})

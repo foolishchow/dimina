@@ -1,15 +1,42 @@
 /**
- * parseWxml — 兼容入口（fe-tools-wxml-refactor · W3）。
+ * WXML parser 入口（fe-tools-wxml-refactor · W3）。
  *
- * 正式实现在 `parser/`；本文件 re-export，保持既有相对路径 import 可用。
- * 默认引擎为 napi（`WXML_PARSER` 缺省）；cheerio 经 `WXML_PARSER=cheerio` 回退。
+ * `process.env.WXML_PARSER ?? 'napi'` → 仅 `napi` | `cheerio`；非法值抛 `[wxml]`。
  */
+import { parseWxml as parseWxmlCheerio, PARSE_OPTIONS, projectDocument } from './cheerio/parse.js'
+import { parseWxml as parseWxmlNapi, documentFromSpanView, attrsFromOpeningTag } from './napi/parse.js'
+
+const ENGINES = new Set(['napi', 'cheerio'])
+
+/**
+ * @returns {'napi'|'cheerio'}
+ */
+export function resolveWxmlParserEngine(env = process.env) {
+	const raw = env?.WXML_PARSER
+	const engine = (raw == null || raw === '') ? 'napi' : String(raw)
+	if (!ENGINES.has(engine)) {
+		throw new Error(`[wxml] invalid WXML_PARSER=${JSON.stringify(engine)}; expected napi|cheerio`)
+	}
+	return engine
+}
+
+/**
+ * @param {string} source
+ * @param {{ sourceFile?: string }} [options]
+ */
+export function parseWxml(source, options = {}) {
+	const engine = resolveWxmlParserEngine()
+	if (engine === 'cheerio') {
+		return parseWxmlCheerio(source, options)
+	}
+	return parseWxmlNapi(source, options)
+}
+
 export {
-	parseWxml,
 	PARSE_OPTIONS,
 	projectDocument,
-	resolveWxmlParserEngine,
 	documentFromSpanView,
+	attrsFromOpeningTag,
 	parseWxmlCheerio,
 	parseWxmlNapi,
-} from './parser/index.js'
+}

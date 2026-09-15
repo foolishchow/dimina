@@ -19,13 +19,13 @@ import {
 	createWxs,
 	makeAttr,
 	makeValue,
-} from '../document.js'
-import { bindDocument } from '../document-ops.js'
+} from '../common/document.js'
+import { bindDocument } from '../common/document-ops.js'
 
 /**
  * @param {string} source
  * @param {{ sourceFile?: string }} [options]
- * @returns {import('../document.js').WxmlDocument}
+ * @returns {import('../common/document.js').WxmlDocument}
  */
 export function parseWxml(source, options = {}) {
 	const { sourceFile } = options
@@ -481,7 +481,7 @@ function convertSlot(slot, ctx) {
  * 从源码开标签解析属性（byte 扫描；保序；含 wx:* / hidden）。
  * @param {SourceContext} ctx
  * @param {{start:number,end:number}|null} span byte span
- * @returns {import('../document.js').Attr[]|null}
+ * @returns {import('../common/document.js').Attr[]|null}
  */
 export function attrsFromOpeningTag(ctx, span) {
 	if (!ctx?.buf || !span || typeof span.start !== 'number') {

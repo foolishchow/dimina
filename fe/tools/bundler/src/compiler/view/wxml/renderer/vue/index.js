@@ -1,12 +1,12 @@
 /**
- * vue backend（backend₀ · fe-tools-wxml-refactor · W2）。
+ * vue wxml renderer（wxml renderer₀ · fe-tools-wxml-refactor · W2）。
  *
  * 消费标准 Document / LoadedGraph；经 Document 操作面 normalize + serialize。
  * 不得经投影工具句柄访问树。
  */
-import { getRootChildren, getSourceOrigin, serialize } from '../document-ops.js'
+import { getRootChildren, getSourceOrigin, serialize } from '../../common/document-ops.js'
 
-export const VUE_BACKEND_ID = 'vue'
+export const VUE_RENDERER_ID = 'vue'
 
 /**
  * 展开后 Document → 行源表（html 行 → {source, line}；跨文件归位）。
@@ -87,15 +87,15 @@ function buildSourceContents(sourceTexts) {
 
 /**
  * @param {{ loaded: object }} input LoadedGraph（标准 Document + sourceTexts）
- * @param {object} ctx BackendContext（components / componentPlaceholder / tools）
+ * @param {object} ctx WxmlRendererContext（components / componentPlaceholder / tools）
  */
 function render({ loaded }, ctx = {}) {
 	const { components = {}, componentPlaceholder, tools } = ctx
 	if (!loaded || !Array.isArray(loaded.body)) {
-		throw new TypeError('[wxml] vue backend: LoadedGraph document body is missing — render must consume a LoadedGraph, not raw WXML source')
+		throw new TypeError('[wxml] vue wxml renderer: LoadedGraph document body is missing — render must consume a LoadedGraph, not raw WXML source')
 	}
 	if (!tools || typeof tools.transHtmlTag !== 'function') {
-		throw new TypeError('[wxml] vue backend: ctx.tools.transHtmlTag is required (transitional injection)')
+		throw new TypeError('[wxml] vue wxml renderer: ctx.tools.transHtmlTag is required (transitional injection)')
 	}
 	const { normalizeTemplateDom } = tools
 	if (typeof normalizeTemplateDom === 'function') {
@@ -137,7 +137,7 @@ function render({ loaded }, ctx = {}) {
 		code,
 		map: null,
 		meta: {
-			backend: VUE_BACKEND_ID,
+			backend: VUE_RENDERER_ID,
 			lineOrigins: alignedOrigins,
 			sourceContents: buildSourceContents(loaded.sourceTexts),
 			shifted,
@@ -145,7 +145,7 @@ function render({ loaded }, ctx = {}) {
 	}
 }
 
-export const vueBackend = Object.freeze({
-	id: VUE_BACKEND_ID,
+export const vueWxmlRenderer = Object.freeze({
+	id: VUE_RENDERER_ID,
 	render,
 })
