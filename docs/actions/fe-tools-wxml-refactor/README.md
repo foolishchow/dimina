@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-wxml-refactor`（已转正，2026-09-15）
 - Status: `draft`
-- Updated: 2026-09-15（W2 升级为 Document 标准形状；W3 降为纯装配——用户拍板后重排）
+- Updated: 2026-09-15（D-WR-7..9 拍板——待定清空；Readiness 在案）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝+Document+registry）；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥+SpanView）；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)（两轴目录归位——view/wxml/ 已就位）；`fe/tools/crates/dimina-wxml-parser`（483 tests）+ `dimina-wxml-parser-napi`（SpanView）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -75,16 +75,17 @@ Rust parser + napi 桥 + SpanView JSON 均已交付（483 tests + 7 用例）但
 | **D-WR-4** | **Document 对齐 Rust AST 契约**（`Document = Rust AST 形状 + JS 可变实例`） | 不可变性不迁移到 JS：body 为可变数组，transform 直接 splice/replace。双 parser 产出**同构** Document → 切换天然为真。D-WIR-2"形状指南"落地 |
 | **D-WR-5** | **契约分层**：napi 完整（attr span / directives / self_closing 全量），cheerio 缺省 `null` | cheerio 拿不到 attr 级 span。契约定义必填层（name/type/children/body/loc）+ 可选层（span/directives/self_closing）。transform 只消费必填层，可选层有值即用 |
 | **D-WR-6** | W2/W3 解耦：W2 做出双 parser 同构，W3 只是引擎装配 | 形状对齐后 napi 接入为纯构造——无形状适配层 |
+| **D-WR-7** | **契约分层**：JS Document 采完整形状（对齐 Rust AST）；`null` = 字段有明确意义但 parser 无法提供，`[]` = 空集合，**不使用字段缺失**；`Element.attrs` 统一 `Attr[]`（cheerio 也输出数组） | 消费者免 `?.` 与 parser 分支；属性 span 对 cheerio 可 `null`，结构字段不可缺 |
+| **D-WR-8** | **特殊节点类型化**：`include/import/wxs/template-def/template-ref/slot` 独立类型（`{type:'include', src, selfClosing}`），不依赖 `name` 字符串判别 | malformed 保留类型（`src:null` 仍为 include）——类型表达意图，`null` 表达缺失，诊断层报错；淘汰 `templateNodeKind()` 二次猜测 |
+| **D-WR-9** | **W2 行为 0 口径**：内部 IR 允许结构性变更（attrs 平铺→`Attr[]`）；验收以**产物 + sourcemap diff=0** + 全量回归为准，不以源码/中间 Document diff 为准 | 双 parser 语义对拍 fixture（类型/名/值分类/directives/span 对齐，属性 span cheerio 可 null 不计不等价） |
 
 ## 待定（Readiness 前需确认）
 
-1. **契约分层清单**：W2 冻结项——必填/可选字段逐字段标注（哪些 cheerio 缺省 `null`），对照 WXML-AST-TYPES.md 出分层表
-2. **特殊节点类型化**：include/import/wxs/template/slot 是否类型化（Rust Node enum 有分类；JS 目前靠 name 字符串）——类型化影响 transform 分支写法
-3. **W2 行为 0 口径**：attrs 平铺 → Vec 是结构性变更，transform 读取方式必然变（`node.attrs.find(...)`）——行为 0 如何维持（中间层适配 vs 直接改消费点，diff 仍 =0）
+无待定（D-WR-1..9 已全拍板）；Readiness 五件套按 README 结构补全即升 `ready`
 
 ## Status / 授权
 
-- 当前 **`draft`**：三病症+P-W4 + 三门 + D-WR-1..6 已定；待定 3 项拍板后补 Readiness 五件套
+- 当前 **`draft`**：三病症+P-W4 + 三门 + D-WR-1..9 全拍板；待定清空；Readiness 五件套补齐后升 `ready`
 - 未授权实施
 
 ## 闭合条件
@@ -101,3 +102,4 @@ Rust parser + napi 桥 + SpanView JSON 均已交付（483 tests + 7 用例）但
 | 2026-09-15 | 初稿：三病症 → 三门（W1 归位 / W2 dom 抽象 / W3 napi 接入） |
 | 2026-09-15 | **D-WR-1..3 拍板**：W2 简化（Document 方法面，去抽象层）；W3 默认 napi；对拍 = 语义等价 |
 | 2026-09-15 | **D-WR-4..6 拍板（用户拍板重排）**：W2 升级为 **Document 标准形状**（对齐 Rust AST：attrs→Vec / Value 三态 / directives / slot / selfClosing / 类型化特殊节点）；`Document = Rust AST 形状 + JS 可变实例`；契约分层（cheerio 缺省 null）；W3 降为**纯引擎装配**（形状已同构，无适配层）；Action 名转正 `fe-tools-wxml-refactor`；新增 P-W4（形状不一致） |
+| 2026-09-15 | **D-WR-7..9 拍板**：契约分层三语义（`null`/`[]`/无缺失，attrs 统一 `Attr[]`）；特殊节点类型化（独立类型 + malformed 保留类型，淘汰 `templateNodeKind()`）；W2 行为 0 = 产物+sourcemap diff=0（允许 IR 结构性变更）+ 双 parser 语义对拍 fixture。**待定清空**——D-WR-1..9 全拍板，Readiness 五件套在案 |
