@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * stub wxml renderer（测例桩 · fe-tools-wxml-ir · T-IR3）。
  *
@@ -5,13 +6,29 @@
  * WXML 字符串）；不要求可产物。仅测例 / 消融使用——生产路径仅 'vue'。
  */
 
+/**
+ * @typedef {import('../common/wxml-ir.types.js').WxmlRenderer} WxmlRenderer
+ * @typedef {import('../common/wxml-ir.types.js').WxmlRenderResult} WxmlRenderResult
+ * @typedef {import('../common/wxml-ir.types.js').LoadedGraph} LoadedGraph
+ */
+
 export const STUB_RENDERER_ID = 'stub'
 
+/**
+ * @param {{ onRender?: (record: object, input: object, ctx: object) => void }} [opts]
+ * @returns {WxmlRenderer & { calls: object[] }}
+ */
 export function createStubWxmlRenderer({ onRender } = {}) {
+	/** @type {object[]} */
 	const calls = []
 	return {
 		id: STUB_RENDERER_ID,
 		calls,
+		/**
+		 * @param {{ loaded?: LoadedGraph }} input
+		 * @param {object} [ctx]
+		 * @returns {WxmlRenderResult}
+		 */
 		render(input, ctx) {
 			const loaded = input?.loaded
 			const record = {
@@ -22,7 +39,7 @@ export function createStubWxmlRenderer({ onRender } = {}) {
 			}
 			calls.push(record)
 			if (typeof onRender === 'function') {
-				onRender(record, input, ctx)
+				onRender(record, input, /** @type {object} */ (ctx))
 			}
 			return { code: '', map: null, meta: { backend: STUB_RENDERER_ID, stub: true } }
 		},

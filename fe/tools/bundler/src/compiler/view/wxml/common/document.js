@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * WXML Document — 标准 IR 节点约定（fe-tools-wxml-refactor · W2）。
  *
@@ -7,6 +8,14 @@
  */
 
 /** @typedef {{ start: number, end: number }} Span */
+
+/**
+ * @typedef {object} Document
+ * @property {null|Span} [span]
+ * @property {object[]} body
+ * @property {string} [sourceFile]
+ * @property {string} [_source]
+ */
 
 /**
  * @typedef {object} Value
@@ -65,7 +74,10 @@ export function makeAttr(name, raw, span = null) {
 	return { span, name, value: makeValue(raw, null) }
 }
 
-/** Record / 元组列表 → Attr[] */
+/**
+ * Record / 元组列表 → Attr[] 
+ * @param {any} record
+ */
 export function attrsFromRecord(record) {
 	if (!record || typeof record !== 'object') {
 		return []
@@ -73,7 +85,10 @@ export function attrsFromRecord(record) {
 	return Object.entries(record).map(([name, raw]) => makeAttr(name, raw))
 }
 
-/** Attr[] → Record<string,string>（空值属性 → ''） */
+/**
+ * Attr[] → Record<string,string>（空值属性 → ''） 
+ * @param {any} attrs
+ */
 export function attrsToRecord(attrs) {
 	if (!attrs) {
 		return {}
@@ -81,6 +96,7 @@ export function attrsToRecord(attrs) {
 	if (!Array.isArray(attrs)) {
 		return { ...attrs }
 	}
+	/** @type {Record<string, any>} */
 	const out = {}
 	for (const attr of attrs) {
 		if (!attr || typeof attr.name !== 'string') {
@@ -91,6 +107,9 @@ export function attrsToRecord(attrs) {
 	return out
 }
 
+/**
+ * @param {any} attr
+ */
 export function attrValueRaw(attr) {
 	if (!attr || attr.value == null) {
 		return ''
@@ -101,6 +120,9 @@ export function attrValueRaw(attr) {
 	return attr.value.raw ?? ''
 }
 
+/**
+ * @param {any} [arg]
+ */
 export function createDocument({ body, sourceFile, span } = {}) {
 	return {
 		span: span ?? null,
@@ -110,16 +132,7 @@ export function createDocument({ body, sourceFile, span } = {}) {
 }
 
 /**
- * @param {object} opts
- * @param {string} opts.name
- * @param {Attr[]|Record<string,string>} [opts.attrs]
- * @param {object[]} [opts.children]
- * @param {null|Span} [opts.loc]
- * @param {null|Span} [opts.span]
- * @param {string} [opts.sourceFile]
- * @param {boolean} [opts.selfClosing]
- * @param {object[]} [opts.directives]
- * @param {null|object} [opts.slot]
+ * @param {any} [opts]
  */
 export function createElement({
 	name,
@@ -148,6 +161,9 @@ export function createElement({
 	}
 }
 
+/**
+ * @param {any} [arg]
+ */
 export function createTextNode({ value, loc, span, sourceFile } = {}) {
 	const resolvedSpan = span ?? loc ?? null
 	return {
@@ -159,6 +175,9 @@ export function createTextNode({ value, loc, span, sourceFile } = {}) {
 	}
 }
 
+/**
+ * @param {any} [arg]
+ */
 export function createCommentNode({ value, loc, span, sourceFile } = {}) {
 	const resolvedSpan = span ?? loc ?? null
 	return {
@@ -170,6 +189,9 @@ export function createCommentNode({ value, loc, span, sourceFile } = {}) {
 	}
 }
 
+/**
+ * @param {any} arg
+ */
 function baseSpecialFields({ attrs, children, loc, span, sourceFile, selfClosing = false }) {
 	const resolvedSpan = span ?? loc ?? null
 	const attrList = Array.isArray(attrs) ? attrs : attrsFromRecord(attrs)
@@ -185,6 +207,9 @@ function baseSpecialFields({ attrs, children, loc, span, sourceFile, selfClosing
 	}
 }
 
+/**
+ * @param {any} [opts]
+ */
 export function createInclude(opts = {}) {
 	const base = baseSpecialFields(opts)
 	const srcRaw = opts.src !== undefined ? opts.src : findAttrRaw(base.attrs, 'src')
@@ -195,6 +220,9 @@ export function createInclude(opts = {}) {
 	}
 }
 
+/**
+ * @param {any} [opts]
+ */
 export function createImport(opts = {}) {
 	const base = baseSpecialFields(opts)
 	const srcRaw = opts.src !== undefined ? opts.src : findAttrRaw(base.attrs, 'src')
@@ -205,6 +233,9 @@ export function createImport(opts = {}) {
 	}
 }
 
+/**
+ * @param {any} [opts]
+ */
 export function createWxs(opts = {}) {
 	const base = baseSpecialFields(opts)
 	const moduleName = opts.module !== undefined ? opts.module : findAttrRaw(base.attrs, 'module')
@@ -218,6 +249,9 @@ export function createWxs(opts = {}) {
 	}
 }
 
+/**
+ * @param {any} [opts]
+ */
 export function createTemplateDef(opts = {}) {
 	const base = baseSpecialFields(opts)
 	const tplName = opts.name !== undefined ? opts.name : findAttrRaw(base.attrs, 'name')
@@ -228,6 +262,9 @@ export function createTemplateDef(opts = {}) {
 	}
 }
 
+/**
+ * @param {any} [opts]
+ */
 export function createTemplateRef(opts = {}) {
 	const base = baseSpecialFields(opts)
 	const isName = opts.is !== undefined ? opts.is : findAttrRaw(base.attrs, 'is')
@@ -239,6 +276,9 @@ export function createTemplateRef(opts = {}) {
 	}
 }
 
+/**
+ * @param {any} [opts]
+ */
 export function createSlot(opts = {}) {
 	const base = baseSpecialFields(opts)
 	const slotName = opts.name !== undefined ? opts.name : findAttrRaw(base.attrs, 'name')
@@ -249,6 +289,10 @@ export function createSlot(opts = {}) {
 	}
 }
 
+/**
+ * @param {any} attrs
+ * @param {any} name
+ */
 function findAttrRaw(attrs, name) {
 	if (!Array.isArray(attrs)) {
 		return attrs?.[name]
@@ -257,7 +301,12 @@ function findAttrRaw(attrs, name) {
 	return found ? attrValueRaw(found) : undefined
 }
 
-/** 隐藏非枚举字段（parent / 过渡句柄） */
+/**
+ * 隐藏非枚举字段（parent / 过渡句柄） 
+ * @param {any} target
+ * @param {any} key
+ * @param {any} value
+ */
 export function attachProjection(target, key, value) {
 	Object.defineProperty(target, key, {
 		value,
@@ -268,6 +317,9 @@ export function attachProjection(target, key, value) {
 	return target
 }
 
+/**
+ * @param {any} node
+ */
 export function isElementLike(node) {
 	if (!node || typeof node !== 'object') {
 		return false
@@ -278,7 +330,10 @@ export function isElementLike(node) {
 	return false
 }
 
-/** 特殊节点判别（type 优先；兼容旧 element+name） */
+/**
+ * 特殊节点判别（type 优先；兼容旧 element+name） 
+ * @param {any} node
+ */
 export function isSpecialNode(node) {
 	if (!node) {
 		return false
@@ -289,7 +344,10 @@ export function isSpecialNode(node) {
 	return node.type === 'element' && SPECIAL_NODE_NAMES.includes(node.name)
 }
 
-/** template 定义 vs 引用 */
+/**
+ * template 定义 vs 引用 
+ * @param {any} node
+ */
 export function templateNodeKind(node) {
 	if (!node) {
 		return null
@@ -316,12 +374,17 @@ export function templateNodeKind(node) {
 /**
  * 属性值三态（D-WIR-7）。
  * 返回 Value 形：{ kind, raw, span }；保留 body 别名兼容旧断言。
+ * @param {any} raw
  */
 export function valueKind(raw) {
 	const value = makeValue(raw)
 	return { ...value, body: value.raw }
 }
 
+/**
+ * @param {any} sourceText
+ * @param {any} offset
+ */
 export function deriveLineColumn(sourceText, offset) {
 	if (typeof sourceText !== 'string' || typeof offset !== 'number' || offset < 0) {
 		return null
@@ -338,6 +401,9 @@ export function deriveLineColumn(sourceText, offset) {
 	return { line, column: offset - lineStart + 1 }
 }
 
+/**
+ * @param {any} node
+ */
 export function describeNodeLocation(node) {
 	if (!node) {
 		return ''
@@ -348,12 +414,17 @@ export function describeNodeLocation(node) {
 	return `${file}${locStr}`.trim()
 }
 
-/** 深拷贝树（剥离非枚举；供测例/诊断快照） */
+/**
+ * 深拷贝树（剥离非枚举；供测例/诊断快照） 
+ * @param {any} document
+ */
 export function plainTree(document) {
+	/** @param {any} node */
 	const walk = (node) => {
 		if (!node || typeof node !== 'object') {
 			return node
 		}
+		/** @type {Record<string, any>} */
 		const out = {}
 		for (const key of Object.keys(node)) {
 			const value = node[key]
@@ -376,4 +447,5 @@ export function plainTree(document) {
 	}
 }
 
-export const PROJECTION_KEYS = Object.freeze([])
+/** @type {readonly string[]} */
+export const PROJECTION_KEYS = Object.freeze(/** @type {string[]} */ ([]))

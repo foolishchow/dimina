@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * CompileTarget — 编译产物形态描述（fe-tools-compiler-target）。
  *
@@ -13,6 +14,12 @@
  *   → deriveStagePlan(target, bindings, opts) // 纯派生：stages / workerOptions / paths
  *
  * 「形态条件单源于 compile-target」：新增形态轴须经描述 + 派生，不得在闭包内散算。
+ */
+
+/**
+ * @typedef {import('./compile-target.types.js').CompileTarget} CompileTarget
+ * @typedef {import('./compile-target.types.js').LoadBindings} LoadBindings
+ * @typedef {import('./compile-target.types.js').StagePlan} StagePlan
  */
 
 import path from 'node:path'
@@ -31,8 +38,8 @@ const STAGE_TITLES = Object.freeze({
 /**
  * 从单次 run 选项构建静态 CompileTarget（fail-fast，消息与改道前逐字一致）。
  *
- * @param {object} runOptions
- * @returns {object} CompileTarget
+ * @param {any} runOptions
+ * @returns {CompileTarget}
  */
 export function createCompileTarget(runOptions) {
 	const {
@@ -80,7 +87,7 @@ export function createCompileTarget(runOptions) {
  * 阶段组装侧唯一 env 读取点（时机：collect-config 之后，ALS 已就绪）。
  * worker / 编译器内部读取不迁移（R-CT2 / F1）。
  *
- * @returns {{ miniGame: boolean, appId: string, pages: object, appStyleScopeId: string }}
+ * @returns {LoadBindings}
  */
 export function readLoadBindings() {
 	return {
@@ -92,7 +99,8 @@ export function readLoadBindings() {
 }
 
 /**
- * @param {unknown} bindings
+ * @param {any} bindings
+ * @returns {asserts bindings is LoadBindings}
  */
 function assertLoadBindings(bindings) {
 	// appId 可为 undefined（无 project.config appid 时与改道前 path.resolve 行为一致）
@@ -113,9 +121,10 @@ function assertLoadBindings(bindings) {
  *
  * `filteredPages` 为组装输入（affectedEntries 过滤结果），非 env；缺省回落 bindings.pages。
  *
- * @param {object} compileTarget
- * @param {object} bindings
- * @param {{ cwd: string, filteredPages?: object }} options
+ * @param {CompileTarget} compileTarget
+ * @param {LoadBindings} bindings
+ * @param {any} [options]
+ * @returns {object}
  */
 export function deriveStagePlan(compileTarget, bindings, { cwd, filteredPages } = {}) {
 	assertLoadBindings(bindings)

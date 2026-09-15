@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * loadTemplates — load 阶段（fe-tools-wxml-refactor · W2）。
  *
@@ -18,6 +19,9 @@ import {
 } from '../common/document-ops.js'
 import { parseWxml } from '../parse.js'
 
+/**
+ * @param {any} tools
+ */
 function requireTools(tools) {
 	const missing = ['transTagTemplate', 'transTagWxs', 'transAsses', 'resolveTemplateDependencyPath', 'collectIncludedComponentTags', 'processIncludedFileWxsDependencies', 'processIncludeConditionalAttrs', 'checkTemplateCompatibility']
 		.filter(name => typeof tools?.[name] !== 'function')
@@ -26,6 +30,9 @@ function requireTools(tools) {
 	}
 }
 
+/**
+ * @param {any} node
+ */
 function nodeLocSuffix(node) {
 	const loc = node?.loc || node?.span
 	if (loc && typeof loc.start === 'number' && typeof loc.end === 'number') {
@@ -34,6 +41,9 @@ function nodeLocSuffix(node) {
 	return ''
 }
 
+/**
+ * @param {any} env
+ */
 function requireEnv(env) {
 	const missing = ['getContentByPath', 'getDependencyGraph', 'getViewScriptTags']
 		.filter(name => typeof env?.[name] !== 'function')
@@ -43,9 +53,9 @@ function requireEnv(env) {
 }
 
 /**
- * @param {object} document parse 产物（标准 Document；可挂 `_source` 原文）
- * @param {object} ctx
- * @returns {object} LoadedGraph：展开后 Document + templateModule + scriptModule + sourceTexts
+ * @param {import('../common/wxml-ir.types.js').WxmlDocument} document parse 产物（标准 Document；可挂 `_source` 原文）
+ * @param {import('../common/wxml-ir.types.js').LoadTemplatesCtx} ctx
+ * @returns {import('../common/wxml-ir.types.js').LoadedGraph} LoadedGraph：展开后 Document + templateModule + scriptModule + sourceTexts
  */
 export function loadTemplates(document, ctx) {
 	const {
@@ -82,7 +92,9 @@ export function loadTemplates(document, ctx) {
 		sourceTexts.set(sourceFile, originalContent)
 	}
 
+	/** @type {any[]} */
 	const templateModule = []
+	/** @type {any[]} */
 	const scriptModule = []
 	const WIR_SRC = Symbol.for('db.wxml-bridge.source')
 
@@ -112,7 +124,8 @@ export function loadTemplates(document, ctx) {
 				includeContent = env.getContentByPath(includeFullPath)
 			}
 			catch (error) {
-				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${error?.message || error})`, { cause: error })
+				const err = /** @type {any} */ (error)
+				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${err?.message || error})`, { cause: error })
 			}
 			if (includeContent.trim()) {
 				sourceTexts.set(includeDiagnosticSource, includeContent)
@@ -197,7 +210,8 @@ export function loadTemplates(document, ctx) {
 				importContent = env.getContentByPath(importFullPath)
 			}
 			catch (error) {
-				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${error?.message || error})`, { cause: error })
+				const err = /** @type {any} */ (error)
+				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${err?.message || error})`, { cause: error })
 			}
 			if (importContent.trim()) {
 				sourceTexts.set(importDiagnosticSource, importContent)
@@ -233,12 +247,18 @@ export function loadTemplates(document, ctx) {
 	attachProjection(document, '_source', originalContent)
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
 
-	document.templateModule = templateModule
-	document.scriptModule = scriptModule
-	document.sourceTexts = sourceTexts
-	return document
+	const loaded = /** @type {import('../common/wxml-ir.types.js').LoadedGraph} */ (document)
+	loaded.templateModule = templateModule
+	loaded.scriptModule = scriptModule
+	loaded.sourceTexts = sourceTexts
+	return loaded
 }
 
+/**
+ * @param {any} node
+ * @param {any} key
+ * @param {any} entry
+ */
 function markOriginTree(node, key, entry) {
 	if (!node || typeof node !== 'object') {
 		return

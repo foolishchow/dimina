@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * 双 parser 语义对拍辅助（fe-tools-wxml-refactor · W3 · P-WR04）。
  *
@@ -7,13 +8,18 @@
 import { attrValueRaw } from './document.js'
 
 /**
- * @param {object} a
- * @param {object} b
+ * @typedef {import('./wxml-ir.types.js').WxmlDocument} WxmlDocument
+ */
+
+/**
+ * @param {any} a
+ * @param {any} b
  * @param {{ ignoreAttrSpan?: boolean }} [opts]
- * @returns {{ ok: boolean, path: string, reason?: string }}
+ * @returns {{ ok: boolean, path: string, reason?: string, diffs?: object[] }}
  */
 export function compareDocumentsSemantic(a, b, opts = {}) {
 	const ignoreAttrSpan = opts.ignoreAttrSpan !== false
+	/** @type {any[]} */
 	const diffs = []
 	walkCompare(a?.body || [], b?.body || [], 'body', diffs, ignoreAttrSpan)
 	if (a?.sourceFile !== undefined || b?.sourceFile !== undefined) {
@@ -27,6 +33,13 @@ export function compareDocumentsSemantic(a, b, opts = {}) {
 	return { ok: false, path: diffs[0].path, reason: diffs[0].reason, diffs }
 }
 
+/**
+ * @param {any} left
+ * @param {any} right
+ * @param {any} path
+ * @param {any} diffs
+ * @param {any} ignoreAttrSpan
+ */
 function walkCompare(left, right, path, diffs, ignoreAttrSpan) {
 	if (left.length !== right.length) {
 		diffs.push({ path, reason: `length ${left.length} !== ${right.length}` })
@@ -40,6 +53,13 @@ function walkCompare(left, right, path, diffs, ignoreAttrSpan) {
 	}
 }
 
+/**
+ * @param {any} a
+ * @param {any} b
+ * @param {any} path
+ * @param {any} diffs
+ * @param {any} ignoreAttrSpan
+ */
 function compareNode(a, b, path, diffs, ignoreAttrSpan) {
 	if (!a || !b) {
 		diffs.push({ path, reason: `missing node a=${!!a} b=${!!b}` })
@@ -108,6 +128,9 @@ function compareNode(a, b, path, diffs, ignoreAttrSpan) {
 	walkCompare(kidsA, kidsB, `${path}.children`, diffs, ignoreAttrSpan)
 }
 
+/**
+ * @param {any} node
+ */
 function semanticName(node) {
 	if (!node) {
 		return null
@@ -127,6 +150,13 @@ function semanticName(node) {
 	return node.name ?? null
 }
 
+/**
+ * @param {any} a
+ * @param {any} b
+ * @param {any} path
+ * @param {any} diffs
+ * @param {any} ignoreAttrSpan
+ */
 function compareAttrs(a, b, path, diffs, ignoreAttrSpan) {
 	const mapA = attrMap(a)
 	const mapB = attrMap(b)
@@ -156,7 +186,11 @@ function compareAttrs(a, b, path, diffs, ignoreAttrSpan) {
 	}
 }
 
+/**
+ * @param {any} attrs
+ */
 function attrMap(attrs) {
+	/** @type {Record<string, any>} */
 	const out = {}
 	for (const attr of attrs || []) {
 		if (!attr?.name) {
@@ -171,6 +205,12 @@ function attrMap(attrs) {
 	return out
 }
 
+/**
+ * @param {any} a
+ * @param {any} b
+ * @param {any} path
+ * @param {any} diffs
+ */
 function compareSpanOptional(a, b, path, diffs) {
 	if (!a || !b) {
 		return

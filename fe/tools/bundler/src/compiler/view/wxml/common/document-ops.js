@@ -1,8 +1,14 @@
+// @ts-check
 /**
  * Document 操作面（fe-tools-wxml-refactor · W2 · technical-design §4.2）。
  *
  * 只操作 JS Document 树；禁止 cheerio / _$ / _elem。
  * serialize 为纯 JS HTML 序列化，对齐 cheerio xmlMode + decodeEntities:false。
+ */
+
+/**
+ * @typedef {import('./wxml-ir.types.js').WxmlDocument} WxmlDocument
+ * @typedef {import('./document.js').Document} Document
  */
 import {
 	attachProjection,
@@ -17,10 +23,17 @@ import {
 
 const PARENT = new WeakMap()
 
+/**
+ * @param {any} node
+ */
 export function getParent(node) {
 	return PARENT.get(node) ?? null
 }
 
+/**
+ * @param {any} child
+ * @param {any} parent
+ */
 export function setParent(child, parent) {
 	if (child && typeof child === 'object') {
 		PARENT.set(child, parent ?? null)
@@ -28,11 +41,18 @@ export function setParent(child, parent) {
 	return child
 }
 
+/**
+ * @param {any} node
+ */
 function isDocument(node) {
 	return Boolean(node && Array.isArray(node.body) && !node.type)
 }
 
-/** 为子树建立 parent 链（parse 投影后 / 挂接后调用） */
+/**
+ * 为子树建立 parent 链（parse 投影后 / 挂接后调用） 
+ * @param {any} node
+ * @param {any} [parent]
+ */
 export function linkTree(node, parent = null) {
 	if (!node || typeof node !== 'object') {
 		return node
@@ -49,6 +69,9 @@ export function linkTree(node, parent = null) {
 	return node
 }
 
+/**
+ * @param {any} container
+ */
 function childList(container) {
 	if (!container) {
 		return null
@@ -62,6 +85,9 @@ function childList(container) {
 	return null
 }
 
+/**
+ * @param {any} node
+ */
 export function getTagName(node) {
 	if (!node) {
 		return null
@@ -85,6 +111,11 @@ export function getTagName(node) {
 	}
 }
 
+/**
+ * @param {any} node
+ * @param {any} selector
+ * @returns {boolean}
+ */
 function matchSelector(node, selector) {
 	if (!node || !selector) {
 		return false
@@ -119,10 +150,15 @@ function matchSelector(node, selector) {
 	return getTagName(node) === sel
 }
 
+/**
+ * @param {any} scope
+ * @param {any} [typeOrTag]
+ */
 export function queryAll(scope, typeOrTag = '*') {
+	/** @type {any[]} */
 	const out = []
 	const roots = resolveWalkRoots(scope)
-	walk(roots, (node) => {
+	walk(roots, (/** @type {any} */ node) => {
 		if (matchSelector(node, typeOrTag)) {
 			out.push(node)
 		}
@@ -130,10 +166,17 @@ export function queryAll(scope, typeOrTag = '*') {
 	return out
 }
 
+/**
+ * @param {any} scope
+ * @param {any} [typeOrTag]
+ */
 export function query(scope, typeOrTag = '*') {
 	return queryAll(scope, typeOrTag)[0] ?? null
 }
 
+/**
+ * @param {any} scope
+ */
 function resolveWalkRoots(scope) {
 	if (!scope) {
 		return []
@@ -147,8 +190,13 @@ function resolveWalkRoots(scope) {
 	return [scope]
 }
 
+/**
+ * @param {any} nodes
+ * @param {any} visitor
+ */
 export function walk(nodes, visitor) {
 	const list = Array.isArray(nodes) ? nodes : resolveWalkRoots(nodes)
+	/** @param {any} node */
 	const visit = (node) => {
 		if (!node) {
 			return
@@ -166,6 +214,10 @@ export function walk(nodes, visitor) {
 	}
 }
 
+/**
+ * @param {any} node
+ * @param {any} name
+ */
 export function getAttr(node, name) {
 	if (!node || !name) {
 		return undefined
@@ -185,13 +237,16 @@ export function getAttr(node, name) {
 	if (!Array.isArray(node.attrs)) {
 		return node.attrs?.[name]
 	}
-	const found = node.attrs.find(a => a.name === name)
+	const found = node.attrs.find((/** @type {any} */ a) => a.name === name)
 	if (!found) {
 		return undefined
 	}
 	return attrValueRaw(found)
 }
 
+/**
+ * @param {any} node
+ */
 export function listAttrs(node) {
 	if (!node) {
 		return []
@@ -202,6 +257,11 @@ export function listAttrs(node) {
 	return attrsFromRecord(node.attrs)
 }
 
+/**
+ * @param {any} node
+ * @param {any} name
+ * @param {any} value
+ */
 export function setAttr(node, name, value) {
 	if (!node || !name) {
 		return node
@@ -222,7 +282,7 @@ export function setAttr(node, name, value) {
 	if (!Array.isArray(node.attrs)) {
 		node.attrs = attrsFromRecord(node.attrs || {})
 	}
-	const idx = node.attrs.findIndex(a => a.name === name)
+	const idx = node.attrs.findIndex((/** @type {any} */ a) => a.name === name)
 	const next = makeAttr(name, raw)
 	if (idx >= 0) {
 		node.attrs[idx] = next
@@ -233,12 +293,16 @@ export function setAttr(node, name, value) {
 	return node
 }
 
+/**
+ * @param {any} node
+ * @param {any} name
+ */
 export function removeAttr(node, name) {
 	if (!node || !name) {
 		return node
 	}
 	if (Array.isArray(node.attrs)) {
-		node.attrs = node.attrs.filter(a => a.name !== name)
+		node.attrs = node.attrs.filter((/** @type {any} */ a) => a.name !== name)
 	}
 	else if (node.attrs && typeof node.attrs === 'object') {
 		delete node.attrs[name]
@@ -252,10 +316,16 @@ export function removeAttr(node, name) {
 	return node
 }
 
+/**
+ * @param {any} document
+ */
 export function getRootChildren(document) {
 	return Array.isArray(document?.body) ? document.body : []
 }
 
+/**
+ * @param {any} node
+ */
 export function getChildren(node) {
 	if (!node) {
 		return []
@@ -268,6 +338,10 @@ export function getChildren(node) {
 
 export { createElement }
 
+/**
+ * @param {any} parent
+ * @param {any} childOrContents
+ */
 export function append(parent, childOrContents) {
 	const list = childList(parent)
 	if (!list) {
@@ -285,6 +359,10 @@ export function append(parent, childOrContents) {
 	return parent
 }
 
+/**
+ * @param {any} ref
+ * @param {any} node
+ */
 export function insertBefore(ref, node) {
 	const parent = getParent(ref)
 	if (!parent) {
@@ -309,6 +387,9 @@ export function insertBefore(ref, node) {
 	return items[0] ?? null
 }
 
+/**
+ * @param {any} childOrContents
+ */
 function normalizeInsert(childOrContents) {
 	if (childOrContents == null) {
 		return []
@@ -322,6 +403,9 @@ function normalizeInsert(childOrContents) {
 	return [childOrContents]
 }
 
+/**
+ * @param {any} node
+ */
 export function removeNode(node) {
 	if (!node) {
 		return
@@ -341,6 +425,9 @@ export function removeNode(node) {
 	PARENT.delete(node)
 }
 
+/**
+ * @param {any} nodes
+ */
 export function removeAll(nodes) {
 	const list = Array.isArray(nodes) ? nodes.slice() : []
 	for (const node of list) {
@@ -348,6 +435,10 @@ export function removeAll(nodes) {
 	}
 }
 
+/**
+ * @param {any} scope
+ * @param {any} predicateOrTags
+ */
 export function removeMatching(scope, predicateOrTags) {
 	const nodes = typeof predicateOrTags === 'function'
 		? queryAll(scope, '*').filter(predicateOrTags)
@@ -357,6 +448,10 @@ export function removeMatching(scope, predicateOrTags) {
 	}
 }
 
+/**
+ * @param {any} oldNode
+ * @param {any} next
+ */
 export function replaceNode(oldNode, next) {
 	const parent = getParent(oldNode)
 	if (!parent) {
@@ -377,6 +472,10 @@ export function replaceNode(oldNode, next) {
 	return items
 }
 
+/**
+ * @param {any} document
+ * @param {any} [tag]
+ */
 export function wrapRootIfMulti(document, tag = 'view') {
 	const body = getRootChildren(document)
 	if (body.filter(isElementLike).length <= 1) {
@@ -393,6 +492,10 @@ export function wrapRootIfMulti(document, tag = 'view') {
 	return document
 }
 
+/**
+ * @param {any} node
+ * @param {any} [arg]
+ */
 export function getSourceOrigin(node, { sourceFile, sourceTexts, originKey } = {}) {
 	const key = originKey || Symbol.for('db.wxml-bridge.source')
 	let entry = null
@@ -418,6 +521,9 @@ export function getSourceOrigin(node, { sourceFile, sourceTexts, originKey } = {
 	return { source: file, line, entry }
 }
 
+/**
+ * @param {any} target
+ */
 export function serialize(target) {
 	if (!target) {
 		return ''
@@ -425,16 +531,22 @@ export function serialize(target) {
 	if (Array.isArray(target.body)) {
 		return target.body.map(serializeNode).join('')
 	}
-	if (Array.isArray(target) && target.length >= 0 && !target.type) {
+	if (Array.isArray(target) && target.length >= 0 && !(/** @type {any} */ (target)).type) {
 		return target.map(serializeNode).join('')
 	}
 	return serializeNode(target)
 }
 
+/**
+ * @param {any} node
+ */
 export function serializeChildren(node) {
 	return getChildren(node).map(serializeNode).join('')
 }
 
+/**
+ * @param {any} node
+ */
 function serializeNode(node) {
 	if (!node) {
 		return ''
@@ -455,19 +567,28 @@ function serializeNode(node) {
 	return `${open}${inner}</${tag}>`
 }
 
+/**
+ * @param {any} node
+ */
 function serializeAttrs(node) {
 	const attrs = listAttrs(node)
 	if (attrs.length === 0) {
 		return ''
 	}
 	// 不做实体转义：与 cheerio decodeEntities:false 往返保真
-	return attrs.map(attr => `${attr.name}="${attrValueRaw(attr)}"`).join(' ')
+	return attrs.map((/** @type {any} */ attr) => `${attr.name}="${attrValueRaw(attr)}"`).join(' ')
 }
 
+/**
+ * @param {any} node
+ */
 export function attrsRecord(node) {
 	return attrsToRecord(listAttrs(node))
 }
 
+/**
+ * @param {any} document
+ */
 export function bindDocument(document) {
 	if (!document || !Array.isArray(document.body)) {
 		return document

@@ -62,6 +62,10 @@ jobs:
       - name: Build packages
         working-directory: ./fe
         run: pnpm --filter "@dimina/common" --filter "@dimina/compiler" build
+
+      - name: Typecheck bundler
+        working-directory: ./fe
+        run: pnpm --filter @dimina/bundler typecheck
         
       - name: Run tests
         working-directory: ./fe

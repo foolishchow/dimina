@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * WxmlRenderer 注册表（fe-tools-wxml-ir · T-IR3）。
  *
@@ -6,21 +7,33 @@
  * R-WIR9：registry 配置错误带 `[wxml]` 前缀。
  */
 
-/** @type {Map<string, import('./vue/index.js').WxmlRenderer>} */
+/**
+ * @typedef {import('../common/wxml-ir.types.js').WxmlRenderer} WxmlRenderer
+ */
+
+/** @type {Map<string, WxmlRenderer>} */
 const registry = new Map()
 
+/**
+ * @param {unknown} renderer
+ * @param {string} [label]
+ */
 function assertWxmlRendererShape(renderer, label = 'registerWxmlRenderer') {
 	if (!renderer || typeof renderer !== 'object') {
 		throw new TypeError(`[wxml] ${label}: renderer must be an object`)
 	}
-	if (typeof renderer.id !== 'string' || !renderer.id) {
+	const r = /** @type {{ id?: unknown, render?: unknown }} */ (renderer)
+	if (typeof r.id !== 'string' || !r.id) {
 		throw new TypeError(`[wxml] ${label}: renderer.id must be a non-empty string`)
 	}
-	if (typeof renderer.render !== 'function') {
+	if (typeof r.render !== 'function') {
 		throw new TypeError(`[wxml] ${label}: renderer.render must be a function`)
 	}
 }
 
+/**
+ * @param {WxmlRenderer} renderer
+ */
 export function registerWxmlRenderer(renderer) {
 	assertWxmlRendererShape(renderer)
 	if (registry.has(renderer.id)) {
@@ -29,14 +42,25 @@ export function registerWxmlRenderer(renderer) {
 	registry.set(renderer.id, renderer)
 }
 
+/**
+ * @param {string} id
+ * @returns {boolean}
+ */
 export function unregisterWxmlRenderer(id) {
 	return registry.delete(id)
 }
 
+/**
+ * @param {string} id
+ * @returns {WxmlRenderer|null}
+ */
 export function getWxmlRenderer(id) {
 	return registry.get(id) ?? null
 }
 
+/**
+ * @returns {string[]}
+ */
 export function listWxmlRenderers() {
 	return [...registry.keys()]
 }
