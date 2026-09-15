@@ -1,10 +1,10 @@
 # FE Tools Compiler Layering
 
 - Action: `fe-tools-compiler-layering`
-- Status: `in_progress`
-- Updated: 2026-09-15（L0 实施授权开工；基线 `5c4ce74f`）
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝已交付）；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView 已交付）；`fe/tools/crates/dimina-wxml-parser`（483 tests 绿）；architecture-notes「WXML SpanSource」节
+- Status: `complete`
+- Updated: 2026-09-15（L0 交付 `a73c7377`；A-CL0..04 全 pass（A-CL1 修正）；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（缝已交付）；[`fe-tools-wxml-bridge`](../fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView 已交付）；`fe/tools/crates/dimina-wxml-parser`（483 tests 绿）；architecture-notes「WXML SpanSource」节
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -150,7 +150,7 @@ src/compiler/
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-15）：三轮 review 收敛（F1-F8 全清）；**L0 实施已授权开工**；基线 `5c4ce74f`（validation Actual 届时回填）
+- 终局 **`complete`**（2026-09-15）：L0 交付（两轴结构 + WORKER_ENTRY + 根级 index.js 删除）；A-CL0..04 全 pass（A-CL1 修正：函数拆散推迟——嵌套函数不可零行为拆出）；559/559 + diff=0；归档。
 
 ## 闭合条件
 
@@ -170,5 +170,7 @@ src/compiler/
 | 2026-09-15 | Review R1 F1–F6 修正：归属表补全为 61 函数穷举清单；纯移动例外成文（worker spawn 显式映射 + 12 spec import 更新）；expression-parser 撞名澄清；view/index.js 聚合注记 |
 | 2026-09-15 | Review R2 F7：结构图漏 2 文件（compatibility-reference.js / renderers.js）→ 补入 core/；R2 结论 pass-with-findings 清零 |
 | 2026-09-15 | 升 **`in_progress`**：L0 实施授权开工；基线 `5c4ce74f` |
+| 2026-09-15 | **L0 交付**（`a73c7377`）：两轴目录归位 + WORKER_ENTRY + 根级 index.js 删除 + ~40 src + 38 spec import 更新；**A-CL1 修正：函数级拆散推迟（27/61 嵌套函数）**；559/559 + code/sourcemap diff=0 |
+| 2026-09-15 | **Close：升 complete 并归档**——闭合条件核验（L0 交付 / A 全 pass / 行为 0 / 结构回流 / STATUS 一致） |
 | 2026-09-15 | Readiness 五件套成稿；升 **`ready`**（R-CL0..4 / A-CL0..04 / P-CL00..06；无消融——纯移动证据链 = 穷举+diff=0+全量绿） |
 | 2026-09-15 | Review R3 F8：根级 `compiler/index.js`（re-export compileConfig）归属定案——删根级、build-pipeline 直接 import `pipeline/config-compiler.js`；12 spec 清单与实际 grep 逐项核对一致 |
