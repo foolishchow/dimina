@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-wxml-parser-dist`
 - Status: `draft`
-- Updated: 2026-09-15（讨论收敛：A 路线（napi 矩阵）优于 wasm；CI 破损实证在案；待定 3 项）
+- Updated: 2026-09-15（D-WX-1..8 全拍板：会发布 npm / .node P0 即退 git / CI 无时长预算；待定清空）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView；parser/binding 分 crates 按 oxc 先例）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（`WXML_PARSER` 默认 **napi**——放大分发缺口）；`fe/tools/crates/dimina-wxml-parser`（483 tests，swc 类型库 + `swc_ecma_parser`）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -72,16 +72,17 @@
 | **D-WX-3** | `index.js` 双态解析：本地 dev 优先加载 workspace 现场 `.node`（`pnpm build` 产出）；发布态走 `optionalDependencies` 子包（平台检测） | oxc 同款 |
 | **D-WX-4** | `index.node` **退出 git 追踪**（`.gitignore`）——本地由 `pnpm build` 产出、CI 由构建步骤产出 | 消除二进制入库；过渡策略见待定 ② |
 | **D-WX-5** | cargo cache 键 = `fe/tools/crates/Cargo.lock` hash；CI 增量构建 | 首次全量分钟数记录入 validation |
+| **D-WX-6**（拍板） | bundler **会发布 npm** → P1 全深度：5 平台子包 + `optionalDependencies` + 发版流 | 原待定 ① |
+| **D-WX-7**（拍板） | `.node` **P0 即退 git 追踪**（`git rm --cached` + `.gitignore`）；dev 前置 = Rust 工具链 + `pnpm build`（wxml-parser-napi）；P0 的 CI 构建同时让 x64 立即可用 | 原待定 ②——不等 P1 |
+| **D-WX-8**（拍板） | CI 时长**无预算** → 单 job 内构建（不拆 matrix job、不做产物 artifact 缓存）；cargo cache 照做（D-WX-5 保留，便宜且标准） | 原待定 ③ |
 
-## 待定（Readiness 前需确认）
+## 待定
 
-1. **bundler 是否真发布 npm**：影响 P1 深度（若永不发布，P1 退化为「CI 可构建 + 本地双态」即可，子包化/发版流可砍）
-2. **`.node` 退 git 的过渡策略**：P0 时即退（团队 clone 后需一次性 `cargo build`——Rust 工具链成为 dev 前置）vs P1 子包就绪后再退（期间 x64 仍不可用）
-3. **CI 时长预算**：swc 依赖树全量编译分钟数（cache 命中前）——超出预算则考虑构建产物 artifact 缓存或 matrix 拆 job
+无（D-WX-1..8 已全拍板）；Readiness 五件套补齐后升 `ready`
 
 ## Status / 授权
 
-- 当前 **`draft`**：三病症 + A/B 对比 + P0/P1 门 + D-WX-1..5 建议在案；**待定 3 项拍板后补 Readiness 五件套**
+- 当前 **`draft`**：三病症 + A/B 对比 + P0/P1 门 + D-WX-1..8 全拍板（待定清空）；Readiness 五件套补齐后升 `ready`
 - 未授权实施
 
 ## 闭合条件
@@ -96,3 +97,4 @@
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-15 | 初稿：CI 破损实证（本地模拟 `.node` 缺失复现）→ P0 止血 + P1 矩阵两门；A/B 路线对比收敛（A 优先；swc wasm plugin 概念澄清入档）；D-WX-1..5 建议；3 项待定 |
+| 2026-09-15 | **待定拍板 → D-WX-6..8**：bundler 会发布 npm（P1 全深度）；`.node` P0 即退 git（dev 前置 = Rust + pnpm build）；CI 无时长预算（单 job 构建，cache 照做）。**待定清空** |
