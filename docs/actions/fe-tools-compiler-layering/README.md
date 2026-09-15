@@ -1,8 +1,8 @@
 # FE Tools Compiler Layering
 
-- Action: `fe-tools-compiler-layering`（暂名，转正见待定 ④）
+- Action: `fe-tools-compiler-layering`
 - Status: `draft`
-- Updated: 2026-09-15（方案 A 确认；wxml 改造移出到 TODO 候选；本 Action 只做 L0）
+- Updated: 2026-09-15（方案 A 确认；wxml 改造移出 TODO；3 项待定全部拍板）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝已交付）；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView 已交付）；`fe/tools/crates/dimina-wxml-parser`（483 tests 绿）；architecture-notes「WXML SpanSource」节
 - 工作分支：`feature/fe-tools-sidecar`
@@ -117,15 +117,17 @@ src/compiler/
 | --- | --- | --- |
 | **L0 目录归位**（唯一门） | compiler/ 平铺 → 方案 A 两轴分组；`wxml/` → `view/wxml/`；wxs 从 view-compiler 抽出；view-compiler 2420 行拆散归位 | **行为 0**（纯 git mv + import 更新，零函数体变更）；全量 vitest 绿；code diff=0；目录结构可对照本 README 归属表指认 |
 
-## 待定（Readiness 前需确认）
+## 决策记录（已拍板 · 2026-09-15，全部照建议）
 
-1. **expression-parser 归属**：view/expression/（view 插值专用）还是 core/expression-parser.js（暂定 core，未来 logic 复用时再迁）
-2. **view/index.js vs pipeline/**：compileML/buildCompileView 编排入口归 view/index.js（域内编排）还是 pipeline/（跨域编排）——暂定 view/index.js（它编排的是 view 内部子域，不是跨域）
-3. **Action 名**：`fe-tools-compiler-layering`（建议）/ `fe-tools-view-restructure`
+| # | 决策点 | 拍板结论 |
+| --- | --- | --- |
+| **D-CL-1** | expression-parser 归属 | **core/**（`core/expression-parser.js`）——view 插值当前唯一消费方，但它是通用 JS 表达式解析器，未来 logic/wxs 可复用；归 core 避免过早域绑定 |
+| **D-CL-2** | 编排入口归属 | **view/index.js**——compileML/buildCompileView/compileModule/compileModuleWithAllWxs 编排的是 view 内部子域（wxml/wxs/expression/asset），不是跨域编排；跨域编排在 pipeline/build-pipeline.js |
+| **D-CL-3** | Action 名 | `fe-tools-compiler-layering` **转正** |
 
 ## Status / 授权
 
-- 当前 **`draft`**：四问题 + 两轴目录 + 实施顺序已定；待定 4 项拍板后补 Readiness 五件套
+- 当前 **`draft`**：四问题 + 方案 A 两轴 + D-CL-1..3 已拍板；**可补 Readiness 五件套升 ready**
 - 未授权实施
 
 ## 闭合条件
@@ -142,3 +144,4 @@ src/compiler/
 | 2026-09-15 | 初稿：三问题（cheerio 污染 / 平铺混乱 / wxs 寄生）→ 三门（L0 归位 / L1 dom 抽象 / L2 napi 接入）；Non-goals 明确 logic/style/wxs 不细分；4 项待定 |
 | 2026-09-15 | **顺序调整 + 目录维度修正**：L0 先独立合入（纯移动快速审阅）；npm 归 core/（两轴：编译域 wxml/logic/style/wxs + 基建/管线 core/pipeline）；新增 P-L4（npm 两轴混淆病症） |
 | 2026-09-15 | **方案 A + wxml 改造移出**：域名 wxml→view（view 渲染域含 wxml/wxs/expression/asset/template 子域——wxs 寄生 view 是架构现实）；L1 dom 抽象 + L2 napi 移到 TODO 候选（前置 = 本 Action 合入）；本 Action 收窄为纯 L0（唯一门，零函数体变更）；函数归属表入档 |
+| 2026-09-15 | **D-CL-1..3 全部拍板**（照建议）：expression-parser → core/；编排入口 → view/index.js；Action 名转正 `fe-tools-compiler-layering` |
