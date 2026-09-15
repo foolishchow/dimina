@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-wxml-refactor
 
-Status: **实施中（`in_progress`）** — W1–W3 已交付；A-\* 全 pass；待 Close / 归档。
+Status: **`complete`（归档）** — A-WR0..5 全 pass；证据绑定交付 commit `13c9c902`。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

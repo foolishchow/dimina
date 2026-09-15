@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-wxml-refactor
 
-Status: **`in_progress`** — 基线 `342af2f5`；**W1–W3 已交付**；待 Close。
+Status: **`complete`（归档）** — 基线 `342af2f5`；交付 commit `13c9c902`；W1–W3 全门通过。
 
 ## 基线与纪律
 

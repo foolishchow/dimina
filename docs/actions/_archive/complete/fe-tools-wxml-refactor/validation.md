@@ -1,8 +1,8 @@
 # Validation — fe-tools-wxml-refactor
 
-Status: **冻结（随 Action `ready`）** — P-WR01..07；实施后回填 Result。
+Status: **`complete`（归档）** — P-WR00..07 全 pass；Close 复验绑定 `13c9c902`。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
@@ -63,7 +63,7 @@ diff -rq "$WORK/cheerio-sm" "$WORK/napi-sm"
 
 ## Actual
 
-（2026-09-15 · W3 实施回填）
+（2026-09-15 · Close 复验绑定交付 commit **`13c9c902`**）
 
 | ID | Result |
 | --- | --- |
@@ -72,8 +72,8 @@ diff -rq "$WORK/cheerio-sm" "$WORK/napi-sm"
 | P-WR02 | pass — Attr[]/特殊 type/无缺键；load/vue/vue-tools/transform 零 cheerio/`_$`/`_elem`；§4.6 Document 薄适配 |
 | P-WR03 | pass — include/import/origin 测例与全量回归（随 P-WR05） |
 | P-WR04 | pass — 默认 `napi`；`WXML_PARSER=cheerio` 可用；非法值抛 `[wxml] invalid WXML_PARSER=...; expected napi\|cheerio`；`__tests__/wxml-parser-switch.spec.js` 21/21 |
-| P-WR05 | pass — `npx vitest run --no-file-parallelism` → **580/580**（79 files） |
-| P-WR06 | pass — `examples/miniprogram/base`：`WXML_PARSER=cheerio` vs `napi`，nomap + sourcemap `diff -rq` 均为 **0**；W1/W2 相对基线 `342af2f5` 亦 diff=0 |
+| P-WR05 | pass — Close 复验 `13c9c902`：`npx vitest run --no-file-parallelism` → **580/580**（79 files） |
+| P-WR06 | pass — Close 复验 `13c9c902`：`examples/miniprogram/base` cheerio vs napi，nomap + sourcemap `diff -rq` 均为 **0**；W1/W2 相对基线 `342af2f5` 亦 diff=0 |
 | P-WR07 | pass — 分项消融后均按目标断言失败，恢复后同命令通过（见下） |
 
 ### P-WR07 消融摘记

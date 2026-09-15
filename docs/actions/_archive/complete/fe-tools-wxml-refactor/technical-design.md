@@ -50,7 +50,7 @@ JS 可变不代表 Rust AST 可变性迁移：W2 的 replace/remove 直接操作
 
 **非本门（仍计在 24 内，W1 不搬）：** `transTagWxs` → 按 layering 归 `view/wxs/`（可继续暂留 `view/index.js` 直至 wxs 归位 Action）。
 
-来源：[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md) 归属表；**本表为本门唯一权威**，归档表若漂移以本表 + 实施时 grep 为准并回流修订。
+来源：[`fe-tools-compiler-layering`](../fe-tools-compiler-layering/README.md) 归属表；**本表为本门唯一权威**，归档表若漂移以本表 + 实施时 grep 为准并回流修订。
 
 当前 23 个函数均为顶层定义，允许逐函数搬迁；**W1** 函数体与签名逐字保持。新模块导出函数，`view/index.js` 重新导入并继续组装现有 `ctx.tools`。模块级依赖走稳定相对路径；尚未归位的 expression/wxs/asset 辅助符号用过渡 re-export/live binding——**W1 禁止改其实现**（含仍接收 `$`）。模块加载测试覆盖 ESM worker 图，避免 TDZ。**W2** 再按 §4.2/§4.5/§4.6 改访问面与签名（含对 `transTagWxs` / `transAsses` 的薄适配）。
 

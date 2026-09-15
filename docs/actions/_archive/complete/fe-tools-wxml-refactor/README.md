@@ -1,10 +1,10 @@
 # FE Tools WXML Refactor
 
 - Action: `fe-tools-wxml-refactor`（已转正，2026-09-15）
-- Status: `in_progress`
-- Updated: 2026-09-15（W1–W3 已实施；P-WR05 580/580；P-WR06 napi↔cheerio diff=0）
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)；`fe/tools/crates/dimina-wxml-parser` + `dimina-wxml-parser-napi`
+- Status: `complete`
+- Updated: 2026-09-15（W1–W3 交付；Close 复验 `13c9c902` 580/580 + P-WR06 diff=0；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)；[`fe-tools-wxml-bridge`](../fe-tools-wxml-bridge/README.md)；[`fe-tools-compiler-layering`](../fe-tools-compiler-layering/README.md)；`fe/tools/crates/dimina-wxml-parser` + `dimina-wxml-parser-napi`
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -86,13 +86,13 @@ Rust parser + napi + SpanView 已交付但**只在测试中可用**。
 
 ## Status / 授权
 
-- 当前 **`in_progress`**：基线 `342af2f5`；**W1–W3 已交付**（A-WR0..5 / P-WR00..07 全 pass；580/580）；architecture-notes 已回流；**待 Close / 归档**
+- 当前 **`complete`**：基线 `342af2f5`；交付 **`13c9c902`**；A-WR0..5 / P-WR00..07 全 pass；Close 复验 580/580 + P-WR06 diff=0；architecture-notes 已回流；**已归档**
 
 ## 闭合条件
 
-- W1–W3 交付；A-\* 全 pass；消融按 Experience §6  
-- W1/W2/W3 行为 0 证据按上门表；Document 契约 + parser 开关回流 architecture-notes  
-- STATUS/归档一致；`fe/packages` 零污染  
+- W1–W3 交付；A-\* 全 pass；消融按 Experience §6 — **满足**
+- W1/W2/W3 行为 0 证据按上门表；Document 契约 + parser 开关回流 architecture-notes — **满足**
+- STATUS/归档一致；`fe/packages` 零污染 — **满足**
 
 ## 修订记录
 
@@ -102,3 +102,4 @@ Rust parser + napi + SpanView 已交付但**只在测试中可用**。
 | 2026-09-15 | **Review F-WR-R1 修**：24/23 统一；§3 函数穷举；§4.2 操作面；Status 子文档；消融纪律；P-WR06 可复跑；Residual；D-WR-5/7 澄清；TODO 去 ctx.dom |
 | 2026-09-15 | **Review F-WR-R2 修**：§4.2 按 load/vue/tools 补全；§4.5 normalize 去 cheerio 环路；W1 逐字 / W2 可改访问面与签名 |
 | 2026-09-15 | **Review F-WR-R3 修**：§4.6 `transTagWxs`/`transAsses` Document 薄适配；W1「禁止改 wxs/asset」收窄 |
+| 2026-09-15 | **Close**：交付 `13c9c902`；复验 580/580 + P-WR06；升 `complete` 并归档 |

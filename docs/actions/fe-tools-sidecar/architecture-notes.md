@@ -129,7 +129,7 @@ sourcemap 归位:      inMap 消费 SpanView 真 span（行级正确 + 列级可
 
 **结构不变量**：SpanView 不含表达式负载（`.expr/.object`）；`sourceFile` 透传；span 语义与 PARSING-SPEC §0.4 / D-WIR-5 一致（半开 byte、文件内局部）。后续 W3+（换投影/表达式消费）沿用此桥面扩展。
 
-## WXML 标准 Document + 双 Parser（fe-tools-wxml-refactor · 已交付待 Close 2026-09-15）
+## WXML 标准 Document + 双 Parser（fe-tools-wxml-refactor · complete 2026-09-15）
 
 路径：`fe/tools/bundler/src/compiler/view/wxml/`（layering 后落点）。
 
@@ -200,4 +200,4 @@ backends/vue-tools  Vue 降级工具袋（Document normalize；无 cheerio 环�
 | 2026-09-14 | **回流 fe-tools-session-unify（complete）**：Session 执行内核（composeOptions / runOnce / assertLoopFree / occupyLoop / releaseLoop）+ 结构不变量「新增执行入口必须经内核」入档 |
 | 2026-09-14 | **回流 fe-tools-wxml-ir（complete）**：WXML parse→Document→load→Backend 缝 + 结构不变量「新模板后端必须经 registry 挂载」入档；S13 view 侧收口 |
 | 2026-09-14 | **回流 fe-tools-compiler-target（complete）**：CompileTarget 两段 API + 结构不变量「形态条件单源于 compile-target」+ E1 双重解析不变量入档 |
-| 2026-09-15 | **回流 fe-tools-wxml-refactor（交付待 Close）**：标准 Document + Document 操作面；`WXML_PARSER` 默认 napi；零 cheerio 泄漏不变量入档 |
+| 2026-09-15 | **回流 fe-tools-wxml-refactor（complete `13c9c902`）**：标准 Document + Document 操作面；`WXML_PARSER` 默认 napi；零 cheerio 泄漏不变量入档；已归档 |
