@@ -1,10 +1,10 @@
 # FE Tools WXML Bridge
 
 - Action: `fe-tools-wxml-bridge`
-- Status: `in_progress`
-- Updated: 2026-09-14（W0..W2 交付：`83426240`/`10789db2`/`1853a6a9`；A-WB0..05 全 pass；待 Close）
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝已交付；D-WIR-1「仅 JS」约束由本门修订）；`docs/wxml/` 七份规范；`fe/tools/crates/dimina-wxml-parser`（Rust parser，483 tests 绿）
+- Status: `complete`
+- Updated: 2026-09-14（W0..W2 交付；A-WB0..05 全 pass；消融 ×2；D-WIR-1 修订回流；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)（缝已交付；D-WIR-1「仅 JS」约束由本门修订）；`docs/wxml/` 七份规范；`fe/tools/crates/dimina-wxml-parser`（Rust parser，483 tests 绿）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 问题陈述
@@ -72,7 +72,7 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-14）：**W0..W2 已交付**——napi 桥 + SpanView（W1）+ sourcemap 跨文件归位（W2，无 include 页行为 0 硬不变量）；A-WB0..05 全 pass；**待 Close 评估**
+- 终局 **`complete`**（2026-09-14）：W0..W2 交付（`83426240`/`10789db2`/`1853a6a9`）；A-WB0..05 全 pass；消融 ×2；D-WIR-1 修订与结构不变量已回流 architecture-notes；归档。
 
 ## 闭合条件
 
@@ -94,4 +94,5 @@ B 轨道(deferred): Rust 宿主（本门仅桥接单 crate，非工具链 Rust �
 | 2026-09-14 | Review R6 F20：serde derives 与 `#[ast_node]` 兼容风险——手写 serializer 兜底入档（design/plan），W1 首步定二选一；**review 循环终止**（六轮 25 items 全清） |
 | 2026-09-14 | 升 **`in_progress`**：W0..W2 实施授权开工；基线 `d75f001a` |
 | 2026-09-14 | **W0..W2 交付**（`83426240`/`10789db2`/`1853a6a9`）：napi 桥（手写 serializer SpanView）+ sourcemap 跨文件归位（Symbol 打标 + 行源表 + 硬不变量）。验证：559/559；code diff=0；无 include 页 sourcemap diff=0；消融 ×2。A-WB0..05 全 pass |
+| 2026-09-14 | **Close：升 complete 并归档**——闭合条件逐项核验（W0-W2 交付 / A 全 pass / 消融 ×2 / 断言框架 / D-WIR-1 回流 / VENDOR 主从 / packages 零污染）；链接随归档调整 |
 | 2026-09-14 | Review R3 F13：Cargo.lock 入库决策（可复现构建；`fe/.gitignore` 加例外；W1 依赖变更时更新） |
