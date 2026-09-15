@@ -27,6 +27,16 @@
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
 
+### WXML 双 Parser 改造（ctx.dom 抽象 + napi 接入）——候选（2026-09-15）
+
+| Field | Value |
+| --- | --- |
+| 问题 | `wxml/transform`（load.js）与 `backends/vue.js` 直接操作 cheerio DOM——双 parser "可切换"是假的（切 napi 后 transform 崩溃） |
+| 目标 | ① transform 层定义 `ctx.dom` IR 操作接口（findInclude / replaceWith / removeNodes / serialize…），cheerio 实现之，transform 零 cheerio import；② `wxml/parser/napi.js`（SpanView → Document IR 适配）；③ `WXML_PARSER=napi` 切换开关 |
+| 前置 | [`fe-tools-compiler-layering`](fe-tools-compiler-layering/README.md) L0 目录归位先合入（建 `view/wxml/` 结构上开发） |
+| 待定 | ctx.dom 最小/完整操作集；两版 Document 对拍口径（deep-equal vs 抽样） |
+| 正式化时机 | layering L0 合入后 |
+
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
 | Field | Value |
