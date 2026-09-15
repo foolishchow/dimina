@@ -69,6 +69,17 @@
 | 待定 | 无（D-TD-1..16 已拍板） |
 | 前置 | typecheck Close/合入后再实施（D-TD-12） |
 
+### napi parser 产标准 Document 形状（删 documentFromSpanView 翻译器）——候选（2026-09-15 · 讨论收敛）
+
+| Field | Value |
+| --- | --- |
+| 问题 | 双形状：Rust 产 SpanView（byte span/struct 语义）→ JS `documentFromSpanView` 翻译成标准 Document（char loc/attrs[]/directives/slot）；~300+ 行翻译器 + 双形状维护 |
+| 方向（C） | **Rust 直接序列化标准 Document 形状**（char loc 用 `char_indices`、attrs[].raw 补齐、特殊节点标准化）——parse 结果即 Document，删翻译器；cheerio 路径本就产标准形状 → 双 parser 同构不变量依然成立（D-WR-4 ✓） |
+| 否决（B） | Document = value 访问封装（接口层包两层）——复活 D-WR-1 否决的 ctx.dom 抽象层；cheerio 侧要造等价翻译器，工作量转移非消失 |
+| 最大风险 | `attrs[i].raw` 语义与现状一致（现翻译器有时从 opening tag 文本再解析）→ 需专项 raw 对拍 + 全量回归守行为 0 |
+| 收益 | 删整翻译器；形状唯一（Standard 契约）；Rust 权威一次产出；少一次 JS 遍历/对象构建 |
+| 形态（若做） | 小 Action `fe-tools-wxml-spanview-standardize`；门 = Rust 重写 + 删翻译器 + parity/switch 对拍扩量 + 行为 0 |
+
 ### Bundler 全量 TS 迁移——候选（2026-09-15 · 讨论后暂缓）
 
 | Field | Value |
