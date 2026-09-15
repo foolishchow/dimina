@@ -27,7 +27,7 @@
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
 
-### WXML 双 Parser 改造（ctx.dom 抽象 + napi 接入）——候选（2026-09-15）
+### WXML 双 Parser 改造——已 formalize 为 `fe-tools-wxml-refactor`（2026-09-15）
 
 | Field | Value |
 | --- | --- |
