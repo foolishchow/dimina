@@ -59,6 +59,21 @@ npm-builder / npm-resolver 是**依赖解析基建**（被 env.js 消费、服�
 
 **方案 A**（view 域含子域）+ **wxml 改造移出本 Action**——L0 独立合入后，下一 Action（wxml 双 parser）建在 `view/wxml/` 结构上开发。
 
+### 纯移动的例外（F2/F3）
+
+L0 不是 100% 纯移动——有两处必要的路径修正（行为 0 仍保，spawn/import 目标不变）：
+
+1. **worker spawn 文件名约定断裂**（F2）：`stage-channel.js:38` 用 `./${script}-compiler.js` 同目录约定 spawn 三个编译器 worker。L0 移动后路径断裂。修正：改为**显式映射**：
+   ```js
+   const WORKER_ENTRY = {
+     view: './view/index.js',
+     logic: './logic/index.js',
+     style: './style/index.js',
+   }
+   new Worker(path.join(dirname, WORKER_ENTRY[script]), …)
+   ```
+2. **测试 import 更新**（F3）：12 个 spec 文件直接 `from '../src/compiler/view-compiler.js'` 等——全部更新到新路径（host-selector / import-support / import-to-require-transformation / include-conditional-attrs / logic-compiler-assets / logic-component-traversal / npm-view-script-custom-loading / require-path-resolution / style-compiler / template-prefix / typescript-support / view-compiler）。
+
 ## 目录维度（两轴）
 
 ```text
@@ -76,10 +91,10 @@ src/compiler/
 │   │   ├── transform/
 │   │   └── backends/
 │   ├── wxs/               ← wxs 子域（processWxsContent/transTagWxs 等从 view-compiler 抽出）
-│   ├── expression/        ← 表达式子域（parseJs/addOptionalChaining/parseKeyExpression/…）
+│   ├── expression/        ← 表达式子域（parseJs/addOptionalChaining/parseKeyExpression/…）【不含 core/expression-parser.js——那是独立的现有文件，D-CL-1 归 core】
 │   ├── asset/             ← 资产收集子域（transAsses）
 │   ├── template/          ← 模板收集子域（transTagTemplate/toCompileTemplate 接线）
-│   └── index.js           ← 编排入口（compileML/buildCompileView/compileModule）
+│   └── index.js           ← 编排入口（compileML/buildCompileView/compileModule）【聚合落点：域入口+worker 宿主+编排三角色；后续可拆如 view/worker.js——F6 注记】
 ├── logic/                 ← 轴一：logic 域（logic-compiler.js 拆入）
 ├── style/                 ← 轴一：style 域（style-compiler.js 拆入）
 ├── core/                  ← 轴二：跨域基建
@@ -88,7 +103,7 @@ src/compiler/
 │   ├── npm-builder.js     npm 包构建
 │   ├── sourcemap.js       sourcemap 工具
 │   ├── compatibility.js   兼容性检查
-│   └── expression-parser.js  表达式解析（view 插值用，暂归 core）
+│   └── expression-parser.js  表达式解析【独立文件，D-CL-1 拍板归 core；与 view/expression/ 子域是两回事（F4）】
 └── pipeline/              ← 轴二：编排
     ├── build-pipeline.js  编排壳
     ├── compile-target.js  形态描述
@@ -98,18 +113,19 @@ src/compiler/
     └── publish.js         产物后处理
 ```
 
-**view-compiler.js 2420 行拆散归位**（函数原样迁移，零逻辑变更）：
+**view-compiler.js 2420 行拆散归位**（函数原样迁移，零逻辑变更；61 函数穷举归属——F1）：
 
-| 函数群 | 归属 |
+| 归属 | 函数（穷举） |
 | --- | --- |
-| toCompileTemplate / transTagTemplate / transTagWxs / processIncludeConditionalAttrs / collectIncludedComponentTags | view/wxml/transform/ |
-| processWxsContent / processWxsDependency / initWxsFilePathMap / scanWxsFiles / registerWxsModule / isWxsModuleByContent | view/wxs/ |
-| parseJs / addOptionalChaining / parseSafeBraceExp / transformTextInterpolation / parseKeyExpression / parseClassRules / splitWithBraces / isWrappedByBraces / escapeQuotes | view/expression/ |
-| transAsses | view/asset/ |
-| normalizeTemplateDom / transHtmlTag / transTag / groupDuplicateNamedSlots / wrapForIfScopes / generateSlotDirective / getProps / generateVModelTemplate | view/wxml/backends/vue 工具袋（暂不拆，归 view/wxml/） |
-| getViewPath / resolveTemplateDependencyPath / buildExtStripRegex / stripViewScriptExt | view/wxml/transform/（路径工具） |
-| compileML / buildCompileView / compileModule / compileModuleWithAllWxs | view/index.js（编排入口） |
-| worker 协议（isMainThread/parentPort） | view/index.js |
+| **view/index.js**（编排入口 + worker 宿主） | compileML, buildCompileView, compileModule, compileModuleWithAllWxs, worker 协议（isMainThread/parentPort 顶层块） |
+| **view/wxml/transform/**（展开+收集接线） | toCompileTemplate, transTagTemplate, processIncludeConditionalAttrs, collectIncludedComponentTags, collectNewlineOffsets, getSourceLine |
+| **view/wxml/transform/**（路径工具） | getViewPath, resolveTemplateDependencyPath, buildExtStripRegex, stripViewScriptExt |
+| **view/wxml/backends/vue 工具袋**（Vue 降级；暂不拆） | normalizeTemplateDom, normalizeTemplateSyntax, transHtmlTag, transTag, groupDuplicateNamedSlots, wrapForIfScopes, generateSlotDirective, getProps, generateVModelTemplate, getDirectiveAttributeNames, hasForAndIf, getTemplateCompilerOptions, compileTemplateModuleRender |
+| **view/wxs/** | processWxsContent, processWxsDependency, transTagWxs, initWxsFilePathMap, scanWxsFiles, registerWxsModule, isRegisteredWxsModule, isWxsModuleByContent, collectAllWxsModules, loadWxsModule, extractWxsDependencies, insertWxsToRenderResult, processIncludedFileWxsDependencies |
+| **view/expression/** | parseJs, getProgramCode, isStringLiteral, getStringLiteralRawValue, getSource, applyCodeReplacements, addOptionalChaining, parseSafeBraceExp, transformTextInterpolation, parseKeyExpression, parseClassRules, escapeQuotes, isWrappedByBraces, splitWithBraces, getForItemName, getForIndexName, parseForExp, encodeReservedTemplateContextIdentifier, parseBraceExp, parseTemplateDataExp |
+| **view/asset/** | transAsses |
+
+> 核对方法：`grep -c '^function\|^async function' src/compiler/view-compiler.js` = 61；上表函数数合计 61（含 worker 协议 1 项非函数）。
 
 ## 产品门
 
@@ -145,3 +161,4 @@ src/compiler/
 | 2026-09-15 | **顺序调整 + 目录维度修正**：L0 先独立合入（纯移动快速审阅）；npm 归 core/（两轴：编译域 wxml/logic/style/wxs + 基建/管线 core/pipeline）；新增 P-L4（npm 两轴混淆病症） |
 | 2026-09-15 | **方案 A + wxml 改造移出**：域名 wxml→view（view 渲染域含 wxml/wxs/expression/asset/template 子域——wxs 寄生 view 是架构现实）；L1 dom 抽象 + L2 napi 移到 TODO 候选（前置 = 本 Action 合入）；本 Action 收窄为纯 L0（唯一门，零函数体变更）；函数归属表入档 |
 | 2026-09-15 | **D-CL-1..3 全部拍板**（照建议）：expression-parser → core/；编排入口 → view/index.js；Action 名转正 `fe-tools-compiler-layering` |
+| 2026-09-15 | Review R1 F1–F6 修正：归属表补全为 61 函数穷举清单；纯移动例外成文（worker spawn 显式映射 + 12 spec import 更新）；expression-parser 撞名澄清；view/index.js 聚合注记 |
