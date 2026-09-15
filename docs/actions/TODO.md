@@ -52,13 +52,12 @@
 | 目标 | allowJs + CI `tsc --noEmit`（fe-tests.yml）；S0+S1（common/load/registry/stub/compile-target）；strict；集中 typedef |
 | 待定 | 无（D-TC-1..10 已拍板） |
 
-### Layering 漂移热修（compat sync outputPath）——待先行合入（2026-09-15 · Review R1-F3）
+### Layering 漂移热修（compat sync outputPath）——已合入（2026-09-15 · Review R1-F3）
 
 | Field | Value |
 | --- | --- |
 | 问题 | `scripts/sync-compatibility-reference.js` outputPath 指旧位置 `src/compiler/compatibility-reference.js`（实为 `core/` 下）→ `npm test` pretest 必炸；`npm run build` prebuild 会误生成根级残留文件 |
-| 修复 | 一行：outputPath → `../src/compiler/core/compatibility-reference.js`（D-TD-19） |
-| 归属 | 建议随 `fe-tools-bundler-tsc-dist` 授权前先行合入（或其 T0a 一并） |
+| 修复 | 一行：outputPath → `../src/compiler/core/compatibility-reference.js`（D-TD-19）✅ 已合入；`npm test` 整链 exit 0（pretest In sync + 580/580） |
 
 ### Bundler tsc dist + 选择性迁 TS——已 formalize 为 `fe-tools-bundler-tsc-dist`（2026-09-15）
 
