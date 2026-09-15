@@ -115,3 +115,4 @@
 | 2026-09-15 | **R2 F-R2-001..003**：P0 纳入最小加载 `index.<platform>.node`（与 `--platform` build 同交付）；R-WX3/P-WX02 改平台后缀口径；gitignore=`*.node` |
 | 2026-09-15 | **R3 文案**：Goal/产品门/决策表标题对齐；五平台三元组映射表入 README |
 | 2026-09-15 | **Readiness R4 pass** → 授权 **`in_progress`**（基线 `dd2cb451`） |
+| 2026-09-15 | **P0 实施中**：napi CLI `--platform` + 最小加载 + `*.node` 退 git + fe-tests Rust 步骤；本地 580/580；`binding.js` 因 derive2/CLI3 typedef 路径差未出（P1 前对齐） |

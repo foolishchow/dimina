@@ -24,9 +24,12 @@ Status: **冻结 v1（2026-09-15）** — D-WX-1..9；与 requirements / plan / 
 **P0 命令（路线乙，P0/P1 同构）**：
 
 ```bash
-napi build --platform --release --js binding.js --format esm --no-dts \
-           --manifest-path ../crates/Cargo.toml
+napi build --platform --release --js binding.js --format esm \
+           --manifest-path ../crates/Cargo.toml \
+           --package dimina-wxml-parser-napi --output-dir .
 ```
+
+（CLI 3.9 **无** `--no-dts`；省略。P0 实证：napi-derive 2.x 不写 `NAPI_TYPE_DEF_TMP_FOLDER` → 可能暂无 `binding.js`，见 Residual。）
 
 **三文件分层（D-WX-9）**：
 
@@ -132,5 +135,7 @@ napi build --platform --release --js binding.js --format esm --no-dts \
 - CI 绿以 push 后 Actions 运行为准（本地等价证据先行：build 三态正确性 + `.node` 模拟）。
 - **x64-linux 首跑风险（R1-F4）**：napi ABI/序列化层从未在非 arm64-darwin 真跑；CI 首跑暴露平台 bug 时应急阀 = `WXML_PARSER=cheerio`（cheerio 是 D-WR-2 保留的合法回退引擎，非降级 hack）。
 - **`binding.js` 为生成物入库**（可再生成；保留追踪以保 `pnpm install` 后无需构建即可 require——如需可后补 CI 校验其与再生成一致）。
+- **P0 实证（2026-09-15）**：CLI 3.9 × **napi-derive 2.16** typedef 环境变量不一致（`NAPI_TYPE_DEF_TMP_FOLDER` vs `TYPE_DEF_TMP_PATH`）→ 当前 **不生成 `binding.js`**；P0 最小加载不依赖。P1 前对齐（升 derive/napi 或兼容路径）。
 - 首次发布流程走真实 tag 才全验（dry-run 先行；首版发布记录入 Actual）。
 - musl/长尾平台后补（有需求再开）。
+- CLI 校准：无 `--no-dts`；build 须 `--package dimina-wxml-parser-napi --output-dir .`。
