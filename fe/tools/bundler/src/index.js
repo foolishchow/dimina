@@ -6,7 +6,7 @@
  * 无 store 时 runBuild 临时 create（L3）。
  */
 import { createProjectStore } from './model/project-store.js'
-import { createBuildPipeline } from './compiler/build-pipeline.js'
+import { createBuildPipeline } from './compiler/pipeline/build-pipeline.js'
 
 export default function build(targetPath, workPath, useAppIdDir = true, options = {}) {
 	return runBuild(targetPath, workPath, useAppIdDir, options)
