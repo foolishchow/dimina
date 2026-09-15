@@ -51,7 +51,7 @@
 | `fe-tools-compiler-target` | `complete` | [README](_archive/complete/fe-tools-compiler-target/README.md) | CompileTarget 形态层：T0 入口纪律 + T1 静态描述 + T2 阶段派生；A-CT0..06 全 pass；消融 ×3；回流 architecture-notes；已归档。 | 2026-09-14 |
 | `fe-tools-incremental-target` | `draft` | [README](fe-tools-incremental-target/README.md) | E7 增量形态回灌：watch/cache options 袋与 CompileTarget 对齐（S1/S2/S3/S9）；契约 A/B 待拍板；未授权实施。 | 2026-09-14 |
 | `fe-tools-compiler-layering` | `complete` | [README](_archive/complete/fe-tools-compiler-layering/README.md) | compiler 目录归位（两轴 + WORKER_ENTRY + 根级 index.js 删除）；559/559 + diff=0；A-CL1 修正（函数拆散推迟）；已归档。 | 2026-09-15 |
-| `fe-tools-wxml-refactor` | `draft` | [README](fe-tools-wxml-refactor/README.md) | wxml 三层次打包：W1 函数归位（24 函数从 view/index.js → wxml 子域）+ W2 ctx.dom 抽象（transform 去 cheerio）+ W3 napi parser 接入；3 项待定。 | 2026-09-15 |
+| `fe-tools-wxml-refactor` | `draft` | [README](fe-tools-wxml-refactor/README.md) | wxml 三层次打包：W1 函数归位 + W2 Document 操作面（去 ctx.dom 抽象）+ W3 napi 默认接入（WXML_PARSER env，默认 napi；语义等价对拍）；D-WR-1..3 已定，3 项待定。 | 2026-09-15 |
 | `fe-tools-wxml-bridge` | `complete` | [README](_archive/complete/fe-tools-wxml-bridge/README.md) | Rust parser napi 桥 + sourcemap 跨文件归位（W0/W1/W2）；559/559 + 无 include 页 sourcemap diff=0 + 消融 ×2；D-WIR-1 修订回流；已归档。 | 2026-09-14 |
 | `fe-tools-wxml-ir` | `complete` | [README](_archive/complete/fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 缝 + registry；行为 0 严格 diff=0；消融 ×2；S13 view 收口（style 书面剩余）；不变量回流；已归档。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |
