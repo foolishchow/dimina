@@ -1,7 +1,8 @@
 # FE Tools WXML Refactor
 
 - Action: `fe-tools-wxml-refactor`（已转正，2026-09-15）
-- Status: `ready`（2026-09-15）：Readiness 五件套齐；D-WR-1..9 全部拍板；实施未授权
+- Status: `ready`
+- Updated: 2026-09-15（Readiness 五件套齐；D-WR-1..9 全部拍板；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝+Document+registry）；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥+SpanView）；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)（两轴目录归位——view/wxml/ 已就位）；`fe/tools/crates/dimina-wxml-parser`（483 tests）+ `dimina-wxml-parser-napi`（SpanView）
 - 工作分支：`feature/fe-tools-sidecar`
