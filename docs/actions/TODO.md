@@ -22,7 +22,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-refactor`](_archive/complete/fe-tools-wxml-refactor/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
+| 下一步 | [`fe-tools-wxml-layout`](fe-tools-wxml-layout/README.md)（**`in_progress`**）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-refactor`](_archive/complete/fe-tools-wxml-refactor/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
 | 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
@@ -33,7 +33,16 @@
 | --- | --- |
 | Action | [`fe-tools-wxml-refactor`](_archive/complete/fe-tools-wxml-refactor/README.md)（**`complete` 已归档**；交付 `13c9c902`） |
 | 结果 | W1 23 函数归位；W2 标准 Document + 零 cheerio 泄漏；W3 默认 napi；580/580 + P-WR06 diff=0 |
-| 后续候选 | `(napi\|cheerio)` 目录分树；`backends`→`renderer` 命名整理（另立，不 reopen） |
+| 后续候选 | 已 formalize → [`fe-tools-wxml-layout`](../fe-tools-wxml-layout/README.md)（**`in_progress`**） |
+
+### WXML 目录轴整理——已 formalize 为 `fe-tools-wxml-layout`（2026-09-15）
+
+| Field | Value |
+| --- | --- |
+| Action | [`fe-tools-wxml-layout`](fe-tools-wxml-layout/README.md)（**`in_progress`**） |
+| 问题 | parse 引擎藏文件名；`transform/` 名实不符；`backends/` 撞平台 renderer 且塞 vue-tools |
+| 目标 | napi/cheerio + `common/` + `load/` + `compile.js` + `renderer/vue/`；行为 0；旧 Backend API 同门删净 |
+| 待定 | 无（D-WL-1..9 已拍板） |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
