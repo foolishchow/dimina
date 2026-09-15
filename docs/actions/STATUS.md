@@ -50,7 +50,7 @@
 | `fe-tools-bootstrap-copy` | `complete` | [README](_archive/complete/fe-tools-bootstrap-copy/README.md) | 独立搬迁 complete：tools/bundler+web-container-sdk；`dimina-cli` 冒烟 200；packages 干净；已归档。 | 2026-09-10 |
 | `fe-tools-compiler-target` | `complete` | [README](_archive/complete/fe-tools-compiler-target/README.md) | CompileTarget 形态层：T0 入口纪律 + T1 静态描述 + T2 阶段派生；A-CT0..06 全 pass；消融 ×3；回流 architecture-notes；已归档。 | 2026-09-14 |
 | `fe-tools-incremental-target` | `draft` | [README](fe-tools-incremental-target/README.md) | E7 增量形态回灌：watch/cache options 袋与 CompileTarget 对齐（S1/S2/S3/S9）；契约 A/B 待拍板；未授权实施。 | 2026-09-14 |
-| `fe-tools-compiler-layering` | `draft` | [README](fe-tools-compiler-layering/README.md) | compiler 目录归位（方案 A 两轴：view/logic/style + core/pipeline；D-CL-1..3 已拍板：expression-parser→core、编排→view/index.js、名转正）；纯移动唯一门；可补 Readiness 升 ready。 | 2026-09-15 |
+| `fe-tools-compiler-layering` | `ready` | [README](fe-tools-compiler-layering/README.md) | compiler 目录归位（方案 A 两轴 + 61 函数穷举 + WORKER_ENTRY 映射）；纯移动唯一门，行为 0；实施待授权。 | 2026-09-15 |
 | `fe-tools-wxml-bridge` | `complete` | [README](_archive/complete/fe-tools-wxml-bridge/README.md) | Rust parser napi 桥 + sourcemap 跨文件归位（W0/W1/W2）；559/559 + 无 include 页 sourcemap diff=0 + 消融 ×2；D-WIR-1 修订回流；已归档。 | 2026-09-14 |
 | `fe-tools-wxml-ir` | `complete` | [README](_archive/complete/fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 缝 + registry；行为 0 严格 diff=0；消融 ×2；S13 view 收口（style 书面剩余）；不变量回流；已归档。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |
