@@ -4,10 +4,24 @@
 	"private": true,
 	"type": "module",
 	"main": "index.js",
-	"files": ["index.js", "index.node"],
+	"files": [
+		"index.js",
+		"binding.js",
+		"index.*.node"
+	],
 	"scripts": {
-		"build": "cargo build -p dimina-wxml-parser-napi --release --manifest-path ../crates/Cargo.toml && cp ../crates/target/release/libdimina_wxml_parser_napi.dylib index.node",
+		"build": "napi build --platform --release --js binding.js --format esm --manifest-path ../crates/Cargo.toml --package dimina-wxml-parser-napi --output-dir .",
 		"build:all": "cargo build --release --manifest-path ../crates/Cargo.toml"
+	},
+	"napi": {
+		"binaryName": "index",
+		"packageName": "@dimina/wxml-parser-napi",
+		"targets": [
+			"aarch64-apple-darwin"
+		]
+	},
+	"devDependencies": {
+		"@napi-rs/cli": "^3.9.1"
 	},
 	"engines": {
 		"node": ">=22"

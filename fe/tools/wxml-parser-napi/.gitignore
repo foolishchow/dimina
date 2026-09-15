@@ -1,0 +1,4 @@
+# Native artifacts (D-WX-7 / D-WX-9) — produced by `pnpm build`
+*.node
+# Empty stub from napi CLI when napi-derive 2.x emits no typedef intermediates
+index.d.ts

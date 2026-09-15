@@ -59,6 +59,24 @@ jobs:
         working-directory: ./fe
         run: pnpm install
         
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            fe/tools/crates/target
+          key: rust-${{ runner.os }}-${{ hashFiles('fe/tools/crates/Cargo.lock') }}
+          restore-keys: |
+            rust-${{ runner.os }}-
+
+      - name: Build wxml-parser-napi
+        working-directory: fe/tools/wxml-parser-napi
+        run: pnpm build
+
       - name: Build packages
         working-directory: ./fe
         run: pnpm --filter "@dimina/common" --filter "@dimina/compiler" build
