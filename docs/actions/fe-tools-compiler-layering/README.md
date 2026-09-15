@@ -116,6 +116,10 @@ src/compiler/
     └── publish.js         产物后处理
 ```
 
+**根级 `compiler/index.js`**（F8）：现有文件 re-export `compileConfig`（被 `build-pipeline.js:21` import `from './index.js'`）——L0 后改为 re-export `pipeline/config-compiler.js` 的产物（或 build-pipeline 直接 import `pipeline/config-compiler.js`，删根级 index.js）。**取后者**（删根级，直接 import）——少一层间接。
+
+**`compileConfig` 的消费方更新**（F8）：`build-pipeline.js:21` 的 `from './index.js'` → `from './pipeline/config-compiler.js'`（纯 import 路径变更，行为 0）。
+
 **view-compiler.js 2420 行拆散归位**（函数原样迁移，零逻辑变更；61 函数穷举归属——F1）：
 
 | 归属 | 函数（穷举） |
@@ -166,3 +170,4 @@ src/compiler/
 | 2026-09-15 | Review R1 F1–F6 修正：归属表补全为 61 函数穷举清单；纯移动例外成文（worker spawn 显式映射 + 12 spec import 更新）；expression-parser 撞名澄清；view/index.js 聚合注记 |
 | 2026-09-15 | Review R2 F7：结构图漏 2 文件（compatibility-reference.js / renderers.js）→ 补入 core/；R2 结论 pass-with-findings 清零 |
 | 2026-09-15 | Readiness 五件套成稿；升 **`ready`**（R-CL0..4 / A-CL0..04 / P-CL00..06；无消融——纯移动证据链 = 穷举+diff=0+全量绿） |
+| 2026-09-15 | Review R3 F8：根级 `compiler/index.js`（re-export compileConfig）归属定案——删根级、build-pipeline 直接 import `pipeline/config-compiler.js`；12 spec 清单与实际 grep 逐项核对一致 |
