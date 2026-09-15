@@ -69,6 +69,17 @@
 | 待定 | 无（D-TD-1..16 已拍板） |
 | 前置 | typecheck Close/合入后再实施（D-TD-12） |
 
+### Bundler 全量 TS 迁移——候选（2026-09-15 · 讨论后暂缓）
+
+| Field | Value |
+| --- | --- |
+| 内容 | 62 文件 / 13,468 行 .js → .ts；supersede tsc-dist 的 D-TD-2（compiler/view 全量迁的 non-goal） |
+| 收益 | 类型安全全量覆盖；@ts-check 白名单制度退役；JSDoc→TS 语法 |
+| 成本（决定性） | 3-5 周人力；strict 存量错（56 文件从未被 strict 检查）；oxc-parser/walker 无 @types 需自写 |
+| 形态（若做） | umbrella 5 刀（shared → core/pipeline → view/wxml → 三引擎 → 外围），每刀行为 0 + diff=0 |
+| 前置 | 刀 0：oxc .d.ts + wxml-parser-napi .d.ts + cheerio/htmlparser2 @types devDeps |
+| 触发条件 | 类型问题密度开始显著拖慢开发，或团队确认 3-5 周投入 |
+
 ### wxml parser crate：`<template name is>` 双属性 → UnclosedTag——pre-existing（2026-09-15）
 
 | Field | Value |
