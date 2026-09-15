@@ -1,8 +1,8 @@
 # FE Tools Bundler TSC Dist
 
 - Action: `fe-tools-bundler-tsc-dist`
-- Status: `ready`
-- Updated: 2026-09-15（D-TD-1..18；Review R1 F1–F5 修正：TS5055 前置、exports/compat 漂移热修；实施未授权）
+- Status: `in_progress`
+- Updated: 2026-09-15（授权实施；基线 `33bda111`；D-TD-19 已先行合入；T0a→T0b→T1→T2）
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-bundler-typecheck`](../_archive/complete/fe-tools-bundler-typecheck/README.md)（**complete 已归档**；S0–S1 已合入 `eb3b2bc4`——CI `tsc --noEmit` + 白名单 `@ts-check` 在档）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
@@ -83,8 +83,7 @@
 
 ## Status / 授权
 
-- 当前 **`ready`**：D-TD-1..19 已拍板（R1 F1–F5 已收敛）；五件套齐；**实施未授权**（须另授 `in_progress`）
-- **实施前置**：✅ typecheck 已合入归档（`eb3b2bc4`）；⛔ D-TD-19 热修建议先行合入；⛔ T0 首步先做 D-TD-17/18 前置修复（否则 TS5055 / postbuild 必炸）
+- 当前 **`in_progress`**（2026-09-15 授权）：基线 `33bda111`；D-TD-19 已先行合入（`npm test` 绿）；T0a（D-TD-17/18 前置修复）→ T0b（build 改道）→ T1a/T1b（迁 ts）→ T2（行为 0 + 消融）
 
 ## 闭合条件
 
@@ -99,4 +98,5 @@
 | 2026-09-15 | Review Finding 1：P-TD-1 → **D-TD-13**（删整树 sync、留 postbuild） |
 | 2026-09-15 | P-TD-2/3 按建议 → **D-TD-14/15**；升 **`ready`** |
 | 2026-09-15 | Readiness findings 修：typecheck 跨文档债；D-TD-16 type-only emit；R-TD1 第0刀范围收紧 |
+| 2026-09-15 | **授权 `in_progress`**（基线 `33bda111`）；D-TD-19 热修先行合入 |
 | 2026-09-15 | **Review R1（F1–F5）**：❶ **TS5055 硬阻断**（dry-run 实证：`napi/parse.js` 6 级相对 import 令 tsc emit exit 1、只出 49/69、bin/ 全缺）→ D-TD-17（包名 import）；❷ **`npm run build` pre-existing 破损**（exports 三子路径指 layering 前旧文件，postbuild `ERR_MODULE_NOT_FOUND` exit 1）→ D-TD-18；❸ **`npm test` pretest 同样必炸**（compat sync outputPath 漂移）→ D-TD-19 独立热修；❹ dist 重排版实测（ESM 下 shebang 保留 ✓、补分号非逐字节）——D-TD-9 已覆盖，P-TD00 补 CLI --version 门；❺ README 前置描述过时修正 |
