@@ -1,8 +1,7 @@
 # FE Tools WXML Refactor
 
 - Action: `fe-tools-wxml-refactor`（已转正，2026-09-15）
-- Status: `draft`
-- Updated: 2026-09-15（D-WR-7..9 拍板——待定清空；Readiness 在案）
+- Status: `ready`（2026-09-15）：Readiness 五件套齐；D-WR-1..9 全部拍板；实施未授权
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（缝+Document+registry）；[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥+SpanView）；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)（两轴目录归位——view/wxml/ 已就位）；`fe/tools/crates/dimina-wxml-parser`（483 tests）+ `dimina-wxml-parser-napi`（SpanView）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -85,7 +84,7 @@ Rust parser + napi 桥 + SpanView JSON 均已交付（483 tests + 7 用例）但
 
 ## Status / 授权
 
-- 当前 **`draft`**：三病症+P-W4 + 三门 + D-WR-1..9 全拍板；待定清空；Readiness 五件套补齐后升 `ready`
+- 当前 **`ready`**：三病症+P-W4 + 三门 + D-WR-1..9 全拍板 + Readiness 五件套（requirements / technical-design / implementation-plan / acceptance / validation P-WR01..07）；**实施未授权**
 - 未授权实施
 
 ## 闭合条件
@@ -102,4 +101,4 @@ Rust parser + napi 桥 + SpanView JSON 均已交付（483 tests + 7 用例）但
 | 2026-09-15 | 初稿：三病症 → 三门（W1 归位 / W2 dom 抽象 / W3 napi 接入） |
 | 2026-09-15 | **D-WR-1..3 拍板**：W2 简化（Document 方法面，去抽象层）；W3 默认 napi；对拍 = 语义等价 |
 | 2026-09-15 | **D-WR-4..6 拍板（用户拍板重排）**：W2 升级为 **Document 标准形状**（对齐 Rust AST：attrs→Vec / Value 三态 / directives / slot / selfClosing / 类型化特殊节点）；`Document = Rust AST 形状 + JS 可变实例`；契约分层（cheerio 缺省 null）；W3 降为**纯引擎装配**（形状已同构，无适配层）；Action 名转正 `fe-tools-wxml-refactor`；新增 P-W4（形状不一致） |
-| 2026-09-15 | **D-WR-7..9 拍板**：契约分层三语义（`null`/`[]`/无缺失，attrs 统一 `Attr[]`）；特殊节点类型化（独立类型 + malformed 保留类型，淘汰 `templateNodeKind()`）；W2 行为 0 = 产物+sourcemap diff=0（允许 IR 结构性变更）+ 双 parser 语义对拍 fixture。**待定清空**——D-WR-1..9 全拍板，Readiness 五件套在案 |
+| 2026-09-15 | **Readiness 五件套成稿**：requirements R-WR0..5 + technical-design v1（标准 Document contract / W1 搬迁 map / W2 cheerio 封装 / W3 napi 装配）+ implementation-plan（W1→W2→W3 禁混）+ acceptance A-WR0..5 + validation P-WR01..07。**升 `ready`**——实施仍待授权。关键实证：24 个 wxml 相关函数全部顶层（行首无缩进——L0 嵌套顾虑不适用于 wxml 域）；精确实施集合 23 个（transTagWxs 留 wxs 轨道），跨域依赖面已穷举（compileTemplateModuleRender→insertWxsToRenderResult 等） |
