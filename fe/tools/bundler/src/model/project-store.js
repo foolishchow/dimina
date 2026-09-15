@@ -15,7 +15,7 @@
  * M-A：ctx.dependencyGraph 与 store.getDependencyGraph() 是同一引用。
  */
 
-import { getDependencyGraph, storeInfo } from '../compiler/env.js'
+import { getDependencyGraph, storeInfo } from '../compiler/core/env.js'
 
 /**
  * @param {object} [options]
