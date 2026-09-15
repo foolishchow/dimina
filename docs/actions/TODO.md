@@ -22,7 +22,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | 近端结构多已归档；[`fe-tools-wxml-ir`](fe-tools-wxml-ir/README.md)（TS-2）**`ready`**（未授权实施）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
+| 下一步 | [`fe-tools-wxml-refactor`](fe-tools-wxml-refactor/README.md)（**`ready`**，待实施授权）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
 | 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
@@ -31,11 +31,11 @@
 
 | Field | Value |
 | --- | --- |
-| 问题 | `wxml/transform`（load.js）与 `backends/vue.js` 直接操作 cheerio DOM——双 parser "可切换"是假的（切 napi 后 transform 崩溃） |
-| 目标 | ① transform 层定义 `ctx.dom` IR 操作接口（findInclude / replaceWith / removeNodes / serialize…），cheerio 实现之，transform 零 cheerio import；② `wxml/parser/napi.js`（SpanView → Document IR 适配）；③ `WXML_PARSER=napi` 切换开关 |
-| 前置 | [`fe-tools-compiler-layering`](fe-tools-compiler-layering/README.md) L0 目录归位先合入（建 `view/wxml/` 结构上开发） |
-| 待定 | ctx.dom 最小/完整操作集；两版 Document 对拍口径（deep-equal vs 抽样） |
-| 正式化时机 | layering L0 合入后 |
+| Action | [`fe-tools-wxml-refactor`](fe-tools-wxml-refactor/README.md)（**`ready`**；实施未授权） |
+| 问题 | transform/backend 泄漏 cheerio；JS Document 未对齐 Rust AST；napi 未进管线 |
+| 目标 | W1：23 函数归位（逐字）；W2：标准 Document + §4.2/§4.6（含 `transTagWxs`/`transAsses` 薄适配）；W3：`WXML_PARSER` 默认 napi |
+| 前置 | layering L0 / wxml-ir / wxml-bridge 均已 complete |
+| 待定 | 无（D-WR-1..9 已拍板） |
 
 ### B 轨道（Rust 宿主，B0–B4）——deferred（2026-09-08）
 
