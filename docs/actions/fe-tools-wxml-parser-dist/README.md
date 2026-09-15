@@ -1,8 +1,8 @@
 # FE Tools WXML Parser Dist
 
 - Action: `fe-tools-wxml-parser-dist`
-- Status: `draft`
-- Updated: 2026-09-15（D-WX-1..8 全拍板：会发布 npm / .node P0 即退 git / CI 无时长预算；待定清空）
+- Status: `ready`
+- Updated: 2026-09-15（Readiness 五件套齐；D-WX-1..8 全拍板；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView；parser/binding 分 crates 按 oxc 先例）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（`WXML_PARSER` 默认 **napi**——放大分发缺口）；`fe/tools/crates/dimina-wxml-parser`（483 tests，swc 类型库 + `swc_ecma_parser`）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -82,7 +82,7 @@
 
 ## Status / 授权
 
-- 当前 **`draft`**：三病症 + A/B 对比 + P0/P1 门 + D-WX-1..8 全拍板（待定清空）；Readiness 五件套补齐后升 `ready`
+- 当前 **`ready`**：五件套齐（R-WX0..5 / P0+P1 门 / P-WX00..07）；**实施未授权**（须另授 `in_progress`）
 - 未授权实施
 
 ## 闭合条件
@@ -98,3 +98,4 @@
 | --- | --- |
 | 2026-09-15 | 初稿：CI 破损实证（本地模拟 `.node` 缺失复现）→ P0 止血 + P1 矩阵两门；A/B 路线对比收敛（A 优先；swc wasm plugin 概念澄清入档）；D-WX-1..5 建议；3 项待定 |
 | 2026-09-15 | **待定拍板 → D-WX-6..8**：bundler 会发布 npm（P1 全深度）；`.node` P0 即退 git（dev 前置 = Rust + pnpm build）；CI 无时长预算（单 job 构建，cache 照做）。**待定清空** |
+| 2026-09-15 | **Readiness 五件套成稿，升 `ready`**：R-WX0..5 + design（现状锚定含 build script darwin 专属硬编码 `.dylib` 实证 / P0 napi CLI 迁移 / P1 napi-rs 标准流 + 双态 index.js）+ plan（P0 独立可交付）+ A-WX0..5 + P-WX00..07。实施未授权 |
