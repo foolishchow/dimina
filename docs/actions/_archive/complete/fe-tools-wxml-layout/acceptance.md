@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-wxml-layout
 
-Status: **L0–L2 已交付（2026-09-15）** — 待 Close 复验 / 升 complete。
+Status: **complete（2026-09-15）** — Close 复验 `4259ebdd`。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

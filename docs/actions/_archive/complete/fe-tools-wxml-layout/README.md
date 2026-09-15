@@ -1,10 +1,10 @@
 # FE Tools WXML Layout
 
 - Action: `fe-tools-wxml-layout`（已转正，2026-09-15）
-- Status: `in_progress`
-- Updated: 2026-09-15（L0–L2 已交付；A-WL0..5 / P-WL00..07 pass；待 Close）
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（complete `13c9c902`）；[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；[`fe-tools-compiler-layering`](../_archive/complete/fe-tools-compiler-layering/README.md)
+- Status: `complete`
+- Updated: 2026-09-15（L0–L2 交付 `4259ebdd`；Close 复验 580/580 + P-WL06 diff=0；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-wxml-refactor`](../fe-tools-wxml-refactor/README.md)（complete `13c9c902`）；[`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md)；[`fe-tools-compiler-layering`](../fe-tools-compiler-layering/README.md)
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -60,7 +60,7 @@
 ## 已确认设计输入
 
 - Close 后目录讨论收敛（2026-09-15）：引擎分树 + load ≠ renderer + vue 工具跟 vue
-- 归档 [`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/technical-design.md) 阶段边界
+- 归档 [`fe-tools-wxml-refactor`](../fe-tools-wxml-refactor/technical-design.md) 阶段边界
 - wxml-ir 阶段归属表（parse / load / Backend）
 
 ## 决策记录（已拍板 · 2026-09-15）
@@ -83,12 +83,12 @@
 
 ## Status / 授权
 
-- 当前 **`in_progress`**：L0–L2 已交付（目录轴 + 同门删净 + 行为 0 + architecture-notes）；**待 Close**（复验 → complete / 归档）
+- 当前 **`complete`**：交付 **`4259ebdd`**；Close 复验 580/580 + P-WL06a/b diff=0；A-WL0..5 / P-WL00..07 全 pass；architecture-notes 已回流；**已归档**
 
 ## 闭合条件
 
-- L0–L2 交付；A-\* 全 pass；行为 0 证据；architecture-notes 回流
-- STATUS/归档一致；`fe/packages` 零污染
+- L0–L2 交付；A-\* 全 pass；行为 0 证据；architecture-notes 回流 ✅
+- STATUS/归档一致；`fe/packages` 零污染 ✅
 
 ## 修订记录
 
@@ -99,3 +99,4 @@
 | 2026-09-15 | Readiness findings 修：STATUS 竖线、删净符号表补全、TODO draft→ready、产品门去「草案」 |
 | 2026-09-15 | 授权 **`in_progress`** |
 | 2026-09-15 | **L0–L2 交付**：目录轴落位；API 同门删净；580/580；相对 `0074396c` nomap/sm diff=0；napi↔cheerio diff=0；消融 ✓；architecture-notes 回流 |
+| 2026-09-15 | **Close**：交付 `4259ebdd`；复验 580/580 + P-WL06；升 `complete` 并归档 |

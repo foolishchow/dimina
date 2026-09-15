@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-wxml-layout
 
-Status: **`in_progress`（L0–L2 已交付，待 Close）**
+Status: **`complete`（L0–L2 已交付并归档）**
 
 ## 基线与纪律
 

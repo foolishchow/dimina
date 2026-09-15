@@ -1,8 +1,8 @@
 # Validation — fe-tools-wxml-layout
 
-Status: **L0–L2 已交付（2026-09-15）** — 待 Close 复验。
+Status: **complete（2026-09-15）** — Close 复验绑定 `4259ebdd`。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
@@ -32,4 +32,5 @@ Status: **L0–L2 已交付（2026-09-15）** — 待 Close 复验。
 - **P-WL06b**（HEAD 默认 napi vs `WXML_PARSER=cheerio`）：nomap + sourcemap `diff -rq` 均为 **0**
 - **P-WL07**：`view/index.js` registry import 临时指回 `./wxml/backends/registry.js` → `wxml-ir.spec` 模块找不到失败；恢复后 **25/25** pass；消融补丁未留存
 - **L2**：`fe-tools-sidecar/architecture-notes.md` 已更新目录轴不变量
-- 交付 commit SHA：（合入后填写）
+- **交付 commit**：`4259ebdd`（`feat(bundler): deliver fe-tools-wxml-layout L0–L2`）
+- **Close 复验**（同 SHA）：580/580；P-WL01/03 零残留；P-WL04 packages 空；P-WL06a vs `0074396c` nomap/sm diff=0；P-WL06b napi↔cheerio diff=0；`validate_action` 0 error
