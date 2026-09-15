@@ -14,7 +14,7 @@ import { toMiniProgramModuleId } from '../shared/path-utils.js'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from './env.js'
 import { parseBindings } from './expression-parser.js'
-import { concatSourcemap, createLineSourcemap, mergeSourcemap, remapSourcemap } from './sourcemap.js'
+import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from './sourcemap.js'
 import { attachProjection } from './wxml/document.js'
 import { parseWxml } from './wxml/parse.js'
 import { loadTemplates } from './wxml/load.js'
@@ -652,7 +652,7 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 function compileModule(module, isComponent, scriptRes, options = {}) {
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
 	const sourceMapRes = options.sourceMapRes || new Map()
-	const { tpl, instruction, sourceInfo } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
+	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
 	if (!tpl) {
 		return null
 	}
@@ -742,7 +742,9 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 		id: `data-v-${module.id}`,
 		scoped: true,
 		inMap: enableSourcemap
-			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)
+			? (origins?.length
+				? createOriginsSourcemap(origins, sourceContents)
+				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content))
 			: undefined,
 		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
 	})
@@ -1234,7 +1236,7 @@ function toCompileTemplate(isComponent, path, components, componentPlaceholder, 
 	if (!backend) {
 		throw new Error(`[wxml] view backend '${VUE_BACKEND_ID}' is not registered`)
 	}
-	const { code } = backend.render({ loaded }, {
+	const { code, meta } = backend.render({ loaded }, {
 		components,
 		componentPlaceholder,
 		tools: { normalizeTemplateDom, transHtmlTag },
@@ -1250,6 +1252,9 @@ function toCompileTemplate(isComponent, path, components, componentPlaceholder, 
 			templateModule: loaded.templateModule,
 			scriptModule: loaded.scriptModule,
 		},
+		// W2：行源表（跨文件归位）+ 源内容（compileModule inMap 消费）
+		origins: meta?.lineOrigins,
+		sourceContents: meta?.sourceContents,
 	}
 }
 

@@ -68,6 +68,32 @@ function concatSourcemap(chunks, file = '') {
 	return { code, sourcemap: smg.toString() }
 }
 
+/**
+ * W2（fe-tools-wxml-bridge）：由行源表构建 inMap——每生成行 → 真实
+ * {source, line}（含跨文件归位）；为全部参与映射的 sourceFile
+ * setSourcesContent（devtools 原码可显示）。列级暂为 0。
+ * origins: [{ source, line }]（index 0 = 生成第 1 行）
+ * sourceContents: Map<source, content>
+ */
+export function createOriginsSourcemap(origins, sourceContents) {
+	const smg = new SourceMapGenerator({ file: origins[0]?.source ?? '' })
+	origins.forEach((o, index) => {
+		smg.addMapping({
+			generated: { line: index + 1, column: 0 },
+			original: { line: Math.max(1, o.line), column: 0 },
+			source: o.source,
+		})
+	})
+	if (sourceContents) {
+		for (const [src, content] of sourceContents) {
+			if (typeof content === 'string') {
+				smg.setSourceContent(src, content)
+			}
+		}
+	}
+	return JSON.parse(smg.toString())
+}
+
 function createLineSourcemap(generatedCode, source, sourceContent, startLine = 1) {
 	const smg = new SourceMapGenerator({ file: source })
 	const generatedLineCount = generatedCode.split('\n').length

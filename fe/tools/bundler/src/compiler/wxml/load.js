@@ -110,6 +110,9 @@ export function loadTemplates(document, ctx) {
 
 	const templateModule = []
 	const scriptModule = []
+	// W2（fe-tools-wxml-bridge）：include 内联节点 → 源文件标记（Symbol 属性，供
+	// 行源表跨 normalize 读取；Symbol.for 使 load/vue 两模块共享同一键）
+	const WIR_SRC = Symbol.for('db.wxml-bridge.source')
 
 	// —— 多根包装（页）：今日在主 DOM 上计数包装（load 归属） ——
 	if (!isComponent && hasOriginalContent) {
@@ -173,7 +176,19 @@ export function loadTemplates(document, ctx) {
 				$includeContent(env.getViewScriptTags().join(',')).remove()
 
 				const processedContent = tools.processIncludeConditionalAttrs($, elem, $includeContent.html())
+				// W2：用 parent.children 定位插入节点（replaceWith 后被替换元素脱离树，
+				// elem.next 变陈旧——不能从它走链）；记录父 + 原下标 + 原 next
+				const parent = elem.parent
+				const insertIdx = parent ? parent.children.indexOf(elem) : -1
+				const nextSibling = parent ? elem.next : null
 				$(elem).replaceWith(processedContent)
+				if (parent && insertIdx >= 0) {
+					// 注意：插入节点是 processedContent 的重解析（startIndex 为其坐标系），
+					// 故存 { source, text: processedContent }——行源表按 text 派生行号自洽。
+					for (let i = insertIdx; i < parent.children.length && parent.children[i] !== nextSibling; i++) {
+						parent.children[i][WIR_SRC] = { source: includeDiagnosticSource, text: processedContent }
+					}
+				}
 			}
 			else {
 				$(elem).remove()
@@ -256,6 +271,7 @@ export function loadTemplates(document, ctx) {
 	const expanded = projectDocument($, { sourceFile })
 	attachProjection(expanded, '_$', $)
 	attachProjection(expanded, '_source', originalContent)
+	attachProjection(expanded, '_WIR_SRC', WIR_SRC)
 
 	// 直接挂字段（spread 会丢非枚举投影句柄 _$ / _source）
 	expanded.templateModule = templateModule
