@@ -1,0 +1,125 @@
+name: wxml-parser-napi release
+
+# fe-tools-wxml-parser-dist · P1（D-WX-2/D-WX-6）：tag 触发五平台矩阵构建 + 子包发布。
+# 触发：推送 tag `wxml-parser-napi-v*`（版本与 fe/tools/wxml-parser-napi/package.json 一致）。
+# 前置：GitHub secrets 配置 NPM_TOKEN。
+
+on:
+  push:
+    tags:
+      - 'wxml-parser-napi-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # R1-F3：darwin-x64 不依赖退役中的 Intel runner —— macos-latest(arm64) 交叉编译
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: fe/.nvmrc
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.2.0
+          package-json-file: fe/package.json
+
+      - name: Install dependencies
+        working-directory: ./fe
+        run: pnpm install
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup Rust cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            fe/tools/crates/target
+          key: rust-${{ matrix.target }}-${{ hashFiles('fe/tools/crates/Cargo.lock') }}
+          restore-keys: |
+            rust-${{ matrix.target }}-
+
+      - name: Build native binding
+        working-directory: fe/tools/wxml-parser-napi
+        run: napi build --platform --release --js binding.cjs --commonjs --target ${{ matrix.target }} --manifest-path ../crates/Cargo.toml --package dimina-wxml-parser-napi --output-dir .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: fe/tools/wxml-parser-napi/index.*.node
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    name: publish (npm dirs + main package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: fe/.nvmrc
+          registry-url: https://registry.npmjs.org/
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.2.0
+          package-json-file: fe/package.json
+
+      - name: Install dependencies
+        working-directory: ./fe
+        run: pnpm install
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: fe/tools/wxml-parser-napi/artifacts
+
+      # napi artifacts：把 GITHUB_ACTIONS artifact 中的 .node 汇聚到 output-dir（.）
+      - name: Collect platform bindings
+        working-directory: fe/tools/wxml-parser-napi
+        run: npx napi artifacts --output-dir .
+
+      # napi prepublish（tag-style npm）：更新主包 optionalDependencies + 把各平台 .node 拷入 npm/<platform>/
+      # 随后逐子包 publish，再 publish 主包（root）
+      - name: Prepare and publish platform packages
+        working-directory: fe/tools/wxml-parser-napi
+        run: |
+          npx napi prepublish --tag-style npm --skip-optional-publish
+          for dir in npm/*; do
+            [ -f "$dir/index.node" ] || continue
+            echo "publishing $dir"
+            npm publish "$dir" --access public
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish main package
+        working-directory: fe/tools/wxml-parser-napi
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

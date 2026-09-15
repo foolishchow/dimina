@@ -1,0 +1,17 @@
+{
+  "name": "@dimina/wxml-parser-napi-darwin-arm64",
+  "version": "0.1.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "index.darwin-arm64.node",
+  "files": [
+    "index.darwin-arm64.node"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "os": [
+    "darwin"
+  ]
+}
