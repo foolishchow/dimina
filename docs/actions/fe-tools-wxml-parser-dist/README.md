@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-wxml-parser-dist`
 - Status: `ready`
-- Updated: 2026-09-15（Readiness 五件套齐；D-WX-1..8 全拍板；实施未授权）
+- Updated: 2026-09-15（Review R1 F1–F7 收敛：D-WX-9 三文件分层等；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-wxml-bridge`](../_archive/complete/fe-tools-wxml-bridge/README.md)（napi 桥 + SpanView；parser/binding 分 crates 按 oxc 先例）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（`WXML_PARSER` 默认 **napi**——放大分发缺口）；`fe/tools/crates/dimina-wxml-parser`（483 tests，swc 类型库 + `swc_ecma_parser`）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -75,6 +75,7 @@
 | **D-WX-6**（拍板） | bundler **会发布 npm** → P1 全深度：5 平台子包 + `optionalDependencies` + 发版流 | 原待定 ① |
 | **D-WX-7**（拍板） | `.node` **P0 即退 git 追踪**（`git rm --cached` + `.gitignore`）；dev 前置 = Rust 工具链 + `pnpm build`（wxml-parser-napi）；P0 的 CI 构建同时让 x64 立即可用 | 原待定 ②——不等 P1 |
 | **D-WX-8**（拍板） | CI 时长**无预算** → 单 job 内构建（不拆 matrix job、不做产物 artifact 缓存）；cargo cache 照做（D-WX-5 保留，便宜且标准） | 原待定 ③ |
+| **D-WX-9**（R1-F1） | **三文件分层**：`index.<platform>.node`（CLI 产，退 git）+ `binding.js`（CLI 平台检测 glue，ESM，入库）+ `index.js`（**手写保留**：双态 + `parseWxmlSpanView` 包装）；build = `napi build --platform --release --js binding.js --format esm --no-dts --manifest-path ../crates/Cargo.toml` | CLI help 实证：`--js/--no-js` 仅 `--platform` 下有效（否则 glue 覆盖手写 index.js）；`--format` 默认 cjs 与 `type:module` 冲突 |
 
 ## 待定
 
@@ -99,3 +100,4 @@
 | 2026-09-15 | 初稿：CI 破损实证（本地模拟 `.node` 缺失复现）→ P0 止血 + P1 矩阵两门；A/B 路线对比收敛（A 优先；swc wasm plugin 概念澄清入档）；D-WX-1..5 建议；3 项待定 |
 | 2026-09-15 | **待定拍板 → D-WX-6..8**：bundler 会发布 npm（P1 全深度）；`.node` P0 即退 git（dev 前置 = Rust + pnpm build）；CI 无时长预算（单 job 构建，cache 照做）。**待定清空** |
 | 2026-09-15 | **Readiness 五件套成稿，升 `ready`**：R-WX0..5 + design（现状锚定含 build script darwin 专属硬编码 `.dylib` 实证 / P0 napi CLI 迁移 / P1 napi-rs 标准流 + 双态 index.js）+ plan（P0 独立可交付）+ A-WX0..5 + P-WX00..07。实施未授权 |
+| 2026-09-15 | **Review R1（F1–F7）收敛**：F1 🔴 `--platform` 语义错位 + glue 覆盖风险 → **D-WX-9 三文件分层**（路线乙，design §2.1/§3.2 重写）；F2 显式 `dtolnay/rust-toolchain@stable`；F3 darwin-x64 走 arm64 runner + `--target` 交叉（Intel runner 退役）；F4 x64-linux 首跑 residual + `WXML_PARSER=cheerio` 应急阀；F5 P-WX00 措辞限定（win 归 P1）；F6 双态单测落点 + `_resolveNative()` 钩；F7 `prepublish` 命令形态 P1 校准 |
