@@ -111,6 +111,8 @@
 | 2026-09-15 | 初稿：CI 破损实证（本地模拟 `.node` 缺失复现）→ P0 止血 + P1 矩阵两门；A/B 路线对比收敛（A 优先；swc wasm plugin 概念澄清入档）；D-WX-1..5 建议；3 项待定 |
 | 2026-09-15 | **待定拍板 → D-WX-6..8**：bundler 会发布 npm（P1 全深度）；`.node` P0 即退 git（dev 前置 = Rust + pnpm build）；CI 无时长预算（单 job 构建，cache 照做）。**待定清空** |
 | 2026-09-15 | **Readiness 五件套成稿，升 `ready`**：R-WX0..5 + design（现状锚定含 build script darwin 专属硬编码 `.dylib` 实证 / P0 napi CLI 迁移 / P1 napi-rs 标准流 + 双态 index.js）+ plan（P0 独立可交付）+ A-WX0..5 + P-WX00..07。实施未授权 |
+| 2026-09-15 | **P1 交付**（`7e43f175`）：napi/napi-derive → 3（binding 根因修复）；glue 定为 `binding.cjs`（CJS——ESM glue 破坏延迟抛错契约）；完整双态 + `_resolveNative()` 钩 + 4 单测（584/584）；五 targets/去 private/files 定稿；npm 五子包模板；`napi-release.yml`（tag 触发五平台 matrix）；prepublish dry-run 连通实证 |
+| 2026-09-15 | **环境发现**：fork（foolishchow/dimina）Actions 未启用（零 runs + dispatch 403）→ P-WX01 blocked-on-env；另证 1 crate 测试失败为 **pre-existing**（基线同败，`<template name is>` → UnclosedTag，与 napi3 无关） |
 | 2026-09-15 | **Review R1（F1–F7）收敛**：F1 🔴 `--platform` 语义错位 + glue 覆盖风险 → **D-WX-9 三文件分层**（路线乙，design §2.1/§3.2 重写）；F2 显式 `dtolnay/rust-toolchain@stable`；F3 darwin-x64 走 arm64 runner + `--target` 交叉（Intel runner 退役）；F4 x64-linux 首跑 residual + `WXML_PARSER=cheerio` 应急阀；F5 P-WX00 措辞限定（win 归 P1）；F6 双态单测落点 + `_resolveNative()` 钩；F7 `prepublish` 命令形态 P1 校准 |
 | 2026-09-15 | **R2 F-R2-001..003**：P0 纳入最小加载 `index.<platform>.node`（与 `--platform` build 同交付）；R-WX3/P-WX02 改平台后缀口径；gitignore=`*.node` |
 | 2026-09-15 | **R3 文案**：Goal/产品门/决策表标题对齐；五平台三元组映射表入 README |

@@ -1,6 +1,6 @@
 # Validation — fe-tools-wxml-parser-dist
 
-Status: **in_progress（P0 已交付 `c2d792de`）** — P-WX00/02 本地 pass；P-WX01 待 push 后 CI；P-WX03..07 P1。
+Status: **in_progress（P1 已交付 `7e43f175`）** — P-WX00/02/04 pass；P-WX03 结构 pass；P-WX06 dry-run 连通 pass；P-WX01 **blocked-on-env**（fork Actions 未启用）；P-WX05 crate 零语义 diff pass + 1 pre-existing 失败（非本门）；P-WX07 消融 pass。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -43,6 +43,29 @@ Status: **in_progress（P0 已交付 `c2d792de`）** — P-WX00/02 本地 pass�
 **发现（P0 residual · binding.js）**：`@napi-rs/cli@3.9` 写 `NAPI_TYPE_DEF_TMP_FOLDER`，而 crate 仍用 **napi-derive 2.16**（读 `TYPE_DEF_TMP_PATH`）→ typedef 目录空 → **`binding.js` 未生成**（CLI 在 `idents.length===0` 时跳过）。P0 最小加载不依赖 glue；**P1 完整双态前**须升 napi-derive/napi 至与 CLI 3 对齐，或另开兼容路径。空 `index.d.ts` 已 gitignore。
 
 **vitest**：`pnpm --filter @dimina/bundler test` → **580/580** passed（2026-09-15 本地 darwin-arm64）。
+
+### P1 交付（2026-09-15 · `7e43f175`）
+
+- **napi/napi-derive 2.16 → 3/3.6.5**：binding 根因修复（derive 3 读 `NAPI_TYPE_DEF_TMP_FOLDER`）；napi 面薄（单 `#[napi]` fn）编译零改动。
+- **glue = `binding.cjs`（CJS）**：ESM glue 会 import 即执行、破坏延迟抛错契约（cheerio 路径 vitest 会被炸 import 链）；CJS 可经 createRequire 延迟 require。CLI 内建完整回退序（本地 `index.<platform>.node` → 子包 → WASI）。
+- **三态实证**：本地态 parse ✓；拔本地（无子包）→ import 不炸 + `_resolveNative()` null + `[wxml]` 延迟文案 ✓；恢复 ✓。
+- **P-WX04**：`wxml-parser-loader.spec.js` 4 测（本地 e2e / 注入路径"皆无"态 / import 链安全）；**584/584（80 files）**。
+- **P-WX03**：`napi.targets` 五平台；`private` 解除；`files=[index.js,binding.cjs]`；`napi create-npm-dirs` 五子包模板（cpu/os 约束 ✓，入库；`npm/*/index.*.node` gitignore）。
+- **P-WX06（dry-run 连通）**：`napi prepublish --tag-style npm --dry-run` 校验逻辑实证——缺平台报错按平台序推进（拷入 darwin-arm64 后报 darwin-x64 missing）；全绿需 CI 产物汇聚。
+- **napi-release.yml**：tag（`wxml-parser-napi-v*`）→ 五平台 matrix（R1-F3：darwin-x64 = macos-arm64 + `--target x86_64-apple-darwin`；linux-arm64 = `ubuntu-24.04-arm`）→ artifacts → prepublish → 子包→主包 publish（需 `NPM_TOKEN` secret）。
+- **P-WX05**：parser 两 crate 语义零 diff（仅 napi 版本号 + Cargo.lock）；`fe/packages` 零 diff。
+
+### 环境级发现：P-WX01 blocked-on-env（2026-09-15）
+
+**fork（foolishchow/dimina）的 GitHub Actions 未启用**（fork 默认禁用）：
+- `gh run list -R foolishchow/dimina` **零 runs**（含 main——历史上从未运行过）；
+- 显式 dispatch → 403（PAT 亦无 Actions 写权限）；
+- push 到 feature 分支从未触发（此前 `gh run list` 看到的历史全是 upstream didi/dimina 的——gh 多 remote 默认解析到 upstream）。
+**解锁路径**：用户在网页 `Settings → Actions → General → Allow all actions`（一次性）；或声明 CI 绿以 didi 侧回流 PR 运行为准（Uncovered）。P0/P1 的 CI 改动正确性由本地等价验证背书（darwin 全链 + linux 侧 build script 三态经 napi CLI 机制保证）。
+
+### Pre-existing（非本门，2026-09-15 发现）
+
+`dimina-wxml-parser` crate：`wxml_parses_template_name_before_is` 失败（`<template name is>` 双属性 → `UnclosedTag`）——**基线 `3ff54de3` 上同样失败**（stash + worktree 双证），与 napi3 升级无关；属 parser 语义 bug，另行处理（TODO）。
 
 ### P0 独立复验（2026-09-15 · 交付 `c2d792de` 提交前）
 

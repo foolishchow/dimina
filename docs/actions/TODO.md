@@ -69,6 +69,14 @@
 | 待定 | 无（D-TD-1..16 已拍板） |
 | 前置 | typecheck Close/合入后再实施（D-TD-12） |
 
+### wxml parser crate：`<template name is>` 双属性 → UnclosedTag——pre-existing（2026-09-15）
+
+| Field | Value |
+| --- | --- |
+| 问题 | `wxml_parses_template_name_before_is` 失败：`<template name="card" is="base">Content</template>` 解析为 UnclosedTag（`dimina-wxml-parser`，基线 `3ff54de3` 同败——与 napi3 升级无关） |
+| 备注 | 测试注释自称"documents actual parser behavior"但期望 parse 成功——行为与注释矛盾；需判 parser 修复还是测试期望修正（spec：name 优先） |
+| 发现 | fe-tools-wxml-parser-dist P1 实施期（stash + worktree 双证 pre-existing） |
+
 ### WXML parser wasm target（B 路线）——观察项（2026-09-15）
 
 | Field | Value |
