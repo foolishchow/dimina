@@ -12,9 +12,9 @@
 		".": "./dist/index.js",
 		"./watch": "./dist/watch.js",
 		"./session": "./dist/session/index.js",
-		"./view-compiler": "./dist/compiler/view-compiler.js",
-		"./logic-compiler": "./dist/compiler/logic-compiler.js",
-		"./style-compiler": "./dist/compiler/style-compiler.js"
+		"./view-compiler": "./dist/compiler/view/index.js",
+		"./logic-compiler": "./dist/compiler/logic/index.js",
+		"./style-compiler": "./dist/compiler/style/index.js"
 	},
 	"bin": {
 		"dimina-cli": "dist/bin/index.js"
@@ -47,6 +47,7 @@
 		"星河"
 	],
 	"dependencies": {
+		"@dimina/wxml-parser-napi": "workspace:*",
 		"@vue/compiler-sfc": "^3.5.42",
 		"@vue/shared": "^3.5.42",
 		"autoprefixer": "^10.5.5",

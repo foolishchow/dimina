@@ -5,7 +5,7 @@
  * SpanView span 为 UTF-8 byte 半开偏移；Document loc/span 转为 JS 字符串索引
  *（与 cheerio / deriveLineColumn 对齐）。开标签属性按源码序写入 attrs。
  */
-import { parseWxmlSpanView } from '../../../../../../wxml-parser-napi/index.js'
+import { parseWxmlSpanView } from '@dimina/wxml-parser-napi'
 import {
 	createCommentNode,
 	createDocument,
