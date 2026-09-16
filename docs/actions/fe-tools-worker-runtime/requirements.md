@@ -62,7 +62,7 @@ MUST `pendingWarnings` 归 logger 实例（BufferingLogger 内部缓冲数组）
 
 ### R-WR7 — executeTask 资源层接缝
 
-MUST `executeTask({ engine, input, onOutput, onProgress })` → `Promise<result>` 作为任务层/资源层分离接缝。契约 5 点（D-WR-9）：输入 `{engine,input,onOutput,onProgress}` / 输出 `Promise<result>`（resolve=任务完成不绑 worker 生命周期）/ `onOutput(entry)` 流式 / `onProgress(completed,total)` / 资源层不在契约里。现状内部 new Worker + terminate；未来 pool/queue 换内部，外层零改动。
+MUST `executeTask({ engine, input, onOutput, onProgress })` → `Promise<result>` 作为任务层/资源层分离接缝。契约 6 点（D-WR-9，F35）：输入 `{engine,input,onOutput,onProgress}` / 输出 `Promise<result>`（resolve=任务完成不绑 worker 生命周期）/ `onOutput(entry)` 流式 / `onProgress(completed,total)` / result 形状 `{ dependencyGraph, compatibilityWarnings }`（executor 不碰 ctx，调用方写）/ 资源层不在契约里。现状内部 new Worker + terminate；未来 pool/queue 换内部，外层零改动。
 
 ### R-WR8 — emitEntry fire-and-forget 契约
 

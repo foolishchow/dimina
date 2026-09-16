@@ -100,7 +100,7 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 | A-WR4 | R-WR4 | 三 worker-entry.js 存在 + stage-channel 指向 | 文件存在 | pending |
 | A-WR5 | R-WR5 | sink.count 暴露 + outputCount 从业务消失 | grep 零 outputCount in view/logic/style | pending |
 | A-WR6 | R-WR6 | pendingWarnings 归 logger + warnedItems 留模块级 | 代码审查 | pending |
-| A-WR7 | R-WR7 | executeTask 契约 5 点 + 任务层/资源层分离 | 代码审查 | pending |
+| A-WR7 | R-WR7 | executeTask 契约 6 点（含 result 形状）+ 任务层/资源层分离 | 代码审查 | pending |
 | A-WR8 | R-WR8 | emitEntry return void + D-E-9 回流标注 | grep + architecture-notes | pending |
 | A-WR9 | R-WR9 | 测试直连 FileSink + ConsoleLogger 注入 | 40 测试不再崩溃 | pending |
 | A-WR10 | R-WR10 | 4 组 diff=0 + vitest 584/584 | diff + vitest 输出 | pending |

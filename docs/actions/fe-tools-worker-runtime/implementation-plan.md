@@ -44,7 +44,7 @@ Status: **draft**
 **F47 修正**：P-WR02 只加 `defineEngine + export engine`，**保留 onMessage 旧版 + compileML 旧版 + compile 签名不改**（P-WR02 时 worker 还跑旧 stage-channel → new Worker(index.js)，删 onMessage 会导致 worker 不跑编译）。调度残留删除 + compile 签名改 + successPayload + getStore 全部推迟到 P-WR03 原子切换。
 
 - `view/index.js`：
-  - 新增 `export const viewEngine = defineEngine({ compile, cleanup, successPayload })`（compile/cleanup/successPayload 函数声明，**但 onMessage 旧版暂调旧 compile 签名，不动**）
+  - 新增 `export const viewEngine = defineEngine({ compile, cleanup, successPayload })`（compile/cleanup/successPayload 函数声明供 export，新签名 `compile({msg, progress, config})`；**onMessage 旧版内联逻辑不动，不调 engine.compile**——P-WR02 临时重复 compile 函数声明 + onMessage 内联，P-WR03 删 onMessage 后 runtime 调 engine.compile，重复消除，F49）
   - **保留** `let collectOutput` / `let outputCount` / `if (!isMainThread) { parentPort.on(...) }` 整块（P-WR03 删）
   - **compileML 签名不动**（P-WR03 改从 getStore 拿 sink/logger）
 - `logic/index.js`：同上，engine 含 `buildConfig`（sourcemapTargetPath）
