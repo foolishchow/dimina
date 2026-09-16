@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
 - Status: `ready`
-- Updated: 2026-09-15（R10 验收描述+entry 来源修正；D-E-1..12 全五件套一致；实施未授权）
+- Updated: 2026-09-15（R11 设计语义矛盾修正；D-E-1..12 全五件套一致；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -96,5 +96,5 @@ style : outputDir mkdir + write × 2（CSS/map）
 | 2026-09-15 | 初稿：来自三刀方案 C 的刀 1（emit 抽取）；三病症（样板重复 / materialize 名不副实 / 无可增量结构）；D-E-1..5；3 待定 |
 | 2026-09-15 | **待定拍板 → D-E-6..8**：contract 不含 range/sourceFile（错误定位留 bundle 策略）；emitOutput 独立 `pipeline/output.js`（emit 无副作用）；style 只收 output 不进 emitEntry（无模块体系，防伪抽象）。**待定清空，升 `ready`** |
 | 2026-09-15 | **R1-R8 review 收敛**（详见 git log）：设计盲点→参数面/协议→文档一致性→签名→方案 A→五件套同步→清理+编号统一。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
-| 2026-09-15 | **Review R9（F1-F5）编号统一**：F1 🟠 四件套 16 处旧 review 编号→D-E-*（与 design §8 一致）；F2 🟡 requirements 补 D-E-3/4 引用；F3 🟡 五件套 Status "R8"→R9；F4 🟡 design §2 emitEntry 标注省略（→§7 签名）；F5 🟡 README R8 行并入合并行。**升 `ready`** |
-| 2026-09-15 | **Review R10（F1-F5）验收描述 + entry 来源**：F1 🟠 P-E02/A-E1 说"三引擎经 emitEntry"与 D-E-8 矛盾（style 不经）→ 已改"view/logic 经 emitEntry；style 经 output.write"；F2 🟠 design §2 style 行 entry 来源未标注 → 加注"compileSS 内部组装"；F3 🟡 五件套 Status "R9"→R10；F4 🟡 requirements R-E3 "bundle 后"→"compileSS 后"（style 无 bundle）；F5 🟡 D-E-3 理由标 mkdir 数量（3 处）。**升 `ready`** |
+| 2026-09-15 | **R1-R10 review 收敛**（详见 git log）：设计盲点→参数面/协议→文档一致性→签名→方案 A→五件套同步→清理+编号统一→验收描述+entry 来源。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
+| 2026-09-15 | **Review R11（F1-F3）设计语义矛盾**：F1 🔴 design §5 "output.write 需显式传 sourcemap flag"与 §7 签名（无 sourcemap 参数）矛盾——实际 sourcemap 信息在 `entry.sourcemaps?[]` 里（存在即写 map），不需 flag（已修正描述）；F2 🟠 plan step6 补 style output.write 参数来源（entry 组装/collectOutput/writeDir）；F3 🟡 五件套 Status "R10"→R11。**升 `ready`** |

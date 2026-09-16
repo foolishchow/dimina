@@ -1,6 +1,6 @@
 # Validation — fe-tools-bundler-emit-layer
 
-Status: **draft（R10 review 中 · 2026-09-15）** — 实施后回填 Result。
+Status: **draft（R11 review 中 · 2026-09-15）** — 实施后回填 Result。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 

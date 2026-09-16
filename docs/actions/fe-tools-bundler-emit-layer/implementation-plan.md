@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-bundler-emit-layer
 
-Status: **draft（R10 review 中 · 2026-09-15）** — E1→E2；行为 0；禁混。
+Status: **draft（R11 review 中 · 2026-09-15）** — E1→E2；行为 0；禁混。
 
 ## 基线与纪律
 
@@ -24,7 +24,7 @@ Status: **draft（R10 review 中 · 2026-09-15）** — E1→E2；行为 0；禁
 
 | Step | 文件 | 动作 |
 | --- | --- | --- |
-| 6 | `style/index.js` | buildCompileCss 后：css/map 改经 `output.write`（不收 emitEntry，D-E-8） |
+| 6 | `style/index.js` | buildCompileCss 后：css/map 改经 `output.write`（不收 emitEntry，D-E-8）；**entry 由 compileSS 内部组装**（`{entryId: page.path, kind: 'style', files: [{path, code}], sourcemaps?: [{path, map}]}`）；collectOutput 从 worker 全局；writeDir = `getTargetPath()/main` 或 `/root` |
 | 7 | 验证 | style 链对拍 diff=0；`grep fs.writeFileSync` 三引擎产物写盘面零直写 |
 | 8 | 全量 | 三链 nomap+sourcemap 对拍 + 全量 vitest；collectOutput(false) 与 materialize 两路径产物一致（抽查） |
 

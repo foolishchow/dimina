@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **draft（R10 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
+Status: **draft（R11 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
 
 ## 1. 现状锚定（实证）
 
@@ -77,7 +77,7 @@ const strategies = {
 - **view sourcemap 路径**：`mergeSourcemap(compileRes, filename)` 吃的 compileRes 是**临时拼装**（`[...scriptRes.entries()].map(...)` + `sourceMapRes.get(path)`），不是 scriptRes 本身。logic 的 compileRes 是编译时累积的数组，直接可用。
 - **map 类型**：三引擎最终 postMessage/writeFileSync 的 map 都是 **string**（view/logic = `smg.toString()`；style = `JSON.stringify(map)`，转换在 compileSS 内部）。
 - **style minify**：CSS minify 在 buildCompileCss 内部（cssnano/autoprefixer），不经 emit/output——矩阵 minify 列标"—"。
-- **style sourcemap 来源**：style 用 `options.sourcemap`（函数参数）；view/logic 用全局/模块导出 `enableSourcemap`。output.write 参数需显式传 sourcemap flag（不从全局读）。
+- **sourcemap 信息在 entry 内**：output.write **不需要** sourcemap flag 参数——sourcemap 信息全在 `entry.sourcemaps?[]` 里（存在即写 map 文件，不存在则只写 files）。style 的 sourcemap 开关（`options.sourcemap`）在 compileSS 内决定是否组装 sourcemaps[]，不传给 output.write。view/logic 的 `enableSourcemap` 同理在 emitEntry 策略内决定。
 
 ### 4.2 modDefine 包裹格式（行为 0 风险）
 
