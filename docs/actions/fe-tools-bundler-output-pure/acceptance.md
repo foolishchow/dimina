@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-bundler-output-pure
 
-Status: **draft（R4 review 修正 · 2026-09-16）** — 实施后回填 Actual。
+Status: **draft（R5 收敛 · 2026-09-16）** — 实施后回填 Actual。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

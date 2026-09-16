@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-bundler-output-pure
 
-Status: **draft（R4 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R5 收敛 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 基线
 
