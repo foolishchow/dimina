@@ -122,17 +122,17 @@ node pnpm.mjs build  # OK
 
 | Acceptance | Command or observation | Exit/result | Evidence | Result |
 | --- | --- | --- | --- | --- |
-| A-WR0 | grep 调度残留 in view/logic/style/compatibility | 1 | grep 输出 | pending |
-| A-WR1 | ls worker-runtime/ + dist import | 0 | 目录 + import 成功 | pending |
-| A-WR2 | grep defineEngine + 三 engine | 0 | 三行命中 | pending |
-| A-WR3 | grep abilityContext.getStore in emit.js/compatibility.js | 0 | 收敛点命中 | pending |
-| A-WR4 | ls 三 worker-entry.js + grep ENTRY_PATH in executor.js | 0 | 文件 + 指向 | pending |
-| A-WR5 | grep sink.count + 零 outputCount in view/logic/style | 0 | 命中 + 零 | pending |
-| A-WR6 | grep pendingWarnings 零 + warnedItems 保留 + logger.flush in view/logic + engine.successPayload in runtime + ctx.compatibilityWarnings | 0 | grep 结果 | pending |
-| A-WR7 | grep new Worker only in executor.js | 0 | 单点 | pending |
-| A-WR8 | grep return 1 零 in emit.js + architecture-notes | 0 | 零 + 标注 | pending |
-| A-WR9 | grep abilityContext.run in __tests__ | 0 | 注入命中 | pending |
-| A-WR10 | 4×diff + vitest + tsc | 0 / 584 | diff=0 + vitest + tsc | pending |
+| A-WR0 | grep 调度残留 in view/logic/style/compatibility | 1 | grep 输出 | passed |
+| A-WR1 | ls worker-runtime/ + dist import | 0 | 目录 + import 成功 | passed |
+| A-WR2 | grep defineEngine + 三 engine | 0 | 三行命中 | passed |
+| A-WR3 | grep abilityContext.getStore in emit.js/compatibility.js | 0 | 收敛点命中 | passed |
+| A-WR4 | ls 三 worker-entry.js + grep ENTRY_PATH in executor.js | 0 | 文件 + 指向 | passed |
+| A-WR5 | grep sink.count + 零 outputCount in view/logic/style | 0 | 命中 + 零 | passed |
+| A-WR6 | grep pendingWarnings 零 + warnedItems 保留 + logger.flush in view/logic + engine.successPayload in runtime + ctx.compatibilityWarnings | 0 | grep 结果 | passed |
+| A-WR7 | grep new Worker only in executor.js | 0 | 单点 | passed |
+| A-WR8 | grep return 1 零 in emit.js + architecture-notes | 0 | 零 + 标注 | passed |
+| A-WR9 | grep abilityContext.run in __tests__ | 0 | 注入命中 | passed |
+| A-WR10 | 4×diff + vitest + tsc | 0 / 584 | diff=0 + vitest + tsc | passed |
 
 （详见各 V-WR00..08 命令）
 

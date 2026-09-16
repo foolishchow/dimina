@@ -1,9 +1,9 @@
 # fe-tools-worker-runtime
 
 - Action: `fe-tools-worker-runtime`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-16
-- Status authority: [Action Status](../STATUS.md)
+- Status authority: [Action Status](../../../STATUS.md)
 
 ## Background
 
@@ -93,17 +93,17 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 
 | ID | Requirement | Observable condition | Planned evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-WR0 | R-WR0 | grep 零调度残留 in view/logic/style/output/compatibility | grep 退出码 1 | pending |
-| A-WR1 | R-WR1 | worker-runtime/ 目录存在 + 模块可 import | import 成功 | pending |
-| A-WR2 | R-WR2 | defineEngine 契约 + 三 engine 注册 | 代码审查 | pending |
-| A-WR3 | R-WR3 | abilityContext.run + 收敛点 getStore | 代码审查 | pending |
-| A-WR4 | R-WR4 | 三 worker-entry.js 存在 + stage-channel 指向 | 文件存在 | pending |
-| A-WR5 | R-WR5 | sink.count 暴露 + outputCount 从业务消失 | grep 零 outputCount in view/logic/style | pending |
-| A-WR6 | R-WR6 | pendingWarnings 归 logger + warnedItems 留模块级 | 代码审查 | pending |
-| A-WR7 | R-WR7 | executeTask 契约 6 点（含 result 形状）+ 任务层/资源层分离 | 代码审查 | pending |
-| A-WR8 | R-WR8 | emitEntry return void + D-E-9 回流标注 | grep + architecture-notes | pending |
-| A-WR9 | R-WR9 | 测试直连 FileSink + ConsoleLogger 注入 | 40 测试不再崩溃 | pending |
-| A-WR10 | R-WR10 | 4 组 diff=0 + vitest 584/584 | diff + vitest 输出 | pending |
+| A-WR0 | R-WR0 | grep 零调度残留 in view/logic/style/output/compatibility | grep 退出码 1 | passed |
+| A-WR1 | R-WR1 | worker-runtime/ 目录存在 + 模块可 import | import 成功 | passed |
+| A-WR2 | R-WR2 | defineEngine 契约 + 三 engine 注册 | 代码审查 | passed |
+| A-WR3 | R-WR3 | abilityContext.run + 收敛点 getStore | 代码审查 | passed |
+| A-WR4 | R-WR4 | 三 worker-entry.js 存在 + stage-channel 指向 | 文件存在 | passed |
+| A-WR5 | R-WR5 | sink.count 暴露 + outputCount 从业务消失 | grep 零 outputCount in view/logic/style | passed |
+| A-WR6 | R-WR6 | pendingWarnings 归 logger + warnedItems 留模块级 | 代码审查 | passed |
+| A-WR7 | R-WR7 | executeTask 契约 6 点（含 result 形状）+ 任务层/资源层分离 | 代码审查 | passed |
+| A-WR8 | R-WR8 | emitEntry return void + D-E-9 回流标注 | grep + architecture-notes | passed |
+| A-WR9 | R-WR9 | 测试直连 FileSink + ConsoleLogger 注入 | 40 测试不再崩溃 | passed |
+| A-WR10 | R-WR10 | 4 组 diff=0 + vitest 584/584 | diff + vitest 输出 | passed |
 
 ## Validation
 
