@@ -4,8 +4,7 @@ Status: **ready（实施未授权）** — E1→E2；行为 0；禁混。
 
 ## 基线与纪律
 
-> **R2-F1/F2**：emitEntry/output.write 接受 **EmitContext** 聚合对象（`{compileConfig, sourcemapTargetPath, relPrefix, collectOutput, outputCount(ref)}`）——不逐个罗列参数；output.write 非纯函数（postMessage 后 `ctx.outputCount++`，声明副作用）。
-> **R2-F3**：output.write 参数区分 `writeDir`（写盘 getTargetPath）与 `rebaseDir`（sourcemap rebase 基准 sourcemapTargetPath）。
+> **R2-C1-C3（拍板）**：emitEntry 吃**纯参数 + outputEnv 小聚合**（不引入 EmitContext）；output.write 不管 count（count 在 emitEntry 层累加）；rebase 留 emitEntry 策略（output.write 只含 writeDir）。详见 design §8 修正签名。
 
 
 - 授权时记录 HEAD；`fe/packages` 零触碰；**只搬不优化**（D-E-5）——不统一 transform 粒度、不改产物语义。
@@ -16,7 +15,7 @@ Status: **ready（实施未授权）** — E1→E2；行为 0；禁混。
 | Step | 文件 | 动作 |
 | --- | --- | --- |
 | 1 | `pipeline/emit.js`（新） | 模块集合契约（JSDoc typedef `EmitModule`/`ModuleCollection`）+ `emitEntry` 骨架 + transform 策略表（`bundle` 迁 view 整包+moduleRanges；`perModule` 迁 logic 逐模块） |
-| 2 | `pipeline/output.js`（新） | `write({path, content, map, collectOutput})`：collectOutput → postMessage(M1)；否则 mkdir -p + writeFileSync（收口三引擎各自 mkdir 逻辑） |
+| 2 | `pipeline/output.js`（新） | `write({path, content, map?, collectOutput, writeDir})`：collectOutput → postMessage(M1)；否则 mkdir -p(writeDir) + writeFileSync。**不管 count**（R2-C2）、**不管 rebase**（R2-C3） |
 | 3 | `view/index.js` | compileML 尾部改写：scriptRes → `emitEntry(…strategy:'bundle')` → output.write；**R1-F4 交叉矩阵**：bundle.apply 必须覆盖三象限——sourcemap（mergeSourcemap，跳 minify CF-1）/ minify（整包 transform）/ 无（整包 transform minify:false）；moduleRanges 行定位迁入 bundle.apply 私有 |
 | 4 | `logic/index.js` | writeCompileRes 改写：compileRes → `emitEntry(…strategy:'perModule')` → output.write；**R1-F4 交叉矩阵**：perModule.apply 必须覆盖三象限——sourcemap（rebase+mergeSourcemap，跳 minify CF-1）/ minify（逐模块 transform）/ 无（直接拼接）；sourcemap rebase（R1-F3）在 apply 内 |
 | 5 | 验证 | view/logic 两链产物对拍 diff=0 + vitest 全量 |

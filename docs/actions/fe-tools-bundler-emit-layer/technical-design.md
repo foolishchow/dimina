@@ -19,10 +19,10 @@ src/compiler/{view,logic}/index.js（编译）
   └─ 产出「模块集合」iterable<{moduleId, code, map}>（提供者 A0 = scriptRes/compileRes）
         └─ pipeline/emit.js  emitEntry(...)
              ├─ transform 策略注入（bundle / perModule —— 各自 apply + 错误定位）
-             └─ → pipeline/output.js  write({path, content, map?, collectOutput})
+             └─ → pipeline/output.js  write({path, content, map?, collectOutput, writeDir})
                     └─ collectOutput ? postMessage(M1) : mkdir + writeFileSync
 src/compiler/style/index.js
-  └─ → pipeline/output.js  write({path, css/map, collectOutput})   // 不经 emitEntry
+  └─ → pipeline/output.js  write({path, content(css), map?, collectOutput, writeDir})   // 不经 emitEntry
 ```
 
 ## 3. 模块集合契约（D-E-1/D-E-6）
@@ -79,11 +79,15 @@ const strategies = {
 
 **CF-1 约束**：`effectiveJsMinify = minify && !sourcemap`——sourcemap 模式跳过 minify（mergeSourcemap 只做单层行偏移，串联两份 map 未实现）。策略 apply 必须守此约束。
 
+**R3-F5（view sourcemap 步骤补充）**：view sourcemap 路径的 `mergeSourcemap(compileRes, filename)` 吃的 compileRes 是**临时拼装**（`[...scriptRes.entries()].map(([path, code]) => ({path, code, map: sourceMapRes.get(path)}))`）——不是 scriptRes 本身。bundle.apply 实施时需从 `scriptRes + sourceMapRes` 两个 Map 拼出 compileRes 再传 mergeSourcemap；logic 的 compileRes 是编译时累积的 compileInfo 数组（`{path, code, sourceFile}`），直接可用。两来源形态不同但 contract `{moduleId, code, map}` 统一。
+
+**R3-F6（map 类型一致性声明）**：三引擎最终 postMessage/writeFileSync 的 map 都是 **string**。view/logic = `smg.toString()`（magic-string）；style = `JSON.stringify(map)`（object → string 转换在 compileSS 内部，不经 emit）。output.write 收到的 map 统一为 string ✓。
+
 ## 5. output（D-E-7/D-E-8）
 
 ```js
 // pipeline/output.js —— 唯一写盘出口（materialize 名不副实修复）
-write({ path, content, map, collectOutput })  // collectOutput ? postMessage(M1) : mkdir+write
+write({ path, content, map?, collectOutput, writeDir })  // R2-C2/C3: 不管 count/rebase
 ```
 
 - collectOutput 路径：postMessage({ type:'output', entry })——**R1-F6**：entry 形状 = `{ entryId, kind, files:[{path,code}], sourcemaps?:[{path,map}] }`，与 BuildModel.add 入参**完全一致**（三引擎实证一致，不引入新形状）；
@@ -109,7 +113,8 @@ write({ path, content, map, collectOutput })  // collectOutput ? postMessage(M1)
 - `collectOutput`（worker 初始化时从 message 设）
 - `outputCount`（postMessage output 后各自 `++`）
 - `activeCompileConfig`（minify/sourcemap/esTarget 来源）
-- `enableSourcemap` / `sourcemapTargetPath`（logic rebase 用）
+- `enableSourcemap`：logic/style 为全局变量；**view 为 `wxml/renderer/vue/state.js` 模块导出**（R3-F7 修正——非 view/index.js 全局）
+- `sourcemapTargetPath`（logic rebase 用；view/style 无）
 
 **问题**：emitEntry 签名当前只列 `{entryId, kind, modules, transform, filename, sourcemap, collectOutput}`——缺 `activeCompileConfig`（target/platform/minify）、`sourcemapTargetPath`（rebase）、`relPrefix`（物化路径前缀）。若纯函数化，参数膨胀到 10+；若闭包捕获全局，则 emitEntry 不可复用（绑 worker 上下文）。
 
@@ -188,6 +193,22 @@ write({
 })
 // 返回值：void（count 由 emitEntry 层累加）
 ```
+
+
+## 9. R3 Review findings（文档一致性 · 2026-09-15）
+
+### R3-F1..F4（已修正）：签名不一致
+
+- **R3-F1**（🔴）：implementation-plan 残留 R2 被否决的 EmitContext/rebaseDir（已删，替换为 R2-C1-C3 指引）。
+- **R3-F2**（🔴）：requirements R-E1 emitEntry 签名过时（已修正为 §8 签名）。
+- **3-F3**（🟠）：requirements/design §5 output.write 缺 writeDir（已修正）。
+- **R3-F4**（🟠）：6 处 output.write 签名 5 种写法（§2/§5/§8/requirements/plan——已统一到 §8 的 `write({path, content, map?, collectOutput, writeDir})`）。
+
+### R3-F5..F7（补充声明）
+
+- **R3-F5**（🟡）：view sourcemap 路径的 mergeSourcemap 吃临时拼装 compileRes（§4.1 已补）。
+- **R3-F6**（🟡）：map 类型一致性声明——三引擎最终都是 string（§4.1 已补）。
+- **R3-F7**（🟡）：view 的 enableSourcemap 是 `renderer/vue/state.js` 模块导出非全局（§7 R2-F1 描述已修正）。
 
 ## Residual
 
