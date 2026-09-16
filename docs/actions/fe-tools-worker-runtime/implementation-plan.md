@@ -45,7 +45,7 @@ Status: **draft**
 
 - `view/index.js`：
   - 删 `let collectOutput` / `let outputCount` / `if (!isMainThread) { parentPort.on(...) }` 整块
-  - `compileML` 签名加 `{ sink, logger }`（或从 abilityContext getStore，收敛点处理则签名不动——见 P-WR04）
+  - `compileML` 签名不动（从 `abilityContext.getStore()` 拿 sink/logger，D-WR-3 收敛点）
   - 新增 `export const viewEngine = defineEngine({ compile, cleanup, successPayload })`
 - `logic/index.js`：同上，engine 含 `buildConfig`（sourcemapTargetPath）
 - `style/index.js`：同上，engine 含 `normalizeError`（file/line/column/stage）
@@ -61,21 +61,22 @@ Status: **draft**
 - `src/compiler/logic/worker-entry.js`
 - `src/compiler/style/worker-entry.js`
 - `stage-channel.js` 的 `WORKER_ENTRY` 从 `../view/index.js` 改 `../view/worker-entry.js`（×3）
+- **strip-types 注入逻辑保留**（D-TD-20）：stage-channel 现状在 `import.meta.url.includes('/src/')` 时注入 `--experimental-strip-types` execArgv——收敛后搬 executor.js 或 stage-channel 保持；thin entry 在 `/src/` 必须走 strip-types 否则 worker 跑 .ts 失败
 
 **验证点**：worker 可起（dev server 编译跑通）；4 组产物 diff=0（行为 0，调度骨架搬移）
 
 ## P-WR04 — emitEntry/output 改
 
-emitEntry 收 sink（从 abilityContext getStore），return void；output.write 废弃或退化。
+emitEntry 收 sink（从 abilityContext getStore），return void；output.js 删除。
 
 - `pipeline/emit.js`：
-  - `emitEntry(params)` 删 outputEnv 第二参数（已在 emit-layer 归档时改过？确认现状）
+  - `emitEntry(params)` 现状是 `emitEntry(params, outputEnv)` 两参数（emit-layer D-E-10 归档形态）——删 outputEnv 第二参数
   - 内部 `const { sink } = abilityContext.getStore()` + `sink.write(entry)`
   - `return 1` 删除 → async Promise<void>
   - JSDoc 标注 fire-and-forget 契约 + D-E-9 废弃
 - `pipeline/output.js`：
-  - `write` 废弃（或退化为 `FileSink` 的薄壳，供主线程直连兼容）
-  - 或：output.js 整体删，sink 实现在 worker-runtime/sinks.js
+  - 整体删除（FileSink 实现在 worker-runtime/sinks.js；emitEntry 内部 sink.write 替代原 write）
+  - 删 `import { write } from './output.js'`（emit.js + style/index.js 的 import）
 - `view/index.js`/`logic/index.js`：`outputCount += await emitEntry(...)` → `await emitEntry(...)`（删 += 和 outputCount）
 - `style/index.js`：`write({entry, collectOutput, writeDir})` ×2 → `sink.write(entry)` ×2 + 删 `outputCount++`（sink 自动计数）
 
@@ -133,6 +134,11 @@ stage-channel 的 new Worker + 回调内核重构为 executeTask 接缝调用。
 - D-E-9 废弃回流 emit-layer architecture-notes
 
 **验证点**：4 组 diff=0 + vitest 584/584 + grep 锚定全过 + tsc build OK
+
+## 边界声明
+
+- `build-pipeline.js` 不改（`ctx.compatibilityWarnings` 消费链路保留：stage-channel/executor 收 message.compatibilityWarnings → ctx.add → build-pipeline printCompatibilityWarnings + warningsBefore/After 增量）
+- `build-model.js` 不改（materialize 唯一写盘出口保留）
 
 ## 风险
 
