@@ -1,8 +1,8 @@
 # FE Tools Bundler Emit Layer
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
-- Status: `draft`
-- Updated: 2026-09-15（初稿：emit 抽取 + 模块集合契约 + 出口统一；来自架构讨论三刀 C 的刀 1）
+- Status: `ready`
+- Updated: 2026-09-15（五件套齐；D-E-1..8 全拍板；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -72,17 +72,17 @@ style : outputDir mkdir + write × 2（CSS/map）
 | **D-E-3** | emitOutput 统一出口（postMessage(M1)/fs），消 9 处直写 + 各自 mkdir |
 | **D-E-4** | 契约不含 deps（依赖留图维度 1，单一职责） |
 | **D-E-5** | 这一刀**只搬不优化**——不统一 transform 粒度、不改产物语义 |
+| **D-E-6**（拍板） | contract = `{moduleId, code, map}`，**不含 range/sourceFile**——错误定位是产物布局（bundle 策略私有，moduleRanges 由策略维护）；source 在 map 内（logic sourcemap rebase 已读 module.map.sources） | 原待定 ① |
+| **D-E-7**（拍板） | `emitOutput` 独立为 **`pipeline/output.js`**（emit 无副作用 / output 有副作用；未来刀 3 增量写盘、style、materialize 对接均复用）；emitEntry 内部调用它 | 原待定 ② |
+| **D-E-8**（拍板） | **style 只收 output（写盘出口），不进 emitEntry**——无模块集合/无 modDefine/无 transform，硬套骨架=伪抽象；写盘样板仍收（9 处直写的 2 处，materialize 修复才彻底） | 原待定 ③ |
 
-## 待定（Readiness 前需确认）
+## 待定
 
-1. **contract 形状细节**：`{moduleId, code, map}` 之外是否需要 `sourceFile`/`range`（错误定位用）——moduleRanges 现在在 view 是行号映射，是否进 contract
-2. **emitOutput 的位置**：并入 emit.js 还是独立 `pipeline/output.js`（离 materialize 近）
-3. **style 是否纳入本刀**：style 无 modDefine（纯 CSS 拼接），样板不同——收进 emitOutput 还是留 style 内部
+无（D-E-1..8 已全拍板）；Readiness 五件套补齐后升 `ready`
 
 ## Status / 授权
 
-- 当前 **`draft`**：三病症 + Goal + D-E-1..5 建议在案；**待定 3 项拍板后补 Readiness 五件套**
-- 未授权实施
+- 当前 **`ready`**：五件套齐（R-E\* / E1/E2 门 / P-E\*）；**实施未授权**（须另授 `in_progress`）
 
 ## 闭合条件
 
@@ -94,3 +94,4 @@ style : outputDir mkdir + write × 2（CSS/map）
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-15 | 初稿：来自三刀方案 C 的刀 1（emit 抽取）；三病症（样板重复 / materialize 名不副实 / 无可增量结构）；D-E-1..5；3 待定 |
+| 2026-09-15 | **待定拍板 → D-E-6..8**：contract 不含 range/sourceFile（错误定位留 bundle 策略）；emitOutput 独立 `pipeline/output.js`（emit 无副作用）；style 只收 output 不进 emitEntry（无模块体系，防伪抽象）。**待定清空，升 `ready`** |
