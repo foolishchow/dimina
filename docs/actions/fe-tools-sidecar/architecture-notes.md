@@ -168,6 +168,18 @@ wxml/
 4. `compile.js` 仅编排，不承载展开/降级算法体；vue 工具在 `renderer/vue/`。
 5. 本门行为 0：相对实施基线产物+sourcemap diff=0；默认 napi vs cheerio diff=0。
 
+## Emit 层 + 唯一写盘出口（fe-tools-bundler-emit-layer · 2026-09-15）
+
+- **契约**（`pipeline/emit.js`）：`emitEntry({entryId, kind, modules, transform: {strategy, minify, target, platform}, sourcemap, sourcemapTargetPath, filename, relPrefix}, outputEnv={collectOutput, writeDir})` → `number`。模块集合 = `Iterable<{moduleId, code, map, extraInfoCode?}>`（D-E-1 契约先立，不含 range/sourceFile——D-E-6；`extraInfoCode` 是 logic sourcemap 路径 wrapModDefine header 注入，非 range/sourceFile，策略内部透传）。
+- **策略**（D-E-2 函数注入）：`bundle`（view 整包 + moduleRanges 行定位，布局私有）/ `perModule`（logic 逐模块 + sourcemap rebase 在 apply 内，D-E-12）。非标志位 if。
+- **output.js**（`pipeline/output.js`，D-E-3/D-E-7 独立）：`write({entry, collectOutput, writeDir})` → void。collectOutput→postMessage(M1)；否则 mkdir-p+writeFileSync。不管 count（D-E-11）/不管 rebase（D-E-12）。sourcemap 信息在 `entry.sourcemaps?[]`（存在即写 map，不需 flag 参数）。
+- **方案 A**（D-E-9）：emitEntry 内部调 output.write，返回 1（调用方 `outputCount += result`）。A→B 演化（刀 3 若需"只产不写"）= 拆 emitEntry → {entry} + output.write 外部调，加法。
+- **style 边界**（D-E-8）：style 只收 output.write（compileSS 内部组装 entry），不进 emitEntry（无模块集合/modDefine/transform）。
+- **CF-1**：`effectiveJsMinify = minify && !sourcemap`——sourcemap 模式跳过 minify（mergeSourcemap 只做单层行偏移，串联两份 map 未实现）。
+- **行为 0**：三链 diff=0（含非 sourcemap+非 minify tab 路径）；vitest 584/584。grep 三引擎零直接 `fs.writeFileSync` + 零 `type:'output'` postMessage。
+- **提供者 A0**：view scriptRes（Map）/ logic compileRes（Array）现作提供者；未来 ModuleCache（刀 3）以同形状 `{moduleId, code, map}` 提供即可守约。
+- **非本刀**：ModuleCache（刀 3）/ 失效查询（刀 2）/ transform 粒度统一 / tree-shaking。
+
 ## Bundler allowJs 类型门禁（fe-tools-bundler-typecheck · 2026-09-15）
 
 - `fe/tools/bundler/tsconfig.json`：`allowJs: true`、`checkJs: false`、`strict: true`、`noEmit: true`；`include` = `src/compiler/**`。
