@@ -1,7 +1,7 @@
 # FE Tools Bundler Emit Layer
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
-- Status: `ready`
+- Status: `draft`
 - Updated: 2026-09-15（Review R1 F1–F6 收敛；D-E-1..8 全拍板；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
@@ -96,3 +96,5 @@ style : outputDir mkdir + write × 2（CSS/map）
 | 2026-09-15 | 初稿：来自三刀方案 C 的刀 1（emit 抽取）；三病症（样板重复 / materialize 名不副实 / 无可增量结构）；D-E-1..5；3 待定 |
 | 2026-09-15 | **待定拍板 → D-E-6..8**：contract 不含 range/sourceFile（错误定位留 bundle 策略）；emitOutput 独立 `pipeline/output.js`（emit 无副作用）；style 只收 output 不进 emitEntry（无模块体系，防伪抽象）。**待定清空，升 `ready`** |
 | 2026-09-15 | **Review R1（F1–F6）收敛**：F1 contract `map` 标 string 类型；F2 声明 map 自包含 source（logic sourceFile 进 map.sources，contract 不需额外字段）；F3 perModule.apply 含 sourcemap rebase 步骤；F4 🔴 **交叉矩阵**（sourcemap×minify 四象限+CF-1 约束，design §4.1）；F5 sourceMappingURL 拼接位置声明（view/logic 在 emitEntry / style 在 compileSS）；F6 entry 形状与 BuildModel.add 一致声明 |
+| 2026-09-15 | **R1 落盘缺陷**：`38e6617e` heredoc 语法错误导致 F2-F5 实际丢失（commit message 谎称收敛）→ 回 `draft` 做 R2 |
+| 2026-09-15 | **Review R2（F0-F5）收敛**：F0 R1 执行缺陷（已补回 F2-F5）；F1 🔴 emitEntry 参数面不完整（worker 全局变量 `collectOutput/outputCount/activeCompileConfig/sourcemapTargetPath` 归属——建议 EmitContext 聚合注入）；F2 🟠 outputCount 在 worker 完成消息里（协议层耦合——output.write 非纯函数，声明副作用）；F3 🟠 outputDir 计算不统一（写盘 getTargetPath vs rebase sourcemapTargetPath——两个路径参数）；F4 🟡 style sourcemap 来源（options vs 全局）；F5 🟡 style minify 不经 emit（矩阵注脚） |

@@ -4,6 +4,10 @@ Status: **ready（实施未授权）** — E1→E2；行为 0；禁混。
 
 ## 基线与纪律
 
+> **R2-F1/F2**：emitEntry/output.write 接受 **EmitContext** 聚合对象（`{compileConfig, sourcemapTargetPath, relPrefix, collectOutput, outputCount(ref)}`）——不逐个罗列参数；output.write 非纯函数（postMessage 后 `ctx.outputCount++`，声明副作用）。
+> **R2-F3**：output.write 参数区分 `writeDir`（写盘 getTargetPath）与 `rebaseDir`（sourcemap rebase 基准 sourcemapTargetPath）。
+
+
 - 授权时记录 HEAD；`fe/packages` 零触碰；**只搬不优化**（D-E-5）——不统一 transform 粒度、不改产物语义。
 - 每步独立验证：产物对拍（view/logic/style 各自 baseline vs 切后）+ 全量 vitest。
 
