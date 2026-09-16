@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getPages, storeInfo } from '../src/compiler/core/env.js'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 const hotpathSpies = {}
 
@@ -60,12 +61,12 @@ describe('module cache (MC3)', () => {
 		const { compileSS } = await import('../src/compiler/style/index.js')
 
 		// 第一次：postcss.process 应执行（缓存 miss）
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false })
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }))
 		const afterFirst = hotpathSpies.postcssProcess
 		expect(afterFirst).toBeGreaterThan(0)
 
 		// 第二次同内容同配置：compileRes 命中 → postcss 不再重跑
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false })
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }))
 		expect(hotpathSpies.postcssProcess).toBe(afterFirst)
 	})
 
@@ -73,11 +74,11 @@ describe('module cache (MC3)', () => {
 		setupMiniApp()
 		const { compileSS } = await import('../src/compiler/style/index.js')
 
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false })
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }))
 		const afterFirst = hotpathSpies.postcssProcess
 
 		// minify 变化 → cacheKey 不同（::minify:true vs false）→ miss → process 重跑
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: true })
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: true }))
 		expect(hotpathSpies.postcssProcess).toBeGreaterThan(afterFirst)
 	})
 })

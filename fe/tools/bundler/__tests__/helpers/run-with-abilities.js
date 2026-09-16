@@ -1,0 +1,18 @@
+import { abilityContext } from '../../src/compiler/worker-runtime/context.js'
+import { FileSink } from '../../src/compiler/worker-runtime/sinks.js'
+import { ConsoleLogger } from '../../src/compiler/worker-runtime/loggers.js'
+
+/**
+ * P-WR07: 测试直连注入——包 compileML/compileJS/compileSS 调用，
+ * 提供 FileSink（写盘）+ ConsoleLogger（warn console）。
+ *
+ * @param {string} writeDir  产物写盘目录
+ * @param {Function} fn      被包裹的异步函数（如 async () => await compileML(...)）
+ * @returns {Promise<*>} fn 的返回值
+ */
+export function runWithAbilities(writeDir, fn) {
+	return abilityContext.run(
+		{ sink: new FileSink(writeDir), logger: new ConsoleLogger() },
+		fn,
+	)
+}

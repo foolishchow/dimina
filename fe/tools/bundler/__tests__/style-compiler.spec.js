@@ -6,6 +6,7 @@ import { boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlVal
 import { getAppStyleScopeId, getComponent, getPages, storeInfo } from '../src/compiler/core/env.js'
 import { compileSS } from '../src/compiler/style/index.js'
 import { compileML } from '../src/compiler/view/index.js'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('ensureImportSemicolons', () => {
 	it('should add semicolons to @import statements that do not have them', () => {
@@ -188,7 +189,7 @@ describe('style compiler regressions', () => {
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		storeInfo(tempDir)
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputCss = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.css'), 'utf-8')
 		expect(outputCss).not.toContain('undefined')
@@ -203,7 +204,7 @@ describe('style compiler regressions', () => {
 		writeProjectFile('pages/home/index.wxss', '.box { width: 750rpx; margin-left: -7.5rpx; font-size: 1rem; }')
 
 		storeInfo(tempDir)
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputCss = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.css'), 'utf-8')
 		expect(outputCss).toContain('width:100vw')
@@ -226,7 +227,7 @@ describe('style compiler regressions', () => {
 		writeProjectFile('components/child.wxss', '.child-internal { display: inline-flex; }')
 
 		storeInfo(tempDir)
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputCss = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.css'), 'utf-8')
 		const childIndex = outputCss.indexOf('.child-internal')
@@ -257,7 +258,7 @@ describe('style compiler regressions', () => {
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		storeInfo(tempDir)
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputCss = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.css'), 'utf-8')
 		expect(outputCss).not.toContain('undefined')
@@ -281,7 +282,7 @@ describe('style compiler regressions', () => {
 		writeProjectFile('components/b.wxss', '@import "./shared.wxss";')
 
 		storeInfo(tempDir)
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const compA = getComponent('/components/a')
 		const compB = getComponent('/components/b')
@@ -321,7 +322,7 @@ describe('style compiler regressions', () => {
 
 		storeInfo(tempDir)
 		const pages = getPages()
-		await compileSS(pages.mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(pages.mainPages, null, { completedTasks: 0 }))
 
 		const page = pages.mainPages[0]
 		const isolated = getComponent('/components/isolated')
@@ -392,7 +393,7 @@ describe('style compiler regressions', () => {
 		// The same shared component is reachable both directly and through nested.
 		expect(page.sharedStyleScopeIds).toEqual([shared.id])
 
-		await compileML(pages.mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(pages.mainPages, null, { completedTasks: 0 }))
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.js'), 'utf-8')
 		expect(output).toMatch(new RegExp(`path:\\s*["']pages/home/index["'][\\s\\S]{0,240}appStyleScopeId:\\s*["']${page.appStyleScopeId}["']`))
 		expect(output).toMatch(new RegExp(`sharedStyleScopeIds:\\s*\\[["']${shared.id}["']\\]`))
@@ -410,7 +411,7 @@ describe('style compiler regressions', () => {
 
 		storeInfo(tempDir)
 		const appStyleScopeId = getAppStyleScopeId()
-		await compileSS([{ path: 'app', id: appStyleScopeId }], null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS([{ path: 'app', id: appStyleScopeId }], null, { completedTasks: 0 }))
 
 		const outputCss = fs.readFileSync(path.join(outputDir, 'main/app.css'), 'utf-8')
 		expect(outputCss).toContain(`.dd-page[data-v-${appStyleScopeId}]`)

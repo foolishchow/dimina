@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 const hotpathSpies = vi.hoisted(() => ({
 	cheerioLoad: vi.fn(),
@@ -84,7 +85,7 @@ describe('compiler CPU hot paths', () => {
 		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
 		storeInfo(tempDir)
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		expect(hotpathSpies.cheerioLoad).toHaveBeenCalledTimes(0) // 默认 napi；cheerio 不在热路径
 		expect(hotpathSpies.esbuildTransform).toHaveBeenCalledTimes(1)
@@ -102,7 +103,7 @@ describe('compiler CPU hot paths', () => {
 		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
 		storeInfo(tempDir)
 		const { compileSS } = await import('../src/compiler/style/index.js')
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const postprocessPasses = hotpathSpies.postcssPlugins.mock.calls
 			.map(([plugins]) => plugins)

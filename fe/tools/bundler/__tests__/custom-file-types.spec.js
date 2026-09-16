@@ -10,6 +10,7 @@ import {
 	resetStoreInfo,
 	storeInfo,
 } from '../src/compiler/core/env.js'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 /**
  * 「可配置小程序自定义文件类型（custom file types）」特性的契约测试。
@@ -334,7 +335,7 @@ describe('custom file types — 行为层（集成）', () => {
 		store(tempDir, { fileTypes: { template: ['qdml'] } })
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputPath = path.join(outputDir, 'main/pages_tpl_index.js')
 		expect(fs.existsSync(outputPath)).toBe(true)
@@ -362,7 +363,7 @@ describe('custom file types — 行为层（集成）', () => {
 		store(tempDir) // 不注入自定义文件类型
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputPath = path.join(outputDir, 'main/pages_tplneg_index.js')
 		const exists = fs.existsSync(outputPath)
@@ -390,7 +391,7 @@ describe('custom file types — 行为层（集成）', () => {
 		store(tempDir, { fileTypes: { template: ['qdml'], style: ['qdss'] } })
 
 		const { compileSS } = await import('../src/compiler/style/index.js')
-		await compileSS(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputPath = path.join(outputDir, 'main/pages_sty_index.css')
 		expect(fs.existsSync(outputPath)).toBe(true)
@@ -433,7 +434,7 @@ module.exports = { srcFn: srcFn }
 		store(tempDir, { fileTypes: { template: ['qdml'], viewScript: ['qds'] } })
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const outputPath = path.join(outputDir, 'main/pages_vs_index.js')
 		expect(fs.existsSync(outputPath)).toBe(true)
@@ -473,7 +474,7 @@ module.exports = { srcFn: srcFn }
 		store(tempDir, { fileTypes: { template: ['qdml'] } })
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_dir_index.js'), 'utf-8')
 		// qd:if/qd:else → 条件分支：以 show 为条件的三元块

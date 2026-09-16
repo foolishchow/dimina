@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('wxs 保留上下文字段', () => {
 	let tempDir
@@ -55,7 +56,7 @@ describe('wxs 保留上下文字段', () => {
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.js'), 'utf-8')
 		expect(output).toMatch(/modDefine\("pages\/home\/index",function\(([$\w]+),[^)]*\)\{[^]*?\1\("_"\)/)

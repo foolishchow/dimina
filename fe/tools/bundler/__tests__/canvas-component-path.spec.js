@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 // canvas 的组件实现（Canvas.vue）只有在编译产物把它解析成 dd-canvas 时才会被执行。
 // 一旦它退回原生元素，canvas-id 判重、binderror、覆盖层插槽会一起失效，而组件包和渲染层
@@ -49,7 +50,7 @@ describe('canvas 视图编译', () => {
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		return fs.readFileSync(path.join(outputDir, 'main/pages_home_index.js'), 'utf-8')
 	}

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('模板表达式空值保护', () => {
 	let tempDir
@@ -57,7 +58,7 @@ describe('模板表达式空值保护', () => {
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.js'), 'utf-8')
 		expect(output).toContain('stickyProps?.zIndex||"1"')
@@ -85,7 +86,7 @@ describe('模板表达式空值保护', () => {
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_text_index.js'), 'utf-8')
 		expect(output).toContain('obj1?.name')
@@ -116,7 +117,7 @@ describe('模板表达式空值保护', () => {
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_computed_index.js'), 'utf-8')
 		expect(output).toContain('selected?.[')
@@ -151,7 +152,7 @@ describe('模板表达式空值保护', () => {
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_collection_index.js'), 'utf-8')
 		expect(output).toContain('renderTabList?.tabList?.length')

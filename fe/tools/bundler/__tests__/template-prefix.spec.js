@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkTemplateCompatibility, getTemplateDirectiveName } from '../src/compiler/core/compatibility.js'
 import { getPages, storeInfo } from '../src/compiler/core/env.js'
 import { compileML } from '../src/compiler/view/index.js'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('template directive prefixes', () => {
 	let tempDir
@@ -57,7 +58,7 @@ describe('template directive prefixes', () => {
 			'<view typo:if="{{hidden}}">still rendered</view>\n',
 		)
 		storeInfo(tempDir)
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(targetDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 
 		const output = fs.readFileSync(path.join(targetDir, 'main/pages_index_index.js'), 'utf8')
 		expect(output).toContain('typo:if')

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('mini-program template semantics', () => {
 	let tempDir
@@ -55,7 +56,7 @@ describe('mini-program template semantics', () => {
 		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
 		storeInfo(tempDir)
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await compileML(getPages().mainPages, null, { completedTasks: 0 })
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
 		return fs.readFileSync(path.join(outputDir, `main/${pagePath.replace(/\//g, '_')}.js`), 'utf8')
 	}
 
