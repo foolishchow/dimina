@@ -69,9 +69,7 @@ export function defineEngine(overrides) {
 // worker-runtime/context.js
 import { AsyncLocalStorage } from 'node:async_hooks'
 export const abilityContext = new AsyncLocalStorage()
-
-// 收敛点拿能力（emit.js / compatibility.js 用，非 context.js 自身）
-const { sink, logger } = abilityContext.getStore() ?? { logger: consoleFallback }  // consoleFallback from loggers.js
+// context.js 只导出 abilityContext；收敛点拿能力见 emit.js / compatibility.js 示例
 ```
 
 ### sink / logger（D-WR-6 + D-WR-7）
@@ -245,7 +243,7 @@ import { abilityContext } from '../worker-runtime/context.js'  // F31：收敛�
 
 export async function emitEntry(params) {        // async Promise<void>
   const { entry } = await strategy.apply(params)
-  const { sink } = abilityContext.getStore()       // 收敛点 getStore
+  const { sink } = abilityContext.getStore()       // 收敛点 getStore（不兜底——产物必须 sink，无 context 崩溃合理，要求显式注入；D-WR-4 兜底仅限 warnOnce 日志，F55）
   sink.write(entry)                                // 内部计数（D-WR-6）
   // return void（D-E-9 废弃）
 }
