@@ -234,7 +234,7 @@ sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 �
     return {
       buildConfig: msg => ({ sourcemap: !!msg.sourcemap, minify: msg.compileConfig?.minify !== false }),
       cleanup: () => {},
-      successPayload: () => ({}),
+      successPayload: ({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON() }),
       normalizeError: e => ({ message: e.message, stack: e.stack, name: e.name }),
       ...overrides,
     }

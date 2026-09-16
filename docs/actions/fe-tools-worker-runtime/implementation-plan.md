@@ -49,7 +49,7 @@ Status: **draft**
 - `view/index.js`：
   - 删 `let collectOutput` / `let outputCount` / `if (!isMainThread) { parentPort.on(...) }` 整块
   - `compileML` 签名不动（从 `abilityContext.getStore()` 拿 sink/logger，D-WR-3 收敛点）
-- **dependencyGraph 归 engine.successPayload 默认**（F24）：defineEngine 默认 `successPayload: () => ({ dependencyGraph: getDependencyGraph().toJSON() })`；三引擎按需覆盖（view/logic 追加 compatibilityWarnings，style 用默认）；runtime 删 `import { getDependencyGraph }` + success 里的 dependencyGraph 行
+- **dependencyGraph 归 engine.successPayload**（F24/F27/F28）：successPayload 收 ctx `({ logger })`；defineEngine 默认 `({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON() })`；view/logic 覆盖 `({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON(), compatibilityWarnings: logger.flush() })`（显式含默认 + 追加）；style 用默认；runtime success 行只 `...engine.successPayload({ logger })` + outputCount（删 compatibilityWarnings 行）；import getDependencyGraph 在 define-engine.js（不在 runtime.js）
   - 新增 `export const viewEngine = defineEngine({ compile, cleanup, successPayload })`
 - `logic/index.js`：同上，engine 含 `buildConfig`（sourcemapTargetPath）
 - `style/index.js`：同上，engine 含 `normalizeError`（file/line/column/stage）

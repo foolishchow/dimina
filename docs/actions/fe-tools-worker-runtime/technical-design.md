@@ -41,13 +41,15 @@ src/compiler/
 
 ```js
 // worker-runtime/define-engine.js
+import { getDependencyGraph } from '../../core/env.js'  // F26：successPayload 默认读 dependencyGraph（业务状态）
+
 export function defineEngine(overrides) {
   return {
     buildConfig: msg => ({ sourcemap: !!msg.sourcemap, minify: msg.compileConfig?.minify !== false }),
     cleanup: () => {},
-    successPayload: () => ({ dependencyGraph: getDependencyGraph().toJSON() }),  // F24：dependencyGraph 归 successPayload 默认（业务状态读取）
+    successPayload: ({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON() }),  // F24/F27：收 ctx，默认含 dependencyGraph（不用 logger）
     normalizeError: e => ({ message: e.message, stack: e.stack, name: e.name }),
-    ...overrides,
+    ...overrides,  // 覆盖=替换；view/logic 覆盖 successPayload 时显式含 dependencyGraph + compatibilityWarnings
   }
 }
 ```
@@ -55,7 +57,7 @@ export function defineEngine(overrides) {
 **compile 钩子契约**（D-WR-2 + D-WR-3 + F23/F25 修正）：`compile({ msg, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿）；收 `msg`（= input 完整，含 storeInfo/sourcemap/pages 供业务初始化）+ `{ progress, config }`（runtime 造）。compile 完全自管循环 + **内部做引擎特化业务初始化**（resetStoreInfo(msg.storeInfo) / setEnableSourcemap(msg.sourcemap) / sourcemapTargetPath / wxsScannedWorkPath 等，各引擎自管）；buildConfig 保持纯函数（返回 config 对象，无副作用）。
 
 三引擎：
-- `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 覆盖：追加 compatibilityWarnings = logger.flush()，dependencyGraph 用默认）
+- `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 覆盖：`({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON(), compatibilityWarnings: logger.flush() })`，显式含默认 + 追加）
 - `logicEngine = defineEngine({ compile, cleanup, successPayload, buildConfig })`（buildConfig 多 sourcemapTargetPath；successPayload 同 view）
 - `styleEngine = defineEngine({ compile, cleanup, normalizeError })`（normalizeError 追加 file/line/column/stage；successPayload 用默认，无 compatibilityWarnings）
 
@@ -124,7 +126,6 @@ import { isMainThread, parentPort } from 'node:worker_threads'
 import { abilityContext } from './context.js'
 import { PostMessageSink } from './sinks.js'
 import { BufferingLogger } from './loggers.js'
-import { getDependencyGraph } from '../core/env.js'  // defineEngine successPayload 默认读 dependencyGraph（业务状态）
 
 // makeProgress 由 runtime 内部定义：持 parentPort（worker 侧，不持 onProgress）
 // progress.completedTasks setter → parentPort.postMessage({completedTasks})
@@ -149,8 +150,7 @@ export function runWorker(engine) {
         engine.cleanup()
         parentPort.postMessage({
           success: true,
-          ...engine.successPayload(),  // F24：dependencyGraph 由 successPayload 默认提供
-          compatibilityWarnings: logger.flush(),
+          ...engine.successPayload({ logger }),  // F27/F28：payload 归 successPayload（含 dependencyGraph + 可选 compatibilityWarnings）
           outputCount: sink.count,  // D-WR-6
         })
       }
@@ -227,7 +227,7 @@ parentPort.on('message', input)
         → emitEntry(params) → strategy.apply → sink.write(entry)  [count++]
         → checkTemplateCompatibility → warnOnce → logger.warn     [buffer push]
     → engine.cleanup()
-  → success: { outputCount: sink.count, compatibilityWarnings: logger.flush() }
+  → success: { ...engine.successPayload({ logger }), outputCount: sink.count }  // F27/F28：payload 归 successPayload
 ```
 
 ### 主线程直连（测试）
