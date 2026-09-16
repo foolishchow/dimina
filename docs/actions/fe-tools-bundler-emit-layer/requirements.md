@@ -13,6 +13,8 @@ Status: **冻结（2026-09-15）** — D-E-1..8 已拍板；随 Action `ready`�
 - `emitEntry({ entryId, kind, modules, transform: {strategy, minify, target, platform}, sourcemap, sourcemapTargetPath, filename, relPrefix }, outputEnv = { collectOutput, writeDir })`（R2-C1 + R5-F1 方案 A：纯参数 + outputEnv；内部调 output.write；返回 number 供调用方累加 outputCount）。
 - transform 策略**函数注入**（D-E-2）：`'bundle'`（view 整包 + moduleRanges 行定位，布局私有）与 `'perModule'`（logic 逐模块）各自实现 apply + 错误定位；非标志位 if。
 - target/platform 参数化（esTarget.view/browser vs logic/neutral）；filename/entryId/relPrefix 规则；sourcemap rebase 可选参数（logic 的 sources rebase）。
+- **R5-F3（filename 语义）**：filename = 不含扩展名的 basename（view/style 从 `page.path.replace(/\//g,'_')` 派生；logic 固定 `'logic'`）；扩展名由 strategy 内部加（`.js`/`.css`）。sourcemapFileName = `${filename}.js.map`（logic 恒 `logic.js.map`）。
+- **R5-F4（output.write 路径组合）**：`writeDir` = 绝对写盘目录（`getTargetPath()/main` 或 `/root`）；`entry.files[].path` = 相对发布根的物化路径（含 `relPrefix`，如 `main/pages_X.js`）；直写路径 = `path.join(writeDir, path.basename(entry.files[].path))`；postMessage 路径 = `entry.files[].path` 原样（BuildModel.add 直写）。
 
 ## R-E2（MUST）output 唯一写盘出口
 

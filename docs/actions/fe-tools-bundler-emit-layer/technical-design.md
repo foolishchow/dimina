@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **冻结 v1（2026-09-15）** — D-E-1..8；与 requirements / plan / acceptance 同步。
+Status: **draft（R6 review 中 · 2026-09-15）** — D-E-1..8 + R1-R5 收敛；R6 待落盘。
 
 ## 1. 现状锚定（实证）
 
@@ -204,7 +204,7 @@ write({
 
 - **R3-F1**（🔴）：implementation-plan 残留 R2 被否决的 EmitContext/rebaseDir（已删，替换为 R2-C1-C3 指引）。
 - **R3-F2**（🔴）：requirements R-E1 emitEntry 签名过时（已修正为 §8 签名）。
-- **3-F3**（🟠）：requirements/design §5 output.write 缺 writeDir（已修正）。
+- **R3-F3**（🟠）：requirements/design §5 output.write 缺 writeDir（已修正）。
 - **R3-F4**（🟠）：6 处 output.write 签名 5 种写法（§2/§5/§8/requirements/plan——已统一到 §8 的 `write({entry, collectOutput, writeDir})`）。
 
 ### R3-F5..F7（补充声明）
@@ -251,6 +251,30 @@ technical-design §9 第三项 `**3-F3**` → 应为 `**R3-F3**`。
 ### R5-F6（🟡）：四轮 findings 堆积——文档可读性下降
 
 §7（R2 findings 含被否决建议标注）+ §8（R2 收敛）+ §9（R3 findings）+ §10（R5 findings）——实施者需读历史 review 才能理解最终设计。升 ready 前应清理：findings 收敛进正文或移附录，保留最终设计 + 签名为主线。
+
+
+## 11. R6 Review findings（五件套同步 · 2026-09-15）
+
+### R6-F1（🟠）：R5-F2/F3/F4 标"待定"但 acceptance/validation/requirements 没体现
+
+R5 标了 3 个"待实施时定"但未回流五件套——实施者读 acceptance/validation 时看不到：
+- R5-F2（modDefine tab 缩进行为 0 风险）→ validation P-E04 须加"非 sourcemap + 非 minify"第 3 象限对拍
+- R5-F3（filename 语义：basename vs fullpath）→ requirements R-E1 须明确
+- R5-F4（output.write 路径组合：writeDir + entry.files[].path）→ requirements R-E2 须明确
+
+### R6-F2（🟠）：implementation-plan Status 行仍写 ready（与 draft 不一致）
+
+### R6-F3（🟡）：plan step3/step4 仍写"→ output.write"（与方案 A 矛盾）
+
+方案 A（R5-F1）：emitEntry 内部调 output.write——调用方不直接调。plan 的"→ output.write"箭头暗示调用方调，应改为"→ outputCount += result"。
+
+### R6-F4（🟡）：plan 消融缺 R5-F2 的 tab diff 验证
+
+### R6-F5（🟡）：§9 typo "3-F3" → 已修正为 "R3-F3"
+
+### R6-F6（🟡）：§7-§10 findings 堆积未清理（R5-F6 报告了但 R5 只报告不改文档）
+
+### R6-F7（🟡）：design Status 行"冻结 v1" → 已修正为 draft
 
 ## Residual
 
