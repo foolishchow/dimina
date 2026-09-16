@@ -59,7 +59,7 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 
 11 个需求（详见 [requirements.md](./requirements.md)）：
 
-- **R-WR0** MUST 线程调度知识从业务文件消失（三引擎 if 块 + collectOutput + outputCount + isMainThread 判定）
+- **R-WR0** MUST 线程调度知识从业务文件消失（三引擎 if 块 + collectOutput + outputCount + isMainThread 判定；output.js 删除）
 - **R-WR1** MUST worker-runtime 收敛面建立（runtime.js + executor.js + context.js）
 - **R-WR2** MUST engine strategy 契约（defineEngine + compile/cleanup/buildConfig/successPayload/normalizeError）
 - **R-WR3** MUST 能力注入（sink + logger via AsyncLocalStorage，收敛点 getStore）
@@ -117,7 +117,7 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 
 - 所有 MUST 验收（A-WR0..10）passed with evidence
 - 行为 0：4 组产物 diff=0 + vitest 584/584
-- D-E-9 废弃回流 emit-layer architecture-notes
+- D-E-9 废弃回流 emit-layer architecture-notes（归档文档标注 supersede 或 sidecar 新增条目）
 - output-pure 评估（目标若被本 Action 包含则关闭 superseded）
 - Status / path / navigation / archive 一致
 

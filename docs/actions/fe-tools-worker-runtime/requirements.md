@@ -38,7 +38,7 @@ MUST 新增 `fe/tools/bundler/src/compiler/worker-runtime/` 目录，包含：
 ### R-WR2 — engine strategy 契约
 
 MUST 三引擎各导出 engine（`viewEngine` / `logicEngine` / `styleEngine`），通过 `defineEngine(overrides)` 声明：
-- `compile({ mainPages, subPages, progress, config, sink, logger })` → `Promise<void>`（完全自管循环，D-WR-2）
+- `compile({ mainPages, subPages, progress, config })` → `Promise<void>`（完全自管循环，D-WR-2；**不收 sink/logger 参数**——从 `abilityContext.getStore()` 拿，D-WR-3）
 - `cleanup()` —— 缓存清理（各引擎自管）
 - `buildConfig({ sourcemap, compileConfig, sourcemapTargetPath })` —— 引擎配置
 - `successPayload()` —— 默认 `{}`，view/logic 追加 compatibilityWarnings
@@ -88,4 +88,4 @@ MUST 产物字节 + sourcemap diff=0（4 组：nomap/min-nomap/sm/sm-min）；vi
 - materialize / memfs 改造（`fe-tools-bundler-emit-memfs` 范围）
 - 产物 transform 优化（emit-layer 已完成）
 - cluster 多进程（不引入，D-WR-10）
-- 编译循环结构重构（compile 钩子完全自管，runtime 不假设平铺，D-WR-2）
+- build-pipeline / build-model 改造（`ctx.compatibilityWarnings` 消费链路 + materialize 写盘出口保留不动）

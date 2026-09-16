@@ -2,6 +2,10 @@
 
 Status: **draft**
 
+## Non-goals
+
+详见 [README.md Non-goals](./README.md#non-goals)。本 Action 不做：pool/queue、memfs、transform 优化、cluster、行为改变、build-pipeline/build-model 改造。
+
 ## 局部边界
 
 ### worker-runtime（新收敛面，调度知识集中）
@@ -23,8 +27,8 @@ src/compiler/
   ├ view/index.js        compileML + export viewEngine
   ├ logic/index.js       compileJS + export logicEngine
   ├ style/index.js       compileSS + export styleEngine
-  ├ pipeline/emit.js     emitEntry（async Promise<void>，内部 sink.write）
-  ├ pipeline/output.js   write 废弃 → sink.write 替代（或 output.js 退化为 sink 实现的薄壳）
+  ├ pipeline/emit.js     emitEntry（async Promise<void>，内部 sink.write 从 getStore）
+  ├ pipeline/output.js   删除（FileSink 实现在 worker-runtime/sinks.js；emitEntry 内部 sink.write 替代原 write）
   └ core/compatibility.js warnOnce 用 logger.warn（注入）+ warnedItems 模块级
   view/worker-entry.js   thin entry（2 行）
   logic/worker-entry.js  thin entry
@@ -47,6 +51,8 @@ export function defineEngine(overrides) {
   }
 }
 ```
+
+**compile 钩子契约**（D-WR-2 + D-WR-3 修正）：`compile({ mainPages, subPages, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿，和 compileML/compileJS/compileSS 一致）。compile 完全自管循环；sink/logger 是能力注入，在 context 里，不透传参数。
 
 三引擎：
 - `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 追加 compatibilityWarnings = logger.flush()）
@@ -115,6 +121,18 @@ import { isMainThread, parentPort } from 'node:worker_threads'
 import { abilityContext } from './context.js'
 import { PostMessageSink } from './sinks.js'
 import { BufferingLogger } from './loggers.js'
+import { getDependencyGraph } from '../core/env.js'  // 示例所需 import
+
+// makeProgress 由 runtime 内部定义：持 parentPort + onProgress 回调
+// progress.completedTasks setter → parentPort.postMessage({completedTasks})
+// → executor 分流 → onProgress(completed, total)（见 "progress 消息链路"）
+function makeProgress(parentPort, onProgress) {
+  let _n = 0
+  return {
+    get completedTasks() { return _n },
+    set completedTasks(v) { _n = v; parentPort.postMessage({ completedTasks: _n }) },
+  }
+}
 
 export function runWorker(engine) {
   if (isMainThread) return
@@ -124,7 +142,7 @@ export function runWorker(engine) {
     abilityContext.run({ sink, logger }, async () => {
       try {
         const config = engine.buildConfig(msg)
-        await engine.compile({ mainPages: msg.pages.mainPages, subPages: msg.pages.subPages, progress: makeProgress(parentPort), config, sink, logger })
+        await engine.compile({ mainPages: msg.pages.mainPages, subPages: msg.pages.subPages, progress: makeProgress(parentPort, onProgress), config })
         engine.cleanup()
         parentPort.postMessage({
           success: true,
@@ -142,6 +160,22 @@ export function runWorker(engine) {
   })
 }
 ```
+
+### progress 消息链路（D-WR-9 补充）
+
+`makeProgress(parentPort, onProgress)` 由 runtime 造，持 parentPort + onProgress 回调：
+
+```
+worker 内 progress.completedTasks = N（setter）
+  → parentPort.postMessage({ completedTasks: N })
+  → executor worker.on('message') 分流
+  → onProgress(N, totalTasks)
+  → stage-channel task.output = formatCompileProgress(N, total)
+```
+
+- progress 对象归 runtime 造（持 parentPort，调度知识留 runtime）
+- compileML 只用 `progress.completedTasks++` 接口，不碰 parentPort
+- onProgress 是 executeTask 契约的进度回调（主线程侧）
 
 ### thin entry（D-WR-5）
 
@@ -186,8 +220,8 @@ function warnOnce(type, name, location, message) {
 ```
 parentPort.on('message', input)
   → abilityContext.run({ sink: PostMessageSink, logger: BufferingLogger })
-    → engine.compile({ ..., sink, logger })
-      → compileML/compileSS 内部
+    → engine.compile({ mainPages, subPages, progress, config })   ← 不收 sink/logger（context 内）
+      → compileML/compileSS 内部（签名不动，从 getStore 拿 sink/logger）
         → emitEntry(params) → strategy.apply → sink.write(entry)  [count++]
         → checkTemplateCompatibility → warnOnce → logger.warn     [buffer push]
     → engine.cleanup()
@@ -198,7 +232,7 @@ parentPort.on('message', input)
 
 ```
 abilityContext.run({ sink: FileSink(writeDir), logger: ConsoleLogger() }, () => {
-  compileML(pages, null, progress, { sink, logger })
+  compileML(pages, null, progress)   ← 签名不动，从 getStore 拿 sink/logger
     → emitEntry → sink.write(entry) → mkdir + writeFileSync  [count++]
     → warnOnce → logger.warn → console.warn
 })

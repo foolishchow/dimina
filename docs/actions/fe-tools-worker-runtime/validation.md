@@ -9,12 +9,16 @@ Status: **draft**
 ```bash
 cd fe/tools/bundler
 git rev-parse --short HEAD  # baseline commit
-# 4 组产物
-node -e "
-import build from './src/index.js'
+# 4 组产物（用临时 .mjs 脚本，避免 node -e 多行问题）
+cat > /tmp/wr-gen-baseline.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
 for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
-  await build('/tmp/wr-baseline-'+name+'/out', '<base>', false, opts)
-}" 
+  await build(`/tmp/wr-baseline-${name}/out`, base, false, opts)
+}
+console.log('baseline done')
+EOF
+node /tmp/wr-gen-baseline.mjs
 node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 基线 584/584
 ```
 
@@ -23,8 +27,9 @@ node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 基线 584/584
 ```bash
 cd fe/tools/bundler
 ls src/compiler/worker-runtime/  # context.js runtime.js executor.js sinks.js loggers.js define-engine.js
-node pnpm.mjs build  # tsc 产出 dist
-node -e "import('./src/compiler/worker-runtime/define-engine.js')"  # 可 import
+node pnpm.mjs build  # tsc 产出 dist（新模块可编译）
+# 可 import 验证（走 dist，避免 src ts 解析问题 D-TD-20）
+node -e "import('./dist/compiler/worker-runtime/define-engine.js')"
 node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 仍 584/584（纯新增）
 ```
 
@@ -116,9 +121,19 @@ node pnpm.mjs build  # OK
 
 | Acceptance | Command or observation | Exit/result | Evidence | Result |
 | --- | --- | --- | --- | --- |
-| A-WR0 | grep 调度残留 | 1 | grep 输出 | pending |
-| A-WR1 | ls + import | 0 | 目录 + import 成功 | pending |
+| A-WR0 | grep 调度残留 in view/logic/style/compatibility | 1 | grep 输出 | pending |
+| A-WR1 | ls worker-runtime/ + dist import | 0 | 目录 + import 成功 | pending |
+| A-WR2 | grep defineEngine + 三 engine | 0 | 三行命中 | pending |
+| A-WR3 | grep abilityContext.getStore in emit.js/compatibility.js | 0 | 收敛点命中 | pending |
+| A-WR4 | ls 三 worker-entry.js + grep WORKER_ENTRY | 0 | 文件 + 指向 | pending |
+| A-WR5 | grep sink.count + 零 outputCount in view/logic/style | 0 | 命中 + 零 | pending |
+| A-WR6 | grep pendingWarnings 零 + warnedItems 保留 + logger.flush + ctx.compatibilityWarnings | 0 | grep 结果 | pending |
+| A-WR7 | grep new Worker only in executor.js | 0 | 单点 | pending |
+| A-WR8 | grep return 1 零 in emit.js + architecture-notes | 0 | 零 + 标注 | pending |
+| A-WR9 | grep abilityContext.run in __tests__ | 0 | 注入命中 | pending |
 | A-WR10 | 4×diff + vitest + tsc | 0 / 584 | diff=0 + vitest + tsc | pending |
+
+（详见各 V-WR00..08 命令）
 
 ## Uncovered areas and residual risks
 
