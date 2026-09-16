@@ -3,7 +3,7 @@ import { relative, resolve, sep } from 'node:path'
 import { getWorkPath } from '../core/env.js'
 import { mergeSourcemap } from '../core/sourcemap.js'
 import { effectiveJsMinify } from '../../shared/compile-config.js'
-import { write } from './output.js'
+import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
 
 /**
  * @typedef {{ moduleId: string, code: string, map: string | null, extraInfoCode?: string }} EmitModule
@@ -150,8 +150,9 @@ ${m.code}
 }
 
 /**
- * emitEntry —— 方案 A（D-E-9）：内部调 output.write，返回 number 供调用方累加 outputCount（D-E-11）。
- * D-E-1 契约 / D-E-2 策略注入 / D-E-10 纯参数+outputEnv / D-E-12 rebase 留策略。
+ * emitEntry —— D-E-9 废弃 return number（D-WR-11 fire-and-forget）。
+ * D-E-1 契约 / D-E-2 策略注入 / D-E-12 rebase 留策略。
+ * P-WR03：从 abilityContext.getStore() 拿 sink（不收 outputEnv 第二参数）。
  * @param {object} params
  * @param {string} params.entryId
  * @param {string} params.kind
@@ -161,15 +162,14 @@ ${m.code}
  * @param {string | null} params.sourcemapTargetPath
  * @param {string} params.filename
  * @param {string} params.relPrefix
- * @param {{ collectOutput: boolean, writeDir: string }} outputEnv
- * @returns {Promise<number>}
+ * @returns {Promise<void>}
  */
-export async function emitEntry(params, outputEnv) {
+export async function emitEntry(params) {
 	const strategy = strategies[params.transform.strategy]
 	if (!strategy) {
 		throw new Error(`emitEntry: 未知 transform 策略 ${params.transform.strategy}`)
 	}
 	const { entry } = await strategy.apply(params)
-	write({ entry, collectOutput: outputEnv.collectOutput, writeDir: outputEnv.writeDir })
-	return 1
+	const { sink } = abilityContext.getStore()  // 收敛点 getStore（不兜底——产物必须 sink，F55）
+	sink.write(entry)
 }

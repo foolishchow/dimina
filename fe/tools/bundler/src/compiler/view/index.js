@@ -1,12 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { isMainThread, parentPort } from 'node:worker_threads'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
 import { transform } from 'esbuild'
-import { checkTemplateCompatibility, getTemplateDirectiveName, takeCompatibilityWarnings } from '../core/compatibility.js'
+import { checkTemplateCompatibility, getTemplateDirectiveName } from '../core/compatibility.js'
 import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { toMiniProgramModuleId } from '../../shared/path-utils.js'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
@@ -223,9 +222,6 @@ const wxsFilePathMap = new Map()
 let wxsScannedWorkPath = null
 
 // enableSourcemap / templateRenderCache: see wxml/renderer/vue/state.js
-/** 产物是否回传（build-model M1 阶段二：collectOutput=true 时不写盘、逐页 postMessage output） */
-let collectOutput = false
-let outputCount = 0
 /** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
 let activeCompileConfig = {
 	minify: true,
@@ -233,76 +229,6 @@ let activeCompileConfig = {
 	esTarget: { logic: 'es2023', view: 'es2020' },
 }
 
-if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig, collectOutput: collectFlag }) => {
-		try {
-			resetStoreInfo(storeInfo)
-			setEnableSourcemap(!!sourcemap)
-			collectOutput = !!collectFlag
-			outputCount = 0
-			activeCompileConfig = {
-				minify: compileConfig?.minify !== false,
-				sourcemap: !!sourcemap,
-				esTarget: {
-					logic: compileConfig?.esTarget?.logic || 'es2023',
-					view: compileConfig?.esTarget?.view || 'es2020',
-				},
-			}
-			wxsScannedWorkPath = null
-
-			const progress = {
-				_completedTasks: 0,
-				get completedTasks() {
-					return this._completedTasks
-				},
-				set completedTasks(value) {
-					this._completedTasks = value
-
-					parentPort.postMessage({ completedTasks: this._completedTasks })
-				},
-			}
-
-			await compileML(pages.mainPages, null, progress)
-
-			for (const [root, subPages] of Object.entries(pages.subPages)) {
-				await compileML(subPages.info, root, progress)
-			}
-
-			// Worker 任务完成后清理所有缓存，释放内存
-			compileResCache.clear()
-			templateRenderCache.clear()
-			wxsModuleRegistry.clear()
-			wxsFilePathMap.clear()
-			wxsScannedWorkPath = null
-			optionalChainingCache.clear()
-
-			parentPort.postMessage({
-				success: true,
-				compatibilityWarnings: takeCompatibilityWarnings(),
-				dependencyGraph: getDependencyGraph().toJSON(),
-				outputCount,
-			})
-		}
-		catch (error) {
-			// 错误时也清理缓存
-			compileResCache.clear()
-			templateRenderCache.clear()
-			wxsModuleRegistry.clear()
-			wxsFilePathMap.clear()
-			wxsScannedWorkPath = null
-			optionalChainingCache.clear()
-
-			parentPort.postMessage({
-				success: false,
-				error: {
-					message: error.message,
-					stack: error.stack,
-					name: error.name
-				}
-			})
-		}
-	})
-}
 
 /**
  * 编译页面视图文件
@@ -330,7 +256,7 @@ async function compileML(pages, root, progress) {
 			fs.mkdirSync(outputDir, { recursive: true })
 		}
 
-		outputCount += await emitEntry({
+		await emitEntry({
 			entryId: page.path,
 			kind: 'view',
 			modules: [...scriptRes.entries()].map(([modulePath, code]) => ({
@@ -348,7 +274,7 @@ async function compileML(pages, root, progress) {
 			sourcemapTargetPath: null,
 			filename,
 			relPrefix,
-		}, { collectOutput, writeDir: outputDir })
+		})
 
 		// 单个页面编译完成后清理缓存，释放内存
 		scriptRes.clear()
@@ -1575,8 +1501,6 @@ export {
 async function viewCompile({ msg, progress, config }) {
 	resetStoreInfo(msg.storeInfo)
 	setEnableSourcemap(!!msg.sourcemap)
-	collectOutput = !!msg.collectOutput
-	outputCount = 0
 	activeCompileConfig = config
 	wxsScannedWorkPath = null
 
@@ -1600,9 +1524,21 @@ function viewSuccessPayload({ logger }) {
 	}
 }
 
+function viewBuildConfig(msg) {
+	return {
+		sourcemap: !!msg.sourcemap,
+		minify: msg.compileConfig?.minify !== false,
+		esTarget: {
+			logic: msg.compileConfig?.esTarget?.logic || 'es2023',
+			view: msg.compileConfig?.esTarget?.view || 'es2020',
+		},
+	}
+}
+
 export const viewEngine = defineEngine({
 	name: 'view',
 	compile: viewCompile,
 	cleanup: () => {},
 	successPayload: viewSuccessPayload,
+	buildConfig: viewBuildConfig,
 })

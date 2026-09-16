@@ -1,13 +1,13 @@
 import { Parser } from 'htmlparser2'
 import { isHTMLTag } from '@vue/shared'
-import { isMainThread } from 'node:worker_threads'
 import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.js'
 import { supportedBuiltinComponents, supportedWxApis } from '../core/compatibility-reference.js'
 import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.js'
+import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
+import { consoleFallback } from '../worker-runtime/loggers.js'  // P-WR03：D-WR-4 兜底
 
 let cachedReference = null
 const warnedItems = new Set()
-const pendingWarnings = []
 const TEMPLATE_DIRECTIVE_NAMES = new Set([
 	'if',
 	'elif',
@@ -304,16 +304,8 @@ function warnOnce(type, name, location, message) {
 		return
 	}
 	warnedItems.add(key)
-	if (isMainThread) {
-		console.warn(message)
-	}
-	else {
-		pendingWarnings.push(message)
-	}
-}
-
-function takeCompatibilityWarnings() {
-	return pendingWarnings.splice(0)
+	const { logger } = abilityContext.getStore() ?? { logger: consoleFallback }  // D-WR-4 兜底
+	logger.warn(message)
 }
 
 export {
@@ -322,6 +314,5 @@ export {
 	getWxMemberName,
 	loadReference,
 	parseApiReference,
-	takeCompatibilityWarnings,
 	warnUnsupportedWxApi,
 }

@@ -35,9 +35,9 @@ import { workerPool } from '../../watch/worker-pool.js'
 export function runCompileStage({ script, ctx, task, options = {}, lifecycle = null, onOutput }) {
 	return workerPool.runWorker(() => new Promise((resolve, reject) => {
 		const WORKER_ENTRY = {
-			view: '../view/index.js',
-			logic: '../logic/index.js',
-			style: '../style/index.js',
+			view: '../view/worker-entry.js',
+			logic: '../logic/worker-entry.js',
+			style: '../style/worker-entry.js',
 		}
 		const worker = new Worker(
 			path.join(path.dirname(fileURLToPath(import.meta.url)), WORKER_ENTRY[script]),

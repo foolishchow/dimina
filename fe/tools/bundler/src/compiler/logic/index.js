@@ -1,11 +1,10 @@
 import fs from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
-import { isMainThread, parentPort } from 'node:worker_threads'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
-import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from '../core/compatibility.js'
+import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.js'
 import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
 import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
@@ -19,9 +18,6 @@ const processedModules = new Set()
 // 是否生成 sourcemap
 let enableSourcemap = false
 let sourcemapTargetPath = null
-/** 产物是否回传（build-model M1：collectOutput=true 时不写盘、postMessage output） */
-let collectOutput = false
-let outputCount = 0
 /** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
 let activeCompileConfig = {
 	minify: true,
@@ -29,76 +25,6 @@ let activeCompileConfig = {
 	esTarget: { logic: 'es2023', view: 'es2020' },
 }
 
-if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, sourcemapTargetPath: targetPath, compileConfig, collectOutput: collectFlag }) => {
-		try {
-			resetStoreInfo(storeInfo)
-			enableSourcemap = !!sourcemap
-			collectOutput = !!collectFlag
-			outputCount = 0
-			sourcemapTargetPath = targetPath || getTargetPath()
-			activeCompileConfig = {
-				minify: compileConfig?.minify !== false,
-				sourcemap: !!sourcemap,
-				esTarget: {
-					logic: compileConfig?.esTarget?.logic || 'es2023',
-					view: compileConfig?.esTarget?.view || 'es2020',
-				},
-			}
-			const progress = {
-				_completedTasks: 0,
-				get completedTasks() {
-					return this._completedTasks
-				},
-				set completedTasks(value) {
-					this._completedTasks = value
-					parentPort.postMessage({ completedTasks: this.completedTasks })
-				},
-			}
-
-			const mainCompileRes = await compileJS(pages.mainPages, null, null, progress)
-			for (const [root, subPages] of Object.entries(pages.subPages)) {
-				try {
-					// 独立分包: https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages/independent.html
-					const subCompileRes = await compileJS(
-						subPages.info,
-						root,
-						subPages.independent ? [] : mainCompileRes,
-						progress,
-					)
-					await writeCompileRes(subCompileRes, root)
-				}
-				catch (error) {
-					throw new Error(`Error processing subpackage ${root}: ${error.message}\n${error.stack}`)
-				}
-			}
-			await writeCompileRes(mainCompileRes, null)
-
-			// Worker 任务完成后清理缓存，释放内存
-			processedModules.clear()
-
-			parentPort.postMessage({
-				success: true,
-				compatibilityWarnings: takeCompatibilityWarnings(),
-				dependencyGraph: getDependencyGraph().toJSON(),
-				outputCount,
-			})
-		}
-		catch (error) {
-			// 错误时也清理缓存
-			processedModules.clear()
-
-			parentPort.postMessage({
-				success: false,
-				error: {
-					message: error.message,
-					stack: error.stack,
-					name: error.name
-				}
-			})
-		}
-	})
-}
 
 async function writeCompileRes(compileRes, root) {
 	const outputDir = root
@@ -107,7 +33,7 @@ async function writeCompileRes(compileRes, root) {
 	// 相对发布根的物化路径前缀（D-P2）
 	const relPrefix = root ? `${root}` : 'main'
 
-	outputCount += await emitEntry({
+	await emitEntry({
 		entryId: `logic${root ? ':' + root : ''}`,
 		kind: 'logic',
 		modules: compileRes.map(m => ({ moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode })),
@@ -121,7 +47,7 @@ async function writeCompileRes(compileRes, root) {
 		sourcemapTargetPath,
 		filename: 'logic',
 		relPrefix,
-	}, { collectOutput, writeDir: outputDir })
+	})
 }
 
 /**
@@ -669,8 +595,6 @@ function logicBuildConfig(msg) {
 async function logicCompile({ msg, progress, config }) {
 	resetStoreInfo(msg.storeInfo)
 	enableSourcemap = !!msg.sourcemap
-	collectOutput = !!msg.collectOutput
-	outputCount = 0
 	sourcemapTargetPath = config.sourcemapTargetPath
 	activeCompileConfig = config
 

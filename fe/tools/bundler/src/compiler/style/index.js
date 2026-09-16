@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { isMainThread, parentPort } from 'node:worker_threads'
 import { compileStyle } from '@vue/compiler-sfc'
 import autoprefixer from 'autoprefixer'
 import { transform } from 'esbuild'
@@ -10,13 +9,9 @@ import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.js'
 import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
+import { abilityContext } from '../worker-runtime/context.js'  // P-WR03
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.js'
-import { write } from '../pipeline/output.js'
-
 const compileRes = new Map()
-/** 产物是否回传（build-model M1） */
-let collectOutput = false
-let outputCount = 0
 const builtInTagNames = new Set(tagWhiteList)
 const autoprefixerPlugin = autoprefixer({ overrideBrowserslist: ['cover 99.5%'] })
 let cssnanoLoader
@@ -38,61 +33,6 @@ function loadSass() {
 	return sassLoader
 }
 
-if (!isMainThread) {
-	parentPort.on('message', async ({ pages, storeInfo, sourcemap, compileConfig, collectOutput: collectFlag }) => {
-		try {
-			resetStoreInfo(storeInfo)
-			collectOutput = !!collectFlag
-			outputCount = 0
-
-			const progress = {
-				_completedTasks: 0,
-				get completedTasks() {
-					return this._completedTasks
-				},
-				set completedTasks(value) {
-					this._completedTasks = value
-					parentPort.postMessage({ completedTasks: this._completedTasks })
-				},
-			}
-
-			const styleOptions = {
-				sourcemap,
-				minify: compileConfig?.minify !== false,
-			}
-			await compileSS(pages.mainPages, null, progress, styleOptions)
-			for (const [root, subPages] of Object.entries(pages.subPages)) {
-				await compileSS(subPages.info, root, progress, styleOptions)
-			}
-
-			// Worker 任务完成后清理缓存，释放内存
-			compileRes.clear()
-
-			parentPort.postMessage({
-				success: true,
-				dependencyGraph: getDependencyGraph().toJSON(),
-				outputCount,
-			})
-		}
-		catch (error) {
-			// 错误时也清理缓存
-			compileRes.clear()
-
-			parentPort.postMessage({
-				success: false,
-				error: {
-					message: error.message,
-					stack: error.stack,
-					name: error.name,
-					file: error.file,
-					line: error.line,
-					column: error.column,
-					stage: error.stage,
-				}
-			})
-		}
-	})
-}
 
 /**
  *  编译样式文件
@@ -117,29 +57,21 @@ async function compileSS(pages, root, progress, options = {}) {
 			const map = JSON.parse(result.map)
 			map.file = `${filename}.css`
 			code += `\n/*# sourceMappingURL=${mapFileName} */\n`
-			write({
-				entry: {
-					entryId: page.path,
-					kind: 'style',
-					files: [{ path: `${relPrefix}/${filename}.css`, code }],
-					sourcemaps: [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }],
-				},
-				collectOutput,
-				writeDir: outputDir,
+			const { sink } = abilityContext.getStore()
+			sink.write({
+				entryId: page.path,
+				kind: 'style',
+				files: [{ path: `${relPrefix}/${filename}.css`, code }],
+				sourcemaps: [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }],
 			})
-			outputCount++
 		}
 		else {
-			write({
-				entry: {
-					entryId: page.path,
-					kind: 'style',
-					files: [{ path: `${relPrefix}/${filename}.css`, code }],
-				},
-				collectOutput,
-				writeDir: outputDir,
+			const { sink } = abilityContext.getStore()
+			sink.write({
+				entryId: page.path,
+				kind: 'style',
+				files: [{ path: `${relPrefix}/${filename}.css`, code }],
 			})
-			outputCount++
 		}
 
 		progress.completedTasks++
@@ -611,8 +543,6 @@ export { boostExternalClassSelectors, compileSS, ensureImportSemicolons, normali
 // P-WR02: engine export（不动调度，F47）
 async function styleCompile({ msg, progress, config }) {
 	resetStoreInfo(msg.storeInfo)
-	collectOutput = !!msg.collectOutput
-	outputCount = 0
 
 	const styleOptions = { sourcemap: msg.sourcemap, minify: config.minify }
 	await compileSS(msg.pages.mainPages, null, progress, styleOptions)
