@@ -9,9 +9,9 @@ Status: **draft**
 | P-WR00 | baseline 记录 | — | digest + 584/584 |
 | P-WR01 | worker-runtime 骨架 | P-WR00 | tsc build + import 成功 |
 | P-WR02 | 三引擎 engine 化 | P-WR01 | grep 零调度残留 |
-| P-WR03 | thin entry + WORKER_ENTRY | P-WR02 | worker 可起 + 编译跑通 |
-| P-WR04 | emitEntry/output 改 | P-WR03 | emit.js 无 return number |
-| P-WR05 | compatibility 改 | P-WR04 | compatibility 零 isMainThread |
+| P-WR03 | thin entry + emitEntry/output 原子切换 | P-WR02 | worker 可起 + 编译跑通 |
+| P-WR04 | （合并入 P-WR03） | — | — |
+| P-WR05 | compatibility 改 | P-WR03 | compatibility 零 isMainThread |
 | P-WR06 | stage-channel executeTask | P-WR05 | 调度知识集中 |
 | P-WR07 | 测试直连注入 | P-WR06 | 40 测试不再崩溃 |
 | P-WR08 | 全量验证 | P-WR07 | 全绿 |
@@ -57,22 +57,19 @@ Status: **draft**
 
 **验证点**：`grep -rn "isMainThread\|parentPort\|let collectOutput\|let outputCount" src/compiler/{view,logic,style}/index.js` 退出码 1（零残留）
 
-## P-WR03 — thin entry + WORKER_ENTRY
+## P-WR03 — thin entry + emitEntry/output 原子切换（F45：P-WR03+P-WR04 合并）
 
-新增 per engine thin entry，stage-channel 指向改。
+**原子步**（F45）：thin entry 让 worker 跑 runtime（abilityContext.run），emitEntry 收 sink 从 getStore——两步互相依赖，分步崩溃，必须同步切换。
 
+**thin entry（原 P-WR03）**：
 - `src/compiler/view/worker-entry.js`（2 行：import runWorker + import viewEngine + runWorker）
 - `src/compiler/logic/worker-entry.js`
 - `src/compiler/style/worker-entry.js`
 - `stage-channel.js` 的 `WORKER_ENTRY` 从 `../view/index.js` 改 `../view/worker-entry.js`（×3）
 - **strip-types 注入逻辑保留**（D-TD-20，F41）：stage-channel 现状在 `import.meta.url.includes('/src/')` 时注入 `--experimental-strip-types` execArgv——**P-WR03 不碰**（留 stage-channel），**P-WR06 搬 executor.js**（design executor 示例已含条件注入）；thin entry 在 `/src/` 必须走 strip-types 否则 worker 跑 .ts 失败
 
-**验证点**：worker 可起（dev server 编译跑通）；4 组产物 diff=0（行为 0，调度骨架搬移）
-
-## P-WR04 — emitEntry/output 改
-
+**emitEntry/output 改（原 P-WR04，同步切换）**：
 emitEntry 收 sink（从 abilityContext getStore），return void；output.js 删除。
-
 - `pipeline/emit.js`：
   - `emitEntry(params)` 现状是 `emitEntry(params, outputEnv)` 两参数（emit-layer D-E-10 归档形态）——删 outputEnv 第二参数
   - 内部 `const { sink } = abilityContext.getStore()` + `sink.write(entry)`
@@ -84,7 +81,7 @@ emitEntry 收 sink（从 abilityContext getStore），return void；output.js �
 - `view/index.js`/`logic/index.js`：`outputCount += await emitEntry(...)` → `await emitEntry(...)`（删 += 和 outputCount）
 - `style/index.js`：`write({entry, collectOutput, writeDir})` ×2 → `sink.write(entry)` ×2 + 删 `outputCount++`（sink 自动计数）
 
-**验证点**：`grep -n "return 1\|return number\|outputCount +=\|outputCount++" src/compiler/` 零残留；4 组 diff=0
+**验证点**：worker 可起（dev server 编译跑通）；`grep -n "return 1\|return number\|outputCount +=\|outputCount++" src/compiler/` 零残留；4 组 diff=0（行为 0，调度骨架搬移）
 
 ## P-WR05 — compatibility 改
 
