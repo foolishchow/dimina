@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-output-pure
 
-Status: **draft（R3 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R4 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 1. 现状锚定（实证）
 
@@ -57,7 +57,7 @@ export async function emitEntry(params) {
 
 - view/logic：`emitEntry({...}, { collectOutput, writeDir })` → `emitEntry({...})`（去 outputEnv）
 - style：`write({entry, collectOutput, writeDir})` → `postEntry({entry})`（两处：sourcemap + 非 sourcemap）；**style 的 `outputCount++` 保留**（postEntry 后累加）
-- 删 worker 全局 `let collectOutput` + onMessage `collectOutput = !!collectFlag`；**保留 `let outputCount` 变量**（collectOutput/outputCount 名字相似，只删前者）
+- 删 worker 全局 `let collectOutput` 变量 + onMessage 解构参数 `collectOutput: collectFlag` 字段 + 赋值行 `collectOutput = !!collectFlag`；**保留 `let outputCount` 变量**（collectOutput/outputCount 名字相似，只删前者）
 
 ### stage-channel（改后）
 

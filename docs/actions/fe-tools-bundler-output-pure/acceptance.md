@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-bundler-output-pure
 
-Status: **draft（R3 review 修正 · 2026-09-16）** — 实施后回填 Actual。
+Status: **draft（R4 review 修正 · 2026-09-16）** — 实施后回填 Actual。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
@@ -16,3 +16,4 @@ Status: **draft（R3 review 修正 · 2026-09-16）** — 实施后回填 Actual
 - memfs（materialize + dev server）——阶段 2 另立
 - cache + 目录归置——依赖 cache 家拍板，另立
 - materialize 重构——本 Action 不动
+- 刀 2 失效查询（DependencyGraph.getInvalidatedModules）——独立先行

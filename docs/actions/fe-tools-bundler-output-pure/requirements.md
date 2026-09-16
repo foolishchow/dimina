@@ -1,6 +1,6 @@
 # Requirements — fe-tools-bundler-output-pure
 
-Status: **draft（R3 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R4 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## R-OP0（MUST）删 collectOutput=false 死路径
 
