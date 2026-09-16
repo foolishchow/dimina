@@ -1,7 +1,7 @@
 # FE Tools Bundler Output Pure
 
 - Action: `fe-tools-bundler-output-pure`
-- Status: `ready`
+- Status: `draft`
 - Updated: 2026-09-16
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-bundler-emit-layer`](../_archive/complete/fe-tools-bundler-emit-layer/README.md)（刀 1 emit 抽取已归档；output.write 双路径，collectOutput=false 死路径）；`fe-tools-build-model`（materialize 主线程刷盘）
@@ -18,6 +18,8 @@
 | 2026-09-16 | **Review R3（F1-F3）编号规范 + grep 准确性**：F1 🟠 README 病症 P-OP1/P-OP2 vs validation P-OP0..5 同前缀撞车 → validation 改两位 P-OP00..05（对齐 emit-layer P-E01 风格）；F2 🟡 P-OP00 grep 描述修正（删后 collectOutput 整个消失，不只 `.*false`）；F3 🟡 design §3 行为 0 补 outputCount 对账不变。**升 `ready`** |
 | 2026-09-16 | **Review R4（F1-F2）文档对齐**：F1 🟡 acceptance Non-acceptance 补「刀 2 失效查询」（vs README Non-goals 4 项对齐）；F2 🟡 design 三引擎改后补 onMessage 解构参数 `collectOutput: collectFlag` 清理（plan 已有，design 漏）。**升 `ready`** |
 | 2026-09-16 | **Review R5 收敛**：零发现——R1-R4 修正后全量终检通过（签名/编号/决策/行为 0/职责分层/文件覆盖/Non-goals 对齐）。5 轮收敛（output-pure 是 emit-layer 子集，范围小收敛快）。**升 `ready`，停止 review** |
+| 2026-09-16 | **实施授权 + 方案 C 证伪**：授权 in_progress 后实施——删 output.write 直写路径（collectOutput=false）+ write→postEntry + 删三引擎 collectOutput 全链路。**4 组产物 diff=0（build 对拍通过），但 vitest 40 测试崩溃**（`TypeError: Cannot read properties of null (reading 'postMessage')`）。根因：**collectOutput=false 不是死路径**——40 个测试在主线程直接 import worker 模块（不经 stage-channel new Worker），parentPort 是 null，原来靠 collectOutput=false → writeFileSync 直写路径把产物落盘；删了直写路径 → postEntry 只 postMessage → parentPort null 崩溃。**R1 实证疏漏**：只 grep 了 build-pipeline 的 runCompileStage 调用（都传 onOutput → collectOutput=true），漏了测试直连场景。代码已回退 baseline（584/584 全绿）。**方案 C 证伪**——collectOutput=false 是测试直连的活路径，不能删 |
+| 2026-09-16 | **根因深挖 + 方案转向**：证伪后摸排发现——collectOutput 是**线程调度知识泄漏进业务逻辑**的结晶（output.write 读调度 flag 做 if 分叉）；同构问题在 compatibility.js 的 `warnOnce`（`isMainThread` 分叉日志路由）。两个泄漏面同构，都是"worker 信息怎么回主线程"的调度知识泄漏。**output-pure 目标（output 纯化）实为更大问题（线程调度与业务逻辑混合、无收敛面）的子集**。完成摸排总报告 `docs/actions/fe-tools-worker-runtime/research.md`。**output-pure 降回 draft 暂停**，待 worker-runtime complete 后评估（目标若被 worker-runtime 包含则关闭 superseded） |
 
 ## 问题陈述
 
