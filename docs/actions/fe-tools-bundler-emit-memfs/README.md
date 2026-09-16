@@ -1,55 +1,66 @@
-# FE Tools Bundler Emit Memfs
+# FE Tools Bundler Output Pure
 
-- Action: `fe-tools-bundler-emit-memfs`
+- Action: `fe-tools-bundler-emit-memfs`（拟改名 `fe-tools-bundler-output-pure`）
 - Status: `draft`
 - Updated: 2026-09-16
 - Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-bundler-emit-layer`](../_archive/complete/fe-tools-bundler-emit-layer/README.md)（刀 1 emit 抽取已归档；output.write 收 worker 三引擎，D-E-7/E-9 为「只产不写」演化留口）；`fe-tools-build-model`（M1 BuildModel + materialize）；`fe-tools-session-unify`（dev server）
+- 前置上下文：[`fe-tools-bundler-emit-layer`](../_archive/complete/fe-tools-bundler-emit-layer/README.md)（刀 1 emit 抽取已归档；output.write 双路径，collectOutput=false 死路径）；`fe-tools-build-model`（materialize 主线程刷盘）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 问题陈述
 
-刀 1（emit-layer）完成后，`output.write` 收了 worker 侧三引擎（view/logic/style）的 code/map 写盘。但产物面写盘仍分散：
+刀 1（emit-layer）完成后，`output.write` 混了两个职责：
 
-```text
-worker 侧：  view/logic/style code+map  → output.write ✅（刀 1）
-主线程侧：   BuildModel.entries 刷盘    → materialize ❌（dev 模式实际写盘点）
-             app-config.json           → config-compiler 直写 ❌
-             发布 copy                 → publishToDist ❌
+```js
+export function write({ entry, collectOutput, writeDir }) {
+	if (collectOutput) {
+		parentPort.postMessage({ type: 'output', entry })  // 路径 A：消息回传（无 fs 副作用）
+		return
+	}
+	// 路径 B：直写盘（mkdir + writeFileSync，有 fs 副作用）
+}
 ```
 
-**两层互补**：`output.write`（worker 出口）与 `materialize`（主线程出口）不重复——dev 模式 `collectOutput=true` 时 worker 全 postMessage → BuildModel → materialize 刷盘（output.write 只 postMessage 不写盘）；build 模式 `collectOutput=false` 时 worker 直接 output.write 写盘（materialize 收空 BuildModel no-op）。
+### 病症一（P-OP1）：collectOutput=false 是死路径
 
-### 病症一（P-MM1）：dev 模式产物落盘无 memfs
+- `stage-channel.js:91` `collectOutput = typeof onOutput === 'function'`
+- build-pipeline 所有 runCompileStage 调用都传 `onOutput: ctx.buildModel.add` → collectOutput 恒 true
+- 测试无直连 worker 场景 → 路径 B（直写）零调用方
+- output.write 的 `mkdir + writeFileSync` 分支是兼容残留（注释"供直连 worker 场景使用"实际无人用）
 
-dev server 产物读取走 `fs.readFile(serveRoot/...)`（dev-server.js L150-168），serveRoot = targetPath = materialize 写盘点。dev 模式产物必须先落盘才能 serve，无内存直读路径。真机/热更新延迟来自落盘 + 读盘往返。
+### 病症二（P-OP2）：output.write 双职责违背纯度
 
-### 病症二（P-MM2）：产物面写盘未统一收口
+- 路径 A（postMessage）无副作用；路径 B（writeFileSync）有 fs 副作用
+- 一个函数混两个语义，collectOutput 标志位分叉——与 D-E-2（策略函数注入，非标志位 if）精神矛盾
+- worker 侧本应"无 fs"，但 output.write 持有 fs import + 直写逻辑
 
-`materialize`（主线程刷盘）、`app-config.json`（config-compiler 直写）、`publishToDist`（发布 copy）三处漏网点未纳入统一产物面出口。dev memfs 改造需先定义「产物面出口」的完整边界。
+## Goal（阶段 1：worker 无 fs / 干净的 output）
 
-### 病症三（P-MM3）：产物面目录未归置
+**方案 C（拍板）**：output.js 最纯——删直写路径，worker 侧只剩 postMessage；写盘 100% 归主线程 materialize。
 
-emit.js + output.js 在 `compiler/pipeline/`（与编排面 build-pipeline/stage-channel/compile-target 混着）。产物面文件将随 cache/memfs 扩张，需决定是否单独出 `compiler/emit/`——但归置方向依赖 cache 的「家」（主线程 vs worker）。
+- `output.js`：`write` → 改名 `postEntry`，只收 `{entry}`，只 postMessage，删 fs/path import
+- `emit.js`：emitEntry 删 outputEnv 第二参数（D-E-10 的 outputEnv={collectOutput,writeDir} 在 C 方案下全空，死参数）
+- 三引擎：删 worker 全局 `collectOutput` 变量 + emitEntry 调用去 outputEnv + style write→postEntry
+- stage-channel：删 collectOutput 字段（onOutput 机制保留）
+- materialize：**不动**（mkdir+writeFileSync 独占写盘）
 
-## Goal
+**拍板**：
+1. outputEnv 删（emitEntry 签名 `emitEntry(params)`，无第二参数）
+2. write → postEntry（名实相符）
 
-dev 模式产物不落盘（memfs），产物面写盘出口统一收口，目录归置完成。
+## 两阶段切分
 
-**关键约束**：emit 层（emitEntry + output.write）零改动——D-E-7/D-E-9 已为「只产不写」演化留口。改造主战场在 materialize + dev server + BuildModel。
+| 阶段 | 目标 | Action |
+| --- | --- | --- |
+| **阶段 1（本 Action）** | worker 无 fs——output 纯 postEntry，写盘 100% 归 materialize | 本 Action |
+| **阶段 2（后续另立）** | dev memfs——materialize + dev server 改造 | 另立 Action |
 
-## 拍板链（draft 阶段设计任务）
-
-> memfs / cache / 目录归置 / 漏网点 四者耦合，需按序拍板。
-
-1. **拍 cache 的「家」**（主线程 ProjectStore 侧 vs worker 内跨任务保留）——形态分叉点，决定 cache.js 落 `model/` 还是 `compiler/`，进而决定 emit/output 是否单独出 `compiler/emit/`
-2. **拍 memfs 方案**（方案 1 直读 BuildModel vs 方案 2 memfs Volume 后端）
-3. **定目录归置**（是否出 `compiler/emit/`，由 cache 家决定）
-4. **定漏网点收口范围**（app-config.json / materialize / publishToDist 哪些进产物面统一出口）
+**前置关系**：worker 无 fs 是 memfs 的前提——只有 worker 侧彻底干净，materialize 才是唯一写盘点，memfs 才有单一边界。
 
 ## Non-goals
 
-- 刀 2 失效查询（DependencyGraph.getInvalidatedModules）——独立先行，不与产物面耦合
-- 刀 3 ModuleCache 的失效/增量逻辑——本 Action 只拍 cache 的「家」（影响目录归置），cache 实现另立
-- transform 粒度统一 / tree-shaking
+- memfs（materialize + dev server）——阶段 2 另立
+- cache（刀 3 ModuleCache）+ 目录归置——依赖 cache 家拍板，另立
+- 刀 2 失效查询——独立先行
+- materialize 重构（本 Action 不动 materialize，只删 worker 侧直写路径）

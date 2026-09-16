@@ -1,32 +1,35 @@
-# Requirements — fe-tools-bundler-emit-memfs
+# Requirements — fe-tools-bundler-output-pure
 
-Status: **draft（立项 · 2026-09-16）** — 拍板链未走完；R-* 编号待拍板后回填。
+Status: **draft（C 方案拍板 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
-## R-MM0（待拍板）产物面出口边界
+## R-OP0（MUST）删 collectOutput=false 死路径
 
-- 定义「产物面统一出口」的完整范围：output.write（worker）+ materialize（主线程）+ 漏网点（app-config/publish）哪些收口、哪些保持分层。
-- 依赖拍板链第 4 步。
+- output.js 删直写分支（mkdir+writeFileSync）；删 fs/path import。
+- build-pipeline 所有 runCompileStage 都传 onOutput → collectOutput 恒 true → 路径 B 零调用方（实证）。删它零风险。
 
-## R-MM1（待拍板）dev memfs
+## R-OP1（MUST）output 纯 postEntry
 
-- dev 模式产物不落盘：materialize dev 跳过；dev server 从内存直读产物。
-- 方案 1（候选）：dev server 直读 BuildModel.entries（已是内存 Map）；零新依赖。
-- 方案 2：memfs Volume 后端；引入依赖 + 双份内存冗余。
-- emit 层（emitEntry + output.write）零改动。
+- `write` → 改名 `postEntry`；只收 `{ entry }`；只 `parentPort.postMessage({ type:'output', entry })`。
+- worker 侧彻底无 fs（output.js 不 import fs/path）。
 
-## R-MM2（待拍板）目录归置
+## R-OP2（MUST）emitEntry 删 outputEnv
 
-- emit.js + output.js 是否单独出 `compiler/emit/`，由 cache 的「家」决定：
-  - cache 落 worker → emit + output + cache 聚 `compiler/emit/`
-  - cache 落主线程 → 产物面横跨 compiler + model，保持分层
-- 现状 2 文件先不动，避免挪两次。
+- D-E-10 的 `outputEnv={collectOutput, writeDir}` 在 C 方案下全空（collectOutput 恒 true 删了；writeDir 不再传给 postEntry）——死参数，删。
+- emitEntry 签名 `emitEntry(params)`，无第二参数。
+- 内部：策略 apply → 拼 entry → `postEntry({entry})` → return 1。
 
-## R-MM3（待拍板）cache 的「家」（仅拍板，不实现）
+## R-OP3（MUST）清理 collectOutput 全链路
 
-- ModuleCache 落主线程 ProjectStore 侧（长驻 + IPC 回填）vs worker 内跨任务保留（零 IPC）。
-- 本 Action 只拍板形态分叉，cache 实现另立刀 3 Action。
+- 三引擎删 worker 全局 `let collectOutput` 变量 + onMessage 的 `collectOutput = !!collectFlag`。
+- stage-channel 删 `collectOutput` 字段（onOutput 机制保留——主线程接 postMessage 走 BuildModel.add）。
+- 三引擎 emitEntry 调用去 outputEnv 第二参数；style write → postEntry。
 
-## R-MM4（MUST）行为 0
+## R-OP4（MUST）materialize 不动
 
-- build 模式产物字节不变（dev memfs 改造不触碰 build 路径）；vitest 全量绿。
-- emit 层零改动（D-E-7/D-E-9 契约稳定）。
+- materialize（build-model.js mkdir+writeFileSync）独占写盘，本 Action 不碰。
+- 职责分层：worker postEntry（无 fs）vs 主线程 materialize（有 fs）。
+
+## R-OP5（MUST）行为 0
+
+- 产物字节不变（死路径无测试覆盖，删了无影响；活路径 postMessage 行为不变）。
+- vitest 全量绿。

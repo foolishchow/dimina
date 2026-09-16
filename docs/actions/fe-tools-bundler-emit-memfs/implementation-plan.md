@@ -1,23 +1,35 @@
-# Implementation Plan — fe-tools-bundler-emit-memfs
+# Implementation Plan — fe-tools-bundler-output-pure
 
-Status: **draft（立项 · 2026-09-16）** — 拍板链未走完；触达序待拍板后回填。
+Status: **draft（C 方案拍板 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 基线
 
-- baseline 待授权时记录 HEAD。
-- emit 层（emitEntry + output.write）零改动（D-E-7/D-E-9 契约稳定）。
-- 行为 0：build 模式产物字节不变 + vitest 全量绿。
+- 授权时记录 HEAD。
+- 行为 0：产物字节不变 + vitest 全量绿。
+- materialize 不动。
 
-## 触达序（待拍板后定）
+## 触达序
 
-拍板链走完后按 memfs 方案 + 目录归置 + 漏网点收口范围拆 step。候选触达面（方案 1）：
-
-- `model/build-model.js`：加 path→{code} 反查索引 + resolveArtifact
-- `compiler/pipeline/build-pipeline.js`：materialize 加 collectOutput 分支（dev 跳过）
-- `dev/dev-server.js`：产物路由从 fs.readFile → resolveArtifact
-- `session/index.js`：dev 时传 buildModel 给 dev-server
-- 漏网点收口（app-config/materialize/publish）按拍板结果决定
+| Step | 文件 | 动作 |
+| --- | --- | --- |
+| 1 | `pipeline/output.js` | `write` → `postEntry`；删 fs/path import + 直写分支；只收 `{entry}` postMessage |
+| 2 | `pipeline/emit.js` | import `write` → `postEntry`；emitEntry 删 outputEnv 第二参数；内部 `postEntry({entry})` |
+| 3 | `view/index.js` | emitEntry 调用去 outputEnv；删 worker 全局 `collectOutput` 变量 + onMessage 赋值 |
+| 4 | `logic/index.js` | 同 view（emitEntry 去 outputEnv + 删 collectOutput 变量） |
+| 5 | `style/index.js` | `write({entry, collectOutput, writeDir})` → `postEntry({entry})`（两处）；删 collectOutput 变量 |
+| 6 | `pipeline/stage-channel.js` | 删 `collectOutput` 字段（onOutput 机制保留） |
+| 7 | 验证 | vitest 全量绿；grep worker 侧零 `fs` import（output.js/emit.js 无 fs）；产物 diff=0 |
 
 ## 门禁
 
-待拍板后定义。
+| Gate | 条件 |
+| --- | --- |
+| G1 | output.js 无 fs import；postEntry 只 postMessage |
+| G2 | emitEntry 无 outputEnv 第二参数 |
+| G3 | 三引擎 worker 侧无 `let collectOutput` 变量 |
+| G4 | stage-channel 无 collectOutput 字段 |
+| G5 | vitest 全绿 + 产物 diff=0 |
+
+## 消融
+
+- 拔 postEntry（回 writeFileSync 直写）→ materialize 名不副实重现（worker 直写 grep 命中）→ 恢复绿

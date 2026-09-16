@@ -1,17 +1,18 @@
-# Acceptance — fe-tools-bundler-emit-memfs
+# Acceptance — fe-tools-bundler-output-pure
 
-Status: **draft（立项 · 2026-09-16）** — 实施后回填 Actual。
+Status: **draft（C 方案拍板 · 2026-09-16）** — 实施后回填 Actual。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-MM0 | R-MM0 | 产物面出口边界定义完成；漏网点收口范围拍板 | P-MM0 | pending |
-| A-MM1 | R-MM1 | dev 模式产物不落盘（memfs）；dev server 从内存直读 | P-MM1 | pending |
-| A-MM2 | R-MM2 | 产物面目录归置完成（emit/output/cache 落位） | P-MM2 | pending |
-| A-MM3 | R-MM3 | cache 的「家」拍板（仅决策，不实现） | P-MM3 | pending |
-| A-MM4 | R-MM4 | build 模式产物 diff=0（行为 0）；vitest 全量绿；emit 层零改动 | P-MM4 | pending |
+| A-OP0 | R-OP0 | collectOutput=false 死路径删除 | P-OP0 | pending |
+| A-OP1 | R-OP1 | output.js `postEntry` 只 postMessage，无 fs import | P-OP1 | pending |
+| A-OP2 | R-OP2 | emitEntry 无 outputEnv 第二参数 | P-OP2 | pending |
+| A-OP3 | R-OP3 | 三引擎无 collectOutput 变量；stage-channel 无 collectOutput 字段 | P-OP3 | pending |
+| A-OP4 | R-OP4 | materialize 不动（git diff 零触碰 build-model.js 写盘逻辑） | P-OP4 | pending |
+| A-OP5 | R-OP5 | 产物 diff=0 + vitest 全量绿 | P-OP5 | pending |
 
 ## Non-acceptance
 
-- 刀 2 失效查询（DependencyGraph.getInvalidatedModules）——独立先行。
-- 刀 3 ModuleCache 实现——本 Action 只拍「家」，实现另立。
-- transform 粒度统一 / tree-shaking。
+- memfs（materialize + dev server）——阶段 2 另立
+- cache + 目录归置——依赖 cache 家拍板，另立
+- materialize 重构——本 Action 不动

@@ -1,50 +1,89 @@
-# Technical Design — fe-tools-bundler-emit-memfs
+# Technical Design — fe-tools-bundler-output-pure
 
-Status: **draft（立项 · 2026-09-16）** — 拍板链未走完；方案候选待选。
+Status: **draft（C 方案拍板 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
-## 1. 产物面现状锚定（实证 · 刀 1 完成后）
+## 1. 现状锚定（实证）
 
-| 出口 | 文件 | 侧 | 管什么 | 收口？ |
-| --- | --- | --- | --- | --- |
-| `output.write` | pipeline/output.js | worker | view/logic/style code+map | ✅ 刀 1 |
-| `materialize` | model/build-model.js:52/57 | 主线程 | BuildModel.entries 刷盘 | ❌ |
-| `app-config.json` 直写 | pipeline/config-compiler.js:67 | 主线程 | 配置产物 | ❌ |
-| `publishToDist` | pipeline/publish.js:16 | 主线程 | 发布 copy | ❌ |
+| 层 | 现状 | 问题 |
+| --- | --- | --- |
+| output.js | `write({entry, collectOutput, writeDir})` 双路径 | 路径 B（直写）死路径；双职责 |
+| stage-channel | `collectOutput: typeof onOutput === 'function'` | 恒 true（build-pipeline 总传 onOutput） |
+| 三引擎 | worker 全局 `let collectOutput` + `collectOutput = !!collectFlag` | 死变量 |
+| materialize | mkdir+writeFileSync 独占主线程写盘 | 本 Action 不动 |
 
-两层互补：dev（collectOutput=true）worker postMessage → BuildModel → materialize 刷盘；build（collectOutput=false）worker 直 output.write 写盘，materialize no-op。
+## 2. 方案 C（拍板）：output 最纯
 
-## 2. memfs 方案候选
+### output.js（改后）
 
-### 方案 1（推荐）：dev server 直读 BuildModel
+```js
+import { parentPort } from 'node:worker_threads'
 
-- BuildModel.entries 已是内存 Map（`Map<kind:id, entry>`）——memfs 数据源已存在
-- materialize dev 模式跳过（build-pipeline L181 加 collectOutput 分支）
-- dev server `resolveArtifact(pathname)` 从 BuildModel 查（建 path→{code} 反查索引）
-- 零新依赖；~50 行
-- 改动：materialize（build-pipeline L181）+ dev server（dev-server L150-168）+ BuildModel（path 反查）
+/**
+ * @typedef {{ path: string, code: string }} EmitFile
+ * @typedef {{ path: string, map: string }} EmitSourcemap
+ * @typedef {{ entryId: string, kind: string, files: EmitFile[], sourcemaps?: EmitSourcemap[] }} EmitEntry
+ */
 
-### 方案 2：memfs Volume 后端
+/**
+ * worker 侧产物出口——纯 postMessage，无 fs。
+ * 写盘 100% 归主线程 materialize。
+ */
+export function postEntry({ entry }) {
+	parentPort.postMessage({ type: 'output', entry })
+}
+```
 
-- materialize 写 memfs Volume；dev server fs 换 memfs 后端
-- dev server 逻辑不动（还是 readFile），只换后端
-- 引入 memfs 依赖；BuildModel.entries + memfs 双份内存冗余
+- 删 fs/path import；删 collectOutput/writeDir 参数；删直写分支。
+- `write` → `postEntry`（名实相符）。
 
-## 3. cache 的「家」候选（仅拍板）
+### emit.js（改后）
 
-| 候选 | 家 | cache.js 落 | 目录归置 |
-| --- | --- | --- | --- |
-| A | 主线程 ProjectStore 侧 | `model/` | 产物面横跨 compiler+model，不硬聚 |
-| B | worker 内跨任务保留 | `compiler/` | emit+output+cache 聚 `compiler/emit/` |
+```js
+// emitEntry 删 outputEnv 第二参数（D-E-10 的 outputEnv 在 C 方案下全空）
+export async function emitEntry(params) {
+	const strategy = strategies[params.transform.strategy]
+	if (!strategy) throw new Error(`emitEntry: 未知 transform 策略 ${params.transform.strategy}`)
+	const { entry } = await strategy.apply(params)
+	postEntry({ entry })   // 只 postEntry，不传 collectOutput/writeDir
+	return 1
+}
+```
 
-## 4. 目录归置候选
+- import 从 `./output.js` 的 `write` → `postEntry`。
 
-- 现状：emit.js + output.js 在 `compiler/pipeline/`（与编排面混着）
-- 候选 A：出 `compiler/emit/`（若 cache 落 worker，产物面文件≥3 聚合合理）
-- 候选 B：保持 `compiler/pipeline/`（若 cache 落主线程，2 文件不硬聚）
-- 决策依赖拍板链第 1 步（cache 家）
+### 三引擎（改后）
 
-## 5. 拍板链
+- view/logic：`emitEntry({...}, { collectOutput, writeDir })` → `emitEntry({...})`（去 outputEnv）
+- style：`write({entry, collectOutput, writeDir})` → `postEntry({entry})`
+- 删 worker 全局 `let collectOutput` + onMessage `collectOutput = !!collectFlag`
 
-1. cache 的「家」→ 2. memfs 方案 → 3. 目录归置 → 4. 漏网点收口范围
+### stage-channel（改后）
 
-拍板后回填 R-MM0..3 编号与方案选定。
+- 删 `collectOutput: typeof onOutput === 'function'` 字段（postMessage 给 worker 的消息少一个字段）
+- onOutput 机制保留（主线程 `message.type==='output'` → `onOutput(message.entry)` → BuildModel.add）
+
+### materialize（不动）
+
+- mkdir+writeFileSync 独占主线程写盘。
+
+## 3. 行为 0 证明
+
+- collectOutput=false 路径零调用方（实证）→ 删它无影响
+- collectOutput=true 路径：postMessage 行为不变（postEntry === 原 write 的路径 A）
+- materialize 不动 → 主线程写盘不变
+- 产物字节不变；vitest 全绿
+
+## 4. 职责分层（改后）
+
+```
+worker 侧：  emitEntry → postEntry → postMessage（无 fs）✅
+主线程侧：   message → BuildModel.add → materialize（有 fs，独占写盘）
+```
+
+worker 侧彻底无 fs，materialize 是唯一写盘点——为阶段 2 memfs 留单一边界。
+
+## 5. Non-goals
+
+- memfs（materialize + dev server）——阶段 2 另立
+- cache + 目录归置——依赖 cache 家拍板，另立
+- materialize 重构——本 Action 不动
