@@ -115,7 +115,7 @@ class ConsoleLogger {
 
 ### executeTask（D-WR-9，资源层接缝）
 
-**input 形状**（任务层契约，稳定）：`{ pages, storeInfo, sourcemap, compileConfig, sourcemapTargetPath }`——与现状 stage-channel 发给 worker 的消息同构（worker onMessage 解构字段）。executor 从 `input.pages.mainPages` 算 `totalTasks`（`Object.keys(input.pages.mainPages).length`，同现状 stage-channel L53），供 `onProgress(completed, total)` 的 total 参数。
+**input 形状**（任务层契约，稳定）：`{ pages, storeInfo, sourcemap, compileConfig, sourcemapTargetPath, stageTimeoutMs }`——与现状 stage-channel 发给 worker 的消息同构（worker onMessage 解构字段）；`stageTimeoutMs` 可选（F44：调用方覆盖超时，缺省 env/120s）。executor 从 `input.pages.mainPages` 算 `totalTasks`（`Object.keys(input.pages.mainPages).length`，同现状 stage-channel L53），供 `onProgress(completed, total)` 的 total 参数。
 
 **result 形状**（F35）：executeTask **不碰 ctx**（调度层不写业务上下文，避免耦合）——resolve 返回 `{ dependencyGraph, compatibilityWarnings }`，调用方（stage-channel）await 后写 ctx（`ctx.dependencyGraph.merge(result.dependencyGraph)` + `result.compatibilityWarnings.forEach(w => ctx.compatibilityWarnings.add(w))` + emit lifecycle BUILD_WARNING）。
 
@@ -137,7 +137,9 @@ export function executeTask({ engine, input, onOutput, onProgress }) {
   return workerPool.runWorker(() => new Promise((resolve, reject) => {  // F36：workerPool 限流包裹
     let receivedOutputCount = 0
     let isResolved = false
-    let timeoutTimer = setTimeout(() => reject(new Error(`[executor] ${script} timeout`)), /* D-P4 超时 */)
+    // F43：超时照搬现状 stage-channel（stageTimeoutMs ?? env ?? 120_000）
+    const stageTimeoutMs = input.stageTimeoutMs ?? Number(process.env.DIMINA_STAGE_TIMEOUT_MS ?? 120_000)
+    let timeoutTimer = setTimeout(() => reject(new Error(`[executor] ${script} stage timed out after ${stageTimeoutMs}ms`)), stageTimeoutMs)
     const worker = new Worker(
       path.join(EXECUTOR_DIR, ENTRY_PATH[script]),
       { ...workerPool.getWorkerOptions(),
