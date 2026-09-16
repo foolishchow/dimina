@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-bundler-emit-layer
 
-Status: **in_progress（实施完成 · 1e5b55c3）** — 行为 0 + vitest 全绿；待 Close 审查。
+Status: **complete（归档 · a48df487）** — A-E0..5 全 pass（实施 `a4dad900`）。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

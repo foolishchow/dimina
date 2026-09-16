@@ -1,10 +1,10 @@
 # FE Tools Bundler Emit Layer
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
-- Status: `in_progress`
-- Updated: 2026-09-15（实施完成：pipeline/emit.js + output.js 抽出；4 组 diff=0；vitest 584/584；待 Close）
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
+- Status: `complete`
+- Updated: 2026-09-15（E1+E2 交付 `a4dad900`；Close 复验 `a48df487` 584/584 + 4 组 diff=0；不变量回流；归档）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 问题陈述

@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **draft（R16 review 中 · 2026-09-15）** — R1-R16 收敛；主线 + 决策表 + 签名。
+Status: **complete（归档 · a48df487）** — R1-R16 收敛；主线 + 决策表 + 签名已落地。
 
 ## 1. 现状锚定（实证）
 

@@ -1,8 +1,8 @@
 # Validation — fe-tools-bundler-emit-layer
 
-Status: **in_progress（实施完成 · 1e5b55c3）** — 584/584 vitest + 4 组 diff=0。
+Status: **complete（归档 · a48df487）** — P-E01..06 全 pass；584/584 + 4 组 diff=0。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ Status: **in_progress（实施完成 · 1e5b55c3）** — 584/584 vitest + 4 组
 
 ## Actual
 
-- baseline HEAD：`1e5b55c3`（实施前）；current HEAD：`1e5b55c3`（实施后）。
+- baseline HEAD：`a4dad900`（实施前）；current HEAD：`a4dad900`（实施后）。
 - base 工程 4 组对拍 `diff -rq` = 0（nomap / min-nomap / sm / sm-min）。
 - vitest 584/584（80 suites）全绿；tsc build（tsconfig.build.json）emit.js/output.js 产出 dist。
 - grep 锚定：三引擎 `fs.writeFileSync` 零命中；`type: 'output'` postMessage 零命中（统一经 output.write）。
