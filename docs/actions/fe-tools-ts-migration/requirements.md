@@ -2,14 +2,14 @@
 
 ## R-TM0 — .js 文件改名 .ts
 
-MUST `src/compiler/` 下 41 个 `.js` 文件全部改名为 `.ts`（worker-runtime × 6 + view/logic/style index + worker-entry × 3 + pipeline + core + view/wxml/**）。
+MUST `bundler/src/` 下 72 个 `.js` 文件全部改名为 `.ts`（src/compiler 41 + src/根 2 + bin 3 + dev 5 + model 6 + session 4 + shared 8 + watch 3）。
 
 ## R-TM1 — import 后缀修正
 
 MUST 所有 import 路径后缀修正：
 - `.js` 文件 import 改名后的 .ts → 显式 `.ts` 后缀（Node native worker + vite 无法解析隐式映射，D-TD-20）
-- `.ts` 文件 import .ts → `.js` 后缀（tsc rewriteRelativeImportExtensions rewrite）
-- 不改 src/compiler 外的 import（shared/ 等留 .js）
+- `.ts` 文件 import .ts → `.js` 后缀（tsc rewriteRelativeImportExtensions rewrite）或显式 `.ts`（D-TM-1 拍板）
+- `__tests__/` import src/ .ts 后缀（D-TM-2 待拍板）
 
 ## R-TM2 — 行为 0
 

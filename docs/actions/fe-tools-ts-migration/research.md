@@ -4,18 +4,24 @@
 
 ### 1.1 文件分布
 
-`src/compiler/` 下 41 .js + 6 .ts：
+`bundler/src/` 下 72 .js + 6 .ts：
 
 | 目录 | .js | .ts |
 | --- | --- | --- |
-| core/ | 8（env, compatibility, sourcemap, renderers, expression-parser, npm-builder, npm-resolver, compatibility-reference）| 0 |
-| pipeline/ | 6（build-pipeline, compile-stages, config-compiler, emit, publish, stage-channel）| 2（compile-target, compile-target.types）|
-| view/ | 2（index, worker-entry）| 0 |
-| view/wxml/ | 12（parse, compile, cheerio/parse, napi/parse, common/document, document-ops, load/*, renderer/vue/*）| 4（renderer/registry, renderer/stub, common/parity, common/wxml-ir.types）|
-| logic/ | 2（index, worker-entry）| 0 |
-| style/ | 2（index, worker-entry）| 0 |
-| worker-runtime/ | 6（context, runtime, executor, sinks, loggers, define-engine）| 0 |
-| **合计** | **41** | **6** |
+| src/ 根 | 2（index.js 等）| 0 |
+| src/bin/ | 3 | 0 |
+| src/compiler/core/ | 8 | 0 |
+| src/compiler/pipeline/ | 6 | 2 |
+| src/compiler/view/ + wxml/** | 14 | 4 |
+| src/compiler/logic/ | 2 | 0 |
+| src/compiler/style/ | 2 | 0 |
+| src/compiler/worker-runtime/ | 6 | 0 |
+| src/dev/ | 5 | 0 |
+| src/model/ | 6 | 0 |
+| src/session/ | 4 | 0 |
+| src/shared/ | 8 | 0 |
+| src/watch/ | 3 | 0 |
+| **合计** | **72** | **6** |
 
 ### 1.2 import 后缀现状
 
@@ -70,29 +76,29 @@
 
 ## 3. 分阶段实施
 
-### 阶段 1：core/ 基础（8 文件，被 import 最多）
+### 阶段 1：core/ + shared/ 基础（16 文件，被 import 最多）
 
-env.js（34）→ compatibility/sourcemap/renderers（6-8）→ expression-parser/npm-builder/npm-resolver/compatibility-reference（2）。
+shared/（8，被 compiler/session/model import）+ core/（8，env.js 被 34 处 import）。
 
 ### 阶段 2：worker-runtime/（6 文件，worker 直跑）
 
 context（5）→ define-engine/loggers（3）→ runtime（3）→ sinks/executor（1）。
 worker strip-types 已注入。
 
-### 阶段 3：pipeline/（6 文件）
+### 阶段 3：pipeline/ + model/ + session/ + watch/（19 文件）
 
-build-pipeline/compile-stages/config-compiler/emit/publish/stage-channel。
-emit（2）被 view/logic/style import。
+pipeline（6）+ model（6，build-model 等）+ session（4）+ watch（3，worker-pool 等）。
+emit（2）被 view/logic/style import；build-model 被多 import。
 
 ### 阶段 4：view/ + view/wxml/（14 文件）
 
 index（6）+ worker-entry + wxml/parse（3）+ compile + document/document-ops（3）+ load/* + renderer/vue/* + cheerio/napi。
 
-### 阶段 5：logic/ + style/（4 文件）
+### 阶段 5：logic/ + style/ + dev/ + bin/ + src/根（14 文件）
 
-index（7/3）+ worker-entry × 2。
+logic/style index + worker-entry（4）+ dev（5）+ bin（3）+ src/根（2）。
 
-### 阶段 6：__tests__/ + helpers（可选，Non-goals 留后续？）
+### 阶段 6：__tests__/ import 后缀（可选，D-TM-2 待拍板）
 
 测试 import .js→.ts 后缀修正（如 scope 内）。
 

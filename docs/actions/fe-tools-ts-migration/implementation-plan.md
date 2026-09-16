@@ -5,11 +5,11 @@
 | ID | 阶段 | 前置 | 验证点 |
 | --- | --- | --- | --- |
 | P-TM00 | baseline 记录 | — | digest + 584/584 |
-| P-TM01 | core/ 8 文件 .js→.ts | P-TM00 | grep 零 .js in core + 4 组 diff=0 |
+| P-TM01 | core/ + shared/ 16 文件 .js→.ts | P-TM00 | grep 零 .js in core+shared + 4 组 diff=0 |
 | P-TM02 | worker-runtime/ 6 文件 | P-TM01 | grep 零 .js in worker-runtime + worker 跑通 |
-| P-TM03 | pipeline/ 6 文件 | P-TM02 | grep 零 .js in pipeline + 4 组 diff=0 |
+| P-TM03 | pipeline/ + model/ + session/ + watch/ 19 文件 | P-TM02 | grep 零 .js + 4 组 diff=0 |
 | P-TM04 | view/ + view/wxml/ 14 文件 | P-TM03 | grep 零 .js in view + 4 组 diff=0 |
-| P-TM05 | logic/ + style/ 4 文件 | P-TM04 | grep 零 .js in compiler + 4 组 diff=0 |
+| P-TM05 | logic/ + style/ + dev/ + bin/ + src/根 14 文件 | P-TM04 | grep 零 .js in src（72→0）+ 4 组 diff=0 |
 | P-TM06 | __tests__/ import 后缀（D-TM-2 待拍板）| P-TM05 | vitest 584/584 |
 | P-TM07 | 全量验证 | P-TM06 | 4 组 diff=0 + 584/584 + tsc + grep 零 .js |
 

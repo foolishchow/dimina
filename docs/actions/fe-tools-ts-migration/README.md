@@ -20,21 +20,29 @@
 
 ## 目标
 
-`src/compiler/` 41 个 `.js` → `.ts`，import 后缀链路修正，行为 0 保证（diff=0 + 584/584 + tsc OK）。
+`bundler/src/` 72 个 `.js` → `.ts`，import 后缀链路修正，行为 0 保证（diff=0 + 584/584 + tsc OK）。
 
 ## Non-goals
 
 - 不改行为（diff=0）
 - 不加类型注解（仅改名 + 后缀，类型注解留后续；checkJs 保持 false）
-- 不改 src/ 外（shared/、bin/ 等留后续）
-- 不改测试文件（__tests__/ 留后续）
+- 不改 `__tests__/`（测试文件留后续，D-TM-2 待拍板）
+- 不改 `scripts/`、`crates/` 等 src 外
 
 ## 范围
 
-- `src/compiler/` 41 个 .js 文件改名 .ts
-- import 后缀修正（.js→.ts 显式 / .ts→.ts 用 .js tsc rewrite）
-- worker-entry.js × 3 + worker-runtime × 6（worker strip-types 已注入 D-TD-20）
-- tsc build + vitest + 4 组产物 diff=0
+`bundler/src/` 全部 72 .js：
+- `src/compiler/` 41 .js（core/pipeline/view/logic/style/worker-runtime）
+- `src/` 根 2（index.js 等）
+- `src/bin/` 3
+- `src/dev/` 5
+- `src/model/` 6（build-model 等）
+- `src/session/` 4
+- `src/shared/` 8
+- `src/watch/` 3
+
+import 后缀修正（.js→.ts 显式，D-TD-20 tsc rewrite）。
+worker-entry × 3 + worker-runtime × 6（worker strip-types 已注入）。
 
 ## 依赖
 
