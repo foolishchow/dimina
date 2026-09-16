@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **冻结（2026-09-15）** — R1-R7 七轮 review 收敛（详见 git log）；主线设计 + 决策表 + 签名。
+Status: **draft（R8 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
 
 ## 1. 现状锚定（实证）
 
@@ -146,10 +146,10 @@ write({
 | D-E-6 | contract 不含 range/sourceFile | 错误定位是布局私有；source 在 map 内 |
 | D-E-7 | output.js 独立 | emit 无副作用 / output 有副作用；未来增量写盘/材质化复用 |
 | D-E-8 | style 只收 output（不进 emitEntry） | 无模块体系/无 modDefine/无 transform——硬套=伪抽象 |
-| R5-F1 | 方案 A：emitEntry 内部调 output.write | 样板消最多；返回 number；A→B 是加法 |
-| R2-C1 | 纯参数 + outputEnv（不引入 EmitContext） | 不绑 worker 上下文；参数不膨胀 |
-| R2-C2 | outputCount 在 emitEntry 层（output.write 不管） | output.write 更纯；count 是协议对账字段 |
-| R2-C3 | rebase 留策略（output.write 只含 writeDir） | rebase 是产物内容操作，不是写盘职责 |
+| D-E-9 | 方案 A：emitEntry 内部调 output.write | 样板消最多；返回 number；A→B 是加法 |
+| D-E-10 | 纯参数 + outputEnv（不引入 EmitContext） | 不绑 worker 上下文；参数不膨胀 |
+| D-E-11 | outputCount 在 emitEntry 层（output.write 不管） | output.write 更纯；count 是协议对账字段 |
+| D-E-12 | rebase 留策略（output.write 只含 writeDir） | rebase 是产物内容操作，不是写盘职责 |
 
 ## Residual
 

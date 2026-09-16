@@ -1,10 +1,10 @@
 # Implementation Plan — fe-tools-bundler-emit-layer
 
-Status: **draft（R6 review 中 · 2026-09-15）** — E1→E2；行为 0；禁混。
+Status: **draft（R8 review 中 · 2026-09-15）** — E1→E2；行为 0；禁混。
 
 ## 基线与纪律
 
-> **R2-C1-C3 + R5-F1（拍板）**：emitEntry 吃纯参数 + outputEnv 小聚合（不引入 EmitContext）；**方案 A**——emitEntry 内部调 output.write，返回 number（调用方 `outputCount += result`）；output.write 不管 count；rebase 留 emitEntry 策略（output.write 只含 writeDir）。详见 design §8/§10。
+> **R2-C1-C3 + R5-F1（拍板）**：emitEntry 吃纯参数 + outputEnv 小聚合（不引入 EmitContext）；**方案 A**——emitEntry 内部调 output.write，返回 number（调用方 `outputCount += result`）；output.write 不管 count；rebase 留 emitEntry 策略（output.write 只含 writeDir）。详见 design §7 签名 + §8 决策表。
 
 
 - 授权时记录 HEAD；`fe/packages` 零触碰；**只搬不优化**（D-E-5）——不统一 transform 粒度、不改产物语义。
@@ -40,4 +40,4 @@ Status: **draft（R6 review 中 · 2026-09-15）** — E1→E2；行为 0；禁�
 - 拔 emitEntry（回手写拼接）→ 产物 diff 再现（对照组）；恢复 → 绿。
 - 拔 output.write（回 fs 直写）→ materialize 名不副实重现（grep 命中）→ 恢复。
 
-> **R7-F6**：原 R5-F2 tab diff 项不是消融（是行为 0 验证）——已移至 validation P-E04b。
+> tab diff 验证（非 sourcemap+非 minify 路径）不是消融——已移至 validation P-E04b。
