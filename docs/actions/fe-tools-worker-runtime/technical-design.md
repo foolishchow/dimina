@@ -54,7 +54,7 @@ export function defineEngine(overrides) {
 }
 ```
 
-**compile 钩子契约**（D-WR-2 + D-WR-3 + F23/F25 修正）：`compile({ msg, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿）；收 `msg`（= input 完整，含 storeInfo/sourcemap/pages 供业务初始化）+ `{ progress, config }`（runtime 造）。compile 完全自管循环 + **内部做引擎特化业务初始化**（resetStoreInfo(msg.storeInfo) / setEnableSourcemap(msg.sourcemap) / sourcemapTargetPath / wxsScannedWorkPath 等，各引擎自管）；buildConfig 保持纯函数（返回 config 对象，无副作用）。
+**compile 钩子契约**（D-WR-2 + D-WR-3 + F23/F25 修正）：`compile({ msg, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿）；收 `msg`（= input 完整，含 storeInfo/sourcemap/pages 供业务初始化）+ `{ progress, config }`（runtime 造）。compile 完全自管循环 + **内部做引擎特化业务初始化**（resetStoreInfo(msg.storeInfo) / setEnableSourcemap(msg.sourcemap) / sourcemapTargetPath / wxsScannedWorkPath / **activeCompileConfig = config**（view/logic 全局变量，compileML 读，F34）等，各引擎自管）；buildConfig 保持纯函数（返回 config 对象，无副作用）。
 
 三引擎：
 - `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 覆盖：`({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON(), compatibilityWarnings: logger.flush() })`，显式含默认 + 追加）
@@ -76,16 +76,26 @@ const { sink, logger } = abilityContext.getStore() ?? { logger: consoleFallback 
 
 ```js
 // worker-runtime/sinks.js
+import fs from 'node:fs'
+import path from 'node:path'
+import { parentPort } from 'node:worker_threads'
+
 class PostMessageSink {
   #count = 0
   constructor(parentPort) { this.parentPort = parentPort }
   write(entry) { this.parentPort.postMessage({ type: 'output', entry }); this.#count++ }
   get count() { return this.#count }
 }
+// F32：FileSink 照 output.write 直写路径搬家（behavior 0：字节一致）
 class FileSink {
   #count = 0
   constructor(writeDir) { this.writeDir = writeDir }
-  write(entry) { /* mkdir + writeFileSync，行为同 output.write 直写路径 */ this.#count++ }
+  write(entry) {
+    if (!fs.existsSync(this.writeDir)) fs.mkdirSync(this.writeDir, { recursive: true })
+    for (const file of entry.files) fs.writeFileSync(path.join(this.writeDir, path.basename(file.path)), file.code)
+    if (entry.sourcemaps) for (const sm of entry.sourcemaps) fs.writeFileSync(path.join(this.writeDir, path.basename(sm.path)), sm.map)
+    this.#count++
+  }
   get count() { return this.#count }
 }
 
@@ -107,13 +117,27 @@ class ConsoleLogger {
 
 ```js
 // worker-runtime/executor.js
+// F33：消息分流照 stage-channel 现状搬军（D-BM-7 协议知识单点）
 export function executeTask({ engine, input, onOutput, onProgress }) {
-  // 现状：new Worker + terminate
   const totalTasks = Object.keys(input.pages.mainPages).length
+  let receivedOutputCount = 0
   return new Promise((resolve, reject) => {
-    // worker 创建 + 消息分发 + 对账 + 超时 + terminate
-    // onOutput(message.entry) / onProgress(message.completedTasks, totalTasks) / resolve(result)
+    const worker = new Worker(thinEntryPath, { ...workerPool.getWorkerOptions(), execArgv: ['--experimental-strip-types'] /* D-TD-20 if /src/ */ })
+    worker.postMessage(input)
+    worker.on('message', async (message) => {
+      if (message.type === 'output' && typeof onOutput === 'function') { receivedOutputCount++; onOutput(message.entry); return }
+      for (const warning of message.compatibilityWarnings || []) ctx.compatibilityWarnings.add(warning)
+      if (message.completedTasks !== undefined) onProgress(message.completedTasks, totalTasks)
+      if (message.success) {
+        if (typeof onOutput === 'function' && message.outputCount !== receivedOutputCount) { reject(new Error(`output count mismatch: expected ${message.outputCount}, received ${receivedOutputCount}`)); return }
+        ctx.dependencyGraph.merge(message.dependencyGraph)
+        clearTimeout(timeoutTimer); await terminateWorker(); resolve()
+      } else if (message.error) { reject(Object.assign(new Error(message.error.message), message.error)) }
+    })
+    worker.on('error', reject); worker.on('exit', (code) => { if (code !== 0 && !isResolved) reject(...) })
+    // D-P4 超时兜底
   })
+}
 }
 // 未来 pool/queue：只换内部 → return workerPool.submit({ engine, input, onOutput, onProgress })
 ```
@@ -192,6 +216,8 @@ runWorker(viewEngine)
 
 ```js
 // pipeline/emit.js
+import { abilityContext } from '../worker-runtime/context.js'  // F31：收敛点 getStore
+
 export async function emitEntry(params) {        // async Promise<void>
   const { entry } = await strategy.apply(params)
   const { sink } = abilityContext.getStore()       // 收敛点 getStore
@@ -204,6 +230,8 @@ export async function emitEntry(params) {        // async Promise<void>
 
 ```js
 // core/compatibility.js
+import { abilityContext } from '../worker-runtime/context.js'  // F31：收敛点 getStore
+
 const warnedItems = new Set()                      // 模块级（业务去重，行为 0）
 function warnOnce(type, name, location, message) {
   const key = `${type}:${name}:${location}`
