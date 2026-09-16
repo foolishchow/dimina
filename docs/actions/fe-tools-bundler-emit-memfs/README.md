@@ -4,7 +4,7 @@
 - Status: `draft`
 - Updated: 2026-09-16
 - Status authority: [Action Status](../STATUS.md)
-- 前置依赖：[`fe-tools-bundler-output-pure`](../fe-tools-bundler-output-pure/README.md)（阶段 1 worker 无 fs；close 后 materialize 成为唯一写盘点，memfs 才有单一边界）
+- 前置依赖：[`fe-tools-worker-runtime`](../_archive/complete/fe-tools-worker-runtime/README.md)（worker-runtime 后 emitEntry sink.write→PostMessageSink→主线程 materialize 写盘，materialize 成唯一写盘点；原 output-pure 已 superseded 被 worker-runtime 包含）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 

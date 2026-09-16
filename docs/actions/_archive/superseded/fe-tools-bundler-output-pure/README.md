@@ -1,10 +1,10 @@
 # FE Tools Bundler Output Pure
 
 - Action: `fe-tools-bundler-output-pure`
-- Status: `draft`
+- Status: `superseded`
 - Updated: 2026-09-16
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-bundler-emit-layer`](../_archive/complete/fe-tools-bundler-emit-layer/README.md)（刀 1 emit 抽取已归档；output.write 双路径，collectOutput=false 死路径）；`fe-tools-build-model`（materialize 主线程刷盘）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-bundler-emit-layer`](../../complete/fe-tools-bundler-emit-layer/README.md)（刀 1 emit 抽取已归档；output.write 双路径，collectOutput=false 死路径）；`fe-tools-build-model`（materialize 主线程刷盘）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
