@@ -37,6 +37,7 @@ import {
 } from './wxml/renderer/vue/tools.js'
 import { bindVueToolsLive } from './wxml/renderer/vue/live.js'
 import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.js'
+import { emitEntry } from '../pipeline/emit.js'
 
 // TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）
 if (!getWxmlRenderer(VUE_RENDERER_ID)) {
@@ -328,94 +329,25 @@ async function compileML(pages, root, progress) {
 			fs.mkdirSync(outputDir, { recursive: true })
 		}
 
-		if (enableSourcemap) {
-			const compileRes = [...scriptRes.entries()].map(([modulePath, code]) => ({
-				path: modulePath,
+		outputCount += await emitEntry({
+			entryId: page.path,
+			kind: 'view',
+			modules: [...scriptRes.entries()].map(([modulePath, code]) => ({
+				moduleId: modulePath,
 				code,
-				map: sourceMapRes.get(modulePath),
-			}))
-			const sourcemapFileName = `${filename}.js.map`
-			const { bundleCode, sourcemap } = mergeSourcemap(compileRes, `${filename}.js`)
-			if (collectOutput) {
-				// build-model M1：产物回传主线程（materialize 统一写盘）
-				parentPort.postMessage({
-					type: 'output',
-					entry: {
-						entryId: page.path,
-						kind: 'view',
-						files: [{ path: `${relPrefix}/${filename}.js`, code: `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n` }],
-					sourcemaps: [{ path: `${relPrefix}/${sourcemapFileName}`, map: sourcemap }],
-				},
-			})
-				outputCount++
-			}
-			else {
-				fs.writeFileSync(`${outputDir}/${filename}.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
-				fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
-			}
-		}
-		else {
-			const moduleRanges = []
-			let bundleSource = ''
-			let nextLine = 1
-			for (const [key, value] of scriptRes.entries()) {
-				const amdFormat = `modDefine('${key}', function(require, module, exports) {
-			${value}
-			});\n`
-				const lineCount = amdFormat.split('\n').length
-				moduleRanges.push({ key, startLine: nextLine, endLine: nextLine + lineCount - 2 })
-				bundleSource += amdFormat
-				nextLine += lineCount - 1
-			}
-
-			let mergeRender = ''
-			try {
-				if (effectiveJsMinify(activeCompileConfig)) {
-					const { code: minifiedCode } = await transform(bundleSource, {
-						minify: true,
-						target: [activeCompileConfig.esTarget.view],
-						platform: 'browser',
-					})
-					mergeRender = minifiedCode
-				}
-				else {
-					const { code } = await transform(bundleSource, {
-						minify: false,
-						target: [activeCompileConfig.esTarget.view],
-						platform: 'browser',
-					})
-					mergeRender = code
-				}
-			}
-			catch (error) {
-				const location = error.errors?.[0]?.location
-				const sourceLines = bundleSource.split('\n')
-				const sourceHint = location?.line
-					? sourceLines
-						.slice(Math.max(0, location.line - 3), location.line + 2)
-						.map((line, index) => `${Math.max(1, location.line - 2) + index}: ${line.trim()}`)
-						.join('\n')
-					: ''
-				const failedModule = moduleRanges.find(range =>
-					location?.line >= range.startLine && location.line <= range.endLine)
-				error.message = `视图模块 ${failedModule?.key || 'bundle'} 转换失败: ${error.message}${sourceHint ? `\n${sourceHint}` : ''}`
-				throw error
-			}
-			if (collectOutput) {
-				parentPort.postMessage({
-					type: 'output',
-					entry: {
-						entryId: page.path,
-						kind: 'view',
-						files: [{ path: `${relPrefix}/${filename}.js`, code: mergeRender }],
-					},
-				})
-				outputCount++
-			}
-			else {
-				fs.writeFileSync(`${outputDir}/${filename}.js`, mergeRender)
-			}
-		}
+				map: sourceMapRes.get(modulePath) || null,
+			})),
+			transform: {
+				strategy: 'bundle',
+				minify: activeCompileConfig.minify,
+				target: activeCompileConfig.esTarget.view,
+				platform: 'browser',
+			},
+			sourcemap: enableSourcemap,
+			sourcemapTargetPath: null,
+			filename,
+			relPrefix,
+		}, { collectOutput, writeDir: outputDir })
 
 		// 单个页面编译完成后清理缓存，释放内存
 		scriptRes.clear()

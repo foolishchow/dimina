@@ -10,6 +10,7 @@ import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.js'
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.js'
+import { write } from '../pipeline/output.js'
 
 const compileRes = new Map()
 /** 产物是否回传（build-model M1） */
@@ -115,36 +116,29 @@ async function compileSS(pages, root, progress, options = {}) {
 			const map = JSON.parse(result.map)
 			map.file = `${filename}.css`
 			code += `\n/*# sourceMappingURL=${mapFileName} */\n`
-			if (collectOutput) {
-				parentPort.postMessage({
-					type: 'output',
-					entry: {
-						entryId: page.path,
-						kind: 'style',
-						files: [{ path: `${relPrefix}/${filename}.css`, code }],
-						sourcemaps: [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }],
-					},
-				})
-				outputCount++
-			}
-			else {
-				fs.writeFileSync(`${outputDir}/${mapFileName}`, JSON.stringify(map))
-				fs.writeFileSync(`${outputDir}/${filename}.css`, code)
-			}
+			write({
+				entry: {
+					entryId: page.path,
+					kind: 'style',
+					files: [{ path: `${relPrefix}/${filename}.css`, code }],
+					sourcemaps: [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }],
+				},
+				collectOutput,
+				writeDir: outputDir,
+			})
+			outputCount++
 		}
-		else if (collectOutput) {
-			parentPort.postMessage({
-				type: 'output',
+		else {
+			write({
 				entry: {
 					entryId: page.path,
 					kind: 'style',
 					files: [{ path: `${relPrefix}/${filename}.css`, code }],
 				},
+				collectOutput,
+				writeDir: outputDir,
 			})
 			outputCount++
-		}
-		else {
-			fs.writeFileSync(`${outputDir}/${filename}.css`, code)
 		}
 
 		progress.completedTasks++

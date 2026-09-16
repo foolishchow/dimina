@@ -10,6 +10,7 @@ import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.js'
 import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
+import { emitEntry } from '../pipeline/emit.js'
 
 // 用于缓存已处理的模块
 const processedModules = new Set()
@@ -105,100 +106,21 @@ async function writeCompileRes(compileRes, root) {
 	// 相对发布根的物化路径前缀（D-P2）
 	const relPrefix = root ? `${root}` : 'main'
 
-	if (!fs.existsSync(outputDir)) {
-		fs.mkdirSync(outputDir, { recursive: true })
-	}
-
-	/*
-	 * sourcemap 模式跳过最终 minify：
-	 * 当前 mergeSourcemap 只做单层行偏移拼接，
-	 * 若再对 bundle 整体 minify 则需用 remapping 串联两份 map，暂未实现。
-	 * CF-1：effectiveJsMinify = minify && !sourcemap
-	 */
-	if (enableSourcemap) {
-		const finalOutputDir = root
-			? resolve(sourcemapTargetPath, root)
-			: resolve(sourcemapTargetPath, 'main')
-		const rebasedCompileRes = compileRes.map((module) => {
-			if (!module.map) return module
-			const moduleMap = JSON.parse(module.map)
-			moduleMap.sources = moduleMap.sources.map((source) => {
-				const sourcePath = source.replace(/^[/\\]+/, '')
-				return relative(finalOutputDir, resolve(getWorkPath(), sourcePath)).split(sep).join('/')
-			})
-			return { ...module, map: JSON.stringify(moduleMap) }
-		})
-		const { bundleCode, sourcemap } = mergeSourcemap(rebasedCompileRes)
-		const sourcemapFileName = 'logic.js.map'
-		if (collectOutput) {
-			parentPort.postMessage({
-				type: 'output',
-				entry: {
-					entryId: `logic${root ? ':' + root : ''}`,
-					kind: 'logic',
-					files: [{ path: `${relPrefix}/logic.js`, code: `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n` }],
-					sourcemaps: [{ path: `${relPrefix}/${sourcemapFileName}`, map: sourcemap }],
-				},
-			})
-			outputCount++
-		}
-		else {
-			fs.writeFileSync(`${outputDir}/logic.js`, `${bundleCode}//# sourceMappingURL=${sourcemapFileName}\n`)
-			fs.writeFileSync(`${outputDir}/${sourcemapFileName}`, sourcemap)
-		}
-	}
-	else if (effectiveJsMinify(activeCompileConfig)) {
-		let mergeCode = ''
-		for (const module of compileRes) {
-			const amdFormat = `modDefine('${module.path}', function(require, module, exports) {
-${module.code}
-});`
-			//TODO: 替换成 https://oxc.rs/docs/guide/usage/minifier.html
-			const { code: minifiedCode } = await transform(amdFormat, {
-				minify: true,
-				target: [activeCompileConfig.esTarget.logic],
-				platform: 'neutral',
-			})
-			mergeCode += minifiedCode
-		}
-		if (collectOutput) {
-			parentPort.postMessage({
-				type: 'output',
-				entry: {
-					entryId: `logic${root ? ':' + root : ''}`,
-					kind: 'logic',
-					files: [{ path: `${relPrefix}/logic.js`, code: mergeCode }],
-				},
-			})
-			outputCount++
-		}
-		else {
-			fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
-		}
-	}
-	else {
-		let mergeCode = ''
-		for (const module of compileRes) {
-			mergeCode += `modDefine('${module.path}', function(require, module, exports) {
-${module.code}
-});
-`
-		}
-		if (collectOutput) {
-			parentPort.postMessage({
-				type: 'output',
-				entry: {
-					entryId: `logic${root ? ':' + root : ''}`,
-					kind: 'logic',
-					files: [{ path: `${relPrefix}/logic.js`, code: mergeCode }],
-				},
-			})
-			outputCount++
-		}
-		else {
-			fs.writeFileSync(`${outputDir}/logic.js`, mergeCode)
-		}
-	}
+	outputCount += await emitEntry({
+		entryId: `logic${root ? ':' + root : ''}`,
+		kind: 'logic',
+		modules: compileRes.map(m => ({ moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode })),
+		transform: {
+			strategy: 'perModule',
+			minify: activeCompileConfig.minify,
+			target: activeCompileConfig.esTarget.logic,
+			platform: 'neutral',
+		},
+		sourcemap: enableSourcemap,
+		sourcemapTargetPath,
+		filename: 'logic',
+		relPrefix,
+	}, { collectOutput, writeDir: outputDir })
 }
 
 /**

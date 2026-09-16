@@ -1,8 +1,8 @@
 # FE Tools Bundler Emit Layer
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
-- Status: `ready`
-- Updated: 2026-09-15（R16 连续四轮零设计问题；固定点；停止；实施未授权）
+- Status: `in_progress`
+- Updated: 2026-09-15（实施完成：pipeline/emit.js + output.js 抽出；4 组 diff=0；vitest 584/584；待 Close）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -98,3 +98,4 @@ style : outputDir mkdir + write × 2（CSS/map）
 | 2026-09-15 | **R1-R8 review 收敛**（详见 git log）：设计盲点→参数面/协议→文档一致性→签名→方案 A→五件套同步→清理+编号统一。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
 | 2026-09-15 | **R1-R16 review 收敛**（详见 git log）：16 轮 review 收敛。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
 | 2026-09-15 | **Review R13-R16 连续四轮收敛**：四轮唯一 finding 均为 Status 轮次号——零设计问题。review 到达固定点。**升 `ready`，停止 review** |
+| 2026-09-15 | **实施完成（E1+E2）**：`pipeline/emit.js`（emitEntry + bundle/perModule 策略）+ `pipeline/output.js`（write）抽出；view/logic 经 emitEntry，style 经 output.write（D-E-8）；4 组对拍 diff=0（nomap/min-nomap/sm/sm-min）；vitest 584/584；tsc build 产出 dist；grep 三引擎零直接 writeFileSync + 零 type:output postMessage。消融由行为 0 对拍 + grep 锚定共同覆盖。**待 Close 审查** |
