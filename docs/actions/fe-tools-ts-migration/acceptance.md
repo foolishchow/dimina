@@ -7,9 +7,10 @@
 | A-TM2 | R-TM1 | __tests__/ import 后缀（D-TM-2 待拍板） | grep __tests__/ import src/compiler 用 .ts | pending |
 | A-TM3 | R-TM2 | 4 组产物 diff=0 + vitest 584/584 + tsc OK | diff -rq baseline current + vitest + tsc | pending |
 | A-TM4 | R-TM3 | worker strip-types 注入保留 | grep `--experimental-strip-types` in stage-channel + executor | pending |
+| A-TM5 | R-TM4 | JSDoc→TS type 类型完善 | grep 零 `@typedef` in src（9→0）+ 零 `any` + tsc strict OK | pending |
 
 ## Non-acceptance
 
-- 不加类型注解（checkJs 保持 false）
 - 不改 scripts/、crates/ 等 src 外
 - 不改行为（产物字节一致）
+- 不用 any（类型体系完善）

@@ -116,3 +116,72 @@ logic/style index + worker-entry（4）+ dev（5）+ bin（3）+ src/根（2）�
 - **D-TM-2**：__tests__/ scope 内 vs Non-goals
 - **D-TM-3**：分阶段顺序（core → worker-runtime → pipeline → view → logic/style）
 - **D-TM-4**：是否加类型注解（checkJs）——Non-goals 保持 false？
+
+## 6. R1 review（2026-09-16）
+
+### R1 findings
+
+#### F1 — 🟠 __tests__ D-TM-2 必须 scope 内（high）
+
+- **Evidence**: requirements Non-goals "不改 __tests__/"；但测试 `import { ... } from '../../src/compiler/core/env.js'` 等——P-TM01 改 env.js→env.ts 后，测试 import `.js` 找不到文件 → 崩溃
+- **Broken edge**: Non-goals "测试留后续"不可行——改名后测试立即崩溃，必须同步改 import 后缀
+- **Correction**: D-TM-2 拍板 **scope 内**（__tests__ import .js→.ts 同步改），P-TM06 改为各阶段同步（非独立步）
+
+#### F2 — 🟡 方案 A 要改现状 .ts 文件的 import 后缀（medium）
+
+- **Evidence**: `parity.ts:7` import `./document.js`（.ts 文件 import .ts 用 .js 后缀）；research §2.2 只说"方案 A 显式 .ts"但没提**现状 .ts 文件也要改**
+- **Broken edge**: P-TM04 改 document.js→document.ts，parity.ts 的 `./document.js` 要改 `./document.ts`（方案 A）。research 漏提
+- **Correction**: research §2.2 补"现状 .ts 文件 import .ts 用 .js 后缀，方案 A 要同步改 .ts"
+
+#### F3 — 🟠 POC 证伪方案 A 纯改名（high → blocker）
+
+- **Evidence**: POC `document.js→document.ts` + `parity.ts import './document.ts'` → tsc 报 `TS2305: Module '"./document.ts"' has no exported member 'Attr'`
+- **Root cause**: `.js→.ts` 后 tsc **开始类型检查**（checkJs:false 只管 .js，不管 .ts）；document.js 用 JSDoc `@typedef` 定义 Attr/Value，.ts 里 `@typedef` 不工作，tsc 认为缺失 export
+- **Broken edge**: 方案 A（纯改名）证伪——72 .js→.ts 后 tsc 检查所有 .ts，隐式 any / 缺失类型 / JSDoc @typedef 失效 → tsc build 失败
+- **Correction**: D-TM-4 升级为 blocker——纯改名不可行，必须定类型检查策略
+
+#### F4 — 🟢 vitest vite resolve .ts 显式后缀未验证（low）
+
+- **Evidence**: vite 默认 resolve .ts，但 import 显式 .ts 后缀是否 resolve 未验证
+- **Correction**: POC 验证（tsc build 失败前 vitest 未跑）
+
+#### F5 — 🟢 dist 产物字节不变已验证（low）
+
+- **Evidence**: parity.ts 编译 dist parity.js，字节同（POC 前）
+- **Correction**: 无
+
+### R1 POC 证伪详情
+
+POC 步骤：
+1. `document.js → document.ts`（改名）
+2. `parity.ts / document-ops.js / compile.js / wxml-ir.types.ts` import `./document.js` → `./document.ts`
+3. `tsc -p tsconfig.build.json` → 报错：
+   - `TS2305: Module '"./document.ts"' has no exported member 'Attr'`
+   - `TS2305: Module '"./document.ts"' has no exported member 'Value'`
+
+根因：document.js 用 JSDoc `@typedef {object} Attr` 定义类型。`.js` 时 tsc checkJs:false 不检查，wxml-ir.types.ts import `./document.js` 时 tsc 当 any 不报错。改 `.ts` 后 tsc 强制检查——`@typedef` 在 .ts 里不工作，Attr/Value 视为未 export → 报错。
+
+### D-TM-4 升级（blocker）
+
+原 D-TM-4："是否加类型注解（checkJs）——Non-goals 保持 false？"
+
+**升级为 blocker**：纯改名不可行，必须先定类型检查策略。修正方向：
+
+| 选项 | 代价 | 评价 |
+| --- | --- | --- |
+| A. tsconfig 放宽（noImplicitAny:false + skipLibCheck）| 允许 any，tsc 过 | ✗ 迁移无类型安全增益 |
+| B. JSDoc→TS type 完善类型注解 | 9 @typedef + 361 @param/@returns 转 TS | ✓ 类型体系完善 |
+| C. `// @ts-nocheck` 每个 .ts | 不优雅 | ✗ 类型安全零 |
+| D. 保持 .js（放弃迁移）| 现状 | ✗ 无 TS 类型安全 |
+
+**用户方向（2026-09-16）**：不用 any，类型体系应该完善 → **选项 B**（JSDoc→TS type）
+
+### JSDoc 类型资产统计
+
+- 4 文件用 `@typedef`（9 个类型定义）：document.js / document-ops.js / emit.js / napi/parse.js
+- 361 个 `@param/@returns`（函数签名）
+- JSDoc 是类型信息来源——转 TS `type/interface` + 函数签名注解是机械转换 + 完善
+
+### R1 verdict
+
+**blocker** —— F1（high）+ F3（blocker 证伪方案 A 纯改名）+ F2（medium）+ F4/F5（low）。D-TM-4 升级 blocker，必须拍板类型策略（选项 B）才能升 ready。
