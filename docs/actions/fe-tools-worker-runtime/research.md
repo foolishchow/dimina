@@ -216,28 +216,68 @@ engine = {
 }
 ```
 
-## 7. 关键设计点（待拍）
+## 7. 设计决策（已拍）
 
-1. **engine 注入契约形态**：strategy 对象（多方法）？还是几个独立回调？——倾向 strategy 对象（和 D-E-2 对齐）。
+讨论轮次：2026-09-16。4 个核心决策拍定。
 
-2. **worker 入口归属**：runtime 提供 worker 入口模板（import engine → run）？还是 engine 文件自己 `export default` 被 runtime 加载？
+### 贯穿洞察
 
-3. **logger 渗透方式**（compatibility 难点）：
-   - A. 函数参数透传（纯，侵入大）：compileML/compileJS/checkTemplateCompatibility/warnOnce 全签名加 logger
-   - B. 模块级 setLogger（侵入小，但保留模块级状态）：compatibility 提供 setLogger，runtime 注入
-   - C. 工厂（中等）：compatibility 改成工厂函数，runtime 创建带 logger 的实例注入编译
+sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 处），logger 在 warnOnce（1 处）。不需要透传到编译最深处——只要把能力注入这 3 个收敛点。compileML / compileJS / checkTemplateCompatibility 签名不动。这把"渗透难题"降级成"收敛点怎么拿能力"。
 
-4. **outputCount 对账归属**：留 runtime（调度状态）？还是下放 engine？——倾向留 runtime（它是调度对账状态，不是业务）。
+### D-WR-1：engine 契约 = strategy 对象 + 默认工厂
 
-5. **logic 独立分包 + 延迟 writeCompileRes 特化**：塞进 compile 钩子自管？还是给 preFinish 钩子？
+- **决策**：engine 是 strategy 对象（多方法），通过 `defineEngine(overrides)` 提供默认值，引擎只写差异。
+- **理由**：和 emit-layer D-E-2（transform 策略函数注入）对齐；默认值集中（normalizeError/successPayload/buildConfig 默认实现）；引擎只写差异（减重复）；不用 class（轻量，和 D-E-2 函数风格一致）。
+- **形态**：
+  ```js
+  function defineEngine(overrides) {
+    return {
+      buildConfig: msg => ({ sourcemap: !!msg.sourcemap, minify: msg.compileConfig?.minify !== false }),
+      cleanup: () => {},
+      successPayload: () => ({}),
+      normalizeError: e => ({ message: e.message, stack: e.stack, name: e.name }),
+      ...overrides,
+    }
+  }
+  ```
+- **淘汰**：独立回调（散开不内聚）；class 基类（JS 项目偏重，和 D-E-2 不一致）。
 
-6. **compatibility 模块级状态**（pendingWarnings/warnedItems）：收敛后归 logger 实例？还是保留模块级？
+### D-WR-2：compile 钩子边界 = 完全自管循环
 
-7. **warnedItems 跨线程去重**：现在靠主线程 Set 兜底。收敛后要不要改（如 logger 实例自带去重）？
+- **决策**：compile 钩子收 `{ mainPages, subPages, progress, config, sink, logger }`，自己决定怎么循环。runtime 只管调度骨架（消息/状态/完成/错误），不假设编译循环结构。
+- **理由**：logic 的 independent 分包 + 延迟 writeCompileRes 打破"mainPages + subPages 平铺"骨架——与其给 preFinish 额外钩子，不如让 compile 完全自管，logic 特化在 compile 内闭环。
+- **影响**：runtime 不提供 forEachPage 帮手；三引擎的 compile 实现各自管循环。
 
-8. **测试直连场景的 sink/logger 注入**：测试在主线程直接调 compileX，不经 worker——怎么拿 FileSink + ConsoleLogger？（这是 output-pure 方案 C 证伪的根因，必须解决）
+### D-WR-3：能力渗透 = AsyncLocalStorage
 
-## 8. 与现有 Action 的关系
+- **决策**：用 Node 原生 `AsyncLocalStorage`（abilityContext）注入 { sink, logger }。收敛点（emitEntry / output.write / warnOnce）通过 `abilityContext.getStore()` 拿能力。
+- **理由**：
+  - 纯——无模块级可变状态（store 是 run-scoped，run 结束自动 GC）
+  - 侵入小——只改 3 个收敛点 + runtime 入口
+  - 隔离完美——run-scoped，worker 各自 run、测试直连各自 run，天然隔离（解决方案 B 的主线程测试串致命缺陷）
+  - 统一——一个 context 装 { sink, logger }，sink/logger 同构处理
+- **淘汰**：
+  - A 参数透传：最纯但侵入大（compileML/compileJS/emitEntry/checkTemplateCompatibility/warnOnce + 所有调用点签名）
+  - B 模块级 setLogger：保留模块级状态，主线程测试串（致命）
+  - C 工厂：纯，但 compatibility 从无状态工具变有状态实例，侵入面和 A 相当
+- **代价**：依赖不显式（"魔法"，读 emitEntry 看不到 sink 从哪来）；微小性能开销（跨 async 边界，编译器可接受）。
+
+### D-WR-4：能力兜底 + 测试直连注入
+
+- **决策**：warnOnce 在无 context 时走 `console.warn` 兜底；测试直连场景用 `abilityContext.run({ sink: FileSink, logger: ConsoleLogger }, () => compileX(...))` 注入。
+- **理由**：
+  - 兜底——compatibility 可能被外部直接调用（无 worker-runtime context），console.warn 保证不崩
+  - 测试直连——AsyncLocalStorage 的 run-scoped 天然解决测试直连注入（原 output-pure 方案 C 证伪的根因：parentPort null）。测试用 FileSink + ConsoleLogger 包 run，不经 worker 也能写盘 + warn
+- **影响**：output-pure 方案 C 证伪的"测试直连 parentPort null"问题由 D-WR-3/D-WR-4 解决。
+
+## 8. 剩余待拍点
+
+1. **worker 入口归属**（原 2）：runtime 提供 worker 入口模板（import engine → run）？还是 engine 文件自己 `export default` 被 runtime 加载？
+2. **outputCount 对账归属**（原 4）：倾向留 runtime（调度对账状态，不是业务）——待确认。
+3. **compatibility 模块级状态**（原 6，D-WR-3 派生）：pendingWarnings/warnedItems 归 logger 实例？倾向 logger 实例自带（BufferingLogger 内部维护去重 Set + 缓冲数组）——待确认。
+4. **warnedItems 跨线程去重**（原 7，D-WR-3 派生）：现在靠主线程 Set 兜底。若 logger 实例自带去重，跨 worker 仍需主线程兜底——保留现状还是改？待确认。
+
+## 9. 与现有 Action 的关系
 
 ### 8.1 output-pure 的重新定位
 
@@ -255,7 +295,7 @@ emit-layer 已确立 D-E-2（transform 策略函数注入）。worker-runtime �
 
 memfs Action 改主线程 materialize + dev server。它**不依赖** output-pure（output-pure 证伪后，worker 侧仍走 collectOutput=true → postMessage，主线程 materialize 写盘——这条链路 emit-layer 已完成）。worker-runtime 收敛是**正交**改进（把调度知识从业务层抽出），memfs 可独立推进。
 
-## 9. 收敛后预期形态
+## 10. 收敛后预期形态
 
 ### 9.1 业务文件（view/index.js 示例）
 
