@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-bundler-emit-layer
 
-Status: **draft（R14 review 中 · 2026-09-15）** — 实施后回填 Actual。
+Status: **draft（R15 review 中 · 2026-09-15）** — 实施后回填 Actual。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
