@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
 - Status: `ready`
-- Updated: 2026-09-15（R7 F1-F6 收敛；F4 清理待实施前做；D-E-1..8 + R1-R7 全收敛；实施未授权）
+- Updated: 2026-09-15（design 清理 §7-§12 → 主线+签名+决策表；R1-R7 七轮 review 收敛；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -95,12 +95,4 @@ style : outputDir mkdir + write × 2（CSS/map）
 | --- | --- |
 | 2026-09-15 | 初稿：来自三刀方案 C 的刀 1（emit 抽取）；三病症（样板重复 / materialize 名不副实 / 无可增量结构）；D-E-1..5；3 待定 |
 | 2026-09-15 | **待定拍板 → D-E-6..8**：contract 不含 range/sourceFile（错误定位留 bundle 策略）；emitOutput 独立 `pipeline/output.js`（emit 无副作用）；style 只收 output 不进 emitEntry（无模块体系，防伪抽象）。**待定清空，升 `ready`** |
-| 2026-09-15 | **Review R1（F1–F6）收敛**：F1 contract `map` 标 string 类型；F2 声明 map 自包含 source（logic sourceFile 进 map.sources，contract 不需额外字段）；F3 perModule.apply 含 sourcemap rebase 步骤；F4 🔴 **交叉矩阵**（sourcemap×minify 四象限+CF-1 约束，design §4.1）；F5 sourceMappingURL 拼接位置声明（view/logic 在 emitEntry / style 在 compileSS）；F6 entry 形状与 BuildModel.add 一致声明 |
-| 2026-09-15 | **R1 落盘缺陷**：`38e6617e` heredoc 语法错误导致 F2-F5 实际丢失（commit message 谎称收敛）→ 回 `draft` 做 R2 |
-| 2026-09-15 | **Review R2（F0-F5）收敛**：F0 R1 执行缺陷（已补回 F2-F5）；F1 🔴 emitEntry 参数面不完整（worker 全局变量 `collectOutput/outputCount/activeCompileConfig/sourcemapTargetPath` 归属——建议 EmitContext 聚合注入）；F2 🟠 outputCount 在 worker 完成消息里（协议层耦合——output.write 非纯函数，声明副作用）；F3 🟠 outputDir 计算不统一（写盘 getTargetPath vs rebase sourcemapTargetPath——两个路径参数）；F4 🟡 style sourcemap 来源（options vs 全局）；F5 🟡 style minify 不经 emit（矩阵注脚） |
-| 2026-09-15 | **R2 逐项拍板（C1-C3）**：C1 纯参数 + outputEnv 小聚合（不引入 EmitContext——emitEntry 不绑 worker 上下文）；C2 outputCount 累加在 emitEntry 层（output.write 不管 count，更纯）；C3 rebase 留 emitEntry 策略（output.write 只含 writeDir）。签名修正：emitEntry(本质参数, outputEnv) / write({path,content,map,collectOutput,writeDir})。**升 `ready`** |
-| 2026-09-15 | **Review R3（F1-F7）文档一致性**：F1 🔴 plan 残留 EmitContext/rebaseDir（已删→R2-C1-C3）；F2 🔴 req R-E1 emitEntry 签名过时（已修→§8）；F3 🟠 output.write 缺 writeDir（已修）；F4 🟠 6 处签名 5 种写法（已统一 §8）；F5 view sourcemap mergeSourcemap 吃临时拼装 compileRes（已补 §4.1）；F6 map 类型 string 一致声明（已补 §4.1）；F7 view enableSourcemap 是 state.js 模块导出非全局（已修 §7）。**升 `ready`** |
-| 2026-09-15 | **Review R4（F1-F3）签名与协议收敛**：F1 🔴 §7 R2 findings 三处"建议"未标注被 C1-C3 否决（已标注）；F2 🔴 output.write 签名 `({path,content,map?})` 单文件 vs 实际 entry 多文件 `({entryId,kind,files[],sourcemaps?[]})`（已修正为 `write({entry,...})`）；F3 🟠 emitEntry 签名缺 outputCount 返回机制（已补返回 `{entry, count}`）。requirements/plan 同步。**升 `ready`** |
-| 2026-09-15 | **Review R5（F1-F6）调用链 + 格式 + 语义**：F1 🟠 **拍板方案 A**——emitEntry 内部调 output.write，返回 number（非 `{entry,count}`，entry 不外泄；A→B 演化是加法）；F2 🟠 view modDefine 两路径 tab 缩进不一致（行为 0 风险——对拍须覆盖非 sourcemap+非 minify）；F3 🟡 filename 语义（basename vs fullpath）未统一；F4 🟡 output.write 直写路径组合逻辑（writeDir + entry.files[].path）不明确；F5 🟡 §9 typo "3-F3"；F6 🟡 四轮 findings 堆积需清理。**升 `ready`** |
-| 2026-09-15 | **Review R6（F1-F7）五件套同步**：F1 🟠 R5-F2/F3/F4 标"待定"未回流五件套（已补进 validation P-E04 + requirements R-E1 + acceptance A-E4）；F2 🟠 plan Status 仍写 ready（已改 draft）；F3 🟡 plan step3/step4 "→ output.write" 与方案 A 矛盾（已改"内部调"+"outputCount += result"）；F4 🟡 plan 消融缺 R5-F2 tab diff（已补）；F5 🟡 §9 typo 已修；F6 🟡 findings 堆积（记录待清理）；F7 🟡 design Status "冻结" 已改 draft。**升 `ready`** |
-| 2026-09-15 | **Review R7（F1-F6）修正遗漏 + 结构**：F1 🟠 plan step4 漏改"→ output.write"（R6-F3 修正不完整，已改）；F2 🟠 req/accept/validation Status 仍写"冻结"（已同步 draft）；F3 🟡 design §2 style entry 缩写与 §8 不一致（已改完整形态）；F4 🟡 §7-§11 findings 占 63%（**升 ready 前必须清理**）；F5 🟡 P-E04 过载→拆 P-E04+P-E04b；F6 🟡 plan 消融第 3 项非消融（已移 P-E04b）。**升 `ready`（F4 清理待实施前做）** |
+| 2026-09-15 | **R1-R7 七轮 review 收敛**（详见 git log 各轮 commit message）：设计盲点→参数面/协议→文档一致性→签名→调用链方案 A→五件套同步→修正遗漏+结构清理。最终签名见 design §7；决策表见 §8。 |
