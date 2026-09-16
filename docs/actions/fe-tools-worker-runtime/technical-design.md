@@ -44,7 +44,9 @@ src/compiler/
 import { getDependencyGraph } from '../../core/env.js'  // F26：successPayload 默认读 dependencyGraph（业务状态）
 
 export function defineEngine(overrides) {
+  if (!overrides.name) throw new Error('defineEngine: name 必填')  // F38：engine 标识（executor 选 thin entry）
   return {
+    name: overrides.name,  // F38：'view' | 'logic' | 'style'
     buildConfig: msg => ({ sourcemap: !!msg.sourcemap, minify: msg.compileConfig?.minify !== false }),
     cleanup: () => {},
     successPayload: ({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON() }),  // F24/F27：收 ctx，默认含 dependencyGraph（不用 logger）
@@ -57,9 +59,9 @@ export function defineEngine(overrides) {
 **compile 钩子契约**（D-WR-2 + D-WR-3 + F23/F25 修正）：`compile({ msg, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿）；收 `msg`（= input 完整，含 storeInfo/sourcemap/pages 供业务初始化）+ `{ progress, config }`（runtime 造）。compile 完全自管循环 + **内部做引擎特化业务初始化**（resetStoreInfo(msg.storeInfo) / setEnableSourcemap(msg.sourcemap) / sourcemapTargetPath / wxsScannedWorkPath / **activeCompileConfig = config**（view/logic 全局变量，compileML 读，F34）等，各引擎自管）；buildConfig 保持纯函数（返回 config 对象，无副作用）。
 
 三引擎：
-- `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 覆盖：`({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON(), compatibilityWarnings: logger.flush() })`，显式含默认 + 追加）
-- `logicEngine = defineEngine({ compile, cleanup, successPayload, buildConfig })`（buildConfig 多 sourcemapTargetPath；successPayload 同 view）
-- `styleEngine = defineEngine({ compile, cleanup, normalizeError })`（normalizeError 追加 file/line/column/stage；successPayload 用默认，无 compatibilityWarnings）
+- `viewEngine = defineEngine({ name: 'view', compile, cleanup, successPayload })`（F38：name 必填；successPayload 覆盖：`({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON(), compatibilityWarnings: logger.flush() })`，显式含默认 + 追加）
+- `logicEngine = defineEngine({ name: 'logic', compile, cleanup, successPayload, buildConfig })`（buildConfig 多 sourcemapTargetPath；successPayload 同 view）
+- `styleEngine = defineEngine({ name: 'style', compile, cleanup, normalizeError })`（normalizeError 追加 file/line/column/stage；successPayload 用默认，无 compatibilityWarnings）
 
 ### 能力注入（D-WR-3）
 
@@ -123,7 +125,6 @@ class ConsoleLogger {
 // F36：executeTask 包在 workerPool.runWorker 里（限流协同）
 import { Worker } from 'node:worker_threads'
 import { workerPool } from '../../watch/worker-pool.js'
-import { formatCompileProgress } from '../../shared/compile-progress.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
