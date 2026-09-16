@@ -142,6 +142,53 @@ write({ path, content, map, collectOutput })  // collectOutput ? postMessage(M1)
 ### R2-F5（🟡）：R1-F4 交叉矩阵的 style minify 象限
 
 R1-F4 矩阵已含 style 两行（sourcemap ✓/✗），minify 列标"—"——因为 style 无 esbuild transform（CSS 编译在 buildCompileCss 内）。**正确**（style 无 minify 象限），但应在矩阵注脚声明"style 的 CSS minify 在 buildCompileCss 内部，不经 emit/output"。
+
+## 8. R2 讨论收敛（2026-09-15 · 逐项拍板）
+
+### R2-C1：纯参数 + outputEnv 小聚合（不引入 EmitContext）
+
+emitEntry 参数分两组：
+- **本质参数**（产物生成逻辑）：`{entryId, kind, modules, transform, filename, sourcemap, relPrefix}`
+- **outputEnv**（写盘/协议，3 字段小聚合，透传给 output.write）：`{collectOutput, writeDir}`
+
+不引入大 EmitContext（13 字段聚合体）——emitEntry 不绑 worker 上下文，未来主线程直接 emit/测试可复用。worker 初始化时组装这两组参数。
+
+### R2-C2：outputCount 累加在 emitEntry 层（output.write 不管 count）
+
+- **output.write 不管 count**——只做 postMessage(M1)/fs.write，不维护计数。
+- **outputCount 在 emitEntry 层累加**——每次 emitEntry 调 output.write 产 1 个 entry 后，调用方/emitEntry 自增 count。
+- worker 完成消息的 `outputCount` = emitEntry 层累加值（协议对账字段，stage-channel 主线程对账 `message.outputCount !== receivedOutputCount`）。
+- output.write 更纯（只 postMessage/fs，无可变状态引用）。
+
+### R2-C3：rebase 留 emitEntry 策略（output.write 只含 writeDir）
+
+- **output.write 参数只含 `writeDir`**（写盘路径，getTargetPath 派生）——只管 mkdir+writeFileSync / postMessage。
+- **sourcemap rebase 留在 emitEntry 的 perModule.apply 内**（R1-F3 已定）——rebase 是产物内容操作（module.map.sources 改写），跟 sourcemap 策略一起，不是写盘职责。
+- `sourcemapTargetPath` 是 emitEntry 的参数（perModule.apply 用），不进 output.write。
+- logic 的 sourcemapTargetPath 是 build-model M2 概念（产物发布位置），emit 借用做 rebase 基准——有意设计，保留。
+
+### 修正后的签名
+
+```js
+// emitEntry 本质参数 + outputEnv
+emitEntry({
+  entryId, kind,
+  modules,                    // iterable<{moduleId, code, map}>
+  transform: { strategy, minify, target, platform },
+  sourcemap,                  // bool
+  sourcemapTargetPath,        // string | null（perModule rebase 基准，仅 logic）
+  filename, relPrefix,
+}, outputEnv)                 // { collectOutput, writeDir }
+
+// output.write（不管 count、不管 rebase）
+write({
+  path, content, map?,        // 产物内容（已含 sourceMappingURL 拼接）
+  collectOutput,              // postMessage(M1) vs fs
+  writeDir,                   // mkdir + writeFileSync
+})
+// 返回值：void（count 由 emitEntry 层累加）
+```
+
 ## Residual
 
 - 本刀不实现刀 2/刀 3（失效查询/ModuleCache）——契约接口已立，后续提供者守约即可。
