@@ -78,7 +78,7 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 | 步骤 | 内容 | 验证点 |
 | --- | --- | --- |
 | P-WR00 | baseline 记录（commit + 4 组产物 digest + vitest 基线）| digest + 584/584 |
-| P-WR01 | worker-runtime 骨架（context.js + runtime.js + executor.js + sink/logger 实现）| tsc build + 模块可 import |
+| P-WR01 | worker-runtime 骨架（6 模块：context.js + runtime.js + executor.js + sinks.js + loggers.js + define-engine.js）| tsc build + 模块可 import |
 | P-WR02 | 三引擎 engine export（只加 defineEngine + export，不动调度，F47）| engine export 可读 + 4 组 diff=0 |
 | P-WR03 | 调度原子切换（thin entry + emitEntry/output + compile 签名 + successPayload + 删 onMessage + getStore，F45+F47）| worker 跑通 + 零调度残留 + 4 组 diff=0 |
 | P-WR04 | （合并入 P-WR03）| — |
