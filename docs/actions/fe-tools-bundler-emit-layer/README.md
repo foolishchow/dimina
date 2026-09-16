@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
 - Status: `ready`
-- Updated: 2026-09-15（R15 连续三轮零设计问题；review 到达固定点；停止；实施未授权）
+- Updated: 2026-09-15（R16 连续四轮零设计问题；固定点；停止；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -96,5 +96,5 @@ style : outputDir mkdir + write × 2（CSS/map）
 | 2026-09-15 | 初稿：来自三刀方案 C 的刀 1（emit 抽取）；三病症（样板重复 / materialize 名不副实 / 无可增量结构）；D-E-1..5；3 待定 |
 | 2026-09-15 | **待定拍板 → D-E-6..8**：contract 不含 range/sourceFile（错误定位留 bundle 策略）；emitOutput 独立 `pipeline/output.js`（emit 无副作用）；style 只收 output 不进 emitEntry（无模块体系，防伪抽象）。**待定清空，升 `ready`** |
 | 2026-09-15 | **R1-R8 review 收敛**（详见 git log）：设计盲点→参数面/协议→文档一致性→签名→方案 A→五件套同步→清理+编号统一。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
-| 2026-09-15 | **R1-R15 review 收敛**（详见 git log）：15 轮 review 收敛。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
-| 2026-09-15 | **Review R13-R15 连续三轮收敛**：三轮唯一 finding 均为 Status 轮次号（纯机械）——零设计问题。review 到达固定点。**升 `ready`，停止 review** |
+| 2026-09-15 | **R1-R16 review 收敛**（详见 git log）：16 轮 review 收敛。最终签名见 design §7；决策表 D-E-1..12 见 §8。 |
+| 2026-09-15 | **Review R13-R16 连续四轮收敛**：四轮唯一 finding 均为 Status 轮次号——零设计问题。review 到达固定点。**升 `ready`，停止 review** |
