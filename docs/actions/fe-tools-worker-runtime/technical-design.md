@@ -70,8 +70,8 @@ export function defineEngine(overrides) {
 import { AsyncLocalStorage } from 'node:async_hooks'
 export const abilityContext = new AsyncLocalStorage()
 
-// 收敛点拿能力
-const { sink, logger } = abilityContext.getStore() ?? { logger: consoleFallback }
+// 收敛点拿能力（emit.js / compatibility.js 用，非 context.js 自身）
+const { sink, logger } = abilityContext.getStore() ?? { logger: consoleFallback }  // consoleFallback from loggers.js
 ```
 
 ### sink / logger（D-WR-6 + D-WR-7）
@@ -111,6 +111,8 @@ class ConsoleLogger {
   warn(msg) { console.warn(msg) }
   flush() { return [] }
 }
+// F54：D-WR-4 兜底——无 context 时 warnOnce 走 consoleFallback
+export const consoleFallback = new ConsoleLogger()
 ```
 
 ### executeTask（D-WR-9，资源层接缝）
@@ -254,6 +256,7 @@ export async function emitEntry(params) {        // async Promise<void>
 ```js
 // core/compatibility.js
 import { abilityContext } from '../worker-runtime/context.js'  // F31：收敛点 getStore
+import { consoleFallback } from '../worker-runtime/loggers.js'  // F54：D-WR-4 兜底
 
 const warnedItems = new Set()                      // 模块级（业务去重，行为 0）
 function warnOnce(type, name, location, message) {
