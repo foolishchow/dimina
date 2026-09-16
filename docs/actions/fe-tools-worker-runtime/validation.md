@@ -70,7 +70,8 @@ cd fe/tools/bundler
 grep -n "isMainThread\|pendingWarnings\|takeCompatibilityWarnings" src/compiler/core/compatibility.js
 # isMainThread 零（warnedItems 保留）
 grep -n "abilityContext.getStore\|logger.warn" src/compiler/core/compatibility.js  # logger 注入
-grep -n "logger.flush" src/compiler/worker-runtime/runtime.js  # success 时 flush
+grep -n "logger.flush" src/compiler/view/index.js src/compiler/logic/index.js  # F28：successPayload 覆盖处 flush
+grep -n "engine.successPayload" src/compiler/worker-runtime/runtime.js  # runtime 调 successPayload({ logger })
 ```
 
 ### V-WR06 — stage-channel executeTask
@@ -127,7 +128,7 @@ node pnpm.mjs build  # OK
 | A-WR3 | grep abilityContext.getStore in emit.js/compatibility.js | 0 | 收敛点命中 | pending |
 | A-WR4 | ls 三 worker-entry.js + grep WORKER_ENTRY | 0 | 文件 + 指向 | pending |
 | A-WR5 | grep sink.count + 零 outputCount in view/logic/style | 0 | 命中 + 零 | pending |
-| A-WR6 | grep pendingWarnings 零 + warnedItems 保留 + logger.flush + ctx.compatibilityWarnings | 0 | grep 结果 | pending |
+| A-WR6 | grep pendingWarnings 零 + warnedItems 保留 + logger.flush in view/logic + engine.successPayload in runtime + ctx.compatibilityWarnings | 0 | grep 结果 | pending |
 | A-WR7 | grep new Worker only in executor.js | 0 | 单点 | pending |
 | A-WR8 | grep return 1 零 in emit.js + architecture-notes | 0 | 零 + 标注 | pending |
 | A-WR9 | grep abilityContext.run in __tests__ | 0 | 注入命中 | pending |
