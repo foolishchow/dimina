@@ -40,7 +40,7 @@
 
 | 刀 | 内容 | 契约角色 | 验收 |
 | --- | --- | --- | --- |
-| **刀 1：emit 抽取** | `pipeline/emit.js` 骨架（emitEntry + emitOutput）；**输入 = 模块集合接口（明确契约）**；scriptRes/compileRes 以「提供者 A0」接入 | **定义契约 + 消费端** | diff=0 + 全量 vitest |
+| **刀 1：emit 抽取** ✅ complete | `pipeline/emit.js` 骨架（emitEntry + emitOutput）；**输入 = 模块集合接口（明确契约）**；scriptRes/compileRes 以「提供者 A0」接入 | **定义契约 + 消费端** | diff=0 + 全量 vitest |
 | **刀 2：维度 1 失效查询** | DependencyGraph 补 `getInvalidatedModules(changedFiles)`（fileOwners 反查 + dependents 传播）；fingerprint 文件级串上 | 闭环上游 | 单测：改文件 → 正确失效集 |
 | **刀 3：ModuleCache** | 编译结果持久（跨 rebuild）；worker 编译回填；watch 接增量 | **实现契约提供端** | watch 冒烟：改 1 文件只重编该模块 |
 
@@ -51,6 +51,42 @@
 - ModuleCache 的「家」：主线程 ProjectStore 侧（长驻、IPC 回填）vs worker 内跨任务保留（零 IPC）——影响刀 3 形态
 - 维度 2 寿命若仅 stage 内 = 无收益；跨 rebuild 才有价值（watch 长驻）
 - 刀 1 必须把「模块集合接口」立成规约（形状+语义），刀 3 守规约——否则刀 3 会让 emit 改接口
+
+#### 产物面后续规划（memfs + 漏网点 + 目录归置 · 2026-09-16 讨论）
+
+> 刀 1 完成后产物面现状实证：`output.write`（worker 侧）收 view/logic/style 三引擎 code/map ✅，但产物写盘还有 3 处漏网点未收口。memfs / cache / 目录归置三者耦合，需一起拍板。
+
+**产物面写盘完整分布**：
+
+| 出口 | 文件 | 侧 | 管什么 | 收口？ |
+| --- | --- | --- | --- | --- |
+| `output.write` | pipeline/output.js | worker | view/logic/style code+map | ✅ 已收（刀 1） |
+| `materialize` | model/build-model.js:52/57 | 主线程 | BuildModel.entries 刷盘（dev 模式实际写盘点） | ❌ 漏 |
+| `app-config.json` 直写 | pipeline/config-compiler.js:67 | 主线程 | 配置产物 | ❌ 漏 |
+| `publishToDist` | pipeline/publish.js:16 | 主线程 | 发布 copy（非编译产物） | ❌ 漏 |
+
+关键：`output.write`（worker 出口）与 `materialize`（主线程出口）是**两层互补**：dev 模式 collectOutput=true 时 worker 全 postMessage → BuildModel → materialize 刷盘（output.write 只 postMessage 不写盘）；build 模式 collectOutput=false 时 worker 直接 output.write 写盘（materialize 收空 BuildModel no-op）。
+
+**memfs 改造（dev 模式产物不落盘）**：
+
+- 方案 1（推荐）：dev server 直读 BuildModel.entries（已是内存 Map）；materialize dev 跳过；dev server `resolveArtifact(path)` 从 BuildModel 查。零新依赖；产物本就在内存，不引 memfs 包。改 `materialize`（build-pipeline L181 加 collectOutput 分支）+ dev server（L150-168 抽 resolveArtifact）+ BuildModel（加 path→{code} 反查索引）。~50 行。
+- 方案 2：materialize 写 memfs Volume；dev server fs 换 memfs 后端。dev server 逻辑不动但引入 memfs 依赖 + BuildModel/memfs 双份内存冗余。
+- emit 层（emitEntry + output.write）**零改动**——D-E-7/D-E-9 已为「只产不写」演化留口。
+
+**cache（刀 3 ModuleCache）与目录归置耦合**：
+
+- ModuleCache 的「家」决定 cache 落哪 → 决定 emit/output 是否单独出 `compiler/emit/`：
+  - 若 cache 落 worker 侧 → emit + output + cache 聚到 `compiler/emit/` 合理
+  - 若 cache 落主线程 model/ 侧 → 产物面横跨 compiler(emit/output) + model(cache/materialize)，不硬聚，保持分层
+- 现状：emit.js + output.js 在 `compiler/pipeline/`（与编排面混着），2 文件先不动，等 cache 家拍板再归置，避免挪两次。
+
+**依赖顺序（拍板链）**：
+1. 拍 cache 的「家」（主线程 vs worker）——形态分叉点
+2. 拍 memfs 方案（1 直读 BuildModel vs 2 memfs Volume）
+3. 定目录归置（是否出 `compiler/emit/`，cache 落哪决定）
+4. 定漏网点收口范围（app-config.json / materialize / publishToDist 哪些进产物面统一出口）
+
+**非范围**：刀 2 失效查询（DependencyGraph.getInvalidatedModules）独立先行，不与产物面耦合。
 
 
 
