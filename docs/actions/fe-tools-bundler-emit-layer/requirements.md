@@ -10,7 +10,7 @@ Status: **冻结（2026-09-15）** — D-E-1..8 已拍板；随 Action `ready`�
 
 ## R-E1（MUST）emitEntry 骨架
 
-- `emitEntry({ entryId, kind, modules, transform: {strategy, minify, target, platform}, sourcemap, sourcemapTargetPath, filename, relPrefix }, outputEnv = { collectOutput, writeDir })`（R2-C1：纯参数 + outputEnv 小聚合，不引入 EmitContext）。
+- `emitEntry({ entryId, kind, modules, transform: {strategy, minify, target, platform}, sourcemap, sourcemapTargetPath, filename, relPrefix }, outputEnv = { collectOutput, writeDir })`（R2-C1 + R5-F1 方案 A：纯参数 + outputEnv；内部调 output.write；返回 number 供调用方累加 outputCount）。
 - transform 策略**函数注入**（D-E-2）：`'bundle'`（view 整包 + moduleRanges 行定位，布局私有）与 `'perModule'`（logic 逐模块）各自实现 apply + 错误定位；非标志位 if。
 - target/platform 参数化（esTarget.view/browser vs logic/neutral）；filename/entryId/relPrefix 规则；sourcemap rebase 可选参数（logic 的 sources rebase）。
 

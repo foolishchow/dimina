@@ -175,7 +175,7 @@ emitEntry 参数分两组：
 ### 修正后的签名
 
 ```js
-// emitEntry 本质参数 + outputEnv  —— R4-F3: 返回产出 entry 数（供调用方累加 outputCount）
+// emitEntry 本质参数 + outputEnv  —— R5-F1 方案 A：内部调 output.write，返回 count
 emitEntry({
   entryId, kind,
   modules,                    // iterable<{moduleId, code, map}>
@@ -184,15 +184,17 @@ emitEntry({
   sourcemapTargetPath,        // string | null（perModule rebase 基准，仅 logic）
   filename, relPrefix,
 }, outputEnv)                 // { collectOutput, writeDir }
-// → 返回 { entry, count } —— entry 给 output.write；count=1（该次产出的 entry 数，调用方累加到 worker outputCount）
+// 内部：策略 apply → 拼 entry → output.write({entry, collectOutput, writeDir}) → return 1
+// → 返回 number（产出 entry 数，调用方 outputCount += result）
+// A→B 演化（刀 3 若需"只产不写"）：拆 emitEntry → {entry} + output.write 外部调——加法，不破坏 outputCount 逻辑
 
-// output.write（不管 count、不管 rebase）—— R4-F2 修正：吃 entry 结构（files[] + sourcemaps[]），非单文件
+// output.write（不管 count、不管 rebase）—— R4-F2: 吃 entry 结构（files[] + sourcemaps[]）
 write({
   entry: { entryId, kind, files: [{path, code}], sourcemaps?: [{path, map}] },
   collectOutput,              // postMessage(M1) vs fs
   writeDir,                   // mkdir + writeFileSync（直写路径用）
 })
-// 返回值：void（count 由 emitEntry 层累加，见 R4-F3）
+// 返回值：void（emitEntry 方案 A 内部调本函数，count 在 emitEntry 层返回）
 ```
 
 
@@ -210,6 +212,45 @@ write({
 - **R3-F5**（🟡）：view sourcemap 路径的 mergeSourcemap 吃临时拼装 compileRes（§4.1 已补）。
 - **R3-F6**（🟡）：map 类型一致性声明——三引擎最终都是 string（§4.1 已补）。
 - **R3-F7**（🟡）：view 的 enableSourcemap 是 `renderer/vue/state.js` 模块导出非全局（§7 R2-F1 描述已修正）。
+
+
+## 10. R5 Review findings（调用链 + modDefine 格式 + filename 语义 + 路径组合 · 2026-09-15）
+
+### R5-F1（🟠 · 已拍板 A）：emitEntry 内部调 output.write（方案 A）
+
+emitEntry 内部调 output.write——调用方一行 `outputCount += await emitEntry(...)` 搞定（样板消最多）。emitEntry 不纯（postMessage/fs 副作用），但不读 worker 全局——C1"不绑上下文"意图仍成立。§8 签名修正：返回 `number`（非 `{entry, count}`），entry 不外泄。A→B 演化是加法（刀 3 若需"只产不写"再拆）。
+
+### R5-F2（🟠）：view modDefine 包裹格式两路径不一致（行为 0 风险）
+
+- sourcemap 路径用 `wrapModDefine`（无额外 tab 缩进）：`modDefine('path', fn {
+` + code + `});
+`
+- 非 sourcemap 路径手写模板字面量（**3 层 tab 缩进**）：`modDefine('key', fn {
+			${value}
+			});
+`
+- 非 sourcemap 经 esbuild transform → tab 被吃 → 产物无 tab；sourcemap 不经 esbuild → 无 tab 直接进产物。
+- **风险**：统一用 wrapModDefine 后，非 sourcemap+非 minify 路径的 tab 消失——若 esbuild 保留 tab（minify:false 时不确定），产物 diff。**validation P-E04 对拍必须覆盖非 sourcemap + 非 minify 路径**。
+
+### R5-F3（🟡）：filename 参数语义未统一
+
+- view/style：`filename = page.path.replace(/\//g, '_')`（不含扩展名，拼时加 `.js`/`.css`）
+- logic：硬编码 `'logic.js'`（含扩展名）
+- emitEntry 签名有 `filename` 参数——需明确是"不含扩展名的 basename"还是"完整文件名"。
+
+### R5-F4（🟡）：output.write 直写路径组合逻辑不明确
+
+- 直写路径：`fs.writeFileSync(\`${outputDir}/${filename}.js\`, code)`——outputDir = `getTargetPath()/main`，filename 是 basename
+- postMessage 路径：`files[].path = \`${relPrefix}/${filename}.js\``——含 relPrefix（如 `main/`）
+- output.write 统一后：直写路径需从 `entry.files[].path`（含 relPrefix）解析出 writeDir 内的相对路径——**路径组合逻辑需明确**（writeDir 是绝对目录？entry.files[].path 相对发布根？如何拼？）。
+
+### R5-F5（🟡）：§9 typo "3-F3" 缺 R 前缀
+
+technical-design §9 第三项 `**3-F3**` → 应为 `**R3-F3**`。
+
+### R5-F6（🟡）：四轮 findings 堆积——文档可读性下降
+
+§7（R2 findings 含被否决建议标注）+ §8（R2 收敛）+ §9（R3 findings）+ §10（R5 findings）——实施者需读历史 review 才能理解最终设计。升 ready 前应清理：findings 收敛进正文或移附录，保留最终设计 + 签名为主线。
 
 ## Residual
 

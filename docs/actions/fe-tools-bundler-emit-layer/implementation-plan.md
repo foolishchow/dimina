@@ -4,7 +4,7 @@ Status: **ready（实施未授权）** — E1→E2；行为 0；禁混。
 
 ## 基线与纪律
 
-> **R2-C1-C3（拍板）**：emitEntry 吃**纯参数 + outputEnv 小聚合**（不引入 EmitContext）；output.write 不管 count（count 在 emitEntry 层累加）；rebase 留 emitEntry 策略（output.write 只含 writeDir）。详见 design §8 修正签名。
+> **R2-C1-C3 + R5-F1（拍板）**：emitEntry 吃纯参数 + outputEnv 小聚合（不引入 EmitContext）；**方案 A**——emitEntry 内部调 output.write，返回 number（调用方 `outputCount += result`）；output.write 不管 count；rebase 留 emitEntry 策略（output.write 只含 writeDir）。详见 design §8/§10。
 
 
 - 授权时记录 HEAD；`fe/packages` 零触碰；**只搬不优化**（D-E-5）——不统一 transform 粒度、不改产物语义。
