@@ -101,13 +101,16 @@ class ConsoleLogger {
 
 ### executeTask（D-WR-9，资源层接缝）
 
+**input 形状**（任务层契约，稳定）：`{ pages, storeInfo, sourcemap, compileConfig, sourcemapTargetPath }`——与现状 stage-channel 发给 worker 的消息同构（worker onMessage 解构字段）。executor 从 `input.pages.mainPages` 算 `totalTasks`（`Object.keys(input.pages.mainPages).length`，同现状 stage-channel L53），供 `onProgress(completed, total)` 的 total 参数。
+
 ```js
 // worker-runtime/executor.js
 export function executeTask({ engine, input, onOutput, onProgress }) {
   // 现状：new Worker + terminate
+  const totalTasks = Object.keys(input.pages.mainPages).length
   return new Promise((resolve, reject) => {
     // worker 创建 + 消息分发 + 对账 + 超时 + terminate
-    // onOutput(message.entry) / onProgress(completed,total) / resolve(result)
+    // onOutput(message.entry) / onProgress(message.completedTasks, totalTasks) / resolve(result)
   })
 }
 // 未来 pool/queue：只换内部 → return workerPool.submit({ engine, input, onOutput, onProgress })
@@ -123,10 +126,10 @@ import { PostMessageSink } from './sinks.js'
 import { BufferingLogger } from './loggers.js'
 import { getDependencyGraph } from '../core/env.js'  // 示例所需 import
 
-// makeProgress 由 runtime 内部定义：持 parentPort + onProgress 回调
+// makeProgress 由 runtime 内部定义：持 parentPort（worker 侧，不持 onProgress）
 // progress.completedTasks setter → parentPort.postMessage({completedTasks})
 // → executor 分流 → onProgress(completed, total)（见 "progress 消息链路"）
-function makeProgress(parentPort, onProgress) {
+function makeProgress(parentPort) {
   let _n = 0
   return {
     get completedTasks() { return _n },
@@ -142,7 +145,7 @@ export function runWorker(engine) {
     abilityContext.run({ sink, logger }, async () => {
       try {
         const config = engine.buildConfig(msg)
-        await engine.compile({ mainPages: msg.pages.mainPages, subPages: msg.pages.subPages, progress: makeProgress(parentPort, onProgress), config })
+        await engine.compile({ mainPages: msg.pages.mainPages, subPages: msg.pages.subPages, progress: makeProgress(parentPort), config })
         engine.cleanup()
         parentPort.postMessage({
           success: true,
@@ -163,7 +166,7 @@ export function runWorker(engine) {
 
 ### progress 消息链路（D-WR-9 补充）
 
-`makeProgress(parentPort, onProgress)` 由 runtime 造，持 parentPort + onProgress 回调：
+`makeProgress(parentPort)` 由 runtime 造，持 parentPort（worker 侧）。onProgress 是主线程侧 executeTask 契约回调，不在 makeProgress 里：
 
 ```
 worker 内 progress.completedTasks = N（setter）

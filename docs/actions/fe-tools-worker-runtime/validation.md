@@ -102,7 +102,7 @@ done
 node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 # grep 锚定
 grep -rn "collectOutput" src/compiler/  # 全仓零
-grep -rn "isMainThread\|parentPort" src/compiler/{view,logic,style}/index.js src/compiler/pipeline/output.js src/compiler/core/compatibility.js  # 零
+grep -rn "isMainThread\|parentPort" src/compiler/{view,logic,style}/index.js src/compiler/core/compatibility.js  # 零（output.js 已删）
 grep -rn "new Worker" src/compiler/  # only executor.js
 grep -rn "parentPort.postMessage" src/compiler/  # only runtime.js + sinks.js
 # tsc

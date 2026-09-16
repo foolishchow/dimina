@@ -4,7 +4,7 @@ Status: **draft**
 
 | ID | Requirement | Observable condition | Planned evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-WR0 | R-WR0 | grep 零调度残留（isMainThread/parentPort/collectOutput/outputCount/if(!isMainThread)）in view/logic/style/output/compatibility | `grep -rn "isMainThread\|parentPort\|collectOutput\|let outputCount\|if (!isMainThread)" src/compiler/{view,logic,style}/index.js src/compiler/core/compatibility.js` 退出码 1（注：output.js 已删） | pending |
+| A-WR0 | R-WR0 | grep 零调度残留（isMainThread/parentPort/collectOutput/outputCount/if(!isMainThread)）in view/logic/style/compatibility（output.js 已删） | `grep -rn "isMainThread\|parentPort\|collectOutput\|let outputCount\|if (!isMainThread)" src/compiler/{view,logic,style}/index.js src/compiler/core/compatibility.js` 退出码 1 | pending |
 | A-WR1 | R-WR1 | worker-runtime/ 目录存在 + 6 模块（context/runtime/executor/sinks/loggers/define-engine）可 import | `ls src/compiler/worker-runtime/` + `node -e "import('./src/compiler/worker-runtime/define-engine.js')"` | pending |
 | A-WR2 | R-WR2 | defineEngine 契约 + 三 engine（viewEngine/logicEngine/styleEngine）export | grep `export const .*Engine = defineEngine` in 三 index.js | pending |
 | A-WR3 | R-WR3 | abilityContext（AsyncLocalStorage）+ 收敛点（emitEntry/warnOnce）getStore | grep `abilityContext.getStore()` in emit.js + compatibility.js | pending |
