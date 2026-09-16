@@ -67,7 +67,7 @@ const strategies = {
 write({ path, content, map, collectOutput })  // collectOutput ? postMessage(M1) : mkdir+write
 ```
 
-- collectOutput 路径：postMessage({ type:'output', entry })——与 BuildModel.add 形状一致；
+- collectOutput 路径：postMessage({ type:'output', entry })——**R1-F6**：entry 形状 = `{ entryId, kind, files:[{path,code}], sourcemaps?:[{path,map}] }`，与 BuildModel.add 入参**完全一致**（三引擎实证一致，不引入新形状）；
 - 直写路径：mkdir -p（原各引擎 mkdirSync 逻辑收口）+ writeFileSync；
 - style 只调 write（D-E-8），不经 emitEntry。
 
