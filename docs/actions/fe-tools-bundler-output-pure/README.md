@@ -14,6 +14,7 @@
 | --- | --- |
 | 2026-09-16 | **立项 + 方案 C 拍板**：output 最纯（worker 无 fs）；output.write→postEntry；emitEntry 删 outputEnv；materialize 不动；memfs 拆阶段 2 另立。拆自原 emit-memfs（两阶段切分） |
 | 2026-09-16 | **Review R1（F1-F4）修正**：F1 🟠 plan step3-5 补 onMessage 解构参数 `collectOutput: collectFlag` 清理；F2 🟠→修正 D-E-10 outputEnv 载体演进（非废止）→ 声明 D-OP-1 接口演进 + architecture-notes 回流标注；F3 🟡 补 outputCount 对账保留（D-OP-2）；F4 🟡 消融因果链修正（materialize 写空盘，非名不副实）。**升 `ready`** |
+| 2026-09-16 | **Review R2（F1-F2）修正**：F1 🟠 D-OP-2 补 style 路径（不经 emitEntry，postEntry 后 outputCount++）+ 三引擎/plan 显式区分「删 collectOutput，保留 outputCount」（名字相似勿混）；F2 🟡 design emit.js 代码块补 import postEntry 标注。**升 `ready`** |
 
 ## 问题陈述
 

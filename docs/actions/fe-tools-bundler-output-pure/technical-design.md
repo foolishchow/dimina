@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-output-pure
 
-Status: **draft（R1 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R2 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 1. 现状锚定（实证）
 
@@ -39,6 +39,8 @@ export function postEntry({ entry }) {
 ### emit.js（改后）
 
 ```js
+import { postEntry } from './output.js'   // 原 import { write }，改名 postEntry
+
 // emitEntry 删 outputEnv 第二参数（D-E-10 的 outputEnv 在 C 方案下全空）
 export async function emitEntry(params) {
 	const strategy = strategies[params.transform.strategy]
@@ -54,8 +56,8 @@ export async function emitEntry(params) {
 ### 三引擎（改后）
 
 - view/logic：`emitEntry({...}, { collectOutput, writeDir })` → `emitEntry({...})`（去 outputEnv）
-- style：`write({entry, collectOutput, writeDir})` → `postEntry({entry})`
-- 删 worker 全局 `let collectOutput` + onMessage `collectOutput = !!collectFlag`
+- style：`write({entry, collectOutput, writeDir})` → `postEntry({entry})`（两处：sourcemap + 非 sourcemap）；**style 的 `outputCount++` 保留**（postEntry 后累加）
+- 删 worker 全局 `let collectOutput` + onMessage `collectOutput = !!collectFlag`；**保留 `let outputCount` 变量**（collectOutput/outputCount 名字相似，只删前者）
 
 ### stage-channel（改后）
 
@@ -87,7 +89,7 @@ worker 侧彻底无 fs，materialize 是唯一写盘点——为阶段 2 memfs �
 | ID | 决策 | 一句话理由 |
 | --- | --- | --- |
 | D-OP-1 | emitEntry 接口演进：删 outputEnv 第二参数 | D-E-10 的 outputEnv={collectOutput,writeDir} 在 C 方案（worker 无 fs）下全空——outputEnv 载体空壳化，删除。**D-E-10 决策精神保留**（纯参数、不引入 EmitContext、不绑 worker 上下文），本 Action 强化之（单参数比带 outputEnv 更纯）。architecture-notes 回流标注 D-E-10 outputEnv 形态演进。 |
-| D-OP-2 | outputCount 对账机制保留 | emitEntry 仍 return 1；worker 仍发 outputCount；stage-channel 仍对账——不受 collectOutput 清理影响。 |
+| D-OP-2 | outputCount 对账机制保留 | view/logic 经 emitEntry return 1 累加 outputCount；**style 不经 emitEntry，postEntry 后 worker 全局 `outputCount++` 累加**——两条路径都保留。worker 仍发 outputCount；stage-channel 仍对账。**删 `collectOutput` 变量，保留 `outputCount` 变量**（名字相似，勿混）。 |
 
 ## 6. Non-goals
 

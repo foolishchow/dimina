@@ -1,6 +1,6 @@
 # Validation — fe-tools-bundler-output-pure
 
-Status: **draft（R1 review 修正 · 2026-09-16）** — 实施后回填 Result。
+Status: **draft（R2 review 修正 · 2026-09-16）** — 实施后回填 Result。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 

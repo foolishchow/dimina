@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-bundler-output-pure
 
-Status: **draft（R1 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R2 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 基线
 
@@ -16,7 +16,7 @@ Status: **draft（R1 review 修正 · 2026-09-16）** — 阶段 1：worker 无 
 | 2 | `pipeline/emit.js` | import `write` → `postEntry`；emitEntry 删 outputEnv 第二参数；内部 `postEntry({entry})` |
 | 3 | `view/index.js` | emitEntry 调用去 outputEnv；删 worker 全局 `collectOutput` 变量 + onMessage 解构参数 `collectOutput: collectFlag` 字段 + `collectOutput = !!collectFlag` 赋值 |
 | 4 | `logic/index.js` | 同 view（emitEntry 去 outputEnv + 删 onMessage 解构 `collectOutput: collectFlag` + 全局变量） |
-| 5 | `style/index.js` | `write({entry, collectOutput, writeDir})` → `postEntry({entry})`（两处）；删 onMessage 解构 `collectOutput: collectFlag` + 全局变量 |
+| 5 | `style/index.js` | `write({entry, collectOutput, writeDir})` → `postEntry({entry})`（两处：sourcemap + 非 sourcemap）；**保留 `outputCount++`**（postEntry 后累加）；删 onMessage 解构 `collectOutput: collectFlag` + 全局 `collectOutput` 变量；**保留 `outputCount` 变量**（勿混） |
 | 6 | `pipeline/stage-channel.js` | 删 `collectOutput` 字段（onOutput 机制保留） |
 | 7 | 验证 | vitest 全量绿；grep worker 侧零 `fs` import（output.js/emit.js 无 fs）；产物 diff=0 |
 
