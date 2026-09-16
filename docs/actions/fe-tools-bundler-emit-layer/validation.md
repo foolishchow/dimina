@@ -1,6 +1,6 @@
 # Validation — fe-tools-bundler-emit-layer
 
-Status: **冻结（随 Action `ready`）** — 实施后回填 Result。
+Status: **draft（R7 review 中 · 2026-09-15）** — 实施后回填 Result。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -9,7 +9,8 @@ Status: **冻结（随 Action `ready`）** — 实施后回填 Result。
 | P-E01 | 契约 | emit.js 导出模块集合 typedef；view/logic 以 scriptRes/compileRes 作为提供者（同形状） | A-E0/A-E1 | pending |
 | P-E02 | emit 接入 | 三引擎经 emitEntry（view bundle / logic perModule）；moduleRanges 逻辑在 bundle 策略内可见 | A-E1 | pending |
 | P-E03 | output 统一 | 三引擎产物写盘零直接 `fs.writeFileSync`（grep 锚定）；output.js 含 mkdir + write + postMessage(M1) | A-E2/A-E3 | pending |
-| P-E04 | 行为 0 | 基线 vs 切后（base 工程）：nomap `diff -rq` + sourcemap `diff -rq` **= 0**（view/logic/style 三链）；**R5-F2/R6-F1：须覆盖非 sourcemap + 非 minify 路径**（esbuild minify:false——验证 modDefine tab 统一为 wrapModDefine 后 tab 是否被 esbuild 保留） | A-E4 | pending |
+| P-E04 | 行为 0 | 基线 vs 切后（base 工程）：nomap `diff -rq` + sourcemap `diff -rq` **= 0**（view/logic/style 三链） | A-E4 | pending |
+| P-E04b | tab 专项（R5-F2/R7-F5） | **非 sourcemap + 非 minify 路径**专项对拍：esbuild `minify:false` 下 modDefine tab 统一为 wrapModDefine 后产物 diff=0（验证 esbuild 是否保留 tab） | A-E4 | pending |
 | P-E05 | 范围 | `git diff --stat`：仅 emit.js/output.js + 三引擎接入点 + 文档；无产物语义/transform 粒度改动；`fe/packages` 零 diff | A-E4 | pending |
 | P-E06 | 消融 | 拔 emitEntry → 手写拼接对照组 diff 重现；拔 output.write → 直写 grep 命中；恢复 → 全绿 | A-E5 | pending |
 

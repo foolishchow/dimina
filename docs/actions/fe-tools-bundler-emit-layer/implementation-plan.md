@@ -17,7 +17,7 @@ Status: **draft（R6 review 中 · 2026-09-15）** — E1→E2；行为 0；禁�
 | 1 | `pipeline/emit.js`（新） | 模块集合契约（JSDoc typedef `EmitModule`/`ModuleCollection`）+ `emitEntry` 骨架 + transform 策略表（`bundle` 迁 view 整包+moduleRanges；`perModule` 迁 logic 逐模块） |
 | 2 | `pipeline/output.js`（新） | `write({entry, collectOutput, writeDir})`：entry={entryId,kind,files[],sourcemaps?[]}（R4-F2）；collectOutput → postMessage(M1)；否则 mkdir -p(writeDir) + writeFileSync。**不管 count**（R2-C2）、**不管 rebase**（R2-C3） |
 | 3 | `view/index.js` | compileML 尾部改写：scriptRes → `emitEntry(…strategy:'bundle')`（内部调 output.write）；`outputCount += result`（方案 A R5-F1）；**R1-F4 交叉矩阵**：bundle.apply 必须覆盖三象限——sourcemap（mergeSourcemap，跳 minify CF-1）/ minify（整包 transform）/ 无（整包 transform minify:false）；moduleRanges 行定位迁入 bundle.apply 私有 |
-| 4 | `logic/index.js` | writeCompileRes 改写：compileRes → `emitEntry(…strategy:'perModule')` → output.write；**R1-F4 交叉矩阵**：perModule.apply 必须覆盖三象限——sourcemap（rebase+mergeSourcemap，跳 minify CF-1）/ minify（逐模块 transform）/ 无（直接拼接）；sourcemap rebase（R1-F3）在 apply 内 |
+| 4 | `logic/index.js` | writeCompileRes 改写：compileRes → `emitEntry(…strategy:'perModule')`（内部调 output.write）；`outputCount += result`（方案 A R5-F1）；**R1-F4 交叉矩阵**：perModule.apply 必须覆盖三象限——sourcemap（rebase+mergeSourcemap，跳 minify CF-1）/ minify（逐模块 transform）/ 无（直接拼接）；sourcemap rebase（R1-F3）在 apply 内 |
 | 5 | 验证 | view/logic 两链产物对拍 diff=0 + vitest 全量 |
 
 ## E2 触达序（出口统一 + style）
@@ -39,4 +39,5 @@ Status: **draft（R6 review 中 · 2026-09-15）** — E1→E2；行为 0；禁�
 
 - 拔 emitEntry（回手写拼接）→ 产物 diff 再现（对照组）；恢复 → 绿。
 - 拔 output.write（回 fs 直写）→ materialize 名不副实重现（grep 命中）→ 恢复。
-- **R5-F2 tab diff**：统一 modDefine 用 wrapModDefine 后，非 sourcemap + 非 minify 路径（esbuild minify:false）产物对拍 diff=0——验证 esbuild 是否保留 tab。
+
+> **R7-F6**：原 R5-F2 tab diff 项不是消融（是行为 0 验证）——已移至 validation P-E04b。

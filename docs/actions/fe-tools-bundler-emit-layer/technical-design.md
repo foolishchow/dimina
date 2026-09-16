@@ -22,7 +22,7 @@ src/compiler/{view,logic}/index.js（编译）
              └─ → pipeline/output.js  write({entry, collectOutput, writeDir})
                     └─ collectOutput ? postMessage(M1) : mkdir + writeFileSync
 src/compiler/style/index.js
-  └─ → pipeline/output.js  write({entry{files:[css],sourcemaps?:[map]}, collectOutput, writeDir})   // 不经 emitEntry
+  └─ → pipeline/output.js  write({entry: {entryId, kind, files:[{path, code}], sourcemaps?:[{path, map}]}, collectOutput, writeDir})   // 不经 emitEntry
 ```
 
 ## 3. 模块集合契约（D-E-1/D-E-6）
@@ -275,6 +275,33 @@ R5 标了 3 个"待实施时定"但未回流五件套——实施者读 acceptan
 ### R6-F6（🟡）：§7-§10 findings 堆积未清理（R5-F6 报告了但 R5 只报告不改文档）
 
 ### R6-F7（🟡）：design Status 行"冻结 v1" → 已修正为 draft
+
+
+## 12. R7 Review findings（修正遗漏 + 结构 · 2026-09-15）
+
+### R7-F1（🟠）：plan step4 仍写"→ output.write"——R6-F3 修正不完整
+
+R6-F3 修了 step3 但漏了 step4——step4 仍写 `→ output.write`（暗示调用方调），与方案 A（emitEntry 内部调）矛盾。
+
+### R7-F2（🟠）：requirements/acceptance/validation Status 行仍写"冻结"/"随 ready"
+
+Action 降 draft 但三件套 Status 未同步（R6 只改了 design + plan）。
+
+### R7-F3（🟡）：design §2 style 行 entry 形态缩写与 §8 不一致
+
+§2 写 `entry{files:[css],sourcemaps?:[map]}` 缩写形态，§8 是完整 `{entryId, kind, files:[{path,code}], sourcemaps?:[{path,map}]}`——实施者可能误以为 entry 有"style 版"。
+
+### R7-F4（🟡）：§7-§11 review findings 占 63%（177/281 行）——主线被淹没
+
+实施者要读 63% 历史 review 才能理解最终签名。R5-F6/R6-F6 报告了但一直没清理——**升 ready 前必须清理**：§7-§11 压缩为附录或融入正文，主线只保留 §1-§6 + §8 最终签名。
+
+### R7-F5（🟡）：validation P-E04 单行过载
+
+P-E04 塞了正常对拍 + R5-F2 tab 覆盖 + esbuild minify:false 验证——应拆 P-E04（三链对拍）+ P-E04b（非 sourcemap+非 minify 专项）。
+
+### R7-F6（🟡）：plan 消融第 3 项不是消融（是行为 0 验证）
+
+"统一 modDefine 后非 sourcemap+非 minify diff=0"是行为 0 验证，不是"拔机制→失败→恢复"消融——分类错误，应移到 P-E04 或单独验证项。
 
 ## Residual
 

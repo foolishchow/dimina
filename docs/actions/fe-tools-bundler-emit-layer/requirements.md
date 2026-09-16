@@ -1,6 +1,6 @@
 # Requirements — fe-tools-bundler-emit-layer
 
-Status: **冻结（2026-09-15）** — D-E-1..8 已拍板；随 Action `ready`。
+Status: **draft（R7 review 中 · 2026-09-15）** — D-E-1..8 已拍板。
 
 ## R-E0（MUST）模块集合契约
 
