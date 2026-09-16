@@ -6,6 +6,36 @@
 
 将候选移入 `docs/actions/<action-id>/` 之前，需确认：
 
+---
+
+## 架构候选（2026-09-15 · 讨论中，未定稿）
+
+### A. Module 收敛（ProjectStore / worker 分散割裂的彻底化）——候选
+
+| Field | Value |
+| --- | --- |
+| 问题 | logic/view worker 各自持有 modules（scriptRes / compileRes / compileResCache），与 ProjectStore 的 DependencyGraph 分散割裂——同一逻辑实体（一个源模块）在多处有不相关的表示：图节点有归属/边但无编译负载，worker 有编译负载但图不感知 |
+| 目标 | 统一的 Module 对象 `{ id, kind, code, deps, files[], packageRoot, sourcemap }` 贯穿：图（DependencyGraph node = 它）、编译（worker transform 结果回填）、失效（fingerprint 模块级）、产物（BuildModel 派生）、HMR（热更最小单位） |
+| 关键点 | 大部分情况只需存 module 的 parse 结果；最后按 page/subpackage 从图取模块 emit；共享模块不重复编译；失效粒度从 page/package 降到 module |
+| 不是新造层 | 是把已有半套资产（图空壳 node + worker 游离编译结果 + BuildModel end-state）收敛成同一对象；PS2「Store 唯一活图权威」在等它彻底化 |
+| 待定 | ① Module.code 存 Store 内存（watch 长驻）还是序列化持久（重启复用）——决定 fingerprint 是否下沉模块级；② worker 编译回填 Store = IPC 放大 vs 本地再算——HMR/增量值得，单构建多余 |
+| 触发 | 需要模块级失效/增量 or HMR 深化 or 多平台 emit 时；立项为 umbrella（S1 收敛 → S2 emit → S3 Store/失效）或分步 |
+
+### B. Emit 抽象层（「先从 emit 做一刀」）——候选 · 可与 A 解耦先行
+
+| Field | Value |
+| --- | --- |
+| 问题 | view/logic 都有「模块集合 → modDefine 包裹 → transform → 写盘/materialize」产物样板，重复 ~100+ 行（postMessage(M1)/fs.writeFileSync + modDefine 拼接）；产出是手写拼接而非可增量结构 |
+| 目标 | `pipeline/emit.js` 通用 emit 骨架：`emitEntry({ entryId, kind, modules, transform, filename, relPrefix, sourcemap, collectOutput })`——输入面向「可迭代模块集合」（现在是 scriptRes/compileRes，S1 后是 ModuleGraph，接口不变 = 与 A 解耦） |
+| 真共性 | modDefine 包裹格式 / transform 调用 / 输出出口样板 / mergeSourcemap / relPrefix 物化路径 |
+| 真差异（参数化，勿塞 if） | transform 策略 `'bundle'`（view 整包，moduleRanges 行定位）vs `'perModule'`（logic 逐模块，天然定位）；target/platform（esTarget.view/browser vs logic/neutral）；filename/entryId 规则 |
+| 收益 | 消样板；renderer/platform 挂点就位（平台差异收敛点）；HMR 轨道（patch 产物从这里出）；行为 0 可守（纯重构同参同产） |
+| 风险 | 伪抽象（strategy 若成 if/else = 换皮——需 transform 粒度/错误定位作注入点）；这一刀只搬不优化（勿顺手统一 transform 行为） |
+| 前置斟酌 | 是否趁刀统一 transform 粒度——建议不统一（各有原因），差异留参数 |
+| 形态 | 小 Action `fe-tools-bundler-emit-layer`（纯重构 + 行为 0），落点 `pipeline/emit.js` |
+
+
+
 - 可观察的问题与具体目标；
 - 明确的范围与非范围；
 - 当前设计输入与依赖；
