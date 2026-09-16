@@ -1,7 +1,7 @@
 # fe-tools-worker-runtime
 
 - Action: `fe-tools-worker-runtime`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-16
 - Status authority: [Action Status](../STATUS.md)
 
