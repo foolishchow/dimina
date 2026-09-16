@@ -50,7 +50,7 @@ MUST `abilityContext.run({ sink, logger }, () => ...)` 注入；收敛点（`emi
 
 ### R-WR4 — per engine thin entry
 
-MUST 每引擎一个 `worker-entry.js`（2 行：`import { runWorker }` + `import { xxxEngine }` + `runWorker(xxxEngine)`）；`stage-channel` 的 `WORKER_ENTRY` 指向 thin entry（非 index.js）。
+MUST 每引擎一个 `worker-entry.js`（2 行：`import { runWorker }` + `import { xxxEngine }` + `runWorker(xxxEngine)`）；`worker-runtime/executor.js` 的 `ENTRY_PATH` 指向 thin entry（非 index.js）。
 
 ### R-WR5 — outputCount 归 sink 实例
 

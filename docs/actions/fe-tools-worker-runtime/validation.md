@@ -45,12 +45,12 @@ grep -n "export const .*Engine = defineEngine" \
 # 三行命中
 ```
 
-### V-WR03 — thin entry + WORKER_ENTRY
+### V-WR03 — thin entry + ENTRY_PATH
 
 ```bash
 cd fe/tools/bundler
 ls src/compiler/view/worker-entry.js src/compiler/logic/worker-entry.js src/compiler/style/worker-entry.js
-grep -n "WORKER_ENTRY" src/compiler/pipeline/stage-channel.js  # 指向 worker-entry.js
+grep -n "ENTRY_PATH" src/compiler/worker-runtime/executor.js  # 指向 worker-entry.js（F40：P-WR06 从 stage-channel 搬 executor）
 # dev server 编译跑通（4 组 diff=0 见 V-WR08）
 ```
 
@@ -126,7 +126,7 @@ node pnpm.mjs build  # OK
 | A-WR1 | ls worker-runtime/ + dist import | 0 | 目录 + import 成功 | pending |
 | A-WR2 | grep defineEngine + 三 engine | 0 | 三行命中 | pending |
 | A-WR3 | grep abilityContext.getStore in emit.js/compatibility.js | 0 | 收敛点命中 | pending |
-| A-WR4 | ls 三 worker-entry.js + grep WORKER_ENTRY | 0 | 文件 + 指向 | pending |
+| A-WR4 | ls 三 worker-entry.js + grep ENTRY_PATH in executor.js | 0 | 文件 + 指向 | pending |
 | A-WR5 | grep sink.count + 零 outputCount in view/logic/style | 0 | 命中 + 零 | pending |
 | A-WR6 | grep pendingWarnings 零 + warnedItems 保留 + logger.flush in view/logic + engine.successPayload in runtime + ctx.compatibilityWarnings | 0 | grep 结果 | pending |
 | A-WR7 | grep new Worker only in executor.js | 0 | 单点 | pending |

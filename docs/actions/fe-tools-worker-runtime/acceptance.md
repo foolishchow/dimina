@@ -8,7 +8,7 @@ Status: **draft**
 | A-WR1 | R-WR1 | worker-runtime/ 目录存在 + 6 模块（context/runtime/executor/sinks/loggers/define-engine）可 import | `ls src/compiler/worker-runtime/` + `node -e "import('./src/compiler/worker-runtime/define-engine.js')"` | pending |
 | A-WR2 | R-WR2 | defineEngine 契约 + 三 engine（viewEngine/logicEngine/styleEngine）export | grep `export const .*Engine = defineEngine` in 三 index.js | pending |
 | A-WR3 | R-WR3 | abilityContext（AsyncLocalStorage）+ 收敛点（emitEntry/warnOnce）getStore | grep `abilityContext.getStore()` in emit.js + compatibility.js | pending |
-| A-WR4 | R-WR4 | 三 worker-entry.js 存在（2 行 thin）+ stage-channel WORKER_ENTRY 指向 thin entry | `ls src/compiler/{view,logic,style}/worker-entry.js` + grep WORKER_ENTRY in stage-channel.js | pending |
+| A-WR4 | R-WR4 | 三 worker-entry.js 存在（2 行 thin）+ executor ENTRY_PATH 指向 thin entry | `ls src/compiler/{view,logic,style}/worker-entry.js` + grep ENTRY_PATH in worker-runtime/executor.js | pending |
 | A-WR5 | R-WR5 | sink.count 暴露 + outputCount 从三引擎消失 | grep `sink.count` in runtime.js + grep 零 `outputCount` in view/logic/style/index.js | pending |
 | A-WR6 | R-WR6 | pendingWarnings 归 logger（BufferingLogger）+ warnedItems 留模块级 + takeCompatibilityWarnings 废弃 + 主线程 ctx.compatibilityWarnings Set 兜底保留（D-WR-8）+ logger.flush 归 engine.successPayload（F28）| grep `pendingWarnings` 零 in compatibility.js + grep `warnedItems` 保留 + grep `logger.flush()` in view/logic/index.js（successPayload 覆盖处）+ grep `engine.successPayload({ logger })` in runtime.js + grep `ctx.compatibilityWarnings` 保留 in stage-channel | pending |
 | A-WR7 | R-WR7 | executeTask 契约 5 点 + new Worker only in executor.js | grep `new Worker` only in executor.js + `export function executeTask` 签名审查 | pending |

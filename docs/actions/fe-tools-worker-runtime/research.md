@@ -273,7 +273,7 @@ sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 �
 
 ### D-WR-5：worker 入口归属 = per engine thin entry
 
-- **决策**：每 engine 一个 `worker-entry.js`（2 行：import runWorker + import engine + runWorker(engine)）；engine 在业务 `index.js` export（defineEngine）；stage-channel `WORKER_ENTRY` 指向 thin entry。
+- **决策**：每 engine 一个 `worker-entry.js`（2 行：import runWorker + import engine + runWorker(engine)）；engine 在业务 `index.js` export（defineEngine）；`worker-runtime/executor.js` 的 `ENTRY_PATH` 指向 thin entry（P-WR06 从 stage-channel WORKER_ENTRY 搬来，改名 ENTRY_PATH）。
 - **理由**：engine 文件纯（只 export engine + 业务函数，零调度知识）；thin entry 是胶水（2 行）；调度骨架集中在 `worker-runtime/runtime.js`；静态 import 无动态路径风险（淘汰通用 entry + workerData + 动态 import 方案）。
 - **形态**：
   ```js

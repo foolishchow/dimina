@@ -65,7 +65,7 @@ Status: **draft**
 - `src/compiler/logic/worker-entry.js`
 - `src/compiler/style/worker-entry.js`
 - `stage-channel.js` 的 `WORKER_ENTRY` 从 `../view/index.js` 改 `../view/worker-entry.js`（×3）
-- **strip-types 注入逻辑保留**（D-TD-20）：stage-channel 现状在 `import.meta.url.includes('/src/')` 时注入 `--experimental-strip-types` execArgv——收敛后搬 executor.js 或 stage-channel 保持；thin entry 在 `/src/` 必须走 strip-types 否则 worker 跑 .ts 失败
+- **strip-types 注入逻辑保留**（D-TD-20，F41）：stage-channel 现状在 `import.meta.url.includes('/src/')` 时注入 `--experimental-strip-types` execArgv——**P-WR03 不碰**（留 stage-channel），**P-WR06 搬 executor.js**（design executor 示例已含条件注入）；thin entry 在 `/src/` 必须走 strip-types 否则 worker 跑 .ts 失败
 
 **验证点**：worker 可起（dev server 编译跑通）；4 组产物 diff=0（行为 0，调度骨架搬移）
 
@@ -150,5 +150,5 @@ stage-channel 的 new Worker + 回调内核重构为 executeTask 接缝调用。
 - **P-WR07 测试改造面大**：40 个测试，但都是"包 abilityContext.run"的机械改造，风险低
 - **AsyncLocalStorage 跨 async 边界**：compileML/compileSS 内部有 await（esbuild/less/sass），AsyncLocalStorage 天然跨 async——但要在 P-WR08 验证不丢 context
 - **FileSink vs output.write 直写路径字节一致**：FileSink 的 mkdir+writeFileSync 要和 output.write 直写路径字节相同（行为 0）——P-WR08 对拍验证
-- **worker strip-types**（D-TD-20）：thin entry 在 `/src/`，strip-types 注入逻辑必须保留（搬 executor.js 或 stage-channel 保持），否则 worker 跑 .ts 模块失败
+- **worker strip-types**（D-TD-20）：thin entry 在 `/src/`，strip-types 注入逻辑必须保留（P-WR06 搬 executor.js，design executor 示例已含 `import.meta.url.includes('/src/')` 条件注入），否则 worker 跑 .ts 模块失败
 - **D-E-9 回流归档可编辑性**：emit-layer 已归档（`_archive/complete/`），D-E-9 废弃回流到 architecture-notes——确认归档文档可标注 supersede（或 sidecar architecture-notes 新增 D-E-9 条目）

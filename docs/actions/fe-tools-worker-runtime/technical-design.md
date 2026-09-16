@@ -316,7 +316,7 @@ abilityContext.run({ sink: FileSink(writeDir), logger: ConsoleLogger() }, () => 
 | D-WR-2 | engine.compile 完全自管 | A-WR2 |
 | D-WR-3 | context.js + 收敛点 getStore | A-WR3 |
 | D-WR-4 | warnOnce 兜底 + 测试直连 | A-WR9 |
-| D-WR-5 | worker-entry.js × 3 + WORKER_ENTRY | A-WR4 |
+| D-WR-5 | worker-entry.js × 3 + ENTRY_PATH | A-WR4 |
 | D-WR-6 | sink.count + outputCount 消失 | A-WR5 |
 | D-WR-7 | BufferingLogger + warnedItems 模块级 | A-WR6 |
 | D-WR-8 | 主线程 Set 兜底（不变）| A-WR6 |
