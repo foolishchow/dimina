@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **draft（R8 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
+Status: **draft（R9 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
 
 ## 1. 现状锚定（实证）
 
@@ -17,7 +17,7 @@ Status: **draft（R8 review 中 · 2026-09-15）** — R1-R7 收敛后清理；�
 ```text
 src/compiler/{view,logic}/index.js（编译）
   └─ 产出「模块集合」iterable<{moduleId, code, map}>（提供者 A0 = scriptRes/compileRes）
-        └─ pipeline/emit.js  emitEntry(...)
+        └─ pipeline/emit.js  emitEntry(本质参数, outputEnv)  // 签名见 §7
              ├─ transform 策略注入（bundle / perModule —— 各自 apply + 错误定位）
              └─ 内部调 → pipeline/output.js  write({entry, collectOutput, writeDir})
                     └─ collectOutput ? postMessage(M1) : mkdir + writeFileSync
