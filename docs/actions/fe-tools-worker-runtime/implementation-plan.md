@@ -106,9 +106,10 @@ stage-channel 的 new Worker + 回调内核重构为 executeTask 接缝调用。
 
 - `stage-channel.js`：
   - `runCompileStage` 内部 `new Promise + worker.on('message')` 回调内核 → 调 `executeTask({ engine, input, onOutput, onProgress })`
-  - `executeTask` 内部封装 worker 生命周期 + 消息分发 + 对账 + 超时（从 stage-channel 搬到 executor.js）
+  - `executeTask` 内部封装 worker 生命周期 + 消息分流 + 对账 + 超时（从 stage-channel 搬到 executor.js，包在 workerPool.runWorker 里）
   - `receivedOutputCount` 对账源从 `message.outputCount`（worker 全局）变 `sink.count`（runtime success 发）
-- stage-channel 退化成 executeTask 的调用方 + BuildModel.add 集成
+  - **调用方写 ctx**（F35）：`const result = await executeTask(...)` → `ctx.dependencyGraph.merge(result.dependencyGraph)` + `result.compatibilityWarnings.forEach(w => { ctx.compatibilityWarnings.add(w); lifecycle.emit(BUILD_WARNING, { message: w }) })`；executor 不碰 ctx
+- stage-channel 退化成 executeTask 的调用方 + BuildModel.add 集成 + ctx/lifecycle 写入
 
 **验证点**：`grep -n "new Worker" src/compiler/pipeline/stage-channel.js` 零残留（搬到 executor.js）；4 组 diff=0；vitest 全绿
 

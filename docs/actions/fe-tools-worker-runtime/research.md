@@ -316,12 +316,13 @@ sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 �
 
 - **决策**：`executeTask({ engine, input, onOutput, onProgress })` → `Promise<result>` 作为任务层/资源层分离的接缝。任务层（engine/input/onOutput/onProgress/Promise）稳定，资源层（worker 管理）在 executeTask 内部换。
 - **背景洞察**（用户提出）：现状是最简直接调度（new Worker + terminate，worker-pool 只限流不复用）；未来 pool（复用 worker）/queue（任务排队）改变 Promise 绑定语义（从 worker 实例生命周期 → 任务完成）。但现状 Promise 其实已是任务完成语义（resolve=success 不绑 terminate）——问题在实现绑死直接调度。关键是留资源层接缝，不是 Promise 形态。
-- **契约 5 点**（任务层，稳定不变）：
+- **契约 6 点**（任务层，稳定不变）：
   1. 输入：`{ engine, input, onOutput, onProgress }`
   2. 输出：`Promise<result>`（resolve = 任务完成，不绑 worker 生命周期）
   3. `onOutput(entry)` —— 流式产物回调（0..N 条）
   4. `onProgress(completed, total)` —— 进度回调
-  5. 资源层（worker 怎么来怎么走）不在契约里
+  5. result 形状：`{ dependencyGraph, compatibilityWarnings }`（F35：executor 不碰 ctx，调用方写）
+  6. 资源层（worker 怎么来怎么走）不在契约里
 - **形态**：
   ```js
   // worker-runtime/executor.js（资源层接缝）
