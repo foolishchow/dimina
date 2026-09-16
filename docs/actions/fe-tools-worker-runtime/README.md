@@ -79,9 +79,9 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 | --- | --- | --- |
 | P-WR00 | baseline 记录（commit + 4 组产物 digest + vitest 基线）| digest + 584/584 |
 | P-WR01 | worker-runtime 骨架（context.js + runtime.js + executor.js + sink/logger 实现）| tsc build + 模块可 import |
-| P-WR02 | 三引擎 engine 化（defineEngine + 业务函数纯化，if 块移除）| grep 零 isMainThread/parentPort in view/logic/style |
-| P-WR03 | per engine thin entry（worker-entry.js × 3）+ stage-channel WORKER_ENTRY 改指向 | worker 可起 + 编译跑通 |
-| P-WR04 | emitEntry/output 改（sink 注入 + return void，D-E-9 废弃）| emit.js 无 return number |
+| P-WR02 | 三引擎 engine export（只加 defineEngine + export，不动调度，F47）| engine export 可读 + 4 组 diff=0 |
+| P-WR03 | 调度原子切换（thin entry + emitEntry/output + compile 签名 + successPayload + 删 onMessage + getStore，F45+F47）| worker 跑通 + 零调度残留 + 4 组 diff=0 |
+| P-WR04 | （合并入 P-WR03）| — |
 | P-WR05 | compatibility 改（logger 注入 + warnedItems 留模块级 + takeWarnings→logger.flush）| compatibility 零 isMainThread |
 | P-WR06 | stage-channel 改（executeTask 接缝，内部线性化）| stage-channel 调度知识集中 |
 | P-WR07 | 测试直连注入改造（FileSink + ConsoleLogger 包 run）| 40 测试 parentPort null 问题解决 |
