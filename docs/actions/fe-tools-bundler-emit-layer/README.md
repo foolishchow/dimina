@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-bundler-emit-layer`（刀 1）
 - Status: `ready`
-- Updated: 2026-09-15（R3 F1-F7 文档一致性收敛；D-E-1..8 + R1/R2/R3 全收敛；实施未授权）
+- Updated: 2026-09-15（R4 F1-F3 签名/协议收敛；D-E-1..8 + R1/R2/R3/R4 全收敛；实施未授权）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：`fe-tools-build-model`（M1 materialize 唯一写盘出口——但只覆盖 collectOutput 路径）；`fe-tools-compiler-target`（形态层/两段式）；[`fe-tools-wxml-refactor`](../_archive/complete/fe-tools-wxml-refactor/README.md)（renderer 抽象先例）；`fe-tools-project-store`（PS2 唯一活图权威）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -100,3 +100,4 @@ style : outputDir mkdir + write × 2（CSS/map）
 | 2026-09-15 | **Review R2（F0-F5）收敛**：F0 R1 执行缺陷（已补回 F2-F5）；F1 🔴 emitEntry 参数面不完整（worker 全局变量 `collectOutput/outputCount/activeCompileConfig/sourcemapTargetPath` 归属——建议 EmitContext 聚合注入）；F2 🟠 outputCount 在 worker 完成消息里（协议层耦合——output.write 非纯函数，声明副作用）；F3 🟠 outputDir 计算不统一（写盘 getTargetPath vs rebase sourcemapTargetPath——两个路径参数）；F4 🟡 style sourcemap 来源（options vs 全局）；F5 🟡 style minify 不经 emit（矩阵注脚） |
 | 2026-09-15 | **R2 逐项拍板（C1-C3）**：C1 纯参数 + outputEnv 小聚合（不引入 EmitContext——emitEntry 不绑 worker 上下文）；C2 outputCount 累加在 emitEntry 层（output.write 不管 count，更纯）；C3 rebase 留 emitEntry 策略（output.write 只含 writeDir）。签名修正：emitEntry(本质参数, outputEnv) / write({path,content,map,collectOutput,writeDir})。**升 `ready`** |
 | 2026-09-15 | **Review R3（F1-F7）文档一致性**：F1 🔴 plan 残留 EmitContext/rebaseDir（已删→R2-C1-C3）；F2 🔴 req R-E1 emitEntry 签名过时（已修→§8）；F3 🟠 output.write 缺 writeDir（已修）；F4 🟠 6 处签名 5 种写法（已统一 §8）；F5 view sourcemap mergeSourcemap 吃临时拼装 compileRes（已补 §4.1）；F6 map 类型 string 一致声明（已补 §4.1）；F7 view enableSourcemap 是 state.js 模块导出非全局（已修 §7）。**升 `ready`** |
+| 2026-09-15 | **Review R4（F1-F3）签名与协议收敛**：F1 🔴 §7 R2 findings 三处"建议"未标注被 C1-C3 否决（已标注）；F2 🔴 output.write 签名 `({path,content,map?})` 单文件 vs 实际 entry 多文件 `({entryId,kind,files[],sourcemaps?[]})`（已修正为 `write({entry,...})`）；F3 🟠 emitEntry 签名缺 outputCount 返回机制（已补返回 `{entry, count}`）。requirements/plan 同步。**升 `ready`** |

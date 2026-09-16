@@ -19,10 +19,10 @@ src/compiler/{view,logic}/index.js（编译）
   └─ 产出「模块集合」iterable<{moduleId, code, map}>（提供者 A0 = scriptRes/compileRes）
         └─ pipeline/emit.js  emitEntry(...)
              ├─ transform 策略注入（bundle / perModule —— 各自 apply + 错误定位）
-             └─ → pipeline/output.js  write({path, content, map?, collectOutput, writeDir})
+             └─ → pipeline/output.js  write({entry, collectOutput, writeDir})
                     └─ collectOutput ? postMessage(M1) : mkdir + writeFileSync
 src/compiler/style/index.js
-  └─ → pipeline/output.js  write({path, content(css), map?, collectOutput, writeDir})   // 不经 emitEntry
+  └─ → pipeline/output.js  write({entry{files:[css],sourcemaps?:[map]}, collectOutput, writeDir})   // 不经 emitEntry
 ```
 
 ## 3. 模块集合契约（D-E-1/D-E-6）
@@ -87,7 +87,7 @@ const strategies = {
 
 ```js
 // pipeline/output.js —— 唯一写盘出口（materialize 名不副实修复）
-write({ path, content, map?, collectOutput, writeDir })  // R2-C2/C3: 不管 count/rebase
+write({ entry, collectOutput, writeDir })  // R2-C2/C3 + R4-F2: entry={entryId,kind,files[],sourcemaps?[]}; 不管 count/rebase
 ```
 
 - collectOutput 路径：postMessage({ type:'output', entry })——**R1-F6**：entry 形状 = `{ entryId, kind, files:[{path,code}], sourcemaps?:[{path,map}] }`，与 BuildModel.add 入参**完全一致**（三引擎实证一致，不引入新形状）；
@@ -118,7 +118,7 @@ write({ path, content, map?, collectOutput, writeDir })  // R2-C2/C3: 不管 cou
 
 **问题**：emitEntry 签名当前只列 `{entryId, kind, modules, transform, filename, sourcemap, collectOutput}`——缺 `activeCompileConfig`（target/platform/minify）、`sourcemapTargetPath`（rebase）、`relPrefix`（物化路径前缀）。若纯函数化，参数膨胀到 10+；若闭包捕获全局，则 emitEntry 不可复用（绑 worker 上下文）。
 
-**建议**：emitEntry 接受一个 **EmitContext** 对象（聚合 worker 全局：`{compileConfig, sourcemapTargetPath, relPrefix, collectOutput, outputCount ref}`），不逐个罗列——ctx 注入而非参数膨胀。outputCount 作为可变引用（R2-F2）。
+**建议（已被 R2-C1 否决）**：~~emitEntry 接受 EmitContext 聚合对象~~ → 改为纯参数 + outputEnv 小聚合（见 §8 R2-C1）。outputCount 可变引用方案也已被 R2-C2 否决（count 在 emitEntry 层累加，output.write 不管）。
 
 ### R2-F2（🟠）：outputCount 在 worker 完成消息里（协议层耦合）
 
@@ -126,7 +126,7 @@ write({ path, content, map?, collectOutput, writeDir })  // R2-C2/C3: 不管 cou
 
 **问题**：output.write 抽取后，`outputCount++` 该在哪做？output.write 内部 postMessage 后 ++——需要**可变状态引用**（非纯函数）。
 
-**建议**：output.write 接受 `EmitContext`（含 outputCount 可变引用），内部 postMessage 后 `ctx.outputCount++`——保留 worker 协议不变，但 output.write 非纯函数（有副作用：改 ctx.outputCount + postMessage）。声明此副作用。
+**建议（已被 R2-C2 否决）**：~~output.write 接受 EmitContext（outputCount 可变引用），内部 ++~~ → 改为 output.write 不管 count（count 在 emitEntry 层累加，见 §8 R2-C2）。
 
 ### R2-F3（🟠）：outputDir 计算不统一（三引擎各自算）
 
@@ -136,7 +136,7 @@ write({ path, content, map?, collectOutput, writeDir })  // R2-C2/C3: 不管 cou
 
 **问题**：output.write 统一 mkdir/write 时，写盘路径用 `getTargetPath()`，但 logic sourcemap rebase 用 `sourcemapTargetPath`——两个路径**可能不同**（sourcemapTargetPath 在 worker init 时可被 message 覆盖为别的值）。
 
-**建议**：output.write 参数区分 `writeDir`（写盘，getTargetPath）与 `rebaseDir`（sourcemap rebase 基准，sourcemapTargetPath）——两个路径参数，非一个。
+**建议（已被 R2-C3 否决）**：~~output.write 区分 writeDir 与 rebaseDir~~ → 改为 output.write 只含 writeDir；rebase 留 emitEntry 策略（见 §8 R2-C3）。
 
 ### R2-F4（🟡）：style 的 `options.sourcemap` vs 全局 `enableSourcemap`
 
@@ -175,7 +175,7 @@ emitEntry 参数分两组：
 ### 修正后的签名
 
 ```js
-// emitEntry 本质参数 + outputEnv
+// emitEntry 本质参数 + outputEnv  —— R4-F3: 返回产出 entry 数（供调用方累加 outputCount）
 emitEntry({
   entryId, kind,
   modules,                    // iterable<{moduleId, code, map}>
@@ -184,14 +184,15 @@ emitEntry({
   sourcemapTargetPath,        // string | null（perModule rebase 基准，仅 logic）
   filename, relPrefix,
 }, outputEnv)                 // { collectOutput, writeDir }
+// → 返回 { entry, count } —— entry 给 output.write；count=1（该次产出的 entry 数，调用方累加到 worker outputCount）
 
-// output.write（不管 count、不管 rebase）
+// output.write（不管 count、不管 rebase）—— R4-F2 修正：吃 entry 结构（files[] + sourcemaps[]），非单文件
 write({
-  path, content, map?,        // 产物内容（已含 sourceMappingURL 拼接）
+  entry: { entryId, kind, files: [{path, code}], sourcemaps?: [{path, map}] },
   collectOutput,              // postMessage(M1) vs fs
-  writeDir,                   // mkdir + writeFileSync
+  writeDir,                   // mkdir + writeFileSync（直写路径用）
 })
-// 返回值：void（count 由 emitEntry 层累加）
+// 返回值：void（count 由 emitEntry 层累加，见 R4-F3）
 ```
 
 
@@ -202,7 +203,7 @@ write({
 - **R3-F1**（🔴）：implementation-plan 残留 R2 被否决的 EmitContext/rebaseDir（已删，替换为 R2-C1-C3 指引）。
 - **R3-F2**（🔴）：requirements R-E1 emitEntry 签名过时（已修正为 §8 签名）。
 - **3-F3**（🟠）：requirements/design §5 output.write 缺 writeDir（已修正）。
-- **R3-F4**（🟠）：6 处 output.write 签名 5 种写法（§2/§5/§8/requirements/plan——已统一到 §8 的 `write({path, content, map?, collectOutput, writeDir})`）。
+- **R3-F4**（🟠）：6 处 output.write 签名 5 种写法（§2/§5/§8/requirements/plan——已统一到 §8 的 `write({entry, collectOutput, writeDir})`）。
 
 ### R3-F5..F7（补充声明）
 

@@ -16,7 +16,7 @@ Status: **冻结（2026-09-15）** — D-E-1..8 已拍板；随 Action `ready`�
 
 ## R-E2（MUST）output 唯一写盘出口
 
-- `pipeline/output.js` 独立（D-E-7）：`write({ path, content, map?, collectOutput, writeDir })`（R2-C2/C3：不管 count、不管 rebase）——collectOutput ? postMessage(M1) : mkdir(writeDir)+write。
+- `pipeline/output.js` 独立（D-E-7）：`write({ entry, collectOutput, writeDir })`（R2-C2/C3 + R4-F2：entry={entryId,kind,files[],sourcemaps?[]}；不管 count/rebase）——collectOutput ? postMessage(M1) : mkdir(writeDir)+write。
 - 三引擎（view/logic/style）写盘统一经 output.write；**修复 materialize 名不副实**（9 处直接 writeFileSync 收进 output）。
 
 ## R-E3（MUST）style 边界
