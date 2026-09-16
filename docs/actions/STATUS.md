@@ -63,3 +63,4 @@
 | `fe-tools-wxml-bridge` | `complete` | [README](_archive/complete/fe-tools-wxml-bridge/README.md) | Rust parser napi 桥 + sourcemap 跨文件归位（W0/W1/W2）；559/559 + 无 include 页 sourcemap diff=0 + 消融 ×2；D-WIR-1 修订回流；已归档。 | 2026-09-14 |
 | `fe-tools-wxml-ir` | `complete` | [README](_archive/complete/fe-tools-wxml-ir/README.md) | TS-2：parse→Document→load→Backend 缝 + registry；行为 0 严格 diff=0；消融 ×2；S13 view 收口（style 书面剩余）；不变量回流；已归档。 | 2026-09-14 |
 | `fe-tools-session-unify` | `complete` | [README](_archive/complete/fe-tools-session-unify/README.md) | session 三入口内核抽取 + 调度收口；S1+S2 交付（`src/session/runner.js` 内核；壳零 activeLoop 访问）；500/74 全绿；diff=0 ×2 基线；消融 ×2；结构不变量已回流 architecture-notes；已归档。 | 2026-09-14 |
+| `fe-tools-ts-migration` | `draft` | [README](fe-tools-ts-migration/README.md) | src/compiler 41 .js→.ts 全仓迁移；import 后缀显式 .ts（D-TD-20 tsc rewrite）；行为 0（diff=0 + 584/584）；分阶段 core→worker-runtime→pipeline→view→logic/style。 | 2026-09-16 |
