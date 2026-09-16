@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **draft（R11 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
+Status: **draft（R12 review 中 · 2026-09-15）** — R1-R12 收敛；主线 + 决策表 + 签名。
 
 ## 1. 现状锚定（实证）
 

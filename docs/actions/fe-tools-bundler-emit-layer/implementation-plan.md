@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-bundler-emit-layer
 
-Status: **draft（R11 review 中 · 2026-09-15）** — E1→E2；行为 0；禁混。
+Status: **draft（R12 review 中 · 2026-09-15）** — E1→E2；行为 0；禁混。
 
 ## 基线与纪律
 
