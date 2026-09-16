@@ -244,9 +244,10 @@ sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 �
 
 ### D-WR-2：compile 钩子边界 = 完全自管循环
 
-- **决策**：compile 钩子收 `{ mainPages, subPages, progress, config, sink, logger }`，自己决定怎么循环。runtime 只管调度骨架（消息/状态/完成/错误），不假设编译循环结构。
+- **决策**：compile 钩子收 `{ msg, progress, config }`，自己决定怎么循环。runtime 只管调度骨架（消息/状态/完成/错误），不假设编译循环结构。
+- **签名演进**（R6 F23/F25 修正）：原 `compile({ mainPages, subPages, progress, config, sink, logger })`（D-WR-1..5 拍定时含 sink/logger）→ R1 F1 删 sink/logger（从 getStore）→ R6 F25 改 `compile({ msg, progress, config })`（收 msg 完整供业务初始化：resetStoreInfo(msg.storeInfo)/setEnableSourcemap(msg.sourcemap) 等引擎特化初始化移入 compile 内，F23；buildConfig 保持纯函数）。
 - **理由**：logic 的 independent 分包 + 延迟 writeCompileRes 打破"mainPages + subPages 平铺"骨架——与其给 preFinish 额外钩子，不如让 compile 完全自管，logic 特化在 compile 内闭环。
-- **影响**：runtime 不提供 forEachPage 帮手；三引擎的 compile 实现各自管循环。
+- **影响**：runtime 不提供 forEachPage 帮手；三引擎的 compile 实现各自管循环 + 业务初始化。
 
 ### D-WR-3：能力渗透 = AsyncLocalStorage
 

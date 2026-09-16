@@ -38,7 +38,7 @@ MUST 新增 `fe/tools/bundler/src/compiler/worker-runtime/` 目录，包含：
 ### R-WR2 — engine strategy 契约
 
 MUST 三引擎各导出 engine（`viewEngine` / `logicEngine` / `styleEngine`），通过 `defineEngine(overrides)` 声明：
-- `compile({ mainPages, subPages, progress, config })` → `Promise<void>`（完全自管循环，D-WR-2；**不收 sink/logger 参数**——从 `abilityContext.getStore()` 拿，D-WR-3）
+- `compile({ msg, progress, config })` → `Promise<void>`（完全自管循环，D-WR-2；收 `msg`= input 完整供业务初始化 + `{progress,config}` runtime 造；**不收 sink/logger**——从 `abilityContext.getStore()` 拿，D-WR-3）；compile 内部做引擎特化业务初始化（resetStoreInfo/setEnableSourcemap/sourcemapTargetPath/wxsScannedWorkPath），buildConfig 保持纯函数
 - `cleanup()` —— 缓存清理（各引擎自管）
 - `buildConfig({ sourcemap, compileConfig, sourcemapTargetPath })` —— 引擎配置
 - `successPayload()` —— 默认 `{}`，view/logic 追加 compatibilityWarnings

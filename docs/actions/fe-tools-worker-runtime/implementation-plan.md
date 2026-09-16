@@ -43,9 +43,13 @@ Status: **draft**
 
 把三引擎 `index.js` 的 `if (!isMainThread)` 块移除，业务函数纯化，导出 engine。
 
+- **业务初始化归 compile 内部**（F23/F25）：resetStoreInfo(msg.storeInfo) / setEnableSourcemap(msg.sourcemap) / sourcemapTargetPath / wxsScannedWorkPath 等引擎特化初始化，移到 engine.compile({ msg, progress, config }) 内部；buildConfig 保持纯函数（返回 config 对象，无副作用）
+- **compile 签名**：`compile({ msg, progress, config })`（收 msg 完整供初始化 + {progress,config} runtime 造）
+
 - `view/index.js`：
   - 删 `let collectOutput` / `let outputCount` / `if (!isMainThread) { parentPort.on(...) }` 整块
   - `compileML` 签名不动（从 `abilityContext.getStore()` 拿 sink/logger，D-WR-3 收敛点）
+- **dependencyGraph 归 engine.successPayload 默认**（F24）：defineEngine 默认 `successPayload: () => ({ dependencyGraph: getDependencyGraph().toJSON() })`；三引擎按需覆盖（view/logic 追加 compatibilityWarnings，style 用默认）；runtime 删 `import { getDependencyGraph }` + success 里的 dependencyGraph 行
   - 新增 `export const viewEngine = defineEngine({ compile, cleanup, successPayload })`
 - `logic/index.js`：同上，engine 含 `buildConfig`（sourcemapTargetPath）
 - `style/index.js`：同上，engine 含 `normalizeError`（file/line/column/stage）

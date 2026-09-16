@@ -45,19 +45,19 @@ export function defineEngine(overrides) {
   return {
     buildConfig: msg => ({ sourcemap: !!msg.sourcemap, minify: msg.compileConfig?.minify !== false }),
     cleanup: () => {},
-    successPayload: () => ({}),
+    successPayload: () => ({ dependencyGraph: getDependencyGraph().toJSON() }),  // F24：dependencyGraph 归 successPayload 默认（业务状态读取）
     normalizeError: e => ({ message: e.message, stack: e.stack, name: e.name }),
     ...overrides,
   }
 }
 ```
 
-**compile 钩子契约**（D-WR-2 + D-WR-3 修正）：`compile({ mainPages, subPages, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿，和 compileML/compileJS/compileSS 一致）。compile 完全自管循环；sink/logger 是能力注入，在 context 里，不透传参数。
+**compile 钩子契约**（D-WR-2 + D-WR-3 + F23/F25 修正）：`compile({ msg, progress, config })` → `Promise<void>`——**不收 sink/logger 参数**（从 `abilityContext.getStore()` 拿）；收 `msg`（= input 完整，含 storeInfo/sourcemap/pages 供业务初始化）+ `{ progress, config }`（runtime 造）。compile 完全自管循环 + **内部做引擎特化业务初始化**（resetStoreInfo(msg.storeInfo) / setEnableSourcemap(msg.sourcemap) / sourcemapTargetPath / wxsScannedWorkPath 等，各引擎自管）；buildConfig 保持纯函数（返回 config 对象，无副作用）。
 
 三引擎：
-- `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 追加 compatibilityWarnings = logger.flush()）
-- `logicEngine = defineEngine({ compile, cleanup, successPayload, buildConfig })`（buildConfig 多 sourcemapTargetPath）
-- `styleEngine = defineEngine({ compile, cleanup, normalizeError })`（normalizeError 追加 file/line/column/stage）
+- `viewEngine = defineEngine({ compile, cleanup, successPayload })`（successPayload 覆盖：追加 compatibilityWarnings = logger.flush()，dependencyGraph 用默认）
+- `logicEngine = defineEngine({ compile, cleanup, successPayload, buildConfig })`（buildConfig 多 sourcemapTargetPath；successPayload 同 view）
+- `styleEngine = defineEngine({ compile, cleanup, normalizeError })`（normalizeError 追加 file/line/column/stage；successPayload 用默认，无 compatibilityWarnings）
 
 ### 能力注入（D-WR-3）
 
@@ -124,7 +124,7 @@ import { isMainThread, parentPort } from 'node:worker_threads'
 import { abilityContext } from './context.js'
 import { PostMessageSink } from './sinks.js'
 import { BufferingLogger } from './loggers.js'
-import { getDependencyGraph } from '../core/env.js'  // 示例所需 import
+import { getDependencyGraph } from '../core/env.js'  // defineEngine successPayload 默认读 dependencyGraph（业务状态）
 
 // makeProgress 由 runtime 内部定义：持 parentPort（worker 侧，不持 onProgress）
 // progress.completedTasks setter → parentPort.postMessage({completedTasks})
@@ -145,13 +145,12 @@ export function runWorker(engine) {
     abilityContext.run({ sink, logger }, async () => {
       try {
         const config = engine.buildConfig(msg)
-        await engine.compile({ mainPages: msg.pages.mainPages, subPages: msg.pages.subPages, progress: makeProgress(parentPort), config })
+        await engine.compile({ msg, progress: makeProgress(parentPort), config })
         engine.cleanup()
         parentPort.postMessage({
           success: true,
-          ...engine.successPayload(),
+          ...engine.successPayload(),  // F24：dependencyGraph 由 successPayload 默认提供
           compatibilityWarnings: logger.flush(),
-          dependencyGraph: getDependencyGraph().toJSON(),
           outputCount: sink.count,  // D-WR-6
         })
       }
@@ -223,7 +222,7 @@ function warnOnce(type, name, location, message) {
 ```
 parentPort.on('message', input)
   → abilityContext.run({ sink: PostMessageSink, logger: BufferingLogger })
-    → engine.compile({ mainPages, subPages, progress, config })   ← 不收 sink/logger（context 内）
+    → engine.compile({ msg, progress, config })   ← 收 msg 完整（含 storeInfo/sourcemap 供业务初始化）+ {progress,config}（runtime 造）
       → compileML/compileSS 内部（签名不动，从 getStore 拿 sink/logger）
         → emitEntry(params) → strategy.apply → sink.write(entry)  [count++]
         → checkTemplateCompatibility → warnOnce → logger.warn     [buffer push]
