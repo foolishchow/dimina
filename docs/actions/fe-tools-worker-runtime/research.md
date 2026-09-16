@@ -270,16 +270,94 @@ sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 �
   - 测试直连——AsyncLocalStorage 的 run-scoped 天然解决测试直连注入（原 output-pure 方案 C 证伪的根因：parentPort null）。测试用 FileSink + ConsoleLogger 包 run，不经 worker 也能写盘 + warn
 - **影响**：output-pure 方案 C 证伪的"测试直连 parentPort null"问题由 D-WR-3/D-WR-4 解决。
 
+### D-WR-5：worker 入口归属 = per engine thin entry
+
+- **决策**：每 engine 一个 `worker-entry.js`（2 行：import runWorker + import engine + runWorker(engine)）；engine 在业务 `index.js` export（defineEngine）；stage-channel `WORKER_ENTRY` 指向 thin entry。
+- **理由**：engine 文件纯（只 export engine + 业务函数，零调度知识）；thin entry 是胶水（2 行）；调度骨架集中在 `worker-runtime/runtime.js`；静态 import 无动态路径风险（淘汰通用 entry + workerData + 动态 import 方案）。
+- **形态**：
+  ```js
+  // view/worker-entry.js（thin）
+  import { runWorker } from '../worker-runtime/runtime.js'
+  import { viewEngine } from './index.js'
+  runWorker(viewEngine)
+  ```
+
+### D-WR-6：outputCount 归 sink 实例
+
+- **决策**：`sink.write(entry)` 内部计数，`sink.count` 暴露；runtime success 时读 `sink.count` 发给 stage-channel 对账；outputCount 从业务文件消失。
+- **理由**：outputCount 是调度对账状态（不是业务）——归 runtime；sink 是能力注入点（D-WR-3），计数天然在 sink；业务层只调 `sink.write(entry)`，不碰 outputCount。
+- **影响**：emitEntry 不再 return number（见 D-WR-11）。
+
+### D-WR-7：compatibility 模块级状态
+
+- **决策**：`pendingWarnings` 归 logger 实例（BufferingLogger 内部缓冲数组）；`warnedItems` 留 `compatibility.js` 模块级（业务去重状态，行为 0）。
+- **理由**：pendingWarnings 是调度缓冲（攒着回传）→ 归 logger 实例；warnedItems 是业务去重状态（避免同一次编译重复 warn）→ 不是调度状态，留模块级不违反 D-WR-3（D-WR-3 的"无模块级可变状态"指调度能力注入，不是业务状态）。
+- **形态**：
+  ```js
+  // compatibility.js
+  const warnedItems = new Set()   // 模块级（业务去重，行为 0）
+  function warnOnce(...) {
+    if (warnedItems.has(key)) return
+    warnedItems.add(key)
+    const { logger } = abilityContext.getStore() ?? { logger: consoleFallback }
+    logger.warn(message)           // 缓冲归 logger 实例
+  }
+  // takeCompatibilityWarnings 废弃 → logger.flush()
+  ```
+- **行为 0**：warnedItems 留模块级保持跨 message 去重行为（现状 worker 生命周期内共享）；主线程直连跨测试共享（现状行为）——均行为 0。
+
+### D-WR-8：跨线程去重 = 保留主线程 Set 兜底
+
+- **决策**：warnedItems 各 worker 模块级（现状行为 0）；主线程 `ctx.compatibilityWarnings` Set 兜底去重（现状保留）。
+- **理由**：D-WR-7 让 warnedItems 留模块级 → 跨 worker 各自去重 → 主线程 Set 兜底——现状行为，收敛后保持，行为 0。
+
+### D-WR-9：资源层接缝 = executeTask
+
+- **决策**：`executeTask({ engine, input, onOutput, onProgress })` → `Promise<result>` 作为任务层/资源层分离的接缝。任务层（engine/input/onOutput/onProgress/Promise）稳定，资源层（worker 管理）在 executeTask 内部换。
+- **背景洞察**（用户提出）：现状是最简直接调度（new Worker + terminate，worker-pool 只限流不复用）；未来 pool（复用 worker）/queue（任务排队）改变 Promise 绑定语义（从 worker 实例生命周期 → 任务完成）。但现状 Promise 其实已是任务完成语义（resolve=success 不绑 terminate）——问题在实现绑死直接调度。关键是留资源层接缝，不是 Promise 形态。
+- **契约 5 点**（任务层，稳定不变）：
+  1. 输入：`{ engine, input, onOutput, onProgress }`
+  2. 输出：`Promise<result>`（resolve = 任务完成，不绑 worker 生命周期）
+  3. `onOutput(entry)` —— 流式产物回调（0..N 条）
+  4. `onProgress(completed, total)` —— 进度回调
+  5. 资源层（worker 怎么来怎么走）不在契约里
+- **形态**：
+  ```js
+  // worker-runtime/executor.js（资源层接缝）
+  export function executeTask({ engine, input, onOutput, onProgress }) {
+    // 现状：new Worker + terminate
+    return new Promise((resolve, reject) => { /* ... */ })
+  }
+  // 未来 pool：只换内部
+  // return workerPool.submit({ engine, input, onOutput, onProgress })
+  ```
+- **理由**：现在 new Worker，未来 pool/queue 换 executeTask 内部，外层（build-pipeline）零改动。
+
+### D-WR-10：调度模型演进策略
+
+- **决策**：现状直接调度（new + terminate，worker-pool 只限流）保持；B 批量 Promise 不做；C AsyncIterator 留作 pool/queue 时候选；pool/queue 是独立未来 Action。
+- **实证**：materialize 批量（所有 stage 完后 build-pipeline:181 一次写盘），BuildModel.add 只攒内存 Map——流式 postMessage 的价值有限（只省 worker 内存 + TTY page 进度，主线程内存不省）。
+- **淘汰 B（批量 Promise）**：绑死"一次任务一次批量"形态 + 改行为（牺牲 page 进度 + worker 内存）+ 未来 pool/queue 流式复用要重写。
+- **C（AsyncIterator）留候选**：pool/queue 时 onOutput 回调可能不够（复用 worker 要 task id 区分），AsyncIterator 的 `for await (entry of task)` 天然任务隔离——但 C 现在改行为 + 复杂，不做，留作未来候选。
+- **不引入 cluster**：现状 worker_threads（单进程多线程）；cluster（多进程）复杂度高无需求，调度抽象只覆盖 worker_threads。
+
+### D-WR-11：emitEntry = Promise<void> + fire-and-forget 契约
+
+- **决策**：emitEntry 保持 async（天然 Promise<void>），resolve = transform 完 + postMessage 投递完；不等主线程收到/materialize（fire-and-forget 流式）；不返回 result 对象（无消费者）。
+- **两层 Promise 层次**：
+  - emitEntry（worker 内部）：Promise resolve = transform + 投递完（①），不等主线程
+  - executeTask/runCompileStage（主线程）：Promise resolve = worker success（worker 报告"我发完了"）= 整个 stage 完成
+- **契约明确**：emitEntry 的 Promise resolve = transform + postMessage 投递完（fire-and-forget）；主线程"处理完"由 executeTask Promise 覆盖（resolve = worker success）。
+- **D-E-9 回流**：emit-layer D-E-9（emitEntry return number 供累加 outputCount）在 worker-runtime 收敛后整体废弃——outputCount 归 sink（D-WR-6），return 值无消费者。emitEntry 改 return void（async 天然）。architecture-notes 回流标注。
+- **淘汰**：return number（a 残留）/ return result 对象（无消费者）。
+
 ## 8. 剩余待拍点
 
-1. **worker 入口归属**（原 2）：runtime 提供 worker 入口模板（import engine → run）？还是 engine 文件自己 `export default` 被 runtime 加载？
-2. **outputCount 对账归属**（原 4）：倾向留 runtime（调度对账状态，不是业务）——待确认。
-3. **compatibility 模块级状态**（原 6，D-WR-3 派生）：pendingWarnings/warnedItems 归 logger 实例？倾向 logger 实例自带（BufferingLogger 内部维护去重 Set + 缓冲数组）——待确认。
-4. **warnedItems 跨线程去重**（原 7，D-WR-3 派生）：现在靠主线程 Set 兜底。若 logger 实例自带去重，跨 worker 仍需主线程兜底——保留现状还是改？待确认。
+全部收敛（D-WR-1..11 拍定）。无剩余待拍点。
 
 ## 9. 与现有 Action 的关系
 
-### 8.1 output-pure 的重新定位
+### 9.1 output-pure 的重新定位
 
 `fe-tools-bundler-output-pure` 的方案 C（删 collectOutput=false 直写路径）**已证伪**——collectOutput=false 是测试直连的活路径，不是死路径。实施时 40 个测试崩溃（`parentPort` null）。
 
@@ -287,11 +365,13 @@ sink 和 logger 都已有收敛点——sink 在 emitEntry / output.write（2 �
 
 **建议**：output-pure 作为独立 Action **废止**（superseded），其发现回流到本调研。worker-runtime 收敛面立项后，output.write 的纯化自然包含在内（sink 注入替代 collectOutput 分叉）。
 
-### 8.2 emit-layer 的对齐
+### 9.2 emit-layer 的对齐
 
 emit-layer 已确立 D-E-2（transform 策略函数注入）。worker-runtime 是同一精神的扩展——把"写盘策略"和"日志策略"也从 flag 分叉改成函数/对象注入。emit-layer 的 emitEntry 收 strategy 参数，worker-runtime 的 compileX 收 { sink, logger }。
 
-### 8.3 memfs（阶段 2）的关系
+**D-E-9 回流**：emit-layer D-E-9（emitEntry return number 供累加 outputCount）在 worker-runtime 收敛后废弃（D-WR-6 outputCount 归 sink + D-WR-11 emitEntry return void）。architecture-notes 回流标注。
+
+### 9.3 memfs（阶段 2）的关系
 
 memfs Action 改主线程 materialize + dev server。它**不依赖** output-pure（output-pure 证伪后，worker 侧仍走 collectOutput=true → postMessage，主线程 materialize 写盘——这条链路 emit-layer 已完成）。worker-runtime 收敛是**正交**改进（把调度知识从业务层抽出），memfs 可独立推进。
 
@@ -303,7 +383,8 @@ memfs Action 改主线程 materialize + dev server。它**不依赖** output-pur
 // 零调度知识——不 import worker_threads，不 if(!isMainThread)
 export async function compileML(pages, root, progress, { sink, logger }) {
   // ... 纯编译逻辑 ...
-  await emitEntry({ ... })        // 内部调 sink.write(entry)
+  await emitEntry({ ... })        // async Promise<void>，内部 sink.write(entry)；return void（D-WR-11）
+  // outputCount 归 sink.count（D-WR-6），不再 += await emitEntry
   // checkTemplateCompatibility 内部调 logger.warn
 }
 
