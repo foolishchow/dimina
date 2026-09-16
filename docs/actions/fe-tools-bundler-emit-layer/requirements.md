@@ -1,6 +1,6 @@
 # Requirements — fe-tools-bundler-emit-layer
 
-Status: **draft（R9 review 中 · 2026-09-15）** — D-E-1..12 已拍板。
+Status: **draft（R10 review 中 · 2026-09-15）** — D-E-1..12 已拍板。
 
 ## R-E0（MUST）模块集合契约
 
@@ -23,7 +23,7 @@ Status: **draft（R9 review 中 · 2026-09-15）** — D-E-1..12 已拍板。
 
 ## R-E3（MUST）style 边界
 
-- style **只收 output**（D-E-8）：bundle 后 css/map 经 output.write；**不进 emitEntry**（无模块集合/无 modDefine/无 transform，硬套=伪抽象）。
+- style **只收 output**（D-E-8）：compileSS 后 css/map 经 output.write；**不进 emitEntry**（无模块集合/无 modDefine/无 transform，硬套=伪抽象）。
 
 ## R-E4（MUST）行为 0 与范围
 

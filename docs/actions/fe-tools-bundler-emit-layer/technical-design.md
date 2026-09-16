@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-layer
 
-Status: **draft（R9 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
+Status: **draft（R10 review 中 · 2026-09-15）** — R1-R7 收敛后清理；主线 + 决策表 + 签名。
 
 ## 1. 现状锚定（实证）
 
@@ -22,7 +22,7 @@ src/compiler/{view,logic}/index.js（编译）
              └─ 内部调 → pipeline/output.js  write({entry, collectOutput, writeDir})
                     └─ collectOutput ? postMessage(M1) : mkdir + writeFileSync
 src/compiler/style/index.js
-  └─ → pipeline/output.js  write({entry, collectOutput, writeDir})   // 不经 emitEntry
+  └─ → pipeline/output.js  write({entry, collectOutput, writeDir})   // 不经 emitEntry；entry 由 compileSS 内部组装
 ```
 
 ## 3. 模块集合契约
@@ -140,7 +140,7 @@ write({
 | --- | --- | --- |
 | D-E-1 | emit 输入 = 模块集合接口（iterable） | 契约先立，缓存后做提供者（解耦刀 1/刀 3） |
 | D-E-2 | transform 策略 = 函数注入（非标志位 if） | 防伪抽象——差异封装在各自 apply |
-| D-E-3 | emitOutput 统一出口（postMessage/fs） | 消 9 处直写 + 各自 mkdir |
+| D-E-3 | emitOutput 统一出口（postMessage/fs） | 消 9 处直写 + 3 处各自 mkdir |
 | D-E-4 | contract 不含 deps | 依赖留图维度 1，单一职责 |
 | D-E-5 | 只搬不优化 | 不统一 transform 粒度、不改产物语义 |
 | D-E-6 | contract 不含 range/sourceFile | 错误定位是布局私有；source 在 map 内 |
