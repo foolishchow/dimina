@@ -82,7 +82,7 @@ bundler 的**线程调度**（thread/worker 调度：起 worker、消息收发�
 | P-WR02 | 三引擎 engine export（只加 defineEngine + export，不动调度，F47）| engine export 可读 + 4 组 diff=0 |
 | P-WR03 | 调度原子切换（thin entry + emitEntry/output + compile 签名 + successPayload + 删 onMessage + getStore，F45+F47）| worker 跑通 + 零调度残留 + 4 组 diff=0 |
 | P-WR04 | （合并入 P-WR03）| — |
-| P-WR05 | compatibility 改（logger 注入 + warnedItems 留模块级 + takeWarnings→logger.flush）| compatibility 零 isMainThread |
+| P-WR05 | compatibility 改（logger 注入 + warnedItems 留模块级 + takeCompatibilityWarnings→logger.flush）| compatibility 零 isMainThread |
 | P-WR06 | stage-channel 改（executeTask 接缝，内部线性化）| stage-channel 调度知识集中 |
 | P-WR07 | 测试直连注入改造（FileSink + ConsoleLogger 包 run）| 40 测试 parentPort null 问题解决 |
 | P-WR08 | 全量验证（4 组 diff=0 + vitest + grep 锚定 + tsc）| 全绿 |

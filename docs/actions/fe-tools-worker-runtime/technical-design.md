@@ -298,6 +298,7 @@ abilityContext.run({ sink: FileSink(writeDir), logger: ConsoleLogger() }, () => 
 - **worker exit code != 0**：内存溢出等致命错误 → reject（保留 stage-channel 现有 D-P4 超时 + exit 处理）
 - **对账失败**：`sink.count !== receivedOutputCount` → reject（保留 outputCount 对账机制，状态源从 worker 全局变量变 sink.count）
 - **无 context 调用 warnOnce**：`abilityContext.getStore()` 返回 undefined → `consoleFallback` → console.warn（D-WR-4 兜底，不崩）
+- **测试直连注入**（D-WR-4）：测试 helper `runWithAbilities(writeDir, fn)`（建 `__tests__/helpers/run-with-abilities.js`，F53）—— `abilityContext.run({ sink: new FileSink(writeDir), logger: new ConsoleLogger() }, fn)`，包 compileML 调用，不经 worker 也能写盘 + warn
 
 ## 行为 0 保证
 

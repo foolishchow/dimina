@@ -120,7 +120,7 @@ stage-channel 的 new Worker + 回调内核重构为 executeTask 接缝调用。
 测试在主线程直接调 compileX 时，用 abilityContext.run 包 FileSink + ConsoleLogger。
 
 - 扫描 40 个失败测试的调用点（`null-safe-member-access` / `template-semantics` / `custom-file-types` / `compiler-hotpaths` / 等）
-- 测试 helper 提供 `runWithAbilities(writeDir, fn)` —— `abilityContext.run({ sink: new FileSink(writeDir), logger: new ConsoleLogger() }, fn)`
+- 测试 helper 提供 `runWithAbilities(writeDir, fn)`（建 `__tests__/helpers/run-with-abilities.js`，F53）—— `abilityContext.run({ sink: new FileSink(writeDir), logger: new ConsoleLogger() }, fn)`
 - 测试用 `runWithAbilities(outputDir, async () => { await compileML(...) })` 包裹
 - 或：compileX 在无 context 时 fallback 到 console + 抛错（要求显式注入）——倾向前者（helper 包裹）
 
