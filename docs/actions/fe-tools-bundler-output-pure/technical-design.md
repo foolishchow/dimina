@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-output-pure
 
-Status: **draft（C 方案拍板 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R1 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 1. 现状锚定（实证）
 
@@ -82,7 +82,14 @@ worker 侧：  emitEntry → postEntry → postMessage（无 fs）✅
 
 worker 侧彻底无 fs，materialize 是唯一写盘点——为阶段 2 memfs 留单一边界。
 
-## 5. Non-goals
+## 5. 决策
+
+| ID | 决策 | 一句话理由 |
+| --- | --- | --- |
+| D-OP-1 | emitEntry 接口演进：删 outputEnv 第二参数 | D-E-10 的 outputEnv={collectOutput,writeDir} 在 C 方案（worker 无 fs）下全空——outputEnv 载体空壳化，删除。**D-E-10 决策精神保留**（纯参数、不引入 EmitContext、不绑 worker 上下文），本 Action 强化之（单参数比带 outputEnv 更纯）。architecture-notes 回流标注 D-E-10 outputEnv 形态演进。 |
+| D-OP-2 | outputCount 对账机制保留 | emitEntry 仍 return 1；worker 仍发 outputCount；stage-channel 仍对账——不受 collectOutput 清理影响。 |
+
+## 6. Non-goals
 
 - memfs（materialize + dev server）——阶段 2 另立
 - cache + 目录归置——依赖 cache 家拍板，另立

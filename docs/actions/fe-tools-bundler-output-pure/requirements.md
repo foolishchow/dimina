@@ -1,6 +1,6 @@
 # Requirements — fe-tools-bundler-output-pure
 
-Status: **draft（C 方案拍板 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R1 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## R-OP0（MUST）删 collectOutput=false 死路径
 
@@ -22,6 +22,7 @@ Status: **draft（C 方案拍板 · 2026-09-16）** — 阶段 1：worker 无 fs
 
 - 三引擎删 worker 全局 `let collectOutput` 变量 + onMessage 的 `collectOutput = !!collectFlag`。
 - stage-channel 删 `collectOutput` 字段（onOutput 机制保留——主线程接 postMessage 走 BuildModel.add）。
+- **outputCount 对账保留**（D-OP-2）：emitEntry 仍 return 1，worker 仍发 outputCount，stage-channel 仍对账——不受 collectOutput 清理影响。
 - 三引擎 emitEntry 调用去 outputEnv 第二参数；style write → postEntry。
 
 ## R-OP4（MUST）materialize 不动
