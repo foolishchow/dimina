@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-output-pure
 
-Status: **draft（R2 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
+Status: **draft（R3 review 修正 · 2026-09-16）** — 阶段 1：worker 无 fs。
 
 ## 1. 现状锚定（实证）
 
@@ -73,6 +73,7 @@ export async function emitEntry(params) {
 - collectOutput=false 路径零调用方（实证）→ 删它无影响
 - collectOutput=true 路径：postMessage 行为不变（postEntry === 原 write 的路径 A）
 - materialize 不动 → 主线程写盘不变
+- outputCount 对账不变（D-OP-2）：emitEntry 仍 return 1，stage-channel 对账仍通过
 - 产物字节不变；vitest 全绿
 
 ## 4. 职责分层（改后）

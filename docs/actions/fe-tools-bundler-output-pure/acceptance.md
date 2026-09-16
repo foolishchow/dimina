@@ -1,15 +1,15 @@
 # Acceptance — fe-tools-bundler-output-pure
 
-Status: **draft（R2 review 修正 · 2026-09-16）** — 实施后回填 Actual。
+Status: **draft（R3 review 修正 · 2026-09-16）** — 实施后回填 Actual。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-OP0 | R-OP0 | collectOutput=false 死路径删除 | P-OP0 | pending |
-| A-OP1 | R-OP1 | output.js `postEntry` 只 postMessage，无 fs import | P-OP1 | pending |
-| A-OP2 | R-OP2 | emitEntry 无 outputEnv 第二参数 | P-OP2 | pending |
-| A-OP3 | R-OP3 | 三引擎无 collectOutput 变量；stage-channel 无 collectOutput 字段 | P-OP3 | pending |
-| A-OP4 | R-OP4 | materialize 不动（git diff 零触碰 build-model.js 写盘逻辑） | P-OP4 | pending |
-| A-OP5 | R-OP5 | 产物 diff=0 + vitest 全量绿 | P-OP5 | pending |
+| A-OP0 | R-OP0 | collectOutput=false 死路径删除 | P-OP00 | pending |
+| A-OP1 | R-OP1 | output.js `postEntry` 只 postMessage，无 fs import | P-OP01 | pending |
+| A-OP2 | R-OP2 | emitEntry 无 outputEnv 第二参数 | P-OP02 | pending |
+| A-OP3 | R-OP3 | 三引擎无 collectOutput 变量；stage-channel 无 collectOutput 字段 | P-OP03 | pending |
+| A-OP4 | R-OP4 | materialize 不动（git diff 零触碰 build-model.js 写盘逻辑） | P-OP04 | pending |
+| A-OP5 | R-OP5 | 产物 diff=0 + vitest 全量绿 | P-OP05 | pending |
 
 ## Non-acceptance
 
