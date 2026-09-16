@@ -11,6 +11,7 @@ import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { toMiniProgramModuleId } from '../../shared/path-utils.js'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../core/env.js'
+import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
 import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'
 import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.js'
@@ -1569,3 +1570,39 @@ export {
 	processWxsContent,
 	splitWithBraces,
 }
+
+// P-WR02: engine export（不动调度，F47；onMessage 旧版保留，compile 函数声明供 export）
+async function viewCompile({ msg, progress, config }) {
+	resetStoreInfo(msg.storeInfo)
+	setEnableSourcemap(!!msg.sourcemap)
+	collectOutput = !!msg.collectOutput
+	outputCount = 0
+	activeCompileConfig = config
+	wxsScannedWorkPath = null
+
+	await compileML(msg.pages.mainPages, null, progress)
+	for (const [root, subPages] of Object.entries(msg.pages.subPages)) {
+		await compileML(subPages.info, root, progress)
+	}
+
+	compileResCache.clear()
+	templateRenderCache.clear()
+	wxsModuleRegistry.clear()
+	wxsFilePathMap.clear()
+	wxsScannedWorkPath = null
+	optionalChainingCache.clear()
+}
+
+function viewSuccessPayload({ logger }) {
+	return {
+		dependencyGraph: getDependencyGraph().toJSON(),
+		compatibilityWarnings: logger.flush(),
+	}
+}
+
+export const viewEngine = defineEngine({
+	name: 'view',
+	compile: viewCompile,
+	cleanup: () => {},
+	successPayload: viewSuccessPayload,
+})

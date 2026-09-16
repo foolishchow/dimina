@@ -9,6 +9,7 @@ import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.js'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.js'
+import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.js'
 import { write } from '../pipeline/output.js'
 
@@ -606,3 +607,29 @@ function processHostSelector(selector, moduleId) {
 }
 
 export { boostExternalClassSelectors, compileSS, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath }
+
+// P-WR02: engine export（不动调度，F47）
+async function styleCompile({ msg, progress, config }) {
+	resetStoreInfo(msg.storeInfo)
+	collectOutput = !!msg.collectOutput
+	outputCount = 0
+
+	const styleOptions = { sourcemap: msg.sourcemap, minify: config.minify }
+	await compileSS(msg.pages.mainPages, null, progress, styleOptions)
+	for (const [root, subPages] of Object.entries(msg.pages.subPages)) {
+		await compileSS(subPages.info, root, progress, styleOptions)
+	}
+
+	compileRes.clear()
+}
+
+function styleNormalizeError(e) {
+	return { message: e.message, stack: e.stack, name: e.name, file: e.file, line: e.line, column: e.column, stage: e.stage }
+}
+
+export const styleEngine = defineEngine({
+	name: 'style',
+	compile: styleCompile,
+	cleanup: () => {},
+	normalizeError: styleNormalizeError,
+})

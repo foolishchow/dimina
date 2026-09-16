@@ -6,6 +6,7 @@ import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
 import { getWxMemberName, takeCompatibilityWarnings, warnUnsupportedWxApi } from '../core/compatibility.js'
+import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
 import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.js'
@@ -651,4 +652,52 @@ export function _setActiveCompileConfigForTest(config) {
 		},
 	}
 }
+
+// P-WR02: engine export（不动调度，F47）
+function logicBuildConfig(msg) {
+	return {
+		sourcemap: !!msg.sourcemap,
+		minify: msg.compileConfig?.minify !== false,
+		sourcemapTargetPath: msg.sourcemapTargetPath || getTargetPath(),
+		esTarget: {
+			logic: msg.compileConfig?.esTarget?.logic || 'es2023',
+			view: msg.compileConfig?.esTarget?.view || 'es2020',
+		},
+	}
+}
+
+async function logicCompile({ msg, progress, config }) {
+	resetStoreInfo(msg.storeInfo)
+	enableSourcemap = !!msg.sourcemap
+	collectOutput = !!msg.collectOutput
+	outputCount = 0
+	sourcemapTargetPath = config.sourcemapTargetPath
+	activeCompileConfig = config
+
+	const mainCompileRes = await compileJS(msg.pages.mainPages, null, null, progress)
+	for (const [root, subPages] of Object.entries(msg.pages.subPages)) {
+		const subCompileRes = await compileJS(
+			subPages.info, root, subPages.independent ? [] : mainCompileRes, progress,
+		)
+		await writeCompileRes(subCompileRes, root)
+	}
+	await writeCompileRes(mainCompileRes, null)
+
+	processedModules.clear()
+}
+
+function logicSuccessPayload({ logger }) {
+	return {
+		dependencyGraph: getDependencyGraph().toJSON(),
+		compatibilityWarnings: logger.flush(),
+	}
+}
+
+export const logicEngine = defineEngine({
+	name: 'logic',
+	compile: logicCompile,
+	cleanup: () => {},
+	successPayload: logicSuccessPayload,
+	buildConfig: logicBuildConfig,
+})
 
