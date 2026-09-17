@@ -7,7 +7,7 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path-utils.ts'
 import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.ts'
-import { NpmResolver } from './npm-resolver.js'
+import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from '../../model/dependency-graph.js'
 
 const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
@@ -186,7 +186,7 @@ function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: R
 
 	// 重新初始化 npm 解析器
 	if (pathInfo.workPath) {
-		context.npmResolver = new NpmResolver(pathInfo.workPath)
+		context.npmResolver = new NpmResolver(pathInfo.workPath as string)
 	}
 }
 

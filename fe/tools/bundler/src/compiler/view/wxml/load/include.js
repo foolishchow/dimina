@@ -1,4 +1,4 @@
-import { getTemplateDirectiveName } from '../../../core/compatibility.js'
+import { getTemplateDirectiveName } from '../../../core/compatibility.ts'
 import { createElement } from '../common/document.ts'
 import {
 	append,

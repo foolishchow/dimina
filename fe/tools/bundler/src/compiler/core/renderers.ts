@@ -19,24 +19,28 @@ const RENDERER_FIELD = 'renderer'
 const APP_CONFIG_FILE = 'app.json'
 
 /** renderer 注册表：adapter 由宿主（index.js）注入，避免本模块反向依赖编译编排。 */
-const rendererRegistry = new Map()
+interface Renderer { name: string; [key: string]: unknown }
+const rendererRegistry = new Map<string, Renderer>()
 
 /** 内部注册表（测试清理用；非公开契约）。 */
 export const _rendererRegistryForTest = rendererRegistry
 
-export function registerRenderer(renderer) {
+export function registerRenderer(renderer: Renderer): void {
 	if (!renderer || typeof renderer.name !== 'string' || !renderer.name) {
 		throw new TypeError('registerRenderer: renderer must have a non-empty name')
 	}
 	rendererRegistry.set(renderer.name, renderer)
 }
 
-export function getRenderer(name) {
+export function getRenderer(name: string): Renderer | null {
 	return rendererRegistry.get(name) ?? null
 }
 
 export class InvalidRendererError extends TypeError {
-	constructor(renderer, context = '') {
+	code: string
+	renderer: unknown
+	context: string
+	constructor(renderer: unknown, context: string = '') {
 		const scope = context ? ` in ${context}` : ''
 		super(`Unsupported renderer: ${String(renderer)} (expected: ${SUPPORTED_RENDERERS.join(', ')})${scope}`)
 		this.name = 'InvalidRendererError'
@@ -46,7 +50,7 @@ export class InvalidRendererError extends TypeError {
 	}
 }
 
-function readJsonFile(filePath) {
+function readJsonFile(filePath: string): Record<string, unknown> | null {
 	try {
 		return JSON.parse(fs.readFileSync(filePath, 'utf8'))
 	}
@@ -55,12 +59,12 @@ function readJsonFile(filePath) {
 	}
 }
 
-function extractRenderer(config) {
+function extractRenderer(config: Record<string, unknown> | null | undefined): string | undefined {
 	return typeof config?.[RENDERER_FIELD] === 'string' ? config[RENDERER_FIELD] : undefined
 }
 
 /** 轻量读取全局 renderer（app.json.renderer）；缺省/缺失/解析失败 → undefined。 */
-export function readAppRenderer(workPath) {
+export function readAppRenderer(workPath: string): string | undefined {
 	return extractRenderer(readJsonFile(path.join(workPath, APP_CONFIG_FILE)))
 }
 
@@ -69,16 +73,16 @@ export function readAppRenderer(workPath) {
  * pages 与 subPackages（root/path），与 env 解析规则一致；缺失页面文件 → undefined。
  * @returns {Map<string, string|undefined>} pagePath -> renderer|undefined
  */
-export function readPageRenderers(workPath) {
-	const pageRenderers = new Map()
+export function readPageRenderers(workPath: string): Map<string, string | undefined> {
+	const pageRenderers = new Map<string, string | undefined>()
 	const appConfig = readJsonFile(path.join(workPath, APP_CONFIG_FILE))
 	if (!appConfig) return pageRenderers
 
-	const pagePaths = Array.isArray(appConfig.pages) ? [...appConfig.pages] : []
-	for (const subPackage of appConfig.subPackages || []) {
+	const pagePaths = Array.isArray(appConfig.pages) ? [...(appConfig.pages as string[])] : []
+	for (const subPackage of (appConfig.subPackages as { pages?: string[]; root?: string }[] | undefined) || []) {
 		if (!Array.isArray(subPackage.pages)) continue
 		for (const page of subPackage.pages) {
-			pagePaths.push(`${subPackage.root}/${page}`)
+			pagePaths.push(`${subPackage.root ?? ''}/${page}`)
 		}
 	}
 
@@ -89,7 +93,7 @@ export function readPageRenderers(workPath) {
 	return pageRenderers
 }
 
-export function resolveRenderer(renderer, context = '') {
+export function resolveRenderer(renderer: string | undefined, context: string = ''): string {
 	const resolved = renderer === undefined ? DEFAULT_RENDERER : renderer
 	if (!SUPPORTED_RENDERERS.includes(resolved)) {
 		throw new InvalidRendererError(resolved, context)
@@ -103,13 +107,13 @@ export function resolveRenderer(renderer, context = '') {
  * @returns {{ appRenderer: string, pageRenderers: Map<string, string> }} 解析结果；
  *   任一未知 renderer 声明时抛 InvalidRendererError（携带声明上下文）。
  */
-export function resolveProjectRenderers(workPath) {
+export function resolveProjectRenderers(workPath: string): { appRenderer: string; pageRenderers: Map<string, string> } {
 	const appRenderer = resolveRenderer(readAppRenderer(workPath), 'app.json')
-	const pageRenderers = new Map()
+	const pageRenderers = new Map<string, string | undefined>()
 	for (const [pagePath, declared] of readPageRenderers(workPath)) {
 		pageRenderers.set(pagePath, resolveRenderer(declared, `${pagePath}.json`))
 	}
-	return { appRenderer, pageRenderers }
+	return { appRenderer, pageRenderers: pageRenderers as Map<string, string> }
 }
 
 export { DEFAULT_RENDERER, SUPPORTED_RENDERERS }

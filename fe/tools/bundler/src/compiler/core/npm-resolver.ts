@@ -8,7 +8,11 @@ import { getRelativePosixPath, resolveMiniProgramPath, toMiniProgramModuleId } f
  * https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html
  */
 class NpmResolver {
-	constructor(workPath) {
+	workPath: string
+	miniprogramNpmCache: Map<string, string | null>
+	packageCache: Map<string, Record<string, unknown> | null>
+
+	constructor(workPath: string) {
 		this.workPath = workPath
 		this.miniprogramNpmCache = new Map()
 		this.packageCache = new Map()
@@ -20,7 +24,7 @@ class NpmResolver {
 	 * @param {string} pageFilePath 页面文件路径
 	 * @returns {string} 解析后的组件路径
 	 */
-	resolveComponentPath(componentPath, pageFilePath) {
+	resolveComponentPath(componentPath: string, pageFilePath: string): string {
 		// 如果是相对路径，直接返回
 		if (componentPath.startsWith('./') || componentPath.startsWith('../') || componentPath.startsWith('/')) {
 			return this.resolveRelativePath(componentPath, pageFilePath)
@@ -42,7 +46,7 @@ class NpmResolver {
 	 * @param {string} pageFilePath 页面文件路径
 	 * @returns {string} 解析后的路径
 	 */
-	resolveRelativePath(componentPath, pageFilePath) {
+	resolveRelativePath(componentPath: string, pageFilePath: string): string {
 		return toMiniProgramModuleId(
 			resolveMiniProgramPath(this.workPath, pageFilePath, componentPath),
 			this.workPath,
@@ -55,7 +59,7 @@ class NpmResolver {
 	 * @param {string} pageFilePath 页面文件路径
 	 * @returns {string|null} 解析后的组件路径，如果找不到返回 null
 	 */
-	resolveNpmComponent(componentName, pageFilePath) {
+	resolveNpmComponent(componentName: string, pageFilePath: string): string | null {
 		const searchPaths = this.generateSearchPaths(pageFilePath)
 		
 		for (const searchPath of searchPaths) {
@@ -75,7 +79,7 @@ class NpmResolver {
 	 * @param {(moduleId: string) => string | null} resolveExistingModuleId 解析真实存在模块的回调
 	 * @returns {string|null} 解析后的模块 id
 	 */
-	resolveScriptModule(specifier, modulePath, resolveExistingModuleId) {
+	resolveScriptModule(specifier: string, modulePath: string, resolveExistingModuleId: (moduleId: string) => string | null): string | null {
 		if (!specifier || !resolveExistingModuleId) {
 			return null
 		}
@@ -97,11 +101,11 @@ class NpmResolver {
 	 * @param {string} pageFilePath 页面文件路径
 	 * @returns {string[]} 搜索路径数组
 	 */
-	generateSearchPaths(pageFilePath) {
+	generateSearchPaths(pageFilePath: string): string[] {
 		const relativePath = getRelativePosixPath(pageFilePath, this.workPath)
 		const pathParts = relativePath.split('/').slice(0, -1) // 去掉文件名
 
-		const searchPaths = []
+		const searchPaths: string[] = []
 
 		// 从当前目录开始，逐级向上查找 miniprogram_npm
 		for (let i = pathParts.length; i >= 0; i--) {
@@ -122,7 +126,7 @@ class NpmResolver {
 	 * @param {string} miniprogramNpmPath miniprogram_npm 路径
 	 * @returns {string|null} 组件路径，如果找不到返回 null
 	 */
-	findComponentInMiniprogramNpm(componentName, miniprogramNpmPath) {
+	findComponentInMiniprogramNpm(componentName: string, miniprogramNpmPath: string): string | null {
 		const fullMiniprogramNpmPath = path.join(this.workPath, miniprogramNpmPath)
 		
 		if (!fs.existsSync(fullMiniprogramNpmPath)) {
@@ -132,7 +136,7 @@ class NpmResolver {
 		// 缓存检查
 		const cacheKey = `${miniprogramNpmPath}/${componentName}`
 		if (this.miniprogramNpmCache.has(cacheKey)) {
-			return this.miniprogramNpmCache.get(cacheKey)
+			return this.miniprogramNpmCache.get(cacheKey) ?? null
 		}
 
 		// 按照微信小程序的寻址顺序查找
@@ -156,7 +160,7 @@ class NpmResolver {
 		return null
 	}
 
-	normalizeModuleId(moduleId) {
+	normalizeModuleId(moduleId: string): string {
 		let normalized = moduleId.replace(/\.(js|ts)$/, '').replace(/\\/g, '/')
 		if (!normalized.startsWith('/')) {
 			normalized = `/${normalized}`
@@ -169,7 +173,7 @@ class NpmResolver {
 	 * @param {string} componentPath 组件路径
 	 * @returns {boolean} 是否为有效组件
 	 */
-	isValidComponent(componentPath) {
+	isValidComponent(componentPath: string): boolean {
 		// 检查是否存在必要的组件文件
 		const requiredFiles = ['.json', '.js']
 		const hasRequiredFiles = requiredFiles.some(ext => {
@@ -190,7 +194,7 @@ class NpmResolver {
 			const indexJsonFile = path.join(componentPath, 'index.json')
 			if (fs.existsSync(indexJsonFile)) {
 				try {
-					const config = JSON.parse(fs.readFileSync(indexJsonFile, 'utf-8'))
+					const config = JSON.parse(fs.readFileSync(indexJsonFile, 'utf-8')) as { component?: boolean }
 					return config.component === true
 				} catch (e) {
 					return false
@@ -219,10 +223,10 @@ class NpmResolver {
 	 * @param {string} searchPath 搜索路径
 	 * @returns {object|null} 包信息，如果找不到返回 null
 	 */
-	getPackageInfo(packageName, searchPath) {
+	getPackageInfo(packageName: string, searchPath: string): Record<string, unknown> | null {
 		const cacheKey = `${searchPath}/${packageName}`
 		if (this.packageCache.has(cacheKey)) {
-			return this.packageCache.get(cacheKey)
+			return this.packageCache.get(cacheKey) ?? null
 		}
 
 		const packageJsonPath = path.join(this.workPath, searchPath, packageName, 'package.json')
@@ -233,7 +237,7 @@ class NpmResolver {
 		}
 
 		try {
-			const packageInfo = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
+			const packageInfo = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as Record<string, unknown>
 			this.packageCache.set(cacheKey, packageInfo)
 			return packageInfo
 		} catch (e) {
@@ -245,7 +249,7 @@ class NpmResolver {
 	/**
 	 * 清除缓存
 	 */
-	clearCache() {
+	clearCache(): void {
 		this.miniprogramNpmCache.clear()
 		this.packageCache.clear()
 	}

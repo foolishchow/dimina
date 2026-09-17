@@ -1,9 +1,9 @@
 import { transform } from 'esbuild'
 import { relative, resolve, sep } from 'node:path'
 import { getWorkPath } from '../core/env.ts'
-import { mergeSourcemap } from '../core/sourcemap.js'
+import { mergeSourcemap } from '../core/sourcemap.ts'
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
-import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
+import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore
 
 export interface EmitModule {
 	moduleId: string
@@ -216,6 +216,7 @@ export async function emitEntry(params: EmitEntryParams) {
 		throw new Error(`emitEntry: 未知 transform 策略 ${params.transform.strategy}`)
 	}
 	const { entry } = await strategy.apply(params)
-	const { sink } = abilityContext.getStore()  // 收敛点 getStore（不兜底——产物必须 sink，F55）
-	sink.write(entry)
+	const store = abilityContext.getStore() as { sink?: { write: (entry: unknown) => void } } | undefined
+	const { sink } = store ?? {}  // 收敛点 getStore（不兜底——产物必须 sink，F55）
+	sink?.write(entry)
 }

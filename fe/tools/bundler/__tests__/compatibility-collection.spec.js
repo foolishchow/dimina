@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { abilityContext } from '../src/compiler/worker-runtime/context.js'
-import { BufferingLogger } from '../src/compiler/worker-runtime/loggers.js'
+import { abilityContext } from '../src/compiler/worker-runtime/context.ts'
+import { BufferingLogger } from '../src/compiler/worker-runtime/loggers.ts'
 
 const {
 	checkTemplateCompatibility,
 	warnUnsupportedWxApi,
-} = await import('../src/compiler/core/compatibility.js')
+} = await import('../src/compiler/core/compatibility.ts')
 
 describe('worker compatibility diagnostics', () => {
 	afterEach(() => {

@@ -20,7 +20,7 @@ import path from 'node:path'
 import { resolveCompileConfig } from '../../shared/compile-config.ts'
 import { assertRendererSupportsPlatform } from '../../shared/platforms.ts'
 import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from '../core/env.ts'
-import { getRenderer, resolveProjectRenderers } from '../core/renderers.js'
+import { getRenderer, resolveProjectRenderers } from '../core/renderers.ts'
 
 const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
 const STAGE_TITLES = Object.freeze({

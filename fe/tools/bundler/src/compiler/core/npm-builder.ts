@@ -7,7 +7,14 @@ import { getStyleExts, getTemplateExts, getViewScriptExts } from '../core/env.ts
  * 用于处理小程序 npm 包的构建和管理
  */
 class NpmBuilder {
-	constructor(workPath, targetPath, dependencyGraph = null) {
+	workPath: string
+	targetPath: string
+	dependencyGraph: { addFile: (node: string, file: string, kind: string) => void } | null
+	builtPackages: Set<string>
+	packageDependencies: Map<string, Record<string, string>>
+	miniprogramExts: Set<string>
+
+	constructor(workPath: string, targetPath: string, dependencyGraph: { addFile: (node: string, file: string, kind: string) => void } | null = null) {
 		this.workPath = workPath
 		this.targetPath = targetPath
 		this.dependencyGraph = dependencyGraph
@@ -27,7 +34,7 @@ class NpmBuilder {
 	 * 构建 npm 包
 	 * 扫描 miniprogram_npm 目录并构建相关包
 	 */
-	async buildNpmPackages() {
+	async buildNpmPackages(): Promise<void> {
 		const miniprogramNpmPaths = this.findMiniprogramNpmDirs()
 		
 		for (const npmPath of miniprogramNpmPaths) {
@@ -39,10 +46,10 @@ class NpmBuilder {
 	 * 查找所有 miniprogram_npm 目录
 	 * @returns {string[]} miniprogram_npm 目录路径数组
 	 */
-	findMiniprogramNpmDirs() {
-		const npmDirs = []
+	findMiniprogramNpmDirs(): string[] {
+		const npmDirs: string[] = []
 		
-		const scanDir = (dir, relativePath = '') => {
+		const scanDir = (dir: string, relativePath: string = '') => {
 			if (!fs.existsSync(dir)) {
 				return
 			}
@@ -72,7 +79,7 @@ class NpmBuilder {
 	 * 构建指定的 miniprogram_npm 目录
 	 * @param {string} npmDirPath miniprogram_npm 目录路径
 	 */
-	async buildNpmDir(npmDirPath) {
+	async buildNpmDir(npmDirPath: string): Promise<void> {
 		const fullNpmPath = path.join(this.workPath, npmDirPath)
 		
 		if (!fs.existsSync(fullNpmPath)) {
@@ -93,7 +100,7 @@ class NpmBuilder {
 	 * @param {string} packageName 包名
 	 * @param {string} npmDirPath miniprogram_npm 目录路径
 	 */
-	async buildPackage(packageName, npmDirPath) {
+	async buildPackage(packageName: string, npmDirPath: string): Promise<void> {
 		const packageKey = `${npmDirPath}/${packageName}`
 		
 		if (this.builtPackages.has(packageKey)) {
@@ -122,7 +129,7 @@ class NpmBuilder {
 	 * @param {string} sourcePath 源路径
 	 * @param {string} targetPath 目标路径
 	 */
-	async copyPackageFiles(sourcePath, targetPath) {
+	async copyPackageFiles(sourcePath: string, targetPath: string): Promise<void> {
 		if (!fs.existsSync(sourcePath)) {
 			return
 		}
@@ -155,7 +162,7 @@ class NpmBuilder {
 	 * @param {string} filename 文件名
 	 * @returns {boolean} 是否为小程序文件
 	 */
-	isMiniprogramFile(filename) {
+	isMiniprogramFile(filename: string): boolean {
 		// 根据自定义文件类型配置组合扩展名，覆盖内置 wx/dd 类型、样式预处理器和自定义扩展名。
 		// getStyleExts 已包含 .less/.scss/.sass；NpmBuilder 在主线程中构造，可直接读取 env getter。
 		const ext = path.extname(filename).toLowerCase()
@@ -172,7 +179,7 @@ class NpmBuilder {
 	 * @param {string} packagePath 包路径
 	 * @param {string} npmDirPath npm 目录路径
 	 */
-	async processDependencies(packageName, packagePath, npmDirPath) {
+	async processDependencies(packageName: string, packagePath: string, npmDirPath: string): Promise<void> {
 		const packageJsonPath = path.join(packagePath, 'package.json')
 		
 		if (!fs.existsSync(packageJsonPath)) {
@@ -180,10 +187,10 @@ class NpmBuilder {
 		}
 
 		try {
-			const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
+			const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { dependencies?: Record<string, string>; peerDependencies?: Record<string, string>; name?: string; version?: string }
 			const dependencies = {
-				...packageJson.dependencies,
-				...packageJson.peerDependencies
+				...(packageJson.dependencies || {}),
+				...(packageJson.peerDependencies || {})
 			}
 
 			if (dependencies && Object.keys(dependencies).length > 0) {
@@ -195,7 +202,7 @@ class NpmBuilder {
 				}
 			}
 		} catch (e) {
-			console.warn(`[npm-builder] 解析 package.json 失败: ${packageJsonPath}`, e.message)
+			console.warn(`[npm-builder] 解析 package.json 失败: ${packageJsonPath}`, (e as Error).message)
 		}
 	}
 
@@ -205,7 +212,7 @@ class NpmBuilder {
 	 * @param {string} packagePath 包路径
 	 * @returns {boolean} 是否有效
 	 */
-	validatePackage(packageName, packagePath) {
+	validatePackage(packageName: string, packagePath: string): boolean {
 		// 检查必要文件是否存在
 		const requiredFiles = ['package.json']
 		
@@ -226,7 +233,7 @@ class NpmBuilder {
 				return false
 			}
 		} catch (e) {
-			console.warn(`[npm-builder] 包 ${packageName} 的 package.json 解析失败:`, e.message)
+			console.warn(`[npm-builder] 包 ${packageName} 的 package.json 解析失败:`, (e as Error).message)
 			return false
 		}
 
@@ -237,7 +244,7 @@ class NpmBuilder {
 	 * 获取已构建的包列表
 	 * @returns {string[]} 已构建的包列表
 	 */
-	getBuiltPackages() {
+	getBuiltPackages(): string[] {
 		return Array.from(this.builtPackages)
 	}
 
@@ -245,14 +252,14 @@ class NpmBuilder {
 	 * 获取包依赖关系
 	 * @returns {Map} 包依赖关系映射
 	 */
-	getPackageDependencies() {
+	getPackageDependencies(): Map<string, Record<string, string>> {
 		return this.packageDependencies
 	}
 
 	/**
 	 * 清理构建缓存
 	 */
-	clearCache() {
+	clearCache(): void {
 		this.builtPackages.clear()
 		this.packageDependencies.clear()
 	}

@@ -1,12 +1,12 @@
 import { Parser } from 'htmlparser2'
 import { isHTMLTag } from '@vue/shared'
 import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.ts'
-import { supportedBuiltinComponents, supportedWxApis } from '../core/compatibility-reference.js'
+import { supportedBuiltinComponents, supportedWxApis } from './compatibility-reference.ts'
 import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.ts'
-import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
-import { consoleFallback } from '../worker-runtime/loggers.js'  // P-WR03：D-WR-4 兜底
+import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore
+import { consoleFallback } from '../worker-runtime/loggers.ts'  // P-WR03：D-WR-4 兜底
 
-let cachedReference = null
+let cachedReference: { supportedBuiltinComponents: Set<string>; supportedWxApis: Set<string> } | null = null
 const warnedItems = new Set()
 const TEMPLATE_DIRECTIVE_NAMES = new Set([
 	'if',
@@ -38,7 +38,7 @@ const KNOWN_NON_TEMPLATE_PREFIXES = new Set([
 	'let',
 ])
 
-function splitAttributePrefix(attributeName) {
+function splitAttributePrefix(attributeName: string): { prefix: string; name: string } | null {
 	const segments = attributeName.split(':')
 	if (segments.length !== 2 || !segments[0] || !segments[1]) {
 		return null
@@ -46,7 +46,7 @@ function splitAttributePrefix(attributeName) {
 	return { prefix: segments[0], name: segments[1] }
 }
 
-function getTemplateDirectiveName(attributeName) {
+function getTemplateDirectiveName(attributeName: string): string | null {
 	const attribute = splitAttributePrefix(attributeName)
 	if (!attribute || !getTemplateDirectivePrefixes().includes(attribute.prefix)) {
 		return null
@@ -54,7 +54,7 @@ function getTemplateDirectiveName(attributeName) {
 	return TEMPLATE_DIRECTIVE_NAMES.has(attribute.name) ? attribute.name : null
 }
 
-function getInvalidAttributePrefix(attributeName) {
+function getInvalidAttributePrefix(attributeName: string): string | null {
 	const attribute = splitAttributePrefix(attributeName)
 	if (!attribute) return null
 	const templatePrefixes = getTemplateDirectivePrefixes()
@@ -79,16 +79,16 @@ function loadReference() {
 	return cachedReference
 }
 
-function parseApiReference(content) {
+function parseApiReference(content: string): { supportedBuiltinComponents: Set<string>; supportedWxApis: Set<string> } {
 	return {
 		supportedBuiltinComponents: parseSingleColumnTable(content, '组件列表'),
 		supportedWxApis: parseApiTable(content),
 	}
 }
 
-function parseSingleColumnTable(content, heading) {
+function parseSingleColumnTable(content: string, heading: string): Set<string> {
 	const section = getSectionContent(content, heading)
-	const items = new Set()
+	const items = new Set<string>()
 
 	for (const row of getMarkdownRows(section)) {
 		if (row.length !== 1 || row[0] === heading.replace(/列表$/, '') || isDividerCell(row[0])) {
@@ -100,9 +100,9 @@ function parseSingleColumnTable(content, heading) {
 	return items
 }
 
-function parseApiTable(content) {
+function parseApiTable(content: string): Set<string> {
 	const section = getSectionContent(content, 'API 列表')
-	const apis = new Set()
+	const apis = new Set<string>()
 	let apiColumnIndex = -1
 
 	for (const row of getMarkdownRows(section)) {
@@ -124,7 +124,7 @@ function parseApiTable(content) {
 	return apis
 }
 
-function getSectionContent(content, heading) {
+function getSectionContent(content: string, heading: string): string {
 	const sectionStart = content.indexOf(`## ${heading}`)
 	if (sectionStart === -1) {
 		return ''
@@ -136,7 +136,7 @@ function getSectionContent(content, heading) {
 		: content.slice(sectionStart, nextSection)
 }
 
-function getMarkdownRows(content) {
+function getMarkdownRows(content: string): string[][] {
 	return content
 		.split('\n')
 		.map(line => line.trim())
@@ -144,39 +144,40 @@ function getMarkdownRows(content) {
 		.map(line => line.slice(1, -1).split('|').map(cell => cell.trim()))
 }
 
-function stripMarkdownCode(value = '') {
+function stripMarkdownCode(value: string = ''): string {
 	return value.replace(/^`|`$/g, '').trim()
 }
 
-function isDividerCell(value = '') {
+function isDividerCell(value: string = ''): boolean {
 	return /^:?-{3,}:?$/.test(value.trim())
 }
 
-function getWxMemberName(node) {
-	if (node?.type !== 'MemberExpression') {
+function getWxMemberName(node: unknown): string | null {
+	const n = node as { type?: string; object?: { type?: string; name?: string }; computed?: boolean; property?: { type?: string; name?: string; value?: unknown } } | null | undefined
+	if (n?.type !== 'MemberExpression') {
 		return null
 	}
 
-	if (node.object?.type !== 'Identifier' || node.object.name !== 'wx') {
+	if (n!.object?.type !== 'Identifier' || n!.object.name !== 'wx') {
 		return null
 	}
 
-	if (!node.computed && node.property?.type === 'Identifier') {
-		return node.property.name
+	if (!n!.computed && n!.property?.type === 'Identifier') {
+		return n!.property.name ?? null
 	}
 
 	if (
-		node.computed
-		&& (node.property?.type === 'StringLiteral' || node.property?.type === 'Literal')
-		&& typeof node.property.value === 'string'
+		n!.computed
+		&& (n!.property?.type === 'StringLiteral' || n!.property?.type === 'Literal')
+		&& typeof n!.property?.value === 'string'
 	) {
-		return node.property.value
+		return n!.property.value as string
 	}
 
 	return null
 }
 
-function warnUnsupportedWxApi(apiName, filePath, line) {
+function warnUnsupportedWxApi(apiName: string | null, filePath: string, line: number | null): void {
 	const { supportedWxApis } = loadReference()
 	if (!apiName || supportedWxApis.has(apiName)) {
 		return
@@ -186,7 +187,7 @@ function warnUnsupportedWxApi(apiName, filePath, line) {
 	warnOnce('api', apiName, location, `[compat] Unsupported wx API: wx.${apiName}${location}`)
 }
 
-function warnUnsupportedComponent(tagName, filePath, line) {
+function warnUnsupportedComponent(tagName: string | null, filePath: string, line: number | null): void {
 	const { supportedBuiltinComponents } = loadReference()
 	// 视图脚本标签（wxs、dds 及自定义标签）不是组件，需动态豁免。
 	// 兼容性清单仅包含 wxs，因此还需在此放行 dds 和自定义标签，避免误报。
@@ -210,12 +211,12 @@ function warnUnsupportedComponent(tagName, filePath, line) {
 	warnOnce('component', tagName, location, `[compat] Unsupported or undeclared component: <${tagName}>${location}`)
 }
 
-function checkTemplateCompatibility(content, filePath, components = {}) {
+function checkTemplateCompatibility(content: string, filePath: string, components: Record<string, unknown> = {}): void {
 	const newlineOffsets = collectNewlineOffsets(content)
-	let parser
+	let parser: Parser
 	parser = new Parser(
 		{
-			onopentag(tagName, attrs) {
+			onopentag(tagName: string, attrs: Record<string, string>) {
 				const line = getLineByIndex(newlineOffsets, parser.startIndex)
 				for (const attributeName of Object.keys(attrs)) {
 					const invalidPrefix = getInvalidAttributePrefix(attributeName)
@@ -235,7 +236,7 @@ function checkTemplateCompatibility(content, filePath, components = {}) {
 
 				warnUnsupportedComponent(tagName, filePath, line)
 			},
-			onerror(error) {
+			onerror(error: Error) {
 				warnOnce(
 					'parse',
 					filePath,
@@ -249,14 +250,14 @@ function checkTemplateCompatibility(content, filePath, components = {}) {
 			lowerCaseTags: false,
 			lowerCaseAttributeNames: false,
 			withStartIndices: true,
-		},
+		} as never,
 	)
 
 	parser.write(content)
 	parser.end()
 }
 
-function collectNewlineOffsets(content) {
+function collectNewlineOffsets(content: string): number[] {
 	const offsets = []
 	for (let i = 0; i < content.length; i++) {
 		if (content.charCodeAt(i) === 10) {
@@ -272,7 +273,7 @@ function collectNewlineOffsets(content) {
 // implementation) turned a single template's compatibility check into O(n²) —
 // on taro-ui's shared ~112KB base.wxml (reprocessed per page) that dominated
 // total dmcc compile time (~43% of the view-compile worker's CPU time).
-function getLineByIndex(newlineOffsets, index) {
+function getLineByIndex(newlineOffsets: number[], index: number): number | null {
 	if (typeof index !== 'number' || index < 0) {
 		return null
 	}
@@ -291,20 +292,21 @@ function getLineByIndex(newlineOffsets, index) {
 	return lo + 1
 }
 
-function formatLocation(filePath, line) {
+function formatLocation(filePath: string, line: number | null): string {
 	if (!filePath) {
 		return ''
 	}
 	return line ? ` (${filePath}:${line})` : ` (${filePath})`
 }
 
-function warnOnce(type, name, location, message) {
+function warnOnce(type: string, name: string, location: string, message: string): void {
 	const key = `${type}:${name}:${location}`
 	if (warnedItems.has(key)) {
 		return
 	}
 	warnedItems.add(key)
-	const { logger } = abilityContext.getStore() ?? { logger: consoleFallback }  // D-WR-4 兜底
+	const store = abilityContext.getStore() as { logger?: { warn: (msg: string) => void } } | undefined
+	const logger = store?.logger ?? consoleFallback  // D-WR-4 兜底
 	logger.warn(message)
 }
 

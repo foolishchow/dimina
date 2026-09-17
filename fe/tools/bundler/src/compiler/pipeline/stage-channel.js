@@ -10,7 +10,7 @@
 
 import { formatCompileProgress } from '../../shared/compile-progress.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
-import { executeTask } from '../worker-runtime/executor.js'
+import { executeTask } from '../worker-runtime/executor.ts'
 import { viewEngine } from '../view/index.js'
 import { logicEngine } from '../logic/index.js'
 import { styleEngine } from '../style/index.js'

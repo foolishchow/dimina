@@ -1,12 +1,12 @@
 import { isMainThread, parentPort } from 'node:worker_threads'
-import { abilityContext } from './context.js'
-import { PostMessageSink } from './sinks.js'
-import { BufferingLogger } from './loggers.js'
+import { abilityContext } from './context.ts'
+import { PostMessageSink } from './sinks.ts'
+import { BufferingLogger } from './loggers.ts'
 
 // makeProgress 由 runtime 内部定义：持 parentPort（worker 侧，不持 onProgress）
 // progress.completedTasks setter → parentPort.postMessage({completedTasks})
 // → executor 分流 → onProgress(completed, total)（见 "progress 消息链路"）
-function makeProgress(parentPort) {
+function makeProgress(parentPort: { postMessage: (msg: unknown) => void }) {
 	let _n = 0
 	return {
 		get completedTasks() { return _n },
@@ -14,17 +14,17 @@ function makeProgress(parentPort) {
 	}
 }
 
-export function runWorker(engine) {
+export function runWorker(engine: { buildConfig: (msg: unknown) => unknown; compile: (opts: unknown) => Promise<void>; cleanup: () => void; successPayload: (ctx: { logger: { warn: (msg: string) => void; flush: () => string[] } }) => Record<string, unknown>; normalizeError: (e: Error) => Record<string, unknown> }): void {
 	if (isMainThread) return
-	const sink = new PostMessageSink(parentPort)
+	const sink = new PostMessageSink(parentPort!)
 	const logger = new BufferingLogger()
-	parentPort.on('message', async (msg) => {
+	parentPort!.on('message', async (msg: unknown) => {
 		abilityContext.run({ sink, logger }, async () => {
 			try {
 				const config = engine.buildConfig(msg)
-				await engine.compile({ msg, progress: makeProgress(parentPort), config })
+				await engine.compile({ msg, progress: makeProgress(parentPort!), config })
 				engine.cleanup()
-				parentPort.postMessage({
+				parentPort!.postMessage({
 					success: true,
 					...engine.successPayload({ logger }),  // F27/F28：payload 归 successPayload（含 dependencyGraph + 可选 compatibilityWarnings）
 					outputCount: sink.count,  // D-WR-6
@@ -32,7 +32,7 @@ export function runWorker(engine) {
 			}
 			catch (error) {
 				engine.cleanup()
-				parentPort.postMessage({ success: false, error: engine.normalizeError(error) })
+				parentPort!.postMessage({ success: false, error: engine.normalizeError(error as Error) })
 			}
 		})
 	})

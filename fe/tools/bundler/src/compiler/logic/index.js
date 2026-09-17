@@ -4,12 +4,12 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
-import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.js'
-import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
+import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
+import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.ts'
-import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
+import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { emitEntry } from '../pipeline/emit.ts'
 
 // 用于缓存已处理的模块

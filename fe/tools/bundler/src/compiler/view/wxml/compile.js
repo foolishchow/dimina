@@ -1,5 +1,5 @@
 import { toMiniProgramModuleId } from '../../../shared/path-utils.ts'
-import { checkTemplateCompatibility } from '../../core/compatibility.js'
+import { checkTemplateCompatibility } from '../../core/compatibility.ts'
 import {
 	getContentByPath,
 	getDependencyGraph,

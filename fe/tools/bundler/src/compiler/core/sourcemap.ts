@@ -1,7 +1,7 @@
 import { SourceMapConsumer, SourceMapGenerator } from 'source-map-js'
 
 // 统一将模块包装为 modDefine 格式
-function wrapModDefine(module) {
+function wrapModDefine(module: { code: string; path: string; extraInfoCode?: string; map?: unknown }): { header: string; code: string; footer: string } {
 	const code = module.code.endsWith('\n') ? module.code : module.code + '\n'
 	const extraLine = module.extraInfoCode || ''
 	const header = `modDefine('${module.path}', function(require, module, exports) {\n${extraLine}`
@@ -9,9 +9,9 @@ function wrapModDefine(module) {
 	return { header, code, footer }
 }
 
-function appendSourceMap(smg, map, lineOffset, columnOffset) {
-	const mapObject = typeof map === 'string' ? JSON.parse(map) : map
-	const consumer = new SourceMapConsumer(mapObject)
+function appendSourceMap(smg: SourceMapGenerator, map: unknown, lineOffset: number, columnOffset: number): void {
+	const mapObject = typeof map === 'string' ? JSON.parse(map) as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] } : map as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] }
+	const consumer = new SourceMapConsumer(mapObject as never)
 
 	consumer.eachMapping((mapping) => {
 		if (mapping.source == null || mapping.originalLine == null || mapping.originalColumn == null) {
@@ -33,13 +33,13 @@ function appendSourceMap(smg, map, lineOffset, columnOffset) {
 	})
 
 	if (mapObject.sourcesContent) {
-		mapObject.sources.forEach((source, index) => {
-			smg.setSourceContent(source, mapObject.sourcesContent[index])
+		(mapObject.sources || []).forEach((source: string, index: number) => {
+			smg.setSourceContent(source, (mapObject.sourcesContent || [])[index] as string)
 		})
 	}
 }
 
-function advanceGeneratedPosition(position, code) {
+function advanceGeneratedPosition(position: { line: number; column: number }, code: string): void {
 	const lines = code.split('\n')
 	if (lines.length === 1) {
 		position.column += code.length
@@ -47,10 +47,10 @@ function advanceGeneratedPosition(position, code) {
 	}
 
 	position.line += lines.length - 1
-	position.column = lines.at(-1).length
+	position.column = (lines.at(-1) ?? '').length
 }
 
-function concatSourcemap(chunks, file = '') {
+function concatSourcemap(chunks: Array<string | { code: string; map?: unknown }>, file: string = ''): { code: string; sourcemap: string } {
 	const smg = new SourceMapGenerator({ file })
 	const position = { line: 1, column: 0 }
 	let code = ''
@@ -75,7 +75,7 @@ function concatSourcemap(chunks, file = '') {
  * origins: [{ source, line }]（index 0 = 生成第 1 行）
  * sourceContents: Map<source, content>
  */
-export function createOriginsSourcemap(origins, sourceContents) {
+export function createOriginsSourcemap(origins: Array<{ source: string; line: number }>, sourceContents: Map<string, unknown> | undefined): Record<string, unknown> {
 	const smg = new SourceMapGenerator({ file: origins[0]?.source ?? '' })
 	origins.forEach((o, index) => {
 		smg.addMapping({
@@ -94,7 +94,7 @@ export function createOriginsSourcemap(origins, sourceContents) {
 	return JSON.parse(smg.toString())
 }
 
-function createLineSourcemap(generatedCode, source, sourceContent, startLine = 1) {
+function createLineSourcemap(generatedCode: string, source: string, sourceContent: string, startLine: number = 1): Record<string, unknown> {
 	const smg = new SourceMapGenerator({ file: source })
 	const generatedLineCount = generatedCode.split('\n').length
 	const sourceLineCount = Math.max(1, sourceContent.split('\n').length)
@@ -114,8 +114,8 @@ function createLineSourcemap(generatedCode, source, sourceContent, startLine = 1
 }
 
 // 合并多个模块的 sourcemap 到一份 bundle sourcemap
-function mergeSourcemap(compileRes, file = 'logic.js') {
-	const chunks = []
+function mergeSourcemap(compileRes: Array<{ code: string; path: string; extraInfoCode?: string; map?: unknown }>, file: string = 'logic.js'): { bundleCode: string; sourcemap: string } {
+	const chunks: Array<string | { code: string; map?: unknown }> = []
 
 	for (const module of compileRes) {
 		const { header, code, footer } = wrapModDefine(module)
@@ -127,7 +127,7 @@ function mergeSourcemap(compileRes, file = 'logic.js') {
 }
 
 // 将两步 sourcemap 串联，nextMap 的 original 会继续映射回 prevMap 的 original
-function remapSourcemap(nextMap, prevMap) {
+function remapSourcemap(nextMap: unknown, prevMap: unknown): string | Record<string, unknown> | unknown {
 	if (!nextMap) {
 		return prevMap
 	}
@@ -135,11 +135,11 @@ function remapSourcemap(nextMap, prevMap) {
 		return nextMap
 	}
 
-	const nextMapObj = typeof nextMap === 'string' ? JSON.parse(nextMap) : nextMap
-	const prevMapObj = typeof prevMap === 'string' ? JSON.parse(prevMap) : prevMap
-	const smg = new SourceMapGenerator({ file: nextMapObj.file || prevMapObj.file || '' })
-	const prevSmc = new SourceMapConsumer(prevMapObj)
-	const nextSmc = new SourceMapConsumer(nextMapObj)
+	const nextMapObj = typeof nextMap === 'string' ? JSON.parse(nextMap) as Record<string, unknown> & { file?: string; sources?: string[]; sourcesContent?: unknown[] } : nextMap as Record<string, unknown> & { file?: string; sources?: string[]; sourcesContent?: unknown[] }
+	const prevMapObj = typeof prevMap === 'string' ? JSON.parse(prevMap) as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] } : prevMap as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] }
+	const smg = new SourceMapGenerator({ file: (nextMapObj.file as string) || (prevMapObj.file as string) || '' })
+	const prevSmc = new SourceMapConsumer(prevMapObj as never)
+	const nextSmc = new SourceMapConsumer(nextMapObj as never)
 
 	nextSmc.eachMapping((mapping) => {
 		if (mapping.source == null || mapping.originalLine == null || mapping.originalColumn == null) {
@@ -169,12 +169,12 @@ function remapSourcemap(nextMap, prevMap) {
 	})
 
 	if (prevMapObj.sourcesContent) {
-		prevMapObj.sources.forEach((src, i) => {
-			smg.setSourceContent(src, prevMapObj.sourcesContent[i])
+		(prevMapObj.sources || []).forEach((src: string, i: number) => {
+			smg.setSourceContent(src, (prevMapObj.sourcesContent || [])[i] as string)
 		})
 	}
 
-	return smg.toString()
+	return smg.toString() as unknown
 }
 
 export { concatSourcemap, createLineSourcemap, mergeSourcemap, remapSourcemap }

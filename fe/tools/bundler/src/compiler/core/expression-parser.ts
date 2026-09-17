@@ -22,12 +22,12 @@ const KEYWORDS = new Set([
  * @param {string} expression - 表达式字符串，如 "count || defaultValue" 或 "item.name"
  * @returns {Array<string>} - 依赖的变量名数组，如 ["count", "defaultValue"] 或 ["item"]
  */
-export function extractDependencies(expression) {
+export function extractDependencies(expression: string | null | undefined): string[] {
 	if (!expression || typeof expression !== 'string') {
 		return []
 	}
 
-	const dependencies = new Set()
+	const dependencies = new Set<string>()
 
 	try {
 		// 将表达式包装为完整的语句以便 Oxc 解析
@@ -37,40 +37,40 @@ export function extractDependencies(expression) {
 			lang: 'js',
 		}).program
 
-		visitExpressionAst(ast, null, dependencies)
+		visitExpressionAst(ast as unknown, null, dependencies)
 	} catch (error) {
 		// AST 解析失败时回退到空数组
-		console.warn('[expression-parser] AST 解析失败，表达式:', expression, '错误:', error.message)
+		console.warn('[expression-parser] AST 解析失败，表达式:', expression, '错误:', (error as Error).message)
 		return []
 	}
 
-	return Array.from(dependencies)
+	return Array.from(dependencies) as string[]
 }
 
-function visitExpressionAst(node, parent, dependencies) {
+function visitExpressionAst(node: unknown, parent: unknown, dependencies: Set<string>): void {
 	if (!node || typeof node !== 'object') {
 		return
 	}
 
-	if (node.type === 'Identifier') {
+	if ((node as { type?: string }).type === 'Identifier') {
 		collectIdentifier(node, parent, dependencies)
 		return
 	}
 
 	// 处理成员表达式，确保只提取根对象，并跳过子节点避免重复处理属性名
-	if (node.type === 'MemberExpression') {
-		let root = node.object
-		while (root?.type === 'MemberExpression' || root?.type === 'ChainExpression') {
-			root = root.type === 'ChainExpression' ? root.expression : root.object
+	if ((node as { type?: string }).type === 'MemberExpression') {
+		let root = (node as { object?: unknown }).object
+		while ((root as { type?: string } | null | undefined)?.type === 'MemberExpression' || (root as { type?: string } | null | undefined)?.type === 'ChainExpression') {
+			root = (root as { type?: string }).type === 'ChainExpression' ? (root as { expression?: unknown }).expression : (root as { object?: unknown }).object
 		}
 
-		if (root?.type === 'Identifier' && !KEYWORDS.has(root.name)) {
-			dependencies.add(root.name)
+		if ((root as { type?: string } | null | undefined)?.type === 'Identifier' && !KEYWORDS.has((root as { name?: string }).name!)) {
+			dependencies.add((root as { name: string }).name)
 		}
 		return
 	}
 
-	for (const [key, value] of Object.entries(node)) {
+	for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
 		if (key === 'type' || key === 'start' || key === 'end' || key === 'loc') {
 			continue
 		}
@@ -86,8 +86,8 @@ function visitExpressionAst(node, parent, dependencies) {
 	}
 }
 
-function collectIdentifier(node, parent, dependencies) {
-	const name = node.name
+function collectIdentifier(node: { name?: string }, parent: unknown, dependencies: Set<string>): void {
+	const name = node.name as string
 
 	// 跳过关键字和全局对象
 	if (KEYWORDS.has(name)) {
@@ -95,12 +95,12 @@ function collectIdentifier(node, parent, dependencies) {
 	}
 
 	// 如果是 obj.prop，我们只要 obj，不要 prop
-	if (parent?.type === 'MemberExpression' && parent.property === node && !parent.computed) {
+	if ((parent as { type?: string; property?: unknown; computed?: boolean } | null | undefined)?.type === 'MemberExpression' && (parent as { property?: unknown }).property === node && !(parent as { computed?: boolean }).computed) {
 		return
 	}
 
 	// 对象字面量的非计算 key 是静态属性名，不是数据依赖
-	if (parent?.type === 'Property' && parent.key === node && !parent.computed && !parent.shorthand) {
+	if ((parent as { type?: string; key?: unknown; computed?: boolean; shorthand?: boolean } | null | undefined)?.type === 'Property' && (parent as { key?: unknown }).key === node && !(parent as { computed?: boolean }).computed && !(parent as { shorthand?: boolean }).shorthand) {
 		return
 	}
 
@@ -112,7 +112,7 @@ function collectIdentifier(node, parent, dependencies) {
  * @param {string} expression - 表达式字符串
  * @returns {Object} - { expression: 原始表达式, dependencies: 依赖数组, isSimple: 是否简单绑定 }
  */
-export function parseExpression(expression) {
+export function parseExpression(expression: string | null | undefined): { expression: string; dependencies: string[]; isSimple: boolean } {
 	if (!expression || typeof expression !== 'string') {
 		return {
 			expression: '',
@@ -140,7 +140,7 @@ export function parseExpression(expression) {
  * @param {string} expression - 表达式字符串，如 "item.name" 或 "data[0].value"
  * @returns {Object} - { root: 根对象, path: 完整路径 }
  */
-export function parseMemberExpression(expression) {
+export function parseMemberExpression(expression: string | null | undefined): { root: string | null; path: string | null } {
 	if (!expression || typeof expression !== 'string') {
 		return { root: null, path: null }
 	}
@@ -170,7 +170,7 @@ export function parseMemberExpression(expression) {
  * @param {string} dependency - 要检查的依赖变量名
  * @returns {boolean} 如果表达式包含该依赖则返回 true，否则返回 false
  */
-export function hasDependency(expression, dependency) {
+export function hasDependency(expression: string, dependency: string): boolean {
 	const deps = extractDependencies(expression)
 	return deps.includes(dependency)
 }
@@ -180,15 +180,15 @@ export function hasDependency(expression, dependency) {
  * @param {Object} bindings - 绑定对象，如 { count2: "count", value: "item.name" }
  * @returns {Object} - 解析后的绑定信息
  */
-export function parseBindings(bindings) {
+export function parseBindings(bindings: Record<string, unknown> | null | undefined): Record<string, unknown> {
 	if (!bindings || typeof bindings !== 'object') {
 		return {}
 	}
 
-	const parsed = {}
+	const parsed: Record<string, unknown> = {}
 
-	for (const [propName, expression] of Object.entries(bindings)) {
-		parsed[propName] = parseExpression(expression)
+	for (const [propName, expression] of Object.entries(bindings as Record<string, unknown>)) {
+		parsed[propName] = parseExpression(expression as string)
 	}
 
 	return parsed

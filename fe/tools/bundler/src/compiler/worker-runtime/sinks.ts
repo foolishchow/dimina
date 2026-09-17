@@ -3,8 +3,9 @@ import path from 'node:path'
 
 export class PostMessageSink {
 	#count = 0
-	constructor(parentPort) { this.parentPort = parentPort }
-	write(entry) { this.parentPort.postMessage({ type: 'output', entry }); this.#count++ }
+	parentPort: { postMessage: (msg: unknown) => void }
+	constructor(parentPort: { postMessage: (msg: unknown) => void }) { this.parentPort = parentPort }
+	write(entry: unknown): void { this.parentPort.postMessage({ type: 'output', entry }); this.#count++ }
 	get count() { return this.#count }
 }
 
@@ -13,8 +14,9 @@ export class PostMessageSink {
 // FileSink 的 writeDir 是测试 outputDir，用完整 file.path + mkdir 子目录）
 export class FileSink {
 	#count = 0
-	constructor(writeDir) { this.writeDir = writeDir }
-	write(entry) {
+	writeDir: string
+	constructor(writeDir: string) { this.writeDir = writeDir }
+	write(entry: { files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }) {
 		for (const file of entry.files) {
 			const dest = path.join(this.writeDir, file.path)
 			fs.mkdirSync(path.dirname(dest), { recursive: true })
@@ -23,7 +25,7 @@ export class FileSink {
 		if (entry.sourcemaps) for (const sm of entry.sourcemaps) {
 			const dest = path.join(this.writeDir, sm.path)
 			fs.mkdirSync(path.dirname(dest), { recursive: true })
-			fs.writeFileSync(dest, sm.map)
+			fs.writeFileSync(dest, sm.map as string)
 		}
 		this.#count++
 	}
