@@ -984,6 +984,23 @@ POC 步骤：
 
 **pass** —— F81 baseline 状态确认，无新 finding。P-TM00 前置齐备，可授权实施。
 
+## 37. R32 review（2026-09-16，env.js 核心类型规格化）
+
+### R32 findings
+
+#### F82 — 🟢 env.js 核心类型规格化确认（验证）
+
+- **Evidence**:
+  - **`normalizeFileTypes` 入参**：`fileTypes = {}`（`{ template?: string[], style?: string[], viewScript?: string[] }`）→ `FileTypes` interface
+  - **返回形状**：5 字段——`templateExts` / `templateDirectivePrefixes` / `styleExts` / `viewScriptExts` / `viewScriptTags` → `NormalizedFileTypes` interface
+  - **helper**：`mergeUnique` / `normalizeExt` / `normalizeTag` / `RESERVED_EXTS`——helper 类型影响返回推断
+  - **下游渗透**：env 类型化后 34 处 import 的新错 = 预期（F58"后续阶段处理"），P-TM02 验证范围仅 shared+env 文件本身清零
+- **Conclusion**: env.js 核心类型（FileTypes/NormalizedFileTypes）规格清晰，渗透策略已覆盖 ✓
+
+### R32 verdict
+
+**pass** —— F82 确认，无新 finding。env.js 类型化规格就绪。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
