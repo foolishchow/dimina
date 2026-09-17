@@ -625,6 +625,37 @@ POC 步骤：
 
 **pass-with-findings** —— F46/F47（medium，__tests__ 修正量 + helpers 状态，已修）+ F48（🟢 engine 契约清晰）。P-TM07 工作量 61 文件 100 处已量化。可授权实施。
 
+## 21. R16 review（2026-09-16，ENTRY_PATH 动态后缀 + 一致性复查）
+
+### R16 findings
+
+#### F49 — 🟠 executor.js ENTRY_PATH 硬编码 .js 后缀（high）→ 已修
+
+- **Evidence**: `executor.js` `const ENTRY_PATH = { view: '../view/worker-entry.js', logic: '../logic/worker-entry.js', style: '../style/worker-entry.js' }`
+- **Broken**:
+  - P-TM05 改 worker-entry.js→.ts 后，`/src/` 跑 `new Worker(ENTRY_PATH[script])` 找不到 `.js`（已改 .ts）→ 崩
+  - tsc `rewriteRelativeImportExtensions` 只 rewrite import 语句，**不 rewrite 字符串字面量**——ENTRY_PATH 是变量值，dist 保持源码后缀
+  - 源码改 `.ts` → dist 也 `.ts` → dist new Worker 找不到 `.ts`（dist 是 .js）→ 崩
+- **Root cause**: worker-entry 路径是字符串字面量，非 import 语句，不受 tsc rewrite 保护
+- **Correction**: P-TM05 改 worker-entry .ts 时，executor.js ENTRY_PATH 需**动态后缀**（用现有 `/src/` 判断模式，D-TD-20）：
+  ```js
+  const isSrc = import.meta.url.includes('/src/')
+  const EXT = isSrc ? '.ts' : '.js'
+  const ENTRY_PATH = { view: `../view/worker-entry${EXT}`, logic: `../logic/worker-entry${EXT}`, style: `../style/worker-entry${EXT}` }
+  ```
+  - `/src/` 跑：`new Worker('.../worker-entry.ts')` + strip-types ✓
+  - dist 跑：`new Worker('.../worker-entry.js')` ✓
+
+#### F50 — 🟢 一致性复查（验证通过）
+
+- acceptance A-TM0..5 全 pending ✓
+- validation V-TM00..08 全段落 ✓
+- research §6-20 R1-R15 完整 ✓
+
+### R16 verdict
+
+**pass-with-findings** —— F49（high，ENTRY_PATH 动态后缀，已修）+ F50（🟢 一致性通过）。F49 是 P-TM05 的关键实施点。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

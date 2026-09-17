@@ -154,13 +154,26 @@ export type Attr = { span: Span; name: string; value: Value }
 | P-TM05 | view/ + logic/ + style/ | 待统计 |
 | P-TM06 | bin/ + dev/ + src/根 | 待统计 |
 
-## worker-entry 链跨阶段依赖（R11 F35）
+## worker-entry 链跨阶段依赖（R11 F35 + R16 F49）
 
 3 个 `worker-entry.js`（view/logic/style）各 import：
 - `'../worker-runtime/runtime.js'` ← P-TM03 改 runtime.ts 时跨阶段改后缀（worker-entry 还 .js）
 - `'./index.js'` ← P-TM05 改 index.ts 时改后缀
 
 **跨阶段依赖**：P-TM03 碰 worker-entry 的 runtime import（改后缀 .ts，不改名）；P-TM05 再碰 worker-entry（改名 .ts + index import 后缀）。worker `/src/` 跑时 strip-types + .ts resolve。
+
+**ENTRY_PATH 动态后缀（R16 F49，high）**：`executor.js` 硬编码 `const ENTRY_PATH = { view: '../view/worker-entry.js', ... }`——字符串字面量，tsc `rewriteRelativeImportExtensions` 只 rewrite import 语句，**不 rewrite 字符串字面量**。
+
+P-TM05 改 worker-entry .ts 时，ENTRY_PATH 需动态后缀（用现有 `/src/` 判断模式，D-TD-20）：
+
+```js
+const isSrc = import.meta.url.includes('/src/')
+const EXT = isSrc ? '.ts' : '.js'
+const ENTRY_PATH = { view: `../view/worker-entry${EXT}`, logic: `../logic/worker-entry${EXT}`, style: `../style/worker-entry${EXT}` }
+```
+
+- `/src/` 跑：`new Worker('.../worker-entry.ts')` + strip-types ✓
+- dist 跑：`new Worker('.../worker-entry.js')` ✓（dist 是 .js）
 
 ## 提交策略（R13 F43）
 
