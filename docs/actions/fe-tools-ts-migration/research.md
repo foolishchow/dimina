@@ -947,6 +947,24 @@ POC 步骤：
 
 **pass-with-findings** —— F78（medium，re-export type 模式，已修）+ F79（🟢 验证通过）。P-TM01 处理 document-ops 时转 re-export type 语法。可授权实施。
 
+## 35. R30 review（2026-09-16，文档交叉引用一致性 Audit）
+
+### R30 findings
+
+#### F80 — 🟢 文档交叉引用一致性 Audit 通过（验证）
+
+- **Evidence**:
+  - **F 编号连续性**：F1-F79 连续完整（无跳号，无重复）
+  - **R 段落完整性**：§6-34 = 29 个 R 段落（R1-R29 全完整）
+  - **acceptance A-TM0..5**：反映最终决策（72→0 + D-TM-1/2/3/4 + strip-types 保留）
+  - **requirements R-TM0..4**：完整（.js→.ts / import 后缀 / 行为 0 / strip-types / 类型完善）
+  - **F 发现落点**：实施细节（F67/F72/F76/F78 等）已落在 implementation-plan/validation/research——requirements/acceptance 无需更新（R-TM1 覆盖 F76/F78，R-TM2 覆盖 F72，R-TM4 覆盖 F78）
+- **Conclusion**: 六件套文档（README/requirements/technical-design/implementation-plan/acceptance/validation/research）交叉引用一致 ✓
+
+### R30 verdict
+
+**pass** —— F80 全验证通过，无新 finding。文档体系完整闭环。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
