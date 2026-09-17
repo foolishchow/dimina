@@ -774,6 +774,32 @@ POC 步骤：
 
 **pass-with-findings** —— F63（medium，watch-plan TS2304 真实错误）+ F61/F62/F64（🟢 验证通过）。TS2810 是 checkJs 误报（.ts 消除）。可授权实施。
 
+## 27. R22 review（2026-09-16，剩余小文件验证 + 最终终检）
+
+### R22 findings
+
+#### F65 — 🟢 剩余小文件错构成全验证（验证通过）
+
+- **Evidence**:
+  - resolve.js 24 错——TS7006 8 + TS7031 解构 6 + TS2339 6
+  - dependency-graph.js 24 错——TS7006 18（75%）+ TS2339 6
+  - watch-runner.js 17 错——TS7005 6 + TS7034 3 + TS2339 3（上游类型化后自动消除）
+  - worker-pool.js 7 错——TS7006 2 + TS18046 2 + TS7008 1
+- **Conclusion**: 全机械可解，无新错误类别 ✓
+
+#### F66 — 🟢 最终终检全通过（验证）
+
+- **Evidence**:
+  - research F1-F64 编号连续（64 finding，无断链）
+  - research §6-26 R1-R21 完整（21 个 R 段落）
+  - implementation-plan P-TM01..08 完整（段落 + 步骤表）
+  - acceptance A-TM0..5 全 pending（6 个）
+- **Conclusion**: 文档全一致，无矛盾 ✓
+
+### R22 verdict
+
+**pass** —— F65/F66 全验证通过，无新 finding。所有 72 文件的错误构成已验证（1134 全机械可解，无未知类别）。最终终检通过——文档完整一致。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
