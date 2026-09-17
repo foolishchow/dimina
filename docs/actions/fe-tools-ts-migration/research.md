@@ -965,6 +965,25 @@ POC 步骤：
 
 **pass** —— F80 全验证通过，无新 finding。文档体系完整闭环。可授权实施。
 
+## 36. R31 review（2026-09-16，Baseline 状态 + tsconfig 就绪度）
+
+### R31 findings
+
+#### F81 — 🟢 Baseline 状态 + tsconfig 就绪度确认（验证）
+
+- **Evidence**:
+  - **tsc --noEmit strict 0 错误** ✓（P-TM00 baseline 前提满足）
+  - **vitest 584/584** ✓（P-TM00 第二前提）
+  - **tsconfig strict:true** ✓（A-TM5 tsc strict 依据）
+  - **tsconfig allowImportingTsExtensions:true** ✓（D-TM-1 方案 A import .ts 后缀前提）
+  - **tsconfig.build rewriteRelativeImportExtensions:true** ✓（dist .ts→.js rewrite，F32 已覆盖）
+  - **include `src/**/*.js` 清理**——F54 已记录（P-TM08 可选）
+- **Conclusion**: baseline 稳定态确认，tsconfig strict + allowImportingTsExtensions 前置就绪，P-TM00 可直接执行 ✓
+
+### R31 verdict
+
+**pass** —— F81 baseline 状态确认，无新 finding。P-TM00 前置齐备，可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
