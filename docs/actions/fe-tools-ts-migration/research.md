@@ -1132,6 +1132,29 @@ POC 步骤：
 
 **pass** —— F93 验证通过，无新 finding。executor.js 跨阶段时序确认。可授权实施。
 
+## 44. R39 review（2026-09-16，F34 清单补全 + 统计口径）
+
+### R39 findings
+
+#### F94 — 🟡 F34 清单 P-TM04/05/06 待统计补全（medium）→ 已修
+
+- **Evidence**: F34 清单 P-TM04/05/06 标"待统计"——现已补全：
+  - P-TM03: 16 worker-runtime + 11 core = 27
+  - P-TM04: 43（pipeline 23 + model 3 + session 12 + watch 5）
+  - P-TM05: 77（view 64 + logic 10 + style 3）
+  - P-TM06: 13（bin 8 + dev 2 + 根 3）
+- **Correction**: implementation-plan F34 清单补全 P-TM04/05/06 统计
+
+#### F95 — 🟡 F34 统计口径：scope 内 vs 全仓 grep（medium）→ 已修
+
+- **Evidence**: 各 scope 内 import 总和 225 > 全仓实际 161——差异 64 是 scope 交叉（跨阶段 import 被多 scope 统计）
+- **Root cause**: scope 内 import 含跨阶段引用其他 scope 的文件（如 pipeline import core/env.js 在 P-TM04 scope 统计，但改 env 时是 P-TM03）
+- **Correction**: F34 明确统计口径——**改名时 grep 全仓引用**（不只 scope 内）；scope 内统计仅作工作量参考
+
+### R39 verdict
+
+**pass-with-findings** —— F94/F95（medium，统计补全 + 口径明确，已修）。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

@@ -183,18 +183,21 @@ export type Attr = { span: Span; name: string; value: Value }
 
 修正规则：`grep -rl "from '.*src/.*\.js'" __tests__/` 全改 `.ts` 后缀（仅后缀，不改逻辑）。
 
-## 跨阶段 import 后缀修正工作量（R11 F34）
+## 跨阶段 import 后缀修正工作量（R11 F34 + R39 F94/F95）
 
-每阶段改名后需 grep 所有 import 方改后缀 `.ts`（含跨阶段文件，仅改后缀不改名）：
+每阶段改名后需 grep 全仓引用改后缀 `.ts`（含跨阶段文件，仅改后缀不改名）。**统计口径（F95）**：scope 内统计仅作工作量参考，改名时实际 grep 全仓引用（跨阶段 import 被多 scope 统计，故 scope 总和 225 > 全仓实际 161）。
 
-| 阶段 | 文件 | 跨 import 修正处 |
-| --- | --- | --- |
-| P-TM01 | document/document-ops/emit/napi-parse | 21 处 |
-| P-TM02 | shared/ 8 | 35 处（utils 11 + lifecycle 7 + compile-config 6 + path-utils 5 + platforms 3 + compile-progress 2 + art 1）|
-| P-TM03 | core/ 其余 + worker-runtime/ 6 | 16 处 worker-runtime（context 5 + runtime 3 + loggers 3 + define-engine 3 + sinks 1 + executor 1）+ core 待统计 |
-| P-TM04 | pipeline/ + model/ + session/ + watch/ | 待统计（含 executor→worker-pool 1 处，R17 F51）|
-| P-TM05 | view/ + logic/ + style/ | 待统计 |
-| P-TM06 | bin/ + dev/ + src/根 | 待统计 |
+| 阶段 | 文件 | scope 内 import | 跨阶段修正要点 |
+| --- | --- | --- | --- |
+| P-TM01 | document/document-ops/emit/napi-parse | 21 处 | grep 全仓 import document 的文件改 .ts |
+| P-TM02 | shared/ 8 | 35 处（utils 11 + lifecycle 7 + compile-config 6 + path-utils 5 + platforms 3 + compile-progress 2 + art 1）| grep 全仓 import shared 的文件改 .ts |
+| P-TM03 | core/ 其余 + worker-runtime/ 6 | 27 处（core 11 + worker-runtime 16：context 5 + runtime 3 + loggers 3 + define-engine 3 + sinks 1 + executor 1）| grep 全仓 import core/worker-runtime 的文件改 .ts |
+| P-TM04 | pipeline/ + model/ + session/ + watch/ | 43 处（pipeline 23 + model 3 + session 12 + watch 5）| 含 executor→worker-pool 1 处（R17 F51）；grep 全仓 import pipeline/model/session/watch 的文件改 .ts |
+| P-TM05 | view/ + logic/ + style/ | 77 处（view 64 + logic 10 + style 3）| 含 worker-entry 3 个 + ENTRY_PATH 动态后缀（F49）；已 .ts 文件 4 个 import 同步（F83） |
+| P-TM06 | bin/ + dev/ + src/根 | 13 处（bin 8 + dev 2 + 根 3）| grep 全仓 import bin/dev/根的文件改 .ts |
+| 已 .ts | 6 文件 | 9 处 | P-TM01/04/05 分散修正（F76/F83/F85）|
+
+全仓实际 .js 后缀 import：161 处（152 .js 文件 + 9 .ts 文件）。
 
 ## worker-entry 链跨阶段依赖（R11 F35 + R16 F49）
 
