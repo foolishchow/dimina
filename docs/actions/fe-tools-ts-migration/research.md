@@ -304,6 +304,46 @@ POC 步骤：
 
 **pass-with-findings** —— F10/F11/F13（low 无难点）+ F12（medium CompileConfig 类型定义是关键）。类型形状全部清晰，无新 blocker。可升 ready。
 
+## 10. R5 review（2026-09-16，ready gate 终检）
+
+### R5 findings（文档同步问题，R4 升 ready 时未完全同步）
+
+#### F14 — 🟡 acceptance A-TM2 备注过时（medium）→ 已修
+
+- acceptance A-TM2 "D-TM-2 待拍板" → 改"已拍 scope 内"
+
+#### F15 — 🟡 validation V-TM 编号不连续 + 未同步分阶段（medium）→ 已修
+
+- validation 补全 V-TM01..08 对应 P-TM01..08
+
+#### F16 — 🟡 validation 映射表缺 A-TM5（medium）→ 已修
+
+- 补 A-TM5 → V-TM08
+
+#### F17 — 🟡 README readiness gaps 未更新（low）→ 已修
+
+- "待 R4 升 ready" → "已 ready，待授权实施"
+
+#### F18 — 🟡 A-TM1 evidence "除 src/ 外"过时（low）→ 已修
+
+- "src/compiler import（除 src/ 外）" → "bundler/src import"
+
+#### F19 — 🟡 P-TM01 验证点过严（medium）→ 已修
+
+- "TS2305 清零" → "TS2305 链式清零（该文件其他隐式 any 留 P-TM02..06）"
+
+#### F20 — 🟡 technical-design Non-goals 全错（high）→ 已修
+
+- "不做：类型注解、src/compiler 外迁移、测试文件迁移（待 D-TM-2 拍板）" → "行为改变 / 不用 any / 不改 scripts/crates / 不改测试逻辑（仅后缀）"
+
+#### F21 — 🟡 validation V-TM07 grep 范围过窄（low）→ 已修
+
+- grep "src/compiler" → "src/"
+
+### R5 verdict
+
+**pass** —— F14-F21 全是文档同步问题，已全部落盘修正。无技术 blocker。ready gate 通过，可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

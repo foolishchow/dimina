@@ -65,11 +65,12 @@ worker-entry × 3 + worker-runtime × 6（worker strip-types 已注入）。
 
 ## readiness gaps
 
-- ~~R1 findings 落盘~~（R1/R2/R3 已落盘 research §6/7/8）
+- ~~R1 findings 落盘~~（R1/R2/R3/R5 已落盘 research §6/7/8）
 - ~~D-TM-4 拍板~~ = 选项 B（JSDoc→TS type，不用 any）
 - ~~工作量评估~~（1134 错误，R2 F6）
 - ~~类型形状摸排~~（9 @typedef + 复杂函数，R3 F10/F13）
-- 待 R4 review 收敛后升 ready
+- ~~D-TM-1/2/3 拍板~~（R4 §9，POC 验证方案 A）
+- 已 **ready**，待授权实施（R5 F14-F21 文档同步已落盘）
 
 ## 决策状态
 

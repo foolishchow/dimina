@@ -5,7 +5,7 @@
 | ID | 阶段 | 前置 | 验证点 |
 | --- | --- | --- | --- |
 | P-TM00 | baseline 记录 + tsconfig strict 确认 | — | digest + 584/584 + tsc 0 错误（现状）|
-| P-TM01 | @typedef → TS type（9 个，4 文件，消除 TS2305 链式）| P-TM00 | grep 零 @typedef + tsc --checkJs TS2305 清零 |
+| P-TM01 | @typedef → TS type（9 个，4 文件，消除 TS2305 链式）| P-TM00 | grep 零 @typedef + tsc --checkJs TS2305 链式清零（该文件其他隐式 any 留 P-TM02..06）|
 | P-TM02 | shared/ 8 + core/env.js 类型化（基础渗透，env 被 34 处 import）| P-TM01 | tsc --checkJs shared+env 错误清零 + 4 组 diff=0 |
 | P-TM03 | core/ 其余 7 + worker-runtime/ 6 类型化 | P-TM02 | tsc --checkJs core+worker-runtime 清零 + diff=0 |
 | P-TM04 | pipeline/ 6 + model/ 6 + session/ 4 + watch/ 3 类型化 | P-TM03 | tsc --checkJs pipeline+model+session+watch 清零 + diff=0 |

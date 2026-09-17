@@ -4,7 +4,11 @@ Status: **draft**
 
 ## Non-goals
 
-详见 [README.md Non-goals](./README.md#non-goals)。本 Action 不做：类型注解、行为改变、src/compiler 外迁移、测试文件迁移（待 D-TM-2 拍板）。
+详见 [README.md Non-goals](./README.md#non-goals)。本 Action 不做：
+- 行为改变（diff=0）
+- 不用 `any`（D-TM-4 = 选项 B，JSDoc→TS type）
+- 不改 `scripts/`、`crates/` 等 src 外
+- 不改 `__tests__/` 逻辑（仅改 import 后缀，D-TM-2 scope 内）
 
 ## 后缀策略（D-TM-1 = 方案 A，拍定）
 
