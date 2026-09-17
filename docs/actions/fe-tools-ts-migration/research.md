@@ -904,6 +904,26 @@ POC 步骤：
 
 **pass-with-findings** —— F74（medium，README 同步，已修）+ F75（🟢 验证通过）。README readiness gaps 已更新。可授权实施。
 
+## 33. R28 review（2026-09-16，已 .ts 文件 import 后缀统一）
+
+### R28 findings
+
+#### F76 — 🟡 compile-target.ts import 后缀遗漏（medium）→ 已修
+
+- **Evidence**: `compile-target.ts` import type `'./compile-target.types.js'`（.js 后缀）——未列入 P-TM 阶段的 import 修正
+- **Broken**: V-TM08 `grep -rn "from '.*\.js'" src/` 会命中 `./compile-target.types.js` → 零 .js import 验证失败
+- **Root cause**: 6 个已 .ts 文件的 import 后缀统一（方案 A）未系统列出——parity/wxml-ir 在 P-TM01 清单，compile-target 遗漏
+- **Correction**: P-TM04 补 compile-target.ts 的 import 后缀 `.js`→`.ts`（方案 A 统一 + V-TM08 验证要求）
+
+#### F77 — 🟢 已 .ts 文件清单确认（验证通过）
+
+- **Evidence**: 6 个已 .ts 文件——compile-target/compile-target.types（P-TM04）+ parity/wxml-ir/registry/stub（P-TM05）；parity/wxml-ir 的 document import 在 P-TM01 清单；compile-target.types/registry/stub 无相对 import 无需改
+- **Conclusion**: 除 compile-target.ts 遗漏外，其余已 .ts 文件处理路径清晰 ✓
+
+### R28 verdict
+
+**pass-with-findings** —— F76（medium，compile-target.ts import 后缀遗漏，已修）+ F77（🟢 验证通过）。P-TM04 补 compile-target 后缀修正。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
