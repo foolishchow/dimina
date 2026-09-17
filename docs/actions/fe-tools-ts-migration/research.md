@@ -1001,6 +1001,28 @@ POC 步骤：
 
 **pass** —— F82 确认，无新 finding。env.js 类型化规格就绪。
 
+## 38. R33 review（2026-09-16，registry/stub import 遗漏 + F77 记录修正）
+
+### R33 findings
+
+#### F83 — 🟠 registry.ts/stub.ts import 后缀遗漏（high）→ R28 F77 记录错误修正
+
+- **Evidence**: R28 F77 记录"compile-target.types/registry/stub 无相对 import 无需改"——**错误**
+  - `registry.ts`：`import type { WxmlRenderer } from '../common/wxml-ir.types.js'`（.js 后缀）
+  - `stub.ts`：`import type { WxmlRenderer, WxmlRenderResult, LoadedGraph } from '../common/wxml-ir.types.js'`（.js 后缀）
+- **Broken**: V-TM08 `grep -rn "from '.*\.js'" src/` 会命中这两个 → 零 .js import 验证失败
+- **Root cause**: F77 错误判断 registry/stub "无相对 import"——实际它们 import wxml-ir.types.js
+- **Correction**: P-TM05 补 registry.ts/stub.ts 的 import 后缀 `.js`→`.ts`（与 F76 compile-target.ts 同理）
+
+#### F84 — 🟢 less/ws 无 @types 确认（验证通过）
+
+- **Evidence**: `less`（动态 `import('less')`）+ `ws`（静态 named import）均无 @types/包自带 .d.ts → 需 declare module（F71 已覆盖）
+- **Conclusion**: F71 的 declare module 处理路径确认 ✓
+
+### R33 verdict
+
+**pass-with-findings** —— F83（high，registry/stub import 遗漏，R28 F77 记录错误修正）+ F84（🟢 验证通过）。P-TM05 补 registry/stub 后缀修正。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

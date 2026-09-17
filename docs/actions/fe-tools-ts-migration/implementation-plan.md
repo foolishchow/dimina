@@ -151,6 +151,14 @@ export type Attr = { span: Span; name: string; value: Value }
 - logic/ 2（index(59 错), worker-entry）
 - style/ 2（index(86 错), worker-entry）
 
+**已 .ts 文件 import 后缀修正（R28 F76 + R33 F83）**：P-TM05 阶段需修正已 .ts 文件的 import 后缀统一：
+- `registry.ts`：`import type { WxmlRenderer } from '../common/wxml-ir.types.js'` → `.ts`
+- `stub.ts`：`import type { WxmlRenderer, WxmlRenderResult, LoadedGraph } from '../common/wxml-ir.types.js'` → `.ts`
+- `parity.ts`：`import { attrValueRaw } from './document.js'` → `.ts`（P-TM01 document 改名后）
+- `wxml-ir.types.ts`：`import type { Span, Attr, Value } from './document.js'` → `.ts`（P-TM01 document 改名后）
+
+注：R28 F77 原记录"registry/stub 无相对 import 无需改"有误，R33 F83 修正。
+
 ## P-TM06 — bin/ + dev/ + src/根
 
 - bin/ 3, dev/ 5, src/根 2
