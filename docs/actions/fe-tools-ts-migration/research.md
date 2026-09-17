@@ -1074,6 +1074,26 @@ POC 步骤：
 
 **pass-with-findings** —— F87（medium，V-TM08 grep 扩展 + JSDoc 清理，已修）+ F88（🟢 POC 验证）。V-TM08 补 import() 检测，P-TM01/05 清理 12 处 JSDoc。可授权实施。
 
+## 41. R36 review（2026-09-16，vite auto-resolve POC + P-TM01..06 vitest 可行性）
+
+### R36 findings
+
+#### F89 — 🟢 vite auto-resolve .js→.ts POC 验证（验证）
+
+- **Evidence**: POC——`test/foo.spec.js` import `'../src/foo.js'`（文件只有 `src/foo.ts`）→ vitest 1 passed ✓
+- **Mechanism**: vite resolve.extensions 默认 `['.mjs', '.js', '.ts', ...]`——try .js（不存在）→ try .ts（存在）→ resolve 成功
+- **Impact**: P-TM01..06 各阶段改名 src .js→.ts 后，__tests__ 的 .js 后缀 import 靠 vite auto-resolve 兜底 → vitest 584/584 可跑
+- **Conclusion**: 3 处手写 .ts 后缀（compile-target.spec.js + wxml-ir.spec.js ×2）只是惯例/明确性，非 auto-resolve 不可靠 ✓
+
+#### F90 — 🟢 V-TM01..06 vitest 验证维度完整（验证）
+
+- **Evidence**: V-TM01..06 每阶段含 `vitest 584/584` 验证——配合 vite auto-resolve，各阶段 vitest 可执行
+- **Conclusion**: P-TM07 推迟改 __tests__ 后缀是合理的（auto-resolve 兜底）✓
+
+### R36 verdict
+
+**pass** —— F89/F90 全验证通过，无新 finding。P-TM01..06 vitest 可行性确认。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
