@@ -429,6 +429,41 @@ POC 步骤：
 
 **pass-with-findings** —— F27（medium，类型化难点扩展，已修）+ F28（🟢 strip-types 验证通过）。F27 是 F25 的补充——类型不兼容和泛型缺失需逐个适配。可授权实施。
 
+## 14. R9 review（2026-09-16，dist 字节保证 POC + 错误量验证）
+
+### R9 findings
+
+#### F29 — 🟢 dist 字节保证 POC 通过（验证）
+
+- **Evidence**: `art.js`（0 错误，无 @typedef）改名 `art.ts` → `tsc build` → dist 字节对比：
+  - `.js` 编译 dist md5: `09f96fc0a7b42351839212cb7e36045b`
+  - `.ts` 改名编译 dist md5: `09f96fc0a7b42351839212cb7e36045b`
+  - ✅ 完全相同
+- **Conclusion**: `.js→.ts` 改名（无类型注解）dist 字节不变。加类型注解后 tsc erase 类型，dist 仍同。**行为 0 全程基础保证**。
+
+#### F30 — 🟢 错误量统计验证（无 finding）
+
+- **Evidence**: R2 完整路径统计正确（env.js 103 最高，session/index.js = 34）；basename grep（session+bin index.js 合计 315）是验证方法 bug，不影响 R2 数据
+- **Conclusion**: 1134 错误分布确认无误
+
+### 错误量分布确认（1134 总）
+
+| 文件 | 错误 | 阶段 |
+| --- | --- | --- |
+| core/env.js | 103 | P-TM02 |
+| view/index.js | 101 | P-TM05 |
+| napi/parse.js | 91 | P-TM05 |
+| style/index.js | 86 | P-TM05 |
+| logic/index.js | 59 | P-TM05 |
+| shared/utils.js | 45 | P-TM02 |
+| compatibility.js | 38 | P-TM03 |
+| compile-cache.js | 34 | P-TM04 |
+| session/index.js | 34 | P-TM04 |
+
+### R9 verdict
+
+**pass** —— F29/F30 全验证通过，无新 finding。dist 字节保证 POC 确认行为 0 基础。ready gate 最终 pass，可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
