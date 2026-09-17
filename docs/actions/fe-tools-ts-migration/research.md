@@ -726,6 +726,23 @@ POC 步骤：
 
 **pass** —— F56-F59 全验证通过，无新 finding。compatibility/compile-cache 都是隐式 any 为主（机械可解）。可授权实施。
 
+## 25. R20 review（2026-09-16，style/index.js 语法错误验证）
+
+### R20 findings
+
+#### F60 — 🟢 style/index.js 6 个语法错误是 checkJs 误报（验证通过）
+
+- **Evidence**:
+  - TS1005/TS1141/TS2300 报在 513,29/40 + 515,75/86——都是 **JSDoc 注释行**（`@import statements`）
+  - tsc 把 .js 注释里的 `@import` 误解为 import 语句（checkJs/allowJs 解析 bug）
+  - POC：同注释的 `.ts` 文件 → `tsc --noEmit` **退出码 0**（不报错）
+- **Conclusion**: 迁移 .ts 后这 6 个语法错误**自然消除**——非真实问题 ✓
+- **Impact**: style/index.js 86 错中 6 个是 .js 注释误报（.ts 后消失），剩 80 个真实类型错误（TS7006 隐式 any 为主，机械可解）
+
+### R20 verdict
+
+**pass** —— F60（🟢 checkJs 误报验证）。无新 blocker。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
