@@ -1,7 +1,7 @@
 # fe-tools-ts-migration
 
 - Action: `fe-tools-ts-migration`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-16
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-worker-runtime`](../_archive/complete/fe-tools-worker-runtime/README.md)（worker-runtime 新增 9 .js 文件，触发全仓 TS 迁移动机）；`fe-tools-bundler-tsc-dist`（D-TD-20 .js→.ts 隐式映射限制 + tsc rewrite 配置）
@@ -75,7 +75,7 @@ worker-entry × 3 + worker-runtime × 6（worker strip-types 已注入）。
 
 | 决策 | 状态 | 备注 |
 | --- | --- | --- |
-| D-TM-1 | 待拍板 | 建议方案 A（显式 .ts）|
-| D-TM-2 | 待拍板 | F1 建议 scope 内 |
-| D-TM-3 | 待拍板 | R2 F9 分阶段策略 |
+| D-TM-1 | **已定** | 方案 A（显式 .ts，POC 验证 tsc 0 错 + dist rewrite）|
+| D-TM-2 | **已定** | scope 内（__tests__ import .js→.ts 同步）|
+| D-TM-3 | **已定** | 分阶段 core+shared→worker-runtime→pipeline+model+session+watch→view+logic+style→bin+dev+根 + 跨 import 后缀修正 |
 | D-TM-4 | **已定** | 选项 B（JSDoc→TS type，不用 any）|

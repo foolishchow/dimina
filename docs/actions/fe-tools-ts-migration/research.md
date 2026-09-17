@@ -303,3 +303,48 @@ POC 步骤：
 ### R3 verdict
 
 **pass-with-findings** —— F10/F11/F13（low 无难点）+ F12（medium CompileConfig 类型定义是关键）。类型形状全部清晰，无新 blocker。可升 ready。
+
+## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
+
+### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
+
+**POC 验证**：
+- `.ts` 文件 import `.ts` 显式 `.ts` 后缀（目标已是 .ts）→ `tsc --noEmit` **0 错误**
+- `compile-target.ts` import `'./compile-target.types.ts'` → tsc 通过 + dist build OK
+- tsc `rewriteRelativeImportExtensions` 把 `.ts` import rewrite 成 `.js` in dist
+
+**规则**：
+- 所有 import .ts 用显式 `.ts` 后缀（统一）
+- tsc rewrite `.ts`→`.js` in dist（Node native dist 跑 OK）
+- vite resolve `.ts`（vitest OK）
+- worker `/src/` 走 `--experimental-strip-types`（现状已注入）
+
+### D-TM-2 = scope 内（__tests__ import .js→.ts 同步改）✓ 拍定
+
+**F1 依据**：改名后测试 import `.js` 找不到文件 → 崩溃，必须同步改。
+
+**规则**：`__tests__/` import `src/` 的后缀同步改 `.ts`（仅后缀，不改测试逻辑）。
+
+### D-TM-3 = 分阶段 + 跨 import 后缀修正 ✓ 拍定
+
+**阶段顺序**（按依赖图被 import 次数降序）：
+1. P-TM01 @typedef→type（9 个 4 文件，消除 TS2305 链式）
+2. P-TM02 shared/ + core/env.js（基础渗透，env 被 34 处 import）
+3. P-TM03 core/ 其余 + worker-runtime/
+4. P-TM04 pipeline/ + model/ + session/ + watch/
+5. P-TM05 view/ + logic/ + style/
+6. P-TM06 bin/ + dev/ + src/根
+7. P-TM07 __tests__/ import 后缀
+8. P-TM08 全量验证
+
+**跨 import 后缀修正**：每阶段改本阶段 `.js`→`.ts` + grep 所有 import 本阶段的文件改后缀 `.ts`（含跨阶段文件，仅改后缀不改名）。
+
+**分阶段可行性**（POC 验证）：
+- tsc NodeNext 能 resolve `.js` import 到 `.ts`（现状 compile-target.ts import `./compile-target.types.js`，0 错误）
+- 但 Node native worker 不 fallback——worker 文件 import `.ts` 必须显式 `.ts`（方案 A 统一显式 .ts 解决）
+- `.js` 文件 `checkJs:false` → tsc 不检查 → 分阶段中间状态 `.js` 文件不报错
+- 每阶段 `.ts` 闭环类型注解 → tsc build 该阶段过
+
+### R4 verdict
+
+**ready** —— D-TM-1/2/3 拍定 + POC 验证方案 A 可行 + 类型形状清晰 + 工作量评估完成（1134 错误，分阶段可行）。升 ready。
