@@ -885,6 +885,25 @@ POC 步骤：
 
 **pass** —— F73 全验证通过，无新 finding。验证流程完整闭环（baseline → 各阶段产物 diff → strip-types 适配 → vitest）。可授权实施。
 
+## 32. R27 review（2026-09-16，README 状态同步 + 类型定义组织）
+
+### R27 findings
+
+#### F74 — 🟡 README readiness gaps 过时（medium）→ 已修
+
+- **Evidence**: README readiness gaps 写"已 ready，待授权实施（R5 F14-F21 文档同步已落盘）"——只到 R5
+- **Broken**: 已 R26 全收敛（R22 F66 终检 + R25 F72 验证脚本 + R26 F73 流程终检）——README 未同步
+- **Correction**: 更新 readiness gaps 为"R1-R26 全收敛，V-TM00..08 完整，待授权实施"
+
+#### F75 — 🟢 跨文件复用类型检查（验证通过）
+
+- **Evidence**: 无 JSDoc `@typedef {import(` 引用——跨文件类型复用少；document-ops 的 WxmlDocument/Document re-export 是 P-TM01 处理
+- **Conclusion**: 类型定义就近文件内即可，无需共享 types.ts 文件 ✓
+
+### R27 verdict
+
+**pass-with-findings** —— F74（medium，README 同步，已修）+ F75（🟢 验证通过）。README readiness gaps 已更新。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
