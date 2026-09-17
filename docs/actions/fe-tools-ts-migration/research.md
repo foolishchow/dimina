@@ -868,6 +868,23 @@ POC 步骤：
 
 **pass-with-findings** —— F72（high，验证脚本生成缺失，已修）。V-TM01..05 diff 现可执行。可授权实施。
 
+## 31. R26 review（2026-09-16，验证流程终检）
+
+### R26 findings
+
+#### F73 — 🟢 验证流程终检全通过（验证）
+
+- **Evidence**:
+  - **V-TM00..05**：脚本 `import src/index.js` + `node /tmp/wr-gen-p0X.mjs`——P-TM01..05 时 index.js 未改（P-TM06 才改）✓
+  - **V-TM06 + V-TM08**：脚本 `import src/index.ts` + `node --experimental-strip-types`——P-TM06 改 index.ts 后 ✓
+  - **V-TM07**：vitest 584/584（P-TM07 只改测试 import，不改 src——不需 diff）✓
+  - **生成/diff 引用一致**：wr-p01..p06 各 2 次（生成 + diff 引用）✓
+- **Conclusion**: V-TM00..08 全流程可执行，import 后缀边界（P-TM06 前后）正确 ✓
+
+### R26 verdict
+
+**pass** —— F73 全验证通过，无新 finding。验证流程完整闭环（baseline → 各阶段产物 diff → strip-types 适配 → vitest）。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
