@@ -65,7 +65,17 @@ worker-entry × 3 + worker-runtime × 6（worker strip-types 已注入）。
 
 ## readiness gaps
 
-- R1 findings 待落盘修正（F1 __tests__ scope / F2 现状 .ts 后缀 / F3 POC 证伪 → D-TM-4 升级 blocker）
-- D-TM-4 拍板 = 选项 B（JSDoc→TS type，不用 any）——已定
-- 类型注解工作量评估（9 @typedef + 361 @param/@returns + 隐式 any）
-- 待 R2 review 收敛后升 ready
+- ~~R1 findings 落盘~~（R1/R2/R3 已落盘 research §6/7/8）
+- ~~D-TM-4 拍板~~ = 选项 B（JSDoc→TS type，不用 any）
+- ~~工作量评估~~（1134 错误，R2 F6）
+- ~~类型形状摸排~~（9 @typedef + 复杂函数，R3 F10/F13）
+- 待 R4 review 收敛后升 ready
+
+## 决策状态
+
+| 决策 | 状态 | 备注 |
+| --- | --- | --- |
+| D-TM-1 | 待拍板 | 建议方案 A（显式 .ts）|
+| D-TM-2 | 待拍板 | F1 建议 scope 内 |
+| D-TM-3 | 待拍板 | R2 F9 分阶段策略 |
+| D-TM-4 | **已定** | 选项 B（JSDoc→TS type，不用 any）|

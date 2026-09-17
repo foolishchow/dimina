@@ -245,3 +245,61 @@ POC 步骤：
 ### R2 verdict
 
 **pass-with-findings** —— F6（high 工作量 1134）+ F7（medium checkJs 低估）+ F8（medium 第三方类型）+ F9（low 分阶段策略）。工作量评估完成——1134+ 错误，分阶段类型化可行。
+
+## 8. R3 review（2026-09-16）
+
+### R3 深入摸排
+
+#### 9 个 @typedef 完整形状
+
+- `document.js`：`Span{start,end}`, `Document{span?,body,sourceFile?}`, `Value{kind:'static'|'expr'|'template',raw,span?}`, `Attr{span?,name,value?}`
+- `document-ops.js`：`WxmlDocument`（re-export `import('./wxml-ir.types.js').WxmlDocument`）, `Document`（re-export `import('./document.js').Document`）
+- `emit.js`：`EmitModule{moduleId,code,map:string|null,extraInfoCode?}`, `ModuleCollection`（Iterable<EmitModule>）
+- `napi/parse.js`：`SourceContext{source:string,buf:Buffer,byteToChar:Int32Array}`
+
+#### 第三方包类型
+
+- `listr2`：自带 `./dist/index.d.mts` ✓
+- `cheerio`：自带 `./dist/commonjs/index.d.ts` ✓
+- `mitt`：不在 `node_modules`（monorepo/SDK 内置，需定位）
+
+#### env.js TS2339 动态对象根因
+
+- `env.js` 103 错：59 TS2339（property any）+ 33 TS7006（隐式 any 参数）
+- TS2339 示例：`Property 'template' does not exist on type '{}'`
+- 根因：config 动态对象字面量推断为 `{}`，字段访问 `.template/.style/.dependencyGraph` 报错
+- 修正：定义 `CompileConfig` interface 后字段访问不再 any
+
+#### 复杂函数签名
+
+- `runtime.js`：`makeProgress(parentPort)`, `runWorker(engine)`
+- `executor.js`：`executeTask({ engine, input, onOutput, onProgress })`
+- `define-engine.js`：`defineEngine(overrides)`
+- 都是 D-WR-1..9 已定义契约，类型形状可从 worker-runtime design 拿
+
+### R3 findings
+
+#### F10 — 🟢 9 @typedef 形状清晰（low）
+
+- **Evidence**: 全 object 结构，@property 字段清晰（Span/Document/Value/Attr/EmitModule/SourceContext）
+- **Correction**: 直接转 TS `type`/`interface`，无难点
+
+#### F11 — 🟢 第三方包类型（low）
+
+- **Evidence**: listr2 + cheerio 自带 .d.ts；mitt 需定位（monorepo）
+- **Correction**: 查 mitt 位置；缺失的局部 type 声明
+
+#### F12 — 🟡 env.js TS2339 动态对象（medium）
+
+- **Evidence**: env.js 59 TS2339——config 动态对象字面量推断为 `{}`，字段访问报错
+- **Root cause**: CompileConfig 类型未定义，对象字面量推断为空对象
+- **Correction**: P-TM02 定义 CompileConfig interface 后，env.js TS2339 链式消除
+
+#### F13 — 🟢 复杂函数签名（low）
+
+- **Evidence**: runtime/executor/define-engine 函数签名都是 D-WR 契约，形状已知
+- **Correction**: 从 worker-runtime design 拿类型形状
+
+### R3 verdict
+
+**pass-with-findings** —— F10/F11/F13（low 无难点）+ F12（medium CompileConfig 类型定义是关键）。类型形状全部清晰，无新 blocker。可升 ready。
