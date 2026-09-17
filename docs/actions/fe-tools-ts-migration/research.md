@@ -1116,6 +1116,22 @@ POC 步骤：
 
 **pass** —— F91/F92 全验证通过，无新 finding。dist exports 验证维度完整。可授权实施。
 
+## 43. R38 review（2026-09-16，executor.js 跨阶段时序）
+
+### R38 findings
+
+#### F93 — 🟢 executor.js 跨阶段时序确认（验证）
+
+- **Evidence**:
+  - **executor.js 在 P-TM03 改名**（worker-runtime scope），ENTRY_PATH 硬编码 .js（worker-entry 还 .js，P-TM05 才改）→ P-TM03..04 之间 ENTRY_PATH .js 正确 ✓
+  - **P-TM05 改 worker-entry→.ts** + ENTRY_PATH 动态后缀（F49 已覆盖 `const EXT = isSrc ? '.ts' : '.js'`）
+  - **executor.js import worker-pool**（`'../../watch/worker-pool.js'`）——P-TM03 时 worker-pool 还 .js（正确）；P-TM04 改 worker-pool→.ts 时 executor.ts 同步改 import .ts（F51 已覆盖）
+- **Conclusion**: executor.js 的两处跨阶段依赖（ENTRY_PATH worker-entry + import worker-pool）时序正确，F49/F51 覆盖完整 ✓
+
+### R38 verdict
+
+**pass** —— F93 验证通过，无新 finding。executor.js 跨阶段时序确认。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
