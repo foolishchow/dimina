@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { storeInfo } from '../src/compiler/core/env.ts'
-import { initWxsFilePathMap, loadWxsModule } from '../src/compiler/view/index.js'
+import { initWxsFilePathMap, loadWxsModule } from '../src/compiler/view/index.ts'
 
 /**
  * 回归：loadWxsModule 通过文件系统兜底加载「依赖发现」到的 npm 视图脚本时，

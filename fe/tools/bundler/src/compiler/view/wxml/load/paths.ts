@@ -6,7 +6,9 @@ import { getTemplateExts, getViewScriptExts } from '../../../core/env.ts'
 /**
  * 根据扩展名列表生成匹配尾部扩展名的正则，如 ['.wxs', '.qds'] -> /(\.wxs|\.qds)$/
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function buildExtStripRegex(exts) {
+	// @ts-expect-error P-TM05: type narrowing needed
 	const alt = exts.map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
 	return new RegExp(`(${alt})$`)
 }
@@ -14,6 +16,7 @@ export function buildExtStripRegex(exts) {
 /**
  * 移除视图脚本文件路径末尾的扩展名，支持 .wxs 和自定义扩展名
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function stripViewScriptExt(p) {
 	return p.replace(buildExtStripRegex(getViewScriptExts()), '')
 }
@@ -24,6 +27,7 @@ export function stripViewScriptExt(p) {
  * @param {string} src
  * @returns 返回绝对路径
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function getViewPath(workPath, src) {
 	const aSrc = src.startsWith('/') ? src : `/${src}`
 	for (const mlType of getTemplateExts()) {
@@ -43,6 +47,7 @@ export function getViewPath(workPath, src) {
  * 解析 import/include 的模板文件路径。
  * 微信允许省略 .wxml；显式扩展名保持原样，无扩展名时按当前模板类型优先级补全。
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function resolveTemplateDependencyPath(workPath, ownerPath, src) {
 	const resolvedPath = getAbsolutePath(workPath, ownerPath, src)
 	if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {

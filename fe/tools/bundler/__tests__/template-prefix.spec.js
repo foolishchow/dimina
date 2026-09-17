@@ -4,7 +4,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkTemplateCompatibility, getTemplateDirectiveName } from '../src/compiler/core/compatibility.ts'
 import { getPages, storeInfo } from '../src/compiler/core/env.ts'
-import { compileML } from '../src/compiler/view/index.js'
+import { compileML } from '../src/compiler/view/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('template directive prefixes', () => {

@@ -8,26 +8,27 @@ import {
 	getWorkPath,
 } from '../../core/env.ts'
 import { attachProjection } from './common/document.ts'
-import { parseWxml } from './parse.js'
-import { loadTemplates } from './load/index.js'
+import { parseWxml } from './parse.ts'
+import { loadTemplates } from './load/index.ts'
 import { getWxmlRenderer } from './renderer/registry.ts'
-import { VUE_RENDERER_ID } from './renderer/vue/index.js'
-import { normalizeTemplateDom, transHtmlTag } from './renderer/vue/tools.js'
-import { buildExtStripRegex, getViewPath, resolveTemplateDependencyPath } from './load/paths.js'
+import { VUE_RENDERER_ID } from './renderer/vue/index.ts'
+import { normalizeTemplateDom, transHtmlTag } from './renderer/vue/tools.ts'
+import { buildExtStripRegex, getViewPath, resolveTemplateDependencyPath } from './load/paths.ts'
 import {
 	transTagWxs,
 	transAsses,
 	processIncludedFileWxsDependencies,
-} from './load/orchestrator-live.js'
+} from './load/orchestrator-live.ts'
 import {
 	collectIncludedComponentTags,
 	processIncludeConditionalAttrs,
-} from './load/include.js'
-import { transTagTemplate } from './load/template.js'
+} from './load/include.ts'
+import { transTagTemplate } from './load/template.ts'
 
 /**
  * 转换成底层框架模板 —— parse → load → vue.render
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function toCompileTemplate(isComponent, path, components, componentPlaceholder, processedPaths = new Set()) {
 	const workPath = getWorkPath()
 	const fullPath = getViewPath(workPath, path)

@@ -5,7 +5,7 @@
  * 生产路径默认且仅使用 'vue'（wxml renderer₀）；其它 id 仅测例 / 消融注册。
  * R-WIR9：registry 配置错误带 `[wxml]` 前缀。
  */
-import type { WxmlRenderer } from '../common/wxml-ir.types.js'
+import type { WxmlRenderer } from '../common/wxml-ir.types.ts'
 
 const registry = new Map<string, WxmlRenderer>()
 

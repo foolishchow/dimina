@@ -2,10 +2,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, resolveStyleImportPath } from '../src/compiler/style/index.js'
+import { boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, resolveStyleImportPath } from '../src/compiler/style/index.ts'
 import { getAppStyleScopeId, getComponent, getPages, storeInfo } from '../src/compiler/core/env.ts'
-import { compileSS } from '../src/compiler/style/index.js'
-import { compileML } from '../src/compiler/view/index.js'
+import { compileSS } from '../src/compiler/style/index.ts'
+import { compileML } from '../src/compiler/view/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 describe('ensureImportSemicolons', () => {

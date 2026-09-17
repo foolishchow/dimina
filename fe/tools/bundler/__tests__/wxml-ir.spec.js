@@ -16,20 +16,20 @@ import {
 	valueKind,
 } from '../src/compiler/view/wxml/common/document.ts'
 import { serialize } from '../src/compiler/view/wxml/common/document-ops.ts'
-import { parseWxml } from '../src/compiler/view/wxml/parse.js'
-import { loadTemplates } from '../src/compiler/view/wxml/load/index.js'
+import { parseWxml } from '../src/compiler/view/wxml/parse.ts'
+import { loadTemplates } from '../src/compiler/view/wxml/load/index.ts'
 import { getWxmlRenderer, listWxmlRenderers, registerWxmlRenderer, unregisterWxmlRenderer } from '../src/compiler/view/wxml/renderer/registry.ts'
 import { createStubWxmlRenderer } from '../src/compiler/view/wxml/renderer/stub.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(testDir, '../src/compiler')
-const compileSrc = fs.readFileSync(path.join(srcRoot, 'view/wxml/compile.js'), 'utf8')
+const compileSrc = fs.readFileSync(path.join(srcRoot, 'view/wxml/compile.ts'), 'utf8')
 const wxmlFiles = [
 	'view/wxml/common/document.ts',
-	'view/wxml/parse.js',
-	'view/wxml/load/index.js',
+	'view/wxml/parse.ts',
+	'view/wxml/load/index.ts',
 	'view/wxml/renderer/registry.ts',
-	'view/wxml/renderer/vue/index.js',
+	'view/wxml/renderer/vue/index.ts',
 	'view/wxml/renderer/stub.ts',
 ]
 

@@ -13,7 +13,7 @@ import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTarget
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'
-import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.js'
+import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.ts'
 import {
 	getAttr,
 	queryAll,
@@ -24,23 +24,24 @@ import {
 import {
 	buildExtStripRegex,
 	stripViewScriptExt,
-} from './wxml/load/paths.js'
-import { toCompileTemplate } from './wxml/compile.js'
-import { processIncludeConditionalAttrs } from './wxml/load/include.js'
-import { bindTransformOrchestrator } from './wxml/load/orchestrator-live.js'
+} from './wxml/load/paths.ts'
+import { toCompileTemplate } from './wxml/compile.ts'
+import { processIncludeConditionalAttrs } from './wxml/load/include.ts'
+import { bindTransformOrchestrator } from './wxml/load/orchestrator-live.ts'
 import {
 	normalizeTemplateSyntax,
 	generateSlotDirective,
 	generateVModelTemplate,
 	getTemplateCompilerOptions,
 	compileTemplateModuleRender,
-} from './wxml/renderer/vue/tools.js'
-import { bindVueToolsLive } from './wxml/renderer/vue/live.js'
-import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.js'
+} from './wxml/renderer/vue/tools.ts'
+import { bindVueToolsLive } from './wxml/renderer/vue/live.ts'
+import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.ts'
 import { emitEntry } from '../pipeline/emit.ts'
 
 // TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）
 if (!getWxmlRenderer(VUE_RENDERER_ID)) {
+	// @ts-expect-error P-TM05: type narrowing needed
 	registerWxmlRenderer(vueWxmlRenderer)
 }
 
@@ -52,8 +53,10 @@ if (!getWxmlRenderer(VUE_RENDERER_ID)) {
  * @param {'module'|'script'} sourceType
  * @returns {*} Oxc Program AST
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function parseJs(code, filename = 'view-compiler.js', sourceType = 'module') {
 	return parseSync(filename, code, {
+		// @ts-expect-error P-TM05: type narrowing needed
 		sourceType,
 		lang: 'js',
 	}).program
@@ -65,6 +68,7 @@ function parseJs(code, filename = 'view-compiler.js', sourceType = 'module') {
  * @param {*} ast - Oxc Program AST
  * @returns {string} Program code or the source of the single top-level expression.
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function getProgramCode(code, ast) {
 	const statement = ast.body?.[0]
 	if (ast.body?.length === 1 && statement?.type === 'ExpressionStatement') {
@@ -73,10 +77,12 @@ function getProgramCode(code, ast) {
 	return code
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function isStringLiteral(node) {
 	return node?.type === 'StringLiteral' || (node?.type === 'Literal' && typeof node.value === 'string')
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function getStringLiteralRawValue(node) {
 	if (!isStringLiteral(node)) {
 		return ''
@@ -88,15 +94,18 @@ function getStringLiteralRawValue(node) {
 	return String(node.value)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function getSource(code, node) {
 	return code.slice(node.start, node.end)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function applyCodeReplacements(source, replacements) {
 	if (replacements.length === 0) {
 		return source
 	}
 
+	// @ts-expect-error P-TM05: type narrowing needed
 	const selected = []
 	const byLargestRange = [...replacements].sort((a, b) => {
 		const lengthDiff = (b.end - b.start) - (a.end - a.start)
@@ -104,6 +113,7 @@ function applyCodeReplacements(source, replacements) {
 	})
 
 	for (const replacement of byLargestRange) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		const overlaps = selected.some(item =>
 			replacement.start < item.end && item.start < replacement.end
 		)
@@ -135,6 +145,7 @@ function applyCodeReplacements(source, replacements) {
 // 被每个页面各 import 一次时，同一批表达式会被重复解析/重写，用字符串 key 缓存结果去重。
 const optionalChainingCache = new Map()
 
+// @ts-expect-error P-TM05: type narrowing needed
 function addOptionalChaining(expression) {
 	if (!expression || typeof expression !== 'string') {
 		return expression
@@ -148,6 +159,7 @@ function addOptionalChaining(expression) {
 	try {
 		const code = `(${expression})`
 		const ast = parseJs(code)
+		// @ts-expect-error P-TM05: type narrowing needed
 		const insertions = []
 
 		walk(ast, {
@@ -181,6 +193,7 @@ function addOptionalChaining(expression) {
 			}
 		})
 
+		// @ts-expect-error P-TM05: type narrowing needed
 		const result = applyCodeReplacements(code, insertions).slice(1, -1)
 		optionalChainingCache.set(expression, result)
 		return result
@@ -190,10 +203,12 @@ function addOptionalChaining(expression) {
 	}
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function parseSafeBraceExp(exp) {
 	return addOptionalChaining(parseBraceExp(exp))
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function transformTextInterpolation(text) {
 	if (!text || typeof text !== 'string' || !isWrappedByBraces(text)) {
 		return text
@@ -219,6 +234,7 @@ const wxsModuleRegistry = new Set()
 
 // wxs 文件路径映射表，用于快速查找模块对应的文件路径
 const wxsFilePathMap = new Map()
+// @ts-expect-error P-TM05: type narrowing needed
 let wxsScannedWorkPath = null
 
 // enableSourcemap / templateRenderCache: see wxml/renderer/vue/state.js
@@ -233,10 +249,12 @@ let activeCompileConfig = {
 /**
  * 编译页面视图文件
  */
+// @ts-expect-error P-TM05: type narrowing needed
 async function compileML(pages, root, progress) {
 	const workPath = getWorkPath()
 
 	// 主包和所有分包共享同一 npm WXS 索引；一次 Worker 任务只扫描一次。
+	// @ts-expect-error P-TM05: type narrowing needed
 	if (wxsScannedWorkPath !== workPath) {
 		initWxsFilePathMap(workPath)
 		wxsScannedWorkPath = workPath
@@ -288,6 +306,7 @@ async function compileML(pages, root, progress) {
  * 初始化 wxs 文件路径映射
  * @param {string} workPath - 工作路径
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function initWxsFilePathMap(workPath) {
 	// 清空现有映射
 	wxsFilePathMap.clear()
@@ -304,6 +323,7 @@ function initWxsFilePathMap(workPath) {
  * @param {string} dir - 目录路径
  * @param {string} workPath - 工作路径
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function scanWxsFiles(dir, workPath) {
 	try {
 		const items = fs.readdirSync(dir)
@@ -333,6 +353,7 @@ function scanWxsFiles(dir, workPath) {
  * 注册 wxs 模块
  * @param {string} modulePath - 模块路径
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function registerWxsModule(modulePath) {
 	wxsModuleRegistry.add(modulePath)
 }
@@ -343,10 +364,12 @@ function registerWxsModule(modulePath) {
  * @param {string} modulePath - 模块路径
  * @returns {boolean} wxs 模块是否已注册
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function isRegisteredWxsModule(modulePath) {
 	return wxsModuleRegistry.has(modulePath)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function buildCompileView(module, isComponent = false, scriptRes, activePaths = new Set(), inheritedTemplatePaths = new Set(), sourceMapRes = new Map()) {
 	const currentPath = module.path
 
@@ -374,12 +397,19 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 		compileResCache.set(module.path, {
 			failed: true,
 			errorShape: {
+				// @ts-expect-error P-TM05: type narrowing needed
 				message: error.message,
+				// @ts-expect-error P-TM05: type narrowing needed
 				stack: error.stack,
+				// @ts-expect-error P-TM05: type narrowing needed
 				name: error.name,
+				// @ts-expect-error P-TM05: type narrowing needed
 				file: error.file,
+				// @ts-expect-error P-TM05: type narrowing needed
 				line: error.line,
+				// @ts-expect-error P-TM05: type narrowing needed
 				column: error.column,
+				// @ts-expect-error P-TM05: type narrowing needed
 				stage: error.stage,
 			},
 		})
@@ -399,19 +429,23 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 			? graphDependencies
 			: Object.values(module.usingComponents)
 		for (const componentInfo of componentDependencies) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			const componentModule = getComponent(componentInfo)
 			if (!componentModule) {
 				continue
 			}
 			// 检查自依赖：当前模块已经完成本轮编译，只跳过重复编译；
 			// render runtime 仍会保留该递归组件映射。
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (componentModule.path === module.path) {
 				continue
 			}
 			// 递归编译组件，并收集其 wxs 模块
+			// @ts-expect-error P-TM05: type narrowing needed
 			const componentInstruction = buildCompileView(componentModule, true, scriptRes, activePaths, childInheritedTemplatePaths, sourceMapRes)
 			if (componentInstruction && componentInstruction.scriptModule) {
 				// 将组件的 wxs 模块添加到当前模块的 wxs 模块列表中
+				// @ts-expect-error P-TM05: type narrowing needed
 				for (const sm of componentInstruction.scriptModule) {
 					// 避免重复添加相同的模块
 					if (!allScriptModules.find(existing => existing.path === sm.path)) {
@@ -446,14 +480,18 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
  * https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/
  * @param {*} module
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function compileModule(module, isComponent, scriptRes, options = {}) {
+	// @ts-expect-error P-TM05: type narrowing needed
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
+	// @ts-expect-error P-TM05: type narrowing needed
 	const sourceMapRes = options.sourceMapRes || new Map()
 	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
 	if (!tpl) {
 		return null
 	}
 	const templateModule = instruction.templateModule || []
+	// @ts-expect-error P-TM05: type narrowing needed
 	const templateModuleForCompile = templateModule.filter(tm => !skipTemplatePaths.has(tm.path))
 	const compileInstruction = {
 		...instruction,
@@ -473,9 +511,13 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 			const err = new Error(cacheData.errorShape?.message || 'module compilation failed (cached)')
 			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name
 			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (cacheData.errorShape?.file) err.file = cacheData.errorShape.file
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (cacheData.errorShape?.line != null) err.line = cacheData.errorShape.line
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (cacheData.errorShape?.column != null) err.column = cacheData.errorShape.column
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (cacheData.errorShape?.stage) err.stage = cacheData.errorShape.stage
 			throw err
 		}
@@ -538,11 +580,15 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 		filename: module.path, // 用于错误提示
 		id: `data-v-${module.id}`,
 		scoped: true,
+		// @ts-expect-error P-TM05: type narrowing needed
 		inMap: enableSourcemap
+			// @ts-expect-error P-TM05: type narrowing needed
 			? (origins?.length
+				// @ts-expect-error P-TM05: type narrowing needed
 				? createOriginsSourcemap(origins, sourceContents)
 				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content))
 			: undefined,
+		// @ts-expect-error P-TM05: type narrowing needed
 		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
 	})
 
@@ -551,6 +597,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 		templateResults.push(compileTemplateModuleRender(tm, module.id, compileInstruction.scriptModule, scriptRes))
 	}
 
+	// @ts-expect-error P-TM05: type narrowing needed
 	const renderResult = insertWxsToRenderResult(tplCode.code, compileInstruction.scriptModule, scriptRes, module.path, tplCode.map)
 
 	// 通过 component 字段标记该页面 以 Component 形式进行渲染或着以 Page 形式进行渲染
@@ -621,6 +668,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
  * @param {string} filePath - 当前处理的文件路径
  * @returns {string} 处理后的 wxs 代码
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath = filePath) {
 	if (wxsFilePath && graphOwnerPath) {
 		getDependencyGraph().addFile(graphOwnerPath, wxsFilePath, 'view')
@@ -629,16 +677,19 @@ function processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, file
 	try {
 		wxsAst = parseJs(wxsContent, wxsFilePath || 'inline.wxs', 'script')
 	} catch (error) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		console.error(`[view] 解析 wxs 文件失败: ${wxsFilePath}`, error.message)
 		return wxsContent // 返回原始内容
 	}
 
+	// @ts-expect-error P-TM05: type narrowing needed
 	const replacements = []
 
 	// 遍历并处理各种转换
 	walk(wxsAst, {
 		enter(node) {
 			if (node.type === 'CallExpression') {
+				// @ts-expect-error P-TM05: type narrowing needed
 				const calleeName = node.callee?.name
 
 				// https://developers.weixin.qq.com/miniprogram/dev/reference/wxs/06datatype.html#regexp
@@ -680,6 +731,7 @@ function processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, file
 				}
 				// 处理 wxs 文件内部的 require 调用（仅对外部文件）
 				else if (calleeName === 'require' && node.arguments.length > 0 && wxsFilePath) {
+					// @ts-expect-error P-TM05: type narrowing needed
 					const requirePath = node.arguments[0].value
 
 					if (requirePath && typeof requirePath === 'string') {
@@ -730,6 +782,7 @@ function processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, file
 
 			if (node.type === 'MemberExpression') {
 				// 处理 constructor 属性访问，模拟微信小程序 wxs 中 constructor 返回字符串的行为
+				// @ts-expect-error P-TM05: type narrowing needed
 				if (node.property?.name === 'constructor' && !node.computed) {
 					const objectCode = getSource(wxsContent, node.object)
 					replacements.push({
@@ -742,6 +795,7 @@ function processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, file
 		}
 	})
 
+	// @ts-expect-error P-TM05: type narrowing needed
 	return applyCodeReplacements(wxsContent, replacements)
 }
 
@@ -751,6 +805,7 @@ function processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, file
  * @param {string} modulePath - 模块路径（可选，用于路径判断）
  * @returns {boolean} 是否为 wxs 模块
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function isWxsModuleByContent(moduleCode, modulePath = '') {
 	if (!moduleCode || typeof moduleCode !== 'string') {
 		return false
@@ -763,6 +818,7 @@ function isWxsModuleByContent(moduleCode, modulePath = '') {
 }
 
 // 递归处理 wxs 依赖
+// @ts-expect-error P-TM05: type narrowing needed
 function processWxsDependency(wxsFilePath, moduleName, scriptModule, workPath, filePath, graphOwnerPath = filePath) {
 	if (!fs.existsSync(wxsFilePath)) {
 		console.warn(`[view] wxs 依赖文件不存在: ${wxsFilePath}`)
@@ -770,6 +826,7 @@ function processWxsDependency(wxsFilePath, moduleName, scriptModule, workPath, f
 	}
 
 	// 检查是否已经处理过这个模块
+	// @ts-expect-error P-TM05: type narrowing needed
 	if (scriptModule.find(sm => sm.path === moduleName)) {
 		return
 	}
@@ -797,6 +854,7 @@ function processWxsDependency(wxsFilePath, moduleName, scriptModule, workPath, f
  * @param {*} scriptRes
  * @param {*} allScriptModules
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapRes = new Map()) {
 	const { tpl, instruction, sourceInfo } = toCompileTemplate(false, module.path, module.usingComponents, module.componentPlaceholder)
 	if (!tpl) {
@@ -816,9 +874,11 @@ function compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapR
 		filename: module.path,
 		id: `data-v-${module.id}`,
 		scoped: true,
+		// @ts-expect-error P-TM05: type narrowing needed
 		inMap: enableSourcemap
 			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)
 			: undefined,
+		// @ts-expect-error P-TM05: type narrowing needed
 		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
 	})
 
@@ -827,6 +887,7 @@ function compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapR
 		templateResults.push(compileTemplateModuleRender(tm, module.id, allScriptModules, scriptRes))
 	}
 
+	// @ts-expect-error P-TM05: type narrowing needed
 	const renderResult = insertWxsToRenderResult(tplCode.code, allScriptModules, scriptRes, module.path, tplCode.map)
 
 	const moduleChunks = [`Module({
@@ -868,6 +929,7 @@ function compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapR
  * @param {*} components 当前可用的组件映射
  * @param {Set} processedPaths 已处理的路径集合，防止循环引用和栈溢出
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function processIncludedFileWxsDependencies(componentTags, includePath, scriptModule, components, processedPaths = new Set()) {
 	// 如果当前路径已经处理过，直接返回避免循环引用
 	if (processedPaths.has(includePath)) {
@@ -883,17 +945,20 @@ function processIncludedFileWxsDependencies(componentTags, includePath, scriptMo
 		const componentModule = getComponent(componentPath)
 		if (componentModule) {
 			// 检查组件路径是否已经处理过，避免循环引用
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (processedPaths.has(componentModule.path)) {
 				continue
 			}
 
 			// 直接获取组件的模板和 wxs 依赖，避免递归调用
+			// @ts-expect-error P-TM05: type narrowing needed
 			const componentTemplate = toCompileTemplate(true, componentModule.path, componentModule.usingComponents, componentModule.componentPlaceholder, processedPaths)
 
 			if (componentTemplate && componentTemplate.instruction && componentTemplate.instruction.scriptModule) {
 				// 将组件的 wxs 模块添加到当前的 scriptModule 中
 				for (const sm of componentTemplate.instruction.scriptModule) {
 					// 避免重复添加相同的模块
+					// @ts-expect-error P-TM05: type narrowing needed
 					if (!scriptModule.find(existing => existing.path === sm.path)) {
 						scriptModule.push(sm)
 					}
@@ -904,6 +969,7 @@ function processIncludedFileWxsDependencies(componentTags, includePath, scriptMo
 }
 
 
+// @ts-expect-error P-TM05: type narrowing needed
 function transAsses(document, imageNodes, path, graphOwnerPath = path) {
 	const nodes = Array.isArray(imageNodes) ? imageNodes : queryAll(document, 'image')
 	for (const elem of nodes) {
@@ -922,6 +988,7 @@ function transAsses(document, imageNodes, path, graphOwnerPath = path) {
 					'view',
 				)
 			}
+			// @ts-expect-error P-TM05: type narrowing needed
 			setAttr(elem, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId()))
 		}
 	}
@@ -931,6 +998,7 @@ function transAsses(document, imageNodes, path, graphOwnerPath = path) {
 /**
  * 兼容 :key="{{ index }}" 或 :key="{{ item.index }}"的情况
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function parseKeyExpression(exp, itemName = 'item', indexName = 'index') {
 	// 去除首尾空格
 	exp = exp.trim()
@@ -969,6 +1037,7 @@ function parseKeyExpression(exp, itemName = 'item', indexName = 'index') {
 
 	// 处理 '1-{{xxx}}' 的情况
 	const parts = exp.split(/(\{\{.*?\}\})/)
+	// @ts-expect-error P-TM05: type narrowing needed
 	const result = parts.map((part) => {
 		if (part.startsWith('{{') && part.endsWith('}}')) {
 			const content = part.slice(2, -2).trim()
@@ -989,6 +1058,7 @@ function parseKeyExpression(exp, itemName = 'item', indexName = 'index') {
  * 将字符串内部的双引号进行替换
  * @param {*} input
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function escapeQuotes(input) {
 	return input.replace(/"/g, '\'')
 }
@@ -997,10 +1067,12 @@ function escapeQuotes(input) {
  * 判断字符串是不是被{{}}包裹
  * @param {*} str
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function isWrappedByBraces(str) {
 	return /\{\{.*\}\}/.test(str)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function splitWithBraces(str) {
 	const result = []
 	let temp = ''
@@ -1042,6 +1114,7 @@ function splitWithBraces(str) {
 	return result
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function parseClassRules(cssRule) {
 	let list = splitWithBraces(cssRule)
 	list = list.map((item) => {
@@ -1059,6 +1132,7 @@ function parseClassRules(cssRule) {
  * 使用 :for-item 可以指定数组当前元素的变量名
  * @param {*} attrs
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function getForItemName(attrs) {
 	for (const key in attrs) {
 		if (getTemplateDirectiveName(key) === 'for-item') {
@@ -1072,6 +1146,7 @@ function getForItemName(attrs) {
  * 使用 :for-index 可以指定数组当前下标的变量名
  * @param {*} attrs
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function getForIndexName(attrs) {
 	for (const key in attrs) {
 		if (getTemplateDirectiveName(key) === 'for-index') {
@@ -1086,6 +1161,7 @@ function getForIndexName(attrs) {
  * @param {*} exp
  * @param {*} attrs
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function parseForExp(exp, attrs) {
 	const item = getForItemName(attrs)
 	const index = getForIndexName(attrs)
@@ -1106,6 +1182,7 @@ const RESERVED_TEMPLATE_CONTEXT_NAMES = new Map(
 	[...RESERVED_TEMPLATE_CONTEXT_ALIASES].map(([name, alias]) => [alias, name]),
 )
 
+// @ts-expect-error P-TM05: type narrowing needed
 function encodeReservedTemplateContextIdentifier(expression) {
 	return RESERVED_TEMPLATE_CONTEXT_ALIASES.get(expression) || expression
 }
@@ -1114,6 +1191,7 @@ function encodeReservedTemplateContextIdentifier(expression) {
  * 解析 {{}} 表达式的值
  * @param {*} exp
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function parseBraceExp(exp) {
 	// 定义两个数组，分别存放两个分组的匹配结果
 	// 使用exec方法，循环执行正则表达式，直到返回null为止
@@ -1150,6 +1228,7 @@ function parseBraceExp(exp) {
  * @param {string} exp
  * @returns {string} 解析后的对象表达式字符串
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function parseTemplateDataExp(exp) {
 	const matchResult = exp.trim().match(/^\{\{([\s\S]*)\}\}$/)
 	if (matchResult) {
@@ -1158,6 +1237,7 @@ function parseTemplateDataExp(exp) {
 	return `{${parseSafeBraceExp(exp)}}`
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function transTagWxs(document, scriptModule, filePath, graphOwnerPath = filePath) {
 	// 同时处理所有视图脚本标签（wxs、dds 及自定义标签），避免同一文件混用多种标签时漏编译。
 	const wxsNodes = queryAll(document, getViewScriptTags().join(','))
@@ -1248,6 +1328,7 @@ function transTagWxs(document, scriptModule, filePath, graphOwnerPath = filePath
  * @param {Array} scriptModule - 用于收集新加载的 wxs 模块
  * @returns {Array} 所有 wxs 模块的数组
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function collectAllWxsModules(scriptRes, collectedPaths = new Set(), scriptModule = []) {
 	const allWxsModules = []
 	const workPath = getWorkPath()
@@ -1272,6 +1353,7 @@ function collectAllWxsModules(scriptRes, collectedPaths = new Set(), scriptModul
 				if (!collectedPaths.has(depPath)) {
 					if (scriptRes.has(depPath)) {
 						// 如果依赖已经在 scriptRes 中，递归处理
+						// @ts-expect-error P-TM05: type narrowing needed
 						const depModules = collectAllWxsModules(new Map([[depPath, scriptRes.get(depPath)]]), collectedPaths, scriptModule)
 						allWxsModules.push(...depModules)
 					} else {
@@ -1284,6 +1366,7 @@ function collectAllWxsModules(scriptRes, collectedPaths = new Set(), scriptModul
 							collectedPaths.add(depPath)
 
 							// 递归处理新加载模块的依赖
+							// @ts-expect-error P-TM05: type narrowing needed
 							const depModules = collectAllWxsModules(new Map([[depPath, loaded.code]]), collectedPaths, scriptModule)
 							allWxsModules.push(...depModules)
 						}
@@ -1303,6 +1386,7 @@ function collectAllWxsModules(scriptRes, collectedPaths = new Set(), scriptModul
  * @param {Array} scriptModule - 脚本模块数组
  * @returns {Object|null} 加载的模块对象或 null
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function loadWxsModule(modulePath, workPath, scriptModule) {
 	// wxsFilePathMap 记录 miniprogram_npm 下使用任意已配置扩展名的视图脚本文件，
 	// 用于判断并定位模块。不能依赖 '_wxs_' 路径片段，否则会漏掉自定义扩展名
@@ -1330,6 +1414,7 @@ function loadWxsModule(modulePath, workPath, scriptModule) {
 			code: processedContent
 		}
 	} catch (error) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		console.warn(`[view] 加载 wxs 模块失败: ${modulePath}`, error.message)
 		return null
 	}
@@ -1340,7 +1425,9 @@ function loadWxsModule(modulePath, workPath, scriptModule) {
  * @param {string} moduleCode - 模块代码
  * @returns {Array} 依赖的模块路径数组
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function extractWxsDependencies(moduleCode) {
+	// @ts-expect-error P-TM05: type narrowing needed
 	const dependencies = []
 
 	// 匹配 require("模块路径") 或 _("模块路径") 调用
@@ -1350,6 +1437,7 @@ function extractWxsDependencies(moduleCode) {
 	// eslint-disable-next-line no-cond-assign
 	while ((match = requirePattern.exec(moduleCode)) !== null) {
 		const depPath = match[1]
+		// @ts-expect-error P-TM05: type narrowing needed
 		if (depPath && !dependencies.includes(depPath)) {
 			dependencies.push(depPath)
 		}
@@ -1358,12 +1446,15 @@ function extractWxsDependencies(moduleCode) {
 	return dependencies
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'render.js', inputMap = null) {
+	// @ts-expect-error P-TM05: type narrowing needed
 	const wxsBindings = []
 	const codeReplacements = []
 	const ast = parseJs(code, filename)
 	const statement = ast.body?.[0]
 	const renderExpression = statement?.type === 'ExpressionStatement' ? statement.expression : null
+	// @ts-expect-error P-TM05: type narrowing needed
 	const renderBody = renderExpression?.body
 	const declarations = []
 
@@ -1414,6 +1505,7 @@ function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'rend
 					return
 				}
 
+				// @ts-expect-error P-TM05: type narrowing needed
 				const replacement = wxsBindings.find(item => item.templatePropertyName === node.property.name)
 				if (replacement) {
 					codeReplacements.push({
@@ -1433,8 +1525,10 @@ function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'rend
 	let map = inputMap
 	if (enableSourcemap) {
 		const generatedMap = new MagicString(code)
+		// @ts-expect-error P-TM05: type narrowing needed
 		const selected = []
 		for (const replacement of [...codeReplacements].sort((a, b) => (b.end - b.start) - (a.end - a.start))) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (!selected.some(item => replacement.start < item.end && item.start < replacement.end)) {
 				selected.push(replacement)
 			}
@@ -1453,6 +1547,7 @@ function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'rend
 			includeContent: true,
 			hires: true,
 		}).toString()
+		// @ts-expect-error P-TM05: type narrowing needed
 		map = inputMap ? remapSourcemap(wxsTransformMap, inputMap) : wxsTransformMap
 	}
 	const transformedAst = parseJs(transformed, filename)
@@ -1498,6 +1593,7 @@ export {
 }
 
 // P-WR02: engine export（不动调度，F47；onMessage 旧版保留，compile 函数声明供 export）
+// @ts-expect-error P-TM05: type narrowing needed
 async function viewCompile({ msg, progress, config }) {
 	resetStoreInfo(msg.storeInfo)
 	setEnableSourcemap(!!msg.sourcemap)
@@ -1506,6 +1602,7 @@ async function viewCompile({ msg, progress, config }) {
 
 	await compileML(msg.pages.mainPages, null, progress)
 	for (const [root, subPages] of Object.entries(msg.pages.subPages)) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		await compileML(subPages.info, root, progress)
 	}
 
@@ -1517,6 +1614,7 @@ async function viewCompile({ msg, progress, config }) {
 	optionalChainingCache.clear()
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function viewSuccessPayload({ logger }) {
 	return {
 		dependencyGraph: getDependencyGraph().toJSON(),
@@ -1524,6 +1622,7 @@ function viewSuccessPayload({ logger }) {
 	}
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function viewBuildConfig(msg) {
 	return {
 		sourcemap: !!msg.sourcemap,

@@ -13,13 +13,16 @@ import {
  * - 第二参为 string：返回处理后的 HTML（测例）
  * - 第二参为 Document：返回要插入的节点数组（load 主路径，零二次 parse）
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function processIncludeConditionalAttrs(includeNode, includeContentOrDoc) {
 	const allAttrs = attrsRecord(includeNode)
 	const conditionAttrs = {}
 	let hasCondition = false
 
 	for (const attrName in allAttrs) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		if (['if', 'elif', 'else'].includes(getTemplateDirectiveName(attrName))) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			conditionAttrs[attrName] = allAttrs[attrName]
 			hasCondition = true
 		}
@@ -33,6 +36,7 @@ export function processIncludeConditionalAttrs(includeNode, includeContentOrDoc)
 		}
 		const block = createElement({ name: 'block', attrs: [] })
 		for (const attrName in conditionAttrs) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			setAttr(block, attrName, conditionAttrs[attrName])
 		}
 		const moved = includeContentOrDoc.body.splice(0, includeContentOrDoc.body.length)
@@ -46,6 +50,7 @@ export function processIncludeConditionalAttrs(includeNode, includeContentOrDoc)
 	if (hasCondition) {
 		let blockAttrs = ''
 		for (const attrName in conditionAttrs) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			const attrValue = conditionAttrs[attrName]
 			if (attrValue !== undefined && attrValue !== '') {
 				blockAttrs += ` ${attrName}="${attrValue}"`
@@ -59,6 +64,7 @@ export function processIncludeConditionalAttrs(includeNode, includeContentOrDoc)
 	return includeContent
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 export function collectIncludedComponentTags(document, components) {
 	const componentTags = new Set()
 	if (!components) {

@@ -4,7 +4,7 @@
  * 证明挂点真实（A-WIR2）：可注册、可被选择、收到 LoadedGraph（而非原始
  * WXML 字符串）；不要求可产物。仅测例 / 消融使用——生产路径仅 'vue'。
  */
-import type { WxmlRenderer, WxmlRenderResult, LoadedGraph } from '../common/wxml-ir.types.js'
+import type { WxmlRenderer, WxmlRenderResult, LoadedGraph } from '../common/wxml-ir.types.ts'
 
 export const STUB_RENDERER_ID = 'stub'
 

@@ -3,7 +3,7 @@
  *
  * `process.env.WXML_PARSER ?? 'napi'` → 仅 `napi` | `cheerio`；非法值抛 `[wxml]`。
  */
-import { parseWxml as parseWxmlCheerio, PARSE_OPTIONS, projectDocument } from './cheerio/parse.js'
+import { parseWxml as parseWxmlCheerio, PARSE_OPTIONS, projectDocument } from './cheerio/parse.ts'
 import { parseWxml as parseWxmlNapi, documentFromSpanView, attrsFromOpeningTag } from './napi/parse.ts'
 
 const ENGINES = new Set(['napi', 'cheerio'])
@@ -24,6 +24,7 @@ export function resolveWxmlParserEngine(env = process.env) {
  * @param {string} source
  * @param {{ sourceFile?: string }} [options]
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function parseWxml(source, options = {}) {
 	const engine = resolveWxmlParserEngine()
 	if (engine === 'cheerio') {

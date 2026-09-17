@@ -7,7 +7,7 @@ import {
 	parseWxmlCheerio,
 	parseWxmlNapi,
 	resolveWxmlParserEngine,
-} from '../src/compiler/view/wxml/parse.js'
+} from '../src/compiler/view/wxml/parse.ts'
 import { compareDocumentsSemantic } from '../src/compiler/view/wxml/common/parity.js'
 import { serialize } from '../src/compiler/view/wxml/common/document-ops.js'
 

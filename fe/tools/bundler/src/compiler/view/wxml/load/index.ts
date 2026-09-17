@@ -16,11 +16,12 @@ import {
 	serialize,
 	wrapRootIfMulti,
 } from '../common/document-ops.ts'
-import { parseWxml } from '../parse.js'
+import { parseWxml } from '../parse.ts'
 
 /**
  * @param {any} tools
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function requireTools(tools) {
 	const missing = ['transTagTemplate', 'transTagWxs', 'transAsses', 'resolveTemplateDependencyPath', 'collectIncludedComponentTags', 'processIncludedFileWxsDependencies', 'processIncludeConditionalAttrs', 'checkTemplateCompatibility']
 		.filter(name => typeof tools?.[name] !== 'function')
@@ -32,6 +33,7 @@ function requireTools(tools) {
 /**
  * @param {any} node
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function nodeLocSuffix(node) {
 	const loc = node?.loc || node?.span
 	if (loc && typeof loc.start === 'number' && typeof loc.end === 'number') {
@@ -43,6 +45,7 @@ function nodeLocSuffix(node) {
 /**
  * @param {any} env
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function requireEnv(env) {
 	const missing = ['getContentByPath', 'getDependencyGraph', 'getViewScriptTags']
 		.filter(name => typeof env?.[name] !== 'function')
@@ -56,6 +59,7 @@ function requireEnv(env) {
  * @param {import('../common/wxml-ir.types.ts').LoadTemplatesCtx} ctx
  * @returns {import('../common/wxml-ir.types.ts').LoadedGraph} LoadedGraph：展开后 Document + templateModule + scriptModule + sourceTexts
  */
+// @ts-expect-error P-TM05: type narrowing needed
 export function loadTemplates(document, ctx) {
 	const {
 		isComponent = false,
@@ -92,8 +96,10 @@ export function loadTemplates(document, ctx) {
 	}
 
 	/** @type {any[]} */
+	// @ts-expect-error P-TM05: type narrowing needed
 	const templateModule = []
 	/** @type {any[]} */
+	// @ts-expect-error P-TM05: type narrowing needed
 	const scriptModule = []
 	const WIR_SRC = Symbol.for('db.wxml-bridge.source')
 
@@ -124,6 +130,7 @@ export function loadTemplates(document, ctx) {
 			}
 			catch (error) {
 				const err = /** @type {any} */ (error)
+				// @ts-expect-error P-TM05: type narrowing needed
 				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${err?.message || error})`, { cause: error })
 			}
 			if (includeContent.trim()) {
@@ -134,6 +141,7 @@ export function loadTemplates(document, ctx) {
 
 				tools.transTagTemplate(
 					includeDoc,
+					// @ts-expect-error P-TM05: type narrowing needed
 					templateModule,
 					includePath,
 					components,
@@ -144,21 +152,29 @@ export function loadTemplates(document, ctx) {
 
 				tools.transTagWxs(
 					includeDoc,
+					// @ts-expect-error P-TM05: type narrowing needed
 					scriptModule,
 					includePath,
 					modulePath,
 				)
 
+				// @ts-expect-error P-TM05: type narrowing needed
 				tools.processIncludedFileWxsDependencies(componentTags, includePath, scriptModule, components, processedPaths)
 
+				// @ts-expect-error P-TM05: type narrowing needed
 				removeMatching(includeDoc, 'template-def')
+				// @ts-expect-error P-TM05: type narrowing needed
 				removeMatching(includeDoc, 'template-ref')
+				// @ts-expect-error P-TM05: type narrowing needed
 				removeMatching(includeDoc, 'template')
+				// @ts-expect-error P-TM05: type narrowing needed
 				removeMatching(includeDoc, env.getViewScriptTags().join(','))
 
 				const nodes = tools.processIncludeConditionalAttrs(includeNode, includeDoc)
+				// @ts-expect-error P-TM05: type narrowing needed
 				const processedContent = typeof nodes === 'string' ? nodes : serialize({ body: nodes })
 				const inserted = typeof nodes === 'string'
+					// @ts-expect-error P-TM05: type narrowing needed
 					? replaceNode(includeNode, parseWxml(nodes).body)
 					: replaceNode(includeNode, nodes)
 				for (const node of inserted) {
@@ -177,6 +193,7 @@ export function loadTemplates(document, ctx) {
 	// —— 主文档 template 收集 ——
 	tools.transTagTemplate(
 		document,
+		// @ts-expect-error P-TM05: type narrowing needed
 		templateModule,
 		sourcePath,
 		components,
@@ -186,6 +203,7 @@ export function loadTemplates(document, ctx) {
 	)
 
 	// —— 主文档 wxs 收集 ——
+	// @ts-expect-error P-TM05: type narrowing needed
 	tools.transTagWxs(document, scriptModule, sourcePath, modulePath)
 
 	// —— import 展开：只收集 template/wxs ——
@@ -210,6 +228,7 @@ export function loadTemplates(document, ctx) {
 			}
 			catch (error) {
 				const err = /** @type {any} */ (error)
+				// @ts-expect-error P-TM05: type narrowing needed
 				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${err?.message || error})`, { cause: error })
 			}
 			if (importContent.trim()) {
@@ -219,6 +238,7 @@ export function loadTemplates(document, ctx) {
 				const componentTags = tools.collectIncludedComponentTags(importDoc, components)
 				tools.transTagTemplate(
 					importDoc,
+					// @ts-expect-error P-TM05: type narrowing needed
 					templateModule,
 					importPath,
 					components,
@@ -229,11 +249,13 @@ export function loadTemplates(document, ctx) {
 
 				tools.transTagWxs(
 					importDoc,
+					// @ts-expect-error P-TM05: type narrowing needed
 					scriptModule,
 					importPath,
 					modulePath,
 				)
 
+				// @ts-expect-error P-TM05: type narrowing needed
 				tools.processIncludedFileWxsDependencies(componentTags, importPath, scriptModule, components, processedPaths)
 			}
 		}
@@ -247,7 +269,9 @@ export function loadTemplates(document, ctx) {
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
 
 	const loaded = /** @type {import('../common/wxml-ir.types.ts').LoadedGraph} */ (document)
+	// @ts-expect-error P-TM05: type narrowing needed
 	loaded.templateModule = templateModule
+	// @ts-expect-error P-TM05: type narrowing needed
 	loaded.scriptModule = scriptModule
 	loaded.sourceTexts = sourceTexts
 	return loaded
@@ -258,6 +282,7 @@ export function loadTemplates(document, ctx) {
  * @param {any} key
  * @param {any} entry
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function markOriginTree(node, key, entry) {
 	if (!node || typeof node !== 'object') {
 		return

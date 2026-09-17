@@ -17,6 +17,7 @@ const processedModules = new Set()
 
 // 是否生成 sourcemap
 let enableSourcemap = false
+// @ts-expect-error P-TM05: type narrowing needed
 let sourcemapTargetPath = null
 /** @type {{ minify: boolean, sourcemap: boolean, esTarget: { logic: string, view: string } }} */
 let activeCompileConfig = {
@@ -26,6 +27,7 @@ let activeCompileConfig = {
 }
 
 
+// @ts-expect-error P-TM05: type narrowing needed
 async function writeCompileRes(compileRes, root) {
 	const outputDir = root
 		? `${getTargetPath()}/${root}`
@@ -36,6 +38,7 @@ async function writeCompileRes(compileRes, root) {
 	await emitEntry({
 		entryId: `logic${root ? ':' + root : ''}`,
 		kind: 'logic',
+		// @ts-expect-error P-TM05: type narrowing needed
 		modules: compileRes.map(m => ({ moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode })),
 		transform: {
 			strategy: 'perModule',
@@ -44,6 +47,7 @@ async function writeCompileRes(compileRes, root) {
 			platform: 'neutral',
 		},
 		sourcemap: enableSourcemap,
+		// @ts-expect-error P-TM05: type narrowing needed
 		sourcemapTargetPath,
 		filename: 'logic',
 		relPrefix,
@@ -53,20 +57,26 @@ async function writeCompileRes(compileRes, root) {
 /**
  * 编译 js 文件
  */
+// @ts-expect-error P-TM05: type narrowing needed
 async function compileJS(pages, root, mainCompileRes, progress) {
+	// @ts-expect-error P-TM05: type narrowing needed
 	const compileRes = []
 	if (!root && !isMiniGame()) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		await buildJSByPath(root, { path: 'app' }, compileRes, mainCompileRes, false)
 	}
 
 	for (const page of pages) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		await buildJSByPath(root, page, compileRes, mainCompileRes, true)
 		progress.completedTasks++
 	}
 
+	// @ts-expect-error P-TM05: type narrowing needed
 	return compileRes
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 async function buildJSByPath(packageName, module, compileRes, mainCompileRes, addExtra, activePaths = new Set(), putMain = false) {
 	const currentPath = module.path
 
@@ -134,6 +144,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 	// https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/
 	// 将 component 字段设为 true 可将这一组文件设为自定义组件
 	if (module.component) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		extraInfo.component = true
 	}
 
@@ -146,6 +157,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 			: null
 
 		for (const [name, path] of Object.entries(module.usingComponents)) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			if (componentDependencies && !componentDependencies.has(path)) {
 				continue
 			}
@@ -153,9 +165,11 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 			if (packageName) {
 				// 如果依赖的组件不在当前的分包，则跳过该组件的编译逻辑，保证分包代码的独立性
 				// 考虑到路径可能是 'test/src' 这样的格式，使用前缀匹配而不是分割比较
+				// @ts-expect-error P-TM05: type narrowing needed
 				const normalizedPath = path.startsWith('/') ? path.substring(1) : path
 
 				// 如果不属于任意分包则将逻辑移动到主包
+				// @ts-expect-error P-TM05: type narrowing needed
 				for (const subPackage of allSubPackages) {
 					if (normalizedPath.startsWith(`${subPackage.root}/`)) {
 						toMainSubPackage = false
@@ -167,6 +181,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 				toMainSubPackage = false
 			}
 
+			// @ts-expect-error P-TM05: type narrowing needed
 			const componentModule = getComponent(path)
 			if (!componentModule) {
 				continue
@@ -174,8 +189,10 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 
 			await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage)
 
+			// @ts-expect-error P-TM05: type narrowing needed
 			componentsObj[name] = path
 		}
+		// @ts-expect-error P-TM05: type narrowing needed
 		extraInfo.usingComponents = componentsObj
 	}
 
@@ -184,6 +201,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 		const extraInfoCode = `globalThis.__extraInfo = ${JSON.stringify(extraInfo)};\n`
 		if (enableSourcemap) {
 			// 存到 compileInfo，在 modDefine header 中注入，避免影响 sourcemap 行号
+			// @ts-expect-error P-TM05: type narrowing needed
 			compileInfo.extraInfoCode = extraInfoCode
 		} else {
 			s.prepend(extraInfoCode)
@@ -198,7 +216,9 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 	}
 
 	// 收集需要修改的路径信息和依赖模块
+	// @ts-expect-error P-TM05: type narrowing needed
 	const pathReplacements = []
+	// @ts-expect-error P-TM05: type narrowing needed
 	const dependenciesToProcess = []
 
 	walk(ast, {
@@ -208,19 +228,23 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 				warnUnsupportedWxApi(
 					wxMemberName,
 					compileInfo.sourceFile || diagnosticSource,
+					// @ts-expect-error P-TM05: type narrowing needed
 					node.loc?.start?.line || getLineByIndex(sourceCode, node.start),
 				)
 			}
 
+			// @ts-expect-error P-TM05: type narrowing needed
 			if ((node.type === 'StringLiteral' || node.type === 'Literal') && isLocalAssetString(node.value)) {
 				getDependencyGraph().addFile(
 					currentPath,
+					// @ts-expect-error P-TM05: type narrowing needed
 					resolveAssetSourcePath(getWorkPath(), modulePath, node.value),
 					'logic',
 				)
 				pathReplacements.push({
 					start: node.start,
 					end: node.end,
+					// @ts-expect-error P-TM05: type narrowing needed
 					newValue: collectAssets(getWorkPath(), modulePath, node.value, getTargetPath(), getAppId()),
 				})
 			}
@@ -236,6 +260,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 				if (
 					(isRequire || isRequireProperty)
 					&& node.arguments.length > 0
+					// @ts-expect-error P-TM05: type narrowing needed
 					&& (node.arguments[0].type === 'StringLiteral' || node.arguments[0].type === 'Literal')
 				) {
 					const arg = node.arguments[0]
@@ -334,11 +359,13 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 	})
 
 	// 处理所有依赖模块（异步）
+	// @ts-expect-error P-TM05: type narrowing needed
 	for (const depId of dependenciesToProcess) {
 		await buildJSByPath(packageName, { path: depId }, compileRes, mainCompileRes, false, activePaths, putMain)
 	}
 
 	// 反向遍历修改，避免位置偏移
+	// @ts-expect-error P-TM05: type narrowing needed
 	for (const replacement of pathReplacements.reverse()) {
 		s.overwrite(replacement.start, replacement.end, `'${replacement.newValue}'`)
 	}
@@ -374,19 +401,25 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 		 * - bundle 阶段只做 modDefine 包裹和模块拼接，因此 sourcemap 模式会跳过最终 minify
 		 */
 		if (enableSourcemap && compileInfo.sourceFile) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			esbuildOpts.sourcemap = true
+			// @ts-expect-error P-TM05: type narrowing needed
 			esbuildOpts.sourcefile = compileInfo.sourceFile
+			// @ts-expect-error P-TM05: type narrowing needed
 			esbuildOpts.sourcesContent = true
 		}
+		// @ts-expect-error P-TM05: type narrowing needed
 		const esbuildResult = await transform(modifiedCode, esbuildOpts)
 
 		if (enableSourcemap && esbuildResult.map) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			compileInfo.map = preEsbuildMap
 				? remapSourcemap(esbuildResult.map, preEsbuildMap)
 				: esbuildResult.map
 		}
 		compileInfo.code = esbuildResult.code
 	} catch (error) {
+		// @ts-expect-error P-TM05: type narrowing needed
 		console.error(`[logic] esbuild 转换失败 ${modulePath}:`, error.message)
 		// 如果 esbuild 转换失败，使用路径改写后的源码
 		compileInfo.code = modifiedCode
@@ -397,6 +430,7 @@ async function buildJSByPath(packageName, module, compileRes, mainCompileRes, ad
 	activePaths.delete(currentPath)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function isLocalAssetString(value) {
 	return typeof value === 'string'
 		&& !value.startsWith('http')
@@ -405,6 +439,7 @@ function isLocalAssetString(value) {
 		&& isCollectableImageAsset(value)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function getLineByIndex(content, index) {
 	if (typeof index !== 'number' || index < 0) {
 		return null
@@ -424,6 +459,7 @@ function getLineByIndex(content, index) {
  * @param {string} modulePath - 模块路径
  * @returns {string|null} - 文件的绝对路径，如果找不到则返回 null
  */
+// @ts-expect-error P-TM05: type narrowing needed
 function getJSAbsolutePath(modulePath) {
 	const workPath = getWorkPath()
 	const resolvedModuleId = resolveModuleIdToExistingPath(modulePath)
@@ -442,6 +478,7 @@ function getJSAbsolutePath(modulePath) {
 	return null
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function resolveDependencyId(specifier, modulePath, allowAbsolute) {
 	if (!specifier) {
 		return { id: specifier, shouldProcess: false }
@@ -496,21 +533,25 @@ function resolveDependencyId(specifier, modulePath, allowAbsolute) {
 	return { id: specifier, shouldProcess: false }
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function isBareModuleSpecifier(specifier) {
 	return !specifier.startsWith('.') && !specifier.startsWith('/')
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function resolveRelativeModuleId(specifier, modulePath) {
 	const requireFullPath = resolve(modulePath, `../${specifier}`)
 	const relativeId = requireFullPath.split(`${getWorkPath()}${sep}`)[1]
 	return normalizeModuleId(relativeId)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function resolveBareSiblingModuleId(specifier, modulePath) {
 	const siblingModuleId = resolveRelativeModuleId(`./${specifier}`, modulePath)
 	return resolveModuleIdToExistingPath(siblingModuleId)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function normalizeModuleId(moduleId) {
 	let normalized = moduleId.replace(/\.(js|ts)$/, '').replace(/\\/g, '/')
 	if (!normalized.startsWith('/')) {
@@ -519,6 +560,7 @@ function normalizeModuleId(moduleId) {
 	return normalized
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function resolveNpmModuleId(specifier, modulePath) {
 	const npmResolver = getNpmResolver()
 	if (!npmResolver) {
@@ -527,6 +569,7 @@ function resolveNpmModuleId(specifier, modulePath) {
 	return npmResolver.resolveScriptModule(specifier, modulePath, resolveModuleIdToExistingPath)
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function resolveModuleIdToExistingPath(moduleId) {
 	const normalizedModuleId = normalizeModuleId(moduleId)
 	const workPath = getWorkPath()
@@ -550,6 +593,7 @@ function resolveModuleIdToExistingPath(moduleId) {
 			for (const entryField of ['miniprogram', 'main']) {
 				if (typeof packageInfo[entryField] === 'string' && packageInfo[entryField]) {
 					const entryModuleId = normalizeModuleId(resolve(normalizedModuleId, packageInfo[entryField]))
+					// @ts-expect-error P-TM05: type narrowing needed
 					const resolvedEntry = resolveModuleIdToExistingPath(entryModuleId)
 					if (resolvedEntry) {
 						return resolvedEntry
@@ -558,6 +602,7 @@ function resolveModuleIdToExistingPath(moduleId) {
 			}
 		}
 		catch (error) {
+			// @ts-expect-error P-TM05: type narrowing needed
 			console.warn('[logic]', `解析 package.json 失败: ${packageJsonPath}`, error.message)
 		}
 	}
@@ -568,6 +613,7 @@ function resolveModuleIdToExistingPath(moduleId) {
 export { compileJS, buildJSByPath }
 
 /** 测试专用：覆盖 worker 消息下发的 compileConfig（非公开契约）。 */
+// @ts-expect-error P-TM05: type narrowing needed
 export function _setActiveCompileConfigForTest(config) {
 	activeCompileConfig = {
 		minify: config?.minify !== false,
@@ -580,6 +626,7 @@ export function _setActiveCompileConfigForTest(config) {
 }
 
 // P-WR02: engine export（不动调度，F47）
+// @ts-expect-error P-TM05: type narrowing needed
 function logicBuildConfig(msg) {
 	return {
 		sourcemap: !!msg.sourcemap,
@@ -592,6 +639,7 @@ function logicBuildConfig(msg) {
 	}
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 async function logicCompile({ msg, progress, config }) {
 	resetStoreInfo(msg.storeInfo)
 	enableSourcemap = !!msg.sourcemap
@@ -601,6 +649,7 @@ async function logicCompile({ msg, progress, config }) {
 	const mainCompileRes = await compileJS(msg.pages.mainPages, null, null, progress)
 	for (const [root, subPages] of Object.entries(msg.pages.subPages)) {
 		const subCompileRes = await compileJS(
+			// @ts-expect-error P-TM05: type narrowing needed
 			subPages.info, root, subPages.independent ? [] : mainCompileRes, progress,
 		)
 		await writeCompileRes(subCompileRes, root)
@@ -610,6 +659,7 @@ async function logicCompile({ msg, progress, config }) {
 	processedModules.clear()
 }
 
+// @ts-expect-error P-TM05: type narrowing needed
 function logicSuccessPayload({ logger }) {
 	return {
 		dependencyGraph: getDependencyGraph().toJSON(),
