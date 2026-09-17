@@ -72,6 +72,8 @@ export type { Document } from './document.ts'
 ```
 **@ts-check 文件清单（F79）**：3 个——document.js / document-ops.js / load/index.js（现状被强制检查，JSDoc 工作；转 .ts 后 JSDoc→type，检查继续）。
 
+**R35 F87 注意（JSDoc import() 死引用清理）**：12 处动态 `import('...js')` JSDoc 引用（emit.js 2 + document-ops.js 2 + load/index.js 4 + cheerio/parse.js 1 + napi/parse.js 2）——V-TM08 补 grep `import('...js')` 检测。POC 验证 .ts 后 JSDoc import() 不校验（不报错 F88），但语义死引用应清理：P-TM01 清理 emit/document-ops/napi-parse（4 文件 6 处），P-TM05 清理 load/cheerio（2 文件 5 处）。
+
 **R23 F67 注意（emit.js JSDoc 残留）**：`emit.js:18/84` JSDoc `@returns {Promise<{ entry: import('./output.js').EmitEntry }>}` 引用已删的 `./output.js`（worker-runtime P-WR03 删除，EmitEntry 类型无定义）→ tsc 报 TS2307。P-TM01 处理：删 JSDoc 残留注释 + 定义 `EmitEntry` 类型（基于实际返回形状 `{ entryId, kind, files, sourcemaps }`）。
 
 转换：

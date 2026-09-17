@@ -139,7 +139,8 @@ node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 ```bash
 cd fe/tools/bundler
 find src -name "*.js"  # 零残留（72→0）
-grep -rn "from '.*\.js'" src/ | grep -v node_modules  # 零 .js import in src
+grep -rn "from '.*\.js'" src/ | grep -v node_modules  # 零 .js import in src（静态 from）
+grep -rn "import('..*\.js')" src/ | grep -v node_modules  # 零 .js JSDoc import() 死引用（R35 F87）
 grep -rn "@typedef" src/  # 零（9→0）
 grep -rn ": any\b\|<any\|as any\|: any\b" src/  # 零 any
 grep -n "experimental-strip-types" src/compiler/worker-runtime/executor.js  # worker strip-types 保留（new Worker only executor.js，D-WR-5）

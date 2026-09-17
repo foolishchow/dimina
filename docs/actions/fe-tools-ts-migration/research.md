@@ -1050,6 +1050,30 @@ POC 步骤：
 
 **pass-with-findings** —— F85（high，compile-target.ts 跨阶段 import 遗漏 4 处，已修）+ F86（🟢 验证通过）。P-TM02/03 同步修正 compile-target.ts 跨阶段 import。可授权实施。
 
+## 40. R35 review（2026-09-16，JSDoc import() 引用覆盖 + POC 验证）
+
+### R35 findings
+
+#### F87 — 🟡 V-TM08 grep 不覆盖 JSDoc import() 引用（medium）→ 已修
+
+- **Evidence**: V-TM08 `grep -rn "from '.*\.js'" src/` 只匹配静态 `from '`，不匹配 12 处动态 `import('...js')` JSDoc 引用：
+  - emit.js 2 处（F67 已覆盖，P-TM01 删 + 定义 EmitEntry）
+  - document-ops.js 2 处（F78 已覆盖，P-TM01 转 export type）
+  - load/index.js 4 处（P-TM05，@ts-check）
+  - cheerio/parse.js 1 处（P-TM05）
+  - napi/parse.js 2 处（P-TM01，@returns import document.js）
+- **Impact**: 这 12 处不被 V-TM08 grep 检测——但 POC 验证 .ts 后 JSDoc import() 不校验（不报错），语义死引用应清理
+- **Correction**: V-TM08 补 grep `import('.*\.js')` 检测 JSDoc 死引用；P-TM01/05 清理这 12 处 JSDoc import()（.ts 后用 TS 类型替代，JSDoc 删或更新后缀）
+
+#### F88 — 🟢 @ts-check JSDoc import() 死引用不报错（POC 验证）
+
+- **Evidence**: POC 验证——.ts 文件里 JSDoc `import('./types.js')` 死引用（目标已改 .ts）tsc 0 错误（JSDoc import() 不被 tsc 校验）
+- **Conclusion**: load/index.js（@ts-check）转 .ts 后，4 处 JSDoc import() 死引用不报错 ✓；但仍应清理（语义正确性）
+
+### R35 verdict
+
+**pass-with-findings** —— F87（medium，V-TM08 grep 扩展 + JSDoc 清理，已修）+ F88（🟢 POC 验证）。V-TM08 补 import() 检测，P-TM01/05 清理 12 处 JSDoc。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
