@@ -850,6 +850,24 @@ POC 步骤：
 
 **pass-with-findings** —— F69（🟢 .ts 后消除）+ F70/F71（medium，类型化处理）。新类别全识别——无 blocker。可授权实施。
 
+## 30. R25 review（2026-09-16，验证脚本完整性）
+
+### R25 findings
+
+#### F72 — 🟠 V-TM01..05 验证产物生成脚本缺失（high）→ 已修
+
+- **Evidence**: 
+  - `validation.md` 有 3 个生成脚本：`wr-gen-baseline.mjs`（V-TM00）/ `wr-gen-p06.mjs`（V-TM06）/ `wr-gen-final.mjs`（V-TM08）
+  - V-TM01..05 diff 引用 `/tmp/wr-p01..p05-${name}/out`——但**无 wr-gen-p01..p05.mjs 生成脚本**
+  - 示例：V-TM01 `diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p01-$name/out`——wr-p01 产物从未生成
+- **Broken**: P-TM01..05 各阶段的 4 组产物 diff 验证无法执行（产物不存在）
+- **Root cause**: validation.md 编写时只补了 V-TM06/V-TM08 的脚本（F26 修复），漏了 V-TM01..05
+- **Correction**: validation.md 补 V-TM01..05 的 `wr-gen-p0X.mjs` 生成脚本（每阶段 import src/index.js 生成 4 组产物到 /tmp/wr-p0X-*）
+
+### R25 verdict
+
+**pass-with-findings** —— F72（high，验证脚本生成缺失，已修）。V-TM01..05 diff 现可执行。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

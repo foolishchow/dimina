@@ -30,6 +30,14 @@ cd fe/tools/bundler
 grep -rn "@typedef" src/  # 零（9→0）
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep "TS2305"  # 链式清零
 node pnpm.mjs run build 2>&1 | tail -1  # tsc build OK
+cat > /tmp/wr-gen-p01.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-p01-${name}/out`, base, false, opts)
+}
+EOF
+node /tmp/wr-gen-p01.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p01-$name/out && echo "$name ✓"; done
 ```
 
@@ -39,6 +47,14 @@ for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /t
 cd fe/tools/bundler
 find src/shared src/compiler/core -name "env.ts" -o -name "*.ts" | grep -E "shared/|core/env"  # 全 .ts
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep -E "src/(shared|compiler/core/env)" | wc -l  # 0（该阶段清零）
+cat > /tmp/wr-gen-p02.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-p02-${name}/out`, base, false, opts)
+}
+EOF
+node /tmp/wr-gen-p02.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p02-$name/out && echo "$name ✓"; done
 ```
 
@@ -48,6 +64,14 @@ for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /t
 cd fe/tools/bundler
 find src/compiler/core src/compiler/worker-runtime -name "*.js"  # 零
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep -E "src/compiler/(core|worker-runtime)" | wc -l  # 0
+cat > /tmp/wr-gen-p03.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-p03-${name}/out`, base, false, opts)
+}
+EOF
+node /tmp/wr-gen-p03.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p03-$name/out && echo "$name ✓"; done
 ```
 
@@ -57,6 +81,14 @@ for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /t
 cd fe/tools/bundler
 find src/compiler/pipeline src/model src/session src/watch -name "*.js"  # 零
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep -E "src/(compiler/pipeline|model|session|watch)" | wc -l  # 0
+cat > /tmp/wr-gen-p04.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-p04-${name}/out`, base, false, opts)
+}
+EOF
+node /tmp/wr-gen-p04.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p04-$name/out && echo "$name ✓"; done
 ```
 
@@ -66,6 +98,14 @@ for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /t
 cd fe/tools/bundler
 find src/compiler/view src/compiler/logic src/compiler/style -name "*.js"  # 零
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep -E "src/compiler/(view|logic|style)" | wc -l  # 0
+cat > /tmp/wr-gen-p05.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-p05-${name}/out`, base, false, opts)
+}
+EOF
+node /tmp/wr-gen-p05.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p05-$name/out && echo "$name ✓"; done
 ```
 
