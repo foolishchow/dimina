@@ -10,7 +10,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 

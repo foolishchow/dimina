@@ -6,7 +6,7 @@ import { program } from 'commander'
 import pack from '../../package.json' with { type: 'json' }
 import { createBundler } from '../session/index.ts'
 import { resolveBundlerConfig } from '../session/resolve.ts'
-import { registerDevCommand } from './dev.js'
+import { registerDevCommand } from './dev.ts'
 
 const EVENT_LABELS = {
 	add: '新增',
@@ -39,20 +39,26 @@ program
 
 		if (!options.watch) {
 			try {
+				// @ts-expect-error P-TM06: type narrowing needed
 				await createBundler(resolved).build()
 			}
 			catch (error) {
+				// @ts-expect-error P-TM06: type narrowing needed
 				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
 			}
 			return
 		}
 
 		// -w ⊆ session（R-BC2）：经 session.watch 编排，bin 不再直接引用底层 watcher
+		// @ts-expect-error P-TM06: type narrowing needed
 		const watcher = createBundler(resolved).watch({
+			// @ts-expect-error P-TM06: type narrowing needed
 			onRebuild: ({ event, filePath, count }) => {
 				const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
+				// @ts-expect-error P-TM06: type narrowing needed
 				console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)
 			},
+			// @ts-expect-error P-TM06: type narrowing needed
 			onError: (error) => {
 				console.error(`${workPath} 编译出错: ${error.message}`)
 			},
@@ -62,6 +68,7 @@ program
 			await watcher.start()
 		}
 		catch (error) {
+			// @ts-expect-error P-TM06: type narrowing needed
 			throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
 		}
 	})

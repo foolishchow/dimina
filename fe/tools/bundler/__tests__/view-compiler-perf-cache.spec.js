@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { SourceMapConsumer } from 'source-map-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 const perfCacheSpies = vi.hoisted(() => ({

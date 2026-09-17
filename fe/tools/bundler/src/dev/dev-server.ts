@@ -8,9 +8,10 @@
 import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
+// @ts-expect-error P-TM06: type narrowing needed
 import { WebSocketServer, WebSocket } from 'ws'
-import { createHostPageHtml, createPageFrameHtml } from './dev-host.js'
-import { handleProxyRequest, isAllowedBrowserOrigin } from './dev-proxy.js'
+import { createHostPageHtml, createPageFrameHtml } from './dev-host.ts'
+import { handleProxyRequest, isAllowedBrowserOrigin } from './dev-proxy.ts'
 
 const DEFAULT_WS_PATH = '/ws'
 const MIME_TYPES = Object.freeze({
@@ -43,8 +44,11 @@ const MIME_TYPES = Object.freeze({
  *   getPendingReload/getAcks 供诊断与契约测试断言。
  */
 export function createDevServer({
+	// @ts-expect-error P-TM06: type narrowing needed
 	serveRoot,
+	// @ts-expect-error P-TM06: type narrowing needed
 	sdkRoot,
+	// @ts-expect-error P-TM06: type narrowing needed
 	appId,
 	wsPath = DEFAULT_WS_PATH,
 	hostHtml = createHostPageHtml({ appId, wsPath }),
@@ -58,15 +62,19 @@ export function createDevServer({
 		throw new TypeError('createDevServer: wsPath must start with "/"')
 	}
 
+	// @ts-expect-error P-TM06: type narrowing needed
 	let pendingReload = null
 	const subscribedClients = new Set()
+	// @ts-expect-error P-TM06: type narrowing needed
 	const acknowledgements = []
 	const server = http.createServer((request, response) => {
 		void handleHttpRequest(request, response)
 	})
 	const wsServer = new WebSocketServer({ server, path: wsPath })
 
+	// @ts-expect-error P-TM06: type narrowing needed
 	wsServer.on('connection', (socket) => {
+		// @ts-expect-error P-TM06: type narrowing needed
 		socket.on('message', (raw) => {
 			let message
 			try {
@@ -99,6 +107,7 @@ export function createDevServer({
 		socket.on('close', () => subscribedClients.delete(socket))
 	})
 
+	// @ts-expect-error P-TM06: type narrowing needed
 	async function handleHttpRequest(request, response) {
 		const origin = request.headers.origin
 		if (!isAllowedBrowserOrigin(origin, allowedOrigins)) {
@@ -158,6 +167,7 @@ export function createDevServer({
 		try {
 			const stats = await fs.promises.stat(filePath)
 			if (!stats.isFile()) throw new Error('Not a file')
+			// @ts-expect-error P-TM06: type narrowing needed
 			const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()]
 				|| 'application/octet-stream'
 			if (request.method === 'HEAD') {
@@ -173,36 +183,43 @@ export function createDevServer({
 		}
 	}
 
+	// @ts-expect-error P-TM06: type narrowing needed
 	function setPendingReload(payload) {
 		pendingReload = payload ? { ...payload } : null
 	}
 
 	function notifyBuildPublished() {
+		// @ts-expect-error P-TM06: type narrowing needed
 		if (!pendingReload) return
 		broadcast({ type: 'reload', ...pendingReload })
 		pendingReload = null
 	}
 
+	// @ts-expect-error P-TM06: type narrowing needed
 	function notifyBuildError(message) {
 		pendingReload = null
 		broadcast({ type: 'build:error', message: String(message) })
 	}
 
+	// @ts-expect-error P-TM06: type narrowing needed
 	function broadcast(message) {
 		const data = JSON.stringify(message)
 		for (const socket of subscribedClients) {
+			// @ts-expect-error P-TM06: type narrowing needed
 			if (socket.readyState === WebSocket.OPEN) socket.send(data)
 		}
 	}
 
 	function listen(port = 8080, host = '127.0.0.1') {
 		return new Promise((resolve, reject) => {
+			// @ts-expect-error P-TM06: type narrowing needed
 			const onError = (error) => {
 				server.off('listening', onListening)
 				reject(error)
 			}
 			const onListening = () => {
 				server.off('error', onError)
+				// @ts-expect-error P-TM06: type narrowing needed
 				resolve({ host, port: server.address().port })
 			}
 			server.once('error', onError)
@@ -212,18 +229,22 @@ export function createDevServer({
 	}
 
 	function close() {
+		// @ts-expect-error P-TM06: type narrowing needed
 		for (const socket of subscribedClients) socket.close()
 		subscribedClients.clear()
 		return new Promise((resolve, reject) => {
+			// @ts-expect-error P-TM06: type narrowing needed
 			wsServer.close((wsError) => {
 				if (wsError) {
 					reject(wsError)
 					return
 				}
 				if (!server.listening) {
+					// @ts-expect-error P-TM06: type narrowing needed
 					resolve()
 					return
 				}
+				// @ts-expect-error P-TM06: type narrowing needed
 				server.close(error => error ? reject(error) : resolve())
 			})
 		})
@@ -237,7 +258,9 @@ export function createDevServer({
 		setPendingReload,
 		notifyBuildPublished,
 		notifyBuildError,
+		// @ts-expect-error P-TM06: type narrowing needed
 		getPendingReload: () => pendingReload ? { ...pendingReload } : null,
+		// @ts-expect-error P-TM06: type narrowing needed
 		getAcks: () => acknowledgements.map(ack => ({ ...ack })),
 	}
 }
@@ -251,6 +274,7 @@ function getPathname(requestUrl = '/') {
 	}
 }
 
+// @ts-expect-error P-TM06: type narrowing needed
 function resolveContainedPath(root, relativePath) {
 	const absoluteRoot = path.resolve(root)
 	const candidate = path.resolve(absoluteRoot, relativePath)
@@ -261,12 +285,14 @@ function resolveContainedPath(root, relativePath) {
 	return candidate
 }
 
+// @ts-expect-error P-TM06: type narrowing needed
 function writeStatic(response, body, contentType, headOnly) {
 	response.writeHead(200, { 'Cache-Control': 'no-cache', 'Content-Type': contentType })
 	if (!headOnly) response.write(body)
 	response.end()
 }
 
+// @ts-expect-error P-TM06: type narrowing needed
 function writeJson(response, statusCode, body) {
 	response.writeHead(statusCode, {
 		'Cache-Control': 'no-cache',
@@ -275,6 +301,7 @@ function writeJson(response, statusCode, body) {
 	response.end(JSON.stringify(body))
 }
 
+// @ts-expect-error P-TM06: type narrowing needed
 function sendJson(socket, message) {
 	if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message))
 }

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createBundler } from '../src/session/index.ts'
 import { resolveBundlerConfig } from '../src/session/resolve.ts'
 import { createLifecycle } from '../src/shared/lifecycle.ts'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 

@@ -8,7 +8,7 @@ import { COMPILE_CACHE_VERSION } from '../src/model/compile-cache.ts'
 import { storeInfo } from '../src/compiler/core/env.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
-const compileCliPath = path.resolve(testDir, '../src/bin/compile.js')
+const compileCliPath = path.resolve(testDir, '../src/bin/compile.ts')
 
 describe('compile CLI persistent dependency cache', () => {
 	let tempDir

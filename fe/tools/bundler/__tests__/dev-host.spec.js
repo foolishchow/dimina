@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SDK_ASSET_PATHS, createHostPageHtml, createPageFrameHtml } from '../src/dev/dev-host.js'
+import { SDK_ASSET_PATHS, createHostPageHtml, createPageFrameHtml } from '../src/dev/dev-host.ts'
 
 // dmcc-dev-server 契约 v1 §3：内置宿主页生成（占位替换 / sdk 资产引用 / 宿主逻辑）。
 

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 import { createProjectStore } from '../src/model/project-store.ts'
 
 /**

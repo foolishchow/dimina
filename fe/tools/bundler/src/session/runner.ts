@@ -21,7 +21,7 @@
  * package.json — absence of ./session/runner keeps it private).
  */
 
-import build from '../index.js'
+import build from '../index.ts'
 
 /** Compile profile keys (config C1) — never treat as a free-form bag.
  * Exported for session state picking (index.js) — single source of the

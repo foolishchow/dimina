@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { SourceMapConsumer } from 'source-map-js'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 
 describe('logic sourcemap', () => {
 	let tempDir

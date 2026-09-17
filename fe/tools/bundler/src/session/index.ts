@@ -21,7 +21,7 @@
  *   runOnce internalizes the R4 idle-check). Shells hold no direct
  *   `state.activeLoop` access.
  *
- * M-F1: this module imports default `build` from '../index.js' (runBuild is
+ * M-F1: this module imports default `build` from '../index.ts' (runBuild is
  * private). src/index.js must NOT re-export this module (ESM cycle, M-K1/B);
  * the public surface is `exports["./session"]` (mirrors the ./watch
  * precedent). KNOWN LIMITATION (accepted, A1 v1): lifecycle has no off();

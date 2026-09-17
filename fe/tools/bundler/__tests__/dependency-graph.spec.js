@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DependencyGraph } from '../src/model/dependency-graph.ts'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 import { getDependencyGraph, storeInfo } from '../src/compiler/core/env.ts'
 
 describe('compiler dependency graph', () => {

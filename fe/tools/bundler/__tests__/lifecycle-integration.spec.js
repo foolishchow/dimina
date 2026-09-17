@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 import { createLifecycle } from '../src/shared/lifecycle.ts'
 
 // 观察者集成规格（compiler-hook-layer 契约 v1）：

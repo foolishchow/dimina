@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
-const cliPath = path.resolve(testDir, '../src/bin/index.js')
+const cliPath = path.resolve(testDir, '../src/bin/index.ts')
 
 /**
  * A-BS02 (build part) — dimina-cli build routes through the session API.

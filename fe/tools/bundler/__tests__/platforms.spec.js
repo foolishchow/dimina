@@ -52,8 +52,8 @@ describe('assertRendererSupportsPlatform', () => {
 describe('platform-abstraction bin contract', () => {
 	it('build exposes --platform; dev fixes web without --platform flag', () => {
 		const binDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/bin')
-		const buildBin = fs.readFileSync(path.join(binDir, 'index.js'), 'utf8')
-		const devBin = fs.readFileSync(path.join(binDir, 'dev.js'), 'utf8')
+		const buildBin = fs.readFileSync(path.join(binDir, 'index.ts'), 'utf8')
+		const devBin = fs.readFileSync(path.join(binDir, 'dev.ts'), 'utf8')
 		const resolveSrc = fs.readFileSync(
 			path.resolve(binDir, '../session/resolve.ts'),
 			'utf8',

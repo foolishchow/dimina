@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { SourceMapConsumer } from 'source-map-js'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 
 describe('view sourcemap', () => {
 	let tempDir

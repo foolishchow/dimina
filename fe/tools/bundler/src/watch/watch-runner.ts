@@ -1,5 +1,5 @@
 import chokidar from 'chokidar'
-import build from '../index.js'
+import build from '../index.ts'
 import { createProjectStore } from '../model/project-store.ts'
 import {
 	createIgnoredPathMatcher,

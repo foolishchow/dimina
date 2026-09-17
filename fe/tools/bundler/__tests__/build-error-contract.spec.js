@@ -4,10 +4,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import build from '../src/index.js'
+import build from '../src/index.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
-const cliPath = path.resolve(testDir, '../src/bin/index.js')
+const cliPath = path.resolve(testDir, '../src/bin/index.ts')
 
 describe('compiler build error contract', () => {
 	const tempDirs = []

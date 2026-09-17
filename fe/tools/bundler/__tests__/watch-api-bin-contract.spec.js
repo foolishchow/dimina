@@ -11,7 +11,7 @@ function readBin(name) {
 
 describe('watch-api bin contract (A-005, updated for bundler-session)', () => {
 	it('bins route through session; no chokidar inlining, no direct watcher import', () => {
-		for (const name of ['index.js', 'dev.js']) {
+		for (const name of ['index.ts', 'dev.ts']) {
 			const source = readBin(name)
 			// R-BC2: CLI ⊆ session — bin no longer touches createBuildWatcher directly
 			expect(source, name).toMatch(/createBundler/)
