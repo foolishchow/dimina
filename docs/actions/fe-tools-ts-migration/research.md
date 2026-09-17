@@ -743,6 +743,37 @@ POC 步骤：
 
 **pass** —— F60（🟢 checkJs 误报验证）。无新 blocker。可授权实施。
 
+## 26. R21 review（2026-09-16，剩余文件错构成 + TS2810/TS2304 验证）
+
+### R21 findings
+
+#### F61 — 🟢 napi/parse.js 91 错构清楚（验证通过）
+
+- **Evidence**: TS7006 隐式 any 参数 73（80%）+ TS2339 9 + TS7023 递归 4 + TS7022 2
+- **Conclusion**: 隐式 any 为主——P-TM05 类型化机械可解 ✓
+
+#### F62 — 🟢 TS2810（new Promise JSDoc hint）checkJs 特有（验证通过）
+
+- **Evidence**: dev-server.js 2 处 TS2810——`new Promise()` 需 JSDoc hint（checkJs 特有限制）
+- **POC**: .ts 下 `new Promise((resolve) => setTimeout(() => resolve(), ms))` → **退出码 0**（TS 类型系统直接推断 resolve 类型，无需 JSDoc hint）
+- **Conclusion**: 迁移 .ts 后 TS2810 自然消除——非真实问题 ✓
+
+#### F63 — 🟡 watch-plan.js TS2304 + TS7008（medium）→ 已修
+
+- **Evidence**:
+  - `watch-plan.js:88` TS2304 `Cannot find name 'DependencyGraph'`——真实错误，类型未 import
+  - `watch-plan.js:91` TS7008 类成员 mtime/size/hash 隐式 any（3 处）
+- **Correction**: P-TM04 类型化 watch-plan.js 时——import DependencyGraph 类型 + 类成员注解
+
+#### F64 — 🟢 dev-server.js 其余错构成（验证通过）
+
+- **Evidence**: TS7006 20（65%）+ TS7005 3 + TS7034 2 + TS2531 null 访问 1
+- **Conclusion**: 隐式 any 为主——P-TM06 类型化机械可解 ✓
+
+### R21 verdict
+
+**pass-with-findings** —— F63（medium，watch-plan TS2304 真实错误）+ F61/F62/F64（🟢 验证通过）。TS2810 是 checkJs 误报（.ts 消除）。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

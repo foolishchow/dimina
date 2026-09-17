@@ -119,7 +119,11 @@ export type Attr = { span: Span; name: string; value: Value }
 - pipeline/ 6（build-pipeline, compile-stages, config-compiler, emit, publish, stage-channel）
 - model/ 6（build-model, compile-cache 等）
 - session/ 4
-- watch/ 3
+- watch/ 3（含 worker-pool，executor import 跨阶段修正 1 处，R17 F51）
+
+**watch-plan.js 注意（R21 F63）**：
+- `watch-plan.js:88` TS2304 `Cannot find name 'DependencyGraph'`——类型未 import，需 import DependencyGraph 类型
+- `watch-plan.js:91` TS7008 类成员 mtime/size/hash 隐式 any（3 处）——需类成员注解
 
 ## P-TM05 — view/ + logic/ + style/
 
