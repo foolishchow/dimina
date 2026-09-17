@@ -516,6 +516,34 @@ POC 步骤：
 
 **pass-with-findings** —— F34/F35（medium，工作量 + 跨阶段依赖，已修）+ F36（🟢 验证通过）。跨阶段 import 修正工作量 + worker-entry 依赖已落盘。可授权实施。
 
+## 17. R12 review（2026-09-16，TS2554 参数数量 + maxNodeModuleJsDepth + env.js FileTypes）
+
+### R12 findings
+
+#### F37 — 🟡 TS2554 参数数量不匹配新类别（medium）→ 已修
+
+- **Evidence**: 3 处 TS2554：
+  - `env.js:369` `storeComponentConfig(configInfo.appInfo, appFilePath)`——签名/调用参数数不符
+  - `watch-plan.js:37` Expected 0 got 1
+  - `watch-plan.js:42` Expected 0 got 2
+- **Broken**: F27 类型化难点只提类型不兼容 + 泛型缺失，未提参数数量不匹配（真实调用错误，非加 `:type` 可解，需修正签名或调用）
+- **Correction**: implementation-plan 类型化难点补 TS2554（参数数量修正——核对函数签名与调用）
+
+#### F38 — 🟢 maxNodeModuleJsDepth:0 影响（验证通过）
+
+- **Evidence**: `tsconfig.json` `maxNodeModuleJsDepth: 0`——限制 tsc 不深入 node_modules .js 类型解析
+- **Impact**: listr2/cheerio 有 .d.ts 不受影响；mitt 无 .d.ts → 类型 any（用量少可控）
+- **Conclusion**: 无需调整，mitt 局部 type 声明兜底 ✓
+
+#### F39 — 🟢 env.js FileTypes 形状清晰（验证通过）
+
+- **Evidence**: `normalizeFileTypes(fileTypes = {})` 参数默认 `{}` → `ft.template` 访问报 TS2339。形状 `{ template?: string[], style?: string[], viewScript?: string[] }` 清晰
+- **Correction**: 定义 `FileTypes` interface + 参数注解 `fileTypes: FileTypes = {}` → TS2339 链式消除 ✓
+
+### R12 verdict
+
+**pass-with-findings** —— F37（medium，TS2554 新类别，已修）+ F38/F39（🟢 验证通过）。F37 是 F27 的补充——参数数量不匹配需修正调用/签名。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

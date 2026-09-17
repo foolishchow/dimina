@@ -39,6 +39,10 @@
 - **TS2314 泛型缺失**（R8 F27）：
   - `Map<K,V>` 需 2 参数（npm-builder.js:246）——需补类型参数
   - `Array<T>`/`Set<T>` 需 1 参数（view/index.js:619/869）——需补类型参数
+- **TS2554 参数数量不匹配**（R12 F37）：
+  - `env.js:369` `storeComponentConfig(configInfo.appInfo, appFilePath)`——签名/调用参数数不符，需核对函数签名与调用
+  - `watch-plan.js:37/42`——Expected 0 got 1/2，需修正签名或调用
+  - 真实调用错误，非加 `:type` 可解，需修正调用或签名
 
 ## P-TM01 — @typedef → TS type（先行，消除链式报错）
 
