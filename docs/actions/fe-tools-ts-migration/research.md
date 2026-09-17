@@ -185,3 +185,63 @@ POC 步骤：
 ### R1 verdict
 
 **blocker** —— F1（high）+ F3（blocker 证伪方案 A 纯改名）+ F2（medium）+ F4/F5（low）。D-TM-4 升级 blocker，必须拍板类型策略（选项 B）才能升 ready。
+
+## 7. R2 review（2026-09-16）
+
+### R2 摸排
+
+#### tsconfig strict 现状
+
+- `tsconfig.json`（IDE/typecheck）：`strict: true` + `module: NodeNext` + `moduleResolution: NodeNext` + `noEmit: true` + `skipLibCheck: true`
+- `tsconfig.build.json`（build）：`extends: ./tsconfig.json`（**继承 strict:true**）+ `noEmit: false` + outDir + `rewriteRelativeImportExtensions: true`
+- 现状 `tsc --noEmit`（.js 不检查 .ts 检查）：**0 错误**（.ts 文件已类型完善）
+- `tsc --noEmit --checkJs`（模拟 .ts 全检查）：**1134 错误**
+
+#### 第三方类型资产
+
+- `node_modules/@types/` 空——无第三方 @types 包
+- 第三方包（listr2, mitt 等）类型靠 `skipLibCheck:true` 跳过 + 推断
+
+### R2 findings
+
+#### F6 — 🟠 类型注解工作量巨大（high）
+
+- **Evidence**: `tsc --checkJs --noEmit` 报 1134 错误（strict 模拟）
+- **错误分布**：
+  - TS7006 隐式 any 参数：594（52%）——函数参数加 `:type`
+  - TS2339 property any：237（21%）——any 链路访问，需上游类型化
+  - TS7005 变量接收函数隐式 any：54
+  - TS7031 解构 binding 隐式 any：48
+  - TS7053 索引 any：35
+  - TS18046 any 计算：33
+  - TS7034 变量隐式 any：30
+  - 其他（2322/2345/2314）：31
+- **隐式 any 类（7006/7005/7031/7034）= 726 个（64%）**——机械加 `:type` 可解
+- **property any（2339）237 个**——需上游类型化才能消除
+- **Correction**: 工作量大但可管理——分阶段（基础类型先行）
+
+#### F7 — 🟡 checkJs 低估实际错误量（medium）
+
+- **Evidence**: R1 POC 证明 @typedef 在 .ts 失效（TS2305）；checkJs 下 @typedef 工作（不报错），但 .ts 后 @typedef 相关 import 报 TS2305
+- **Broken edge**: 1134 是**下限**——实际 .js→.ts 后 @typedef 失效，额外报错（9 @typedef × 多处 import）
+- **Correction**: 9 @typedef → TS type 转换是**先行步骤**（消除 TS2305 链式报错）
+
+#### F8 — 🟡 第三方包无 @types（medium）
+
+- **Evidence**: `node_modules/@types/` 空；第三方包（listr2, mitt, cheerio 等）类型靠 skipLibCheck 跳过
+- **Broken edge**: 业务代码 import 第三方包时，参数/返回类型可能隐式 any
+- **Correction**: 评估 listr2/mitt/cheerio 是否自带 .d.ts；缺失的用局部 type 声明
+
+#### F9 — 🟢 分阶段类型化策略（low）
+
+- **Evidence**: 错误集中——env.js(103) / view/index.js(101) / napi/parse.js(91) / style/index.js(86) / logic/index.js(59) / compatibility.js(38) / shared/utils.js(35)
+- **Correction**: 类型化按依赖图分层：
+  1. 基础层：@typedef → type（9 个，4 文件）——消除 TS2305 链式报错
+  2. shared/ + core/env.js（被 34 处 import）——基础类型渗透
+  3. core/ 其余 + model/session ——业务类型
+  4. compiler/view/logic/style ——叶子类型
+  5. worker-runtime + bin + dev + watch
+
+### R2 verdict
+
+**pass-with-findings** —— F6（high 工作量 1134）+ F7（medium checkJs 低估）+ F8（medium 第三方类型）+ F9（low 分阶段策略）。工作量评估完成——1134+ 错误，分阶段类型化可行。
