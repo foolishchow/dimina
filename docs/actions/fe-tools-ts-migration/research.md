@@ -924,6 +924,29 @@ POC 步骤：
 
 **pass-with-findings** —— F76（medium，compile-target.ts import 后缀遗漏，已修）+ F77（🟢 验证通过）。P-TM04 补 compile-target 后缀修正。可授权实施。
 
+## 34. R29 review（2026-09-16，@ts-check 文件 + re-export type 模式）
+
+### R29 findings
+
+#### F78 — 🟡 document-ops.js re-export type 模式（medium）→ 已修
+
+- **Evidence**: `document-ops.js` 首行 `// @ts-check`（强制检查）+ `@typedef {import('./wxml-ir.types.js').WxmlDocument} WxmlDocument` + `@typedef {import('./document.js').Document} Document`——re-export type
+- **Impact**: 转 .ts 后 `@typedef` re-export 语法失效，需转 TS 模式：
+  ```ts
+  export type { WxmlDocument } from './wxml-ir.types.ts'
+  export type { Document } from './document.ts'
+  ```
+- **Correction**: P-TM01 处理 document-ops.js 时，@typedef re-export 转 `export type { ... } from '...'`
+
+#### F79 — 🟢 @ts-check 文件清单确认（验证通过）
+
+- **Evidence**: 3 个 @ts-check 文件：`document.js` / `document-ops.js` / `load/index.js`——现状 tsc --noEmit 0 错误（@ts-check 的 JSDoc 在 .js 下工作）
+- **Conclusion**: 转 .ts 后 JSDoc→type，检查继续（现状 0 → 迁移后保持）；P-TM01 import 清单已含 document-ops/load/index ✓
+
+### R29 verdict
+
+**pass-with-findings** —— F78（medium，re-export type 模式，已修）+ F79（🟢 验证通过）。P-TM01 处理 document-ops 时转 re-export type 语法。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
