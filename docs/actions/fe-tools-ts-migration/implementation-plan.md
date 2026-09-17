@@ -24,6 +24,12 @@
 6. tsc --checkJs 该文件错误清零
 7. vitest + 4 组 diff=0
 
+### 类型化难点（R7 F25）
+
+- **TS7023 递归函数自引用 any**：`resolveModuleIdToExistingPath` / `buildCompileView` / `projectChildren`——返回类型推断不了（自引用），**需显式返回类型注解**
+- **TS7031 事件回调解构**：`{ event, filePath, count }`（bin/index.js + bin/dev.js）——**需事件 interface 定义**（如 `CompileEvent`）
+- **TS7034/7005 变量隐式 any**：接收函数返回，上游类型化后自动消除
+
 ## P-TM01 — @typedef → TS type（先行，消除链式报错）
 
 4 文件 9 个 @typedef：
@@ -44,6 +50,21 @@ export type Span = { start: number; end: number }
 export type Value = { raw: string; span: Span | null; /* ... */ }
 export type Attr = { span: Span; name: string; value: Value }
 ```
+
+### P-TM01 import 后缀修正文件清单（R7 F24）
+
+document.js 被 9 处 import（改名 .ts 后同步改后缀）：
+- `src/compiler/view/wxml/common/wxml-ir.types.ts`（import type { Span, Attr, Value }）
+- `src/compiler/view/wxml/common/parity.ts`（import { attrValueRaw }）
+- `src/compiler/view/wxml/common/document-ops.js`（import 多个）
+- `src/compiler/view/wxml/renderer/vue/tools.js`（import { attrsToRecord }）
+- `src/compiler/view/wxml/load/index.js`（import { attachProjection }）
+- `src/compiler/view/wxml/load/include.js`（import { createElement }）
+- `src/compiler/view/wxml/cheerio/parse.js`（import 多个）
+- `src/compiler/view/wxml/compile.js`（import { attachProjection }）
+- `src/compiler/view/wxml/parse.js`（import { parseWxml... } from './napi/parse.js'）
+
+emit.js + napi/parse.js 的 import 方同理 grep 修正。
 
 ## P-TM02 — shared/ + core/env.js（基础渗透）
 

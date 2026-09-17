@@ -370,6 +370,33 @@ POC 步骤：
 
 **pass-with-findings** —— F22（medium，文档修正）+ F23（🟢 验证通过）。仅 1 个文档修正点，无技术 blocker。可授权实施。
 
+## 12. R7 review（2026-09-16，实施流程深挖）
+
+### R7 findings
+
+#### F24 — 🟡 P-TM01 @typedef 链式 import 修正范围未列（medium）→ 已修
+
+- **Evidence**: `document.js` 被 9 处 import（wxml-ir.types.ts + parity.ts + document-ops + tools + load/index + load/include + cheerio/parse + compile + parse）
+- **Correction**: implementation-plan P-TM01 补 import 修正文件清单（9 处 document + emit + napi-parse 的 import 方）
+
+#### F25 — 🟡 TS7023 递归函数 + TS7031 事件回调解构难点未提（medium）→ 已修
+
+- **Evidence**:
+  - TS7023 自引用 any：`resolveModuleIdToExistingPath` / `buildCompileView` / `projectChildren`（递归函数返回类型推断不了）
+  - TS7031 解构：`{ event, filePath, count }`（bin/index.js + bin/dev.js 事件回调）
+- **Correction**: implementation-plan 类型化难点补——递归函数需显式返回类型；事件回调解构需事件 interface
+
+#### F26 — 🟠 验证脚本 import 路径在 P-TM06 后断裂（high）→ 已修
+
+- **Evidence**: baseline 脚本 `/tmp/wr-gen-baseline.mjs` 写 `import build from '.../src/index.js'`；P-TM06 改 `src/index.js→src/index.ts`
+- **Broken**: P-TM06 + P-TM08 验证脚本 `import src/index.js` → Node native ESM 找不到 `.js`（已改 `.ts`）→ 崩溃
+- **Root cause**: 验证流程直跑 `src/index.js` 的 build 函数（非 dist）；迁移后 index.js 不存在
+- **Correction**: validation V-TM06/V-TM08 验证脚本改 `import src/index.ts` + `node --experimental-strip-types`；V-TM00 baseline 加注意标注
+
+### R7 verdict
+
+**pass-with-findings** —— F26（high 验证脚本断裂，已修）+ F24/F25（medium 难点，已修）。验证流程 + 类型化难点已落盘。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

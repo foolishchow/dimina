@@ -8,10 +8,20 @@
 cd fe/tools/bundler
 git rev-parse --short HEAD  # baseline commit
 # 4 组产物（同 worker-runtime baseline 流程）
+cat > /tmp/wr-gen-baseline.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.js'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-baseline-${name}/out`, base, false, opts)
+}
+console.log('baseline done')
+EOF
 node /tmp/wr-gen-baseline.mjs
 node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | wc -l  # 0（现状）
 ```
+
+> **注意（R7 F26）**：baseline 脚本 `import src/index.js`——P-TM06 改 `index.js→index.ts` 后，验证脚本要改 `import src/index.ts` + `node --experimental-strip-types`（或 build dist 后跑 `dist/bin/index.js`）。
 
 ## V-TM01 — @typedef → TS type（P-TM01）
 
@@ -64,7 +74,15 @@ for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /t
 ```bash
 cd fe/tools/bundler
 find src/bin src/dev src -maxdepth 1 -name "*.js"  # 零
-node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep "error TS" | wc -l  # 0（全 src 清零）
+node pnpm.mjs exec tsc --noEmit -p tsconfig.json --checkJs 2>&1 | grep "error TS" | wc -l  # 0（全 src 清零）n# 验证脚本 import 后缀调整（R7 F26）：src/index.js → src/index.ts + strip-types
+cat > /tmp/wr-gen-p06.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.ts'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-p06-${name}/out`, base, false, opts)
+}
+EOF
+node --experimental-strip-types /tmp/wr-gen-p06.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p06-$name/out && echo "$name ✓"; done
 ```
 
@@ -85,6 +103,15 @@ grep -rn "from '.*\.js'" src/ | grep -v node_modules  # 零 .js import in src
 grep -rn "@typedef" src/  # 零（9→0）
 grep -rn ": any\b\|<any\|as any\|: any\b" src/  # 零 any
 grep -n "experimental-strip-types" src/compiler/worker-runtime/executor.js  # worker strip-types 保留（new Worker only executor.js，D-WR-5）
+# 验证脚本 import src/index.ts + strip-types（R7 F26）
+cat > /tmp/wr-gen-final.mjs << 'EOF'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/src/index.ts'
+const base = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base'
+for (const [name, opts] of [['nomap',{sourcemap:false,minify:false}],['min-nomap',{sourcemap:false,minify:true}],['sm',{sourcemap:true,minify:false}],['sm-min',{sourcemap:true,minify:true}]]) {
+  await build(`/tmp/wr-final-${name}/out`, base, false, opts)
+}
+EOF
+node --experimental-strip-types /tmp/wr-gen-final.mjs
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-final-$name/out && echo "$name ✓"; done
 node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 node pnpm.mjs run build 2>&1 | tail -1  # tsc strict OK
