@@ -2,9 +2,9 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import artCode from './art.js'
+import artCode from './art.ts'
 
-function hasCompileInfo(modulePath, list, preList) {
+function hasCompileInfo(modulePath: string, list: { path: string }[], preList: { path: string }[] | null | undefined): boolean {
 	for (const element of list) {
 		if (element.path === modulePath) {
 			return true
@@ -21,7 +21,7 @@ function hasCompileInfo(modulePath, list, preList) {
 	return false
 }
 
-function getAbsolutePath(workPath, pagePath, src) {
+function getAbsolutePath(workPath: string, pagePath: string, src: string): string {
 	// 如果是绝对路径，直接拼接工作路径
 	if (src.startsWith('/')) {
 		return path.join(workPath, src)
@@ -46,34 +46,34 @@ function getAbsolutePath(workPath, pagePath, src) {
 	return path.resolve(workPath, relativePath, src)
 }
 
-const assetsMap = {}
+const assetsMap: Record<string, string> = {}
 const copiedAssetGroups = new Set()
 const collectableImageAssetPattern = /\.(?:png|jpe?g|gif|svg|webp|heic|heif)$/i
 
-function splitAssetReference(src) {
+function splitAssetReference(src: string): { sourcePath: string; suffix: string } {
 	const suffixIndex = src.search(/[?#]/)
 	return suffixIndex === -1
 		? { sourcePath: src, suffix: '' }
 		: { sourcePath: src.slice(0, suffixIndex), suffix: src.slice(suffixIndex) }
 }
 
-function resetAssetCache() {
+function resetAssetCache(): void {
 	for (const assetPath of Object.keys(assetsMap)) {
 		delete assetsMap[assetPath]
 	}
 	copiedAssetGroups.clear()
 }
 
-function isCollectableImageAsset(src) {
+function isCollectableImageAsset(src: unknown): boolean {
 	return typeof src === 'string' && collectableImageAssetPattern.test(splitAssetReference(src).sourcePath)
 }
 
-function isPathInside(rootPath, targetPath) {
+function isPathInside(rootPath: string, targetPath: string): boolean {
 	const relativePath = path.relative(rootPath, targetPath)
 	return relativePath === '' || (!relativePath.startsWith(`..${path.sep}`) && relativePath !== '..' && !path.isAbsolute(relativePath))
 }
 
-function resolveAssetSourcePath(workPath, pagePath, src) {
+function resolveAssetSourcePath(workPath: string, pagePath: string, src: string): string {
 	const projectRoot = path.resolve(workPath)
 	if (src.startsWith('/')) {
 		return path.resolve(projectRoot, `.${src}`)
@@ -97,7 +97,7 @@ function resolveAssetSourcePath(workPath, pagePath, src) {
 /**
  * 将静态资源存储到 static 文件夹
  */
-function collectAssets(workPath, pagePath, src, targetPath, appId) {
+function collectAssets(workPath: string, pagePath: string, src: string, targetPath: string, appId: string): string {
 	if (src.startsWith('http') || src.startsWith('//')) {
 		// TODO: 处理网络地址的资源，提取地址后加入 dns-fetch
 		// 不处理网络图片
@@ -146,13 +146,13 @@ function collectAssets(workPath, pagePath, src, targetPath, appId) {
 	return assetsMap[cacheKey] ? `${assetsMap[cacheKey]}${suffix}` : src
 }
 
-function getFilesWithExtension(directory, extension) {
+function getFilesWithExtension(directory: string, extension: string): string[] {
 	const files = fs.readdirSync(directory)
 	const filteredFiles = files.filter(file => path.extname(file) === extension)
 	return filteredFiles
 }
 
-function filterFilesByRegex(directoryPath, regex) {
+function filterFilesByRegex(directoryPath: string, regex: RegExp): string[] | undefined {
 	try {
 		// 读取文件夹中的文件
 		const files = fs.readdirSync(directoryPath)
@@ -174,7 +174,7 @@ function filterFilesByRegex(directoryPath, regex) {
 	}
 }
 
-function isObjectEmpty(objectName) {
+function isObjectEmpty(objectName: Record<string, unknown> | null | undefined): boolean {
 	if (!objectName) {
 		return true
 	}
@@ -184,16 +184,16 @@ function isObjectEmpty(objectName) {
 	)
 }
 
-function isString(o) {
+function isString(o: unknown): boolean {
 	return Object.prototype.toString.call(o) === '[object String]'
 }
 
-function transformRpx(styleText) {
-	if (!isString(styleText)) {
-		return styleText
+function transformRpx(styleText: unknown): string {
+	if (typeof styleText !== 'string') {
+		return String(styleText)
 	}
 
-	return styleText.replace(/([+-]?\d+(?:\.\d+)?)rpx/g, (_, pixel) => {
+	return styleText.replace(/([+-]?\d+(?:\.\d+)?)rpx/g, (_: string, pixel: string) => {
 		const viewportWidth = Number((Number(pixel) / 7.5).toFixed(6))
 		return `${Object.is(viewportWidth, -0) ? 0 : viewportWidth}vw`
 	})
@@ -204,7 +204,7 @@ function transformRpx(styleText) {
 // the path independently in separate worker realms, so a random id would
 // diverge and break WXSS scoping. 64 bits keeps near-identical component paths
 // (the mini-program norm) collision-free where a 32-bit hash would clash.
-function uuid(str) {
+function uuid(str: string): string {
 	return crypto.createHash('sha256').update(str).digest().readBigUInt64BE(0).toString(36)
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createLifecycle, LIFECYCLE_EVENTS } from '../src/shared/lifecycle.js'
+import { createLifecycle, LIFECYCLE_EVENTS } from '../src/shared/lifecycle.ts'
 
 describe('lifecycle event constants', () => {
 	it('freezes the event name table', () => {

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { storeInfo } from '../src/compiler/core/env.js'
+import { storeInfo } from '../src/compiler/core/env.ts'
 import { initWxsFilePathMap, loadWxsModule } from '../src/compiler/view/index.js'
 
 /**

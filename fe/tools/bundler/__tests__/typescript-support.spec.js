@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { storeInfo } from '../src/compiler/core/env.js'
+import { storeInfo } from '../src/compiler/core/env.ts'
 import { compileJS } from '../src/compiler/logic/index.js'
 
 describe('TypeScript 编译支持', () => {
@@ -167,7 +167,7 @@ Component<ComponentData, {}, ComponentMethods>({
 		storeInfo(tempDir)
 		
 		// 从 env 模块获取页面信息，这样组件依赖会被正确处理
-		const { getPages } = await import('../src/compiler/core/env.js')
+		const { getPages } = await import('../src/compiler/core/env.ts')
 		const pagesInfo = getPages()
 		const pages = {
 			mainPages: pagesInfo.mainPages

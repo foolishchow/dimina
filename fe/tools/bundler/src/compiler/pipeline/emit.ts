@@ -1,8 +1,8 @@
 import { transform } from 'esbuild'
 import { relative, resolve, sep } from 'node:path'
-import { getWorkPath } from '../core/env.js'
+import { getWorkPath } from '../core/env.ts'
 import { mergeSourcemap } from '../core/sourcemap.js'
-import { effectiveJsMinify } from '../../shared/compile-config.js'
+import { effectiveJsMinify } from '../../shared/compile-config.ts'
 import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
 
 export interface EmitModule {

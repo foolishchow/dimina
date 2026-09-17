@@ -16,7 +16,8 @@ const PROGRESS_HIGHLIGHT_WIDTH = 2
  * The completed count remains the source of truth. Whole cells avoid the
  * visible gap that partial block glyphs leave before the unfilled section.
  */
-export function formatCompileProgress(completed, total, options = {}) {
+interface ProgressOptions { unicode?: boolean; color?: boolean; columns?: number }
+export function formatCompileProgress(completed: number, total: number, options: ProgressOptions = {}): string {
 	const unicode = options.unicode ?? isUnicodeSupported()
 	const color = options.color ?? shouldUseColor()
 	const columns = normalizePositiveInteger(options.columns) || process.stdout.columns || DEFAULT_TERMINAL_COLUMNS
@@ -40,14 +41,14 @@ export function formatCompileProgress(completed, total, options = {}) {
 	return `[${bar}]  ${metadata}`
 }
 
-function createUnicodeBar(ratio, width, color) {
+function createUnicodeBar(ratio: number, width: number, color: boolean): string {
 	const completeWidth = Math.round(ratio * width)
 	const emptyWidth = width - completeWidth
 
 	return `${colorizeCompleteSegment('█'.repeat(completeWidth), color)}${'░'.repeat(emptyWidth)}`
 }
 
-function createAsciiBar(ratio, width, color) {
+function createAsciiBar(ratio: number, width: number, color: boolean): string {
 	const completeWidth = Math.floor(ratio * width)
 	const showHead = ratio > 0 && ratio < 1
 	const bodyWidth = Math.max(0, completeWidth - (showHead ? 1 : 0))
@@ -57,7 +58,7 @@ function createAsciiBar(ratio, width, color) {
 	return `${colorizeCompleteSegment(completeSegment, color)}${'-'.repeat(emptyWidth)}`
 }
 
-function colorizeCompleteSegment(segment, color) {
+function colorizeCompleteSegment(segment: string, color: boolean): string {
 	if (!color || segment.length === 0) {
 		return segment
 	}
@@ -72,7 +73,7 @@ function colorizeCompleteSegment(segment, color) {
 	return `${body}${highlight}${RESET_FOREGROUND}`
 }
 
-function shouldUseColor() {
+function shouldUseColor(): boolean {
 	if (process.env.FORCE_COLOR === '0' || 'NO_COLOR' in process.env) {
 		return false
 	}
@@ -82,6 +83,6 @@ function shouldUseColor() {
 	return Boolean(process.stdout.isTTY && process.env.TERM !== 'dumb')
 }
 
-function normalizePositiveInteger(value) {
-	return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
+function normalizePositiveInteger(value: unknown): number {
+	return Number.isFinite(value) ? Math.max(0, Math.trunc(value as number)) : 0
 }

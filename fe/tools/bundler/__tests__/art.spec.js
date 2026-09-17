@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import printArt from '../src/shared/art.js'
+import printArt from '../src/shared/art.ts'
 
 describe('compiler header', () => {
 	afterEach(() => {

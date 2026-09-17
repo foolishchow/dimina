@@ -1,7 +1,7 @@
 import {
 	resolvePlatform,
 	sourcemapStrategyFor,
-} from './platforms.js'
+} from './platforms.ts'
 
 const DEFAULT_ES_TARGET = Object.freeze({
 	logic: 'es2023',
@@ -21,12 +21,7 @@ const CONFIG_OPTION_KEYS = new Set([
 	'esTarget',
 ])
 
-/**
- * @param {unknown} value
- * @param {string} label
- * @returns {{ logic: string, view: string }}
- */
-function normalizeEsTarget(value, label = 'esTarget') {
+function normalizeEsTarget(value: unknown, label: string = 'esTarget'): { logic: string; view: string } {
 	if (value === undefined || value === null) {
 		return { ...DEFAULT_ES_TARGET }
 	}
@@ -37,8 +32,9 @@ function normalizeEsTarget(value, label = 'esTarget') {
 	if (unknownKeys.length > 0) {
 		throw new TypeError(`Invalid ${label}: unknown key(s) ${unknownKeys.join(', ')}`)
 	}
-	const logic = value.logic === undefined ? DEFAULT_ES_TARGET.logic : value.logic
-	const view = value.view === undefined ? DEFAULT_ES_TARGET.view : value.view
+	const v = value as { logic?: unknown; view?: unknown }
+	const logic = v.logic === undefined ? DEFAULT_ES_TARGET.logic : v.logic
+	const view = v.view === undefined ? DEFAULT_ES_TARGET.view : v.view
 	if (typeof logic !== 'string' || !logic) {
 		throw new TypeError(`Invalid ${label}.logic: expected non-empty string`)
 	}
@@ -48,18 +44,18 @@ function normalizeEsTarget(value, label = 'esTarget') {
 	return { logic, view }
 }
 
+interface CliConfig { mode?: string; platform?: unknown; minify?: boolean; sourcemap?: boolean; esTarget?: unknown }
+interface ApiOptions { mode?: string; platform?: unknown; minify?: boolean; sourcemap?: boolean; esTarget?: unknown }
+interface CompileConfigInput { mode?: 'build' | 'dev'; platform?: unknown; cli?: CliConfig; apiOptions?: ApiOptions }
+
 /**
  * 合并 compile configuration（CF-1 + CF-2）。
  *
  * 优先级：cli > apiOptions > mode preset > platform defaults（仅派生 sourcemapStrategy）> 内部缺省
- *
- * @param {object} [input]
- * @param {'build'|'dev'} [input.mode]
- * @param {object} [input.cli]
- * @param {object} [input.apiOptions]
  */
-export function resolveCompileConfig(input = {}) {
-	const { cli = {}, apiOptions = {} } = input
+export function resolveCompileConfig(input: CompileConfigInput = {}): { mode: string; platform: 'native' | 'web'; sourcemapStrategy: string; minify: boolean; sourcemap: boolean; esTarget: { logic: string; view: string } } {
+	const cli: CliConfig = input.cli ?? {}
+	const apiOptions: ApiOptions = input.apiOptions ?? {}
 
 	const mode = cli.mode ?? apiOptions.mode ?? input.mode ?? 'build'
 	if (mode !== 'build' && mode !== 'dev') {
@@ -75,9 +71,9 @@ export function resolveCompileConfig(input = {}) {
 		normalizeEsTarget(cli.esTarget, 'cli.esTarget')
 	}
 
-	const modePreset = MODE_PRESETS[mode]
+	const modePreset = MODE_PRESETS[mode as keyof typeof MODE_PRESETS]
 	const esTarget = normalizeEsTarget(
-		cli.esTarget ?? apiOptions.esTarget,
+		(cli.esTarget ?? apiOptions.esTarget) as unknown,
 		cli.esTarget !== undefined ? 'cli.esTarget' : 'options.esTarget',
 	)
 
@@ -94,13 +90,9 @@ export function resolveCompileConfig(input = {}) {
 	}
 }
 
-/**
- * 从 build options 抽出配置相关字段，其余原样留给 build 流水线。
- * @param {object} [options]
- */
-export function splitBuildOptions(options = {}) {
-	const apiConfigInput = {}
-	const rest = { ...options }
+export function splitBuildOptions(options: Record<string, unknown> = {}): { apiConfigInput: Record<string, unknown>; rest: Record<string, unknown> } {
+	const apiConfigInput: Record<string, unknown> = {}
+	const rest: Record<string, unknown> = { ...options }
 	for (const key of CONFIG_OPTION_KEYS) {
 		if (Object.hasOwn(options, key)) {
 			apiConfigInput[key] = options[key]
@@ -110,11 +102,7 @@ export function splitBuildOptions(options = {}) {
 	return { apiConfigInput, rest }
 }
 
-/**
- * sourcemap 模式下跳过最终 JS bundle minify（缺 remapping 串联）。
- * @param {{ minify: boolean, sourcemap: boolean }} config
- */
-export function effectiveJsMinify(config) {
+export function effectiveJsMinify(config: { minify: boolean; sourcemap: boolean }): boolean {
 	return !!config.minify && !config.sourcemap
 }
 

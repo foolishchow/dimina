@@ -8,7 +8,7 @@ import {
 	PLATFORMS,
 	resolvePlatform,
 	sourcemapStrategyFor,
-} from '../src/shared/platforms.js'
+} from '../src/shared/platforms.ts'
 
 describe('resolvePlatform', () => {
 	it('defaults unset to native', () => {

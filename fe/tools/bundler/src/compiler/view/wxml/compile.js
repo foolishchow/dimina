@@ -1,4 +1,4 @@
-import { toMiniProgramModuleId } from '../../../shared/path-utils.js'
+import { toMiniProgramModuleId } from '../../../shared/path-utils.ts'
 import { checkTemplateCompatibility } from '../../core/compatibility.js'
 import {
 	getContentByPath,
@@ -6,7 +6,7 @@ import {
 	getTemplateExts,
 	getViewScriptTags,
 	getWorkPath,
-} from '../../core/env.js'
+} from '../../core/env.ts'
 import { attachProjection } from './common/document.ts'
 import { parseWxml } from './parse.js'
 import { loadTemplates } from './load/index.js'

@@ -82,7 +82,7 @@ describe('compiler CPU hot paths', () => {
 		writeFile('components/card.json', JSON.stringify({ component: true }))
 		writeFile('components/card.wxml', '<view><slot name="content" /></view>')
 
-		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
+		const { getPages, storeInfo } = await import('../src/compiler/core/env.ts')
 		storeInfo(tempDir)
 		const { compileML } = await import('../src/compiler/view/index.js')
 		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
@@ -100,7 +100,7 @@ describe('compiler CPU hot paths', () => {
 		writeFile('pages/index.json', '{}')
 		writeFile('pages/index.wxss', 'view { display: flex; user-select: none; }')
 
-		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
+		const { getPages, storeInfo } = await import('../src/compiler/core/env.ts')
 		storeInfo(tempDir)
 		const { compileSS } = await import('../src/compiler/style/index.js')
 		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))

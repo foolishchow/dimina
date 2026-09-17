@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { storeInfo, getPages } from '../src/compiler/core/env.js'
+import { storeInfo, getPages } from '../src/compiler/core/env.ts'
 
 describe('全局 usingComponents 支持', () => {
 	let tempDir

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { storeInfo, getComponent } from '../src/compiler/core/env.js'
+import { storeInfo, getComponent } from '../src/compiler/core/env.ts'
 
 describe('npm 组件错误处理', () => {
 	let tempDir

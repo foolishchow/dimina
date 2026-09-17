@@ -1,4 +1,4 @@
-import { getDependencyGraph } from '../core/env.js'  // F26：successPayload 默认读 dependencyGraph（业务状态）
+import { getDependencyGraph } from '../core/env.ts'  // F26：successPayload 默认读 dependencyGraph（业务状态）
 
 export function defineEngine(overrides) {
 	if (!overrides.name) throw new Error('defineEngine: name 必填')  // F38：engine 标识（executor 选 thin entry）

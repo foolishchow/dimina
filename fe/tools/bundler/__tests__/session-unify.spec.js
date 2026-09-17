@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createBundler } from '../src/session/index.js'
 import { resolveBundlerConfig } from '../src/session/resolve.js'
-import { createLifecycle, LIFECYCLE_EVENTS } from '../src/shared/lifecycle.js'
+import { createLifecycle, LIFECYCLE_EVENTS } from '../src/shared/lifecycle.ts'
 import { createSessionRunner } from '../src/session/runner.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))

@@ -4,8 +4,8 @@ import {
 	effectiveJsMinify,
 	resolveCompileConfig,
 	splitBuildOptions,
-} from '../src/shared/compile-config.js'
-import { InvalidPlatformError } from '../src/shared/platforms.js'
+} from '../src/shared/compile-config.ts'
+import { InvalidPlatformError } from '../src/shared/platforms.ts'
 
 describe('resolveCompileConfig', () => {
 	it('uses build preset minify=true, default native platform, and dual esTarget', () => {

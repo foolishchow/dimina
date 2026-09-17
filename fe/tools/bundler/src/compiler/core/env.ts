@@ -5,15 +5,23 @@ import process from 'node:process'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
-import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path-utils.js'
-import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.js'
-import { NpmResolver } from '../core/npm-resolver.js'
+import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path-utils.ts'
+import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.ts'
+import { NpmResolver } from './npm-resolver.js'
 import { DependencyGraph } from '../../model/dependency-graph.js'
 
-const compilerContextStorage = new AsyncLocalStorage()
-let defaultCompilerContext
+const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
+let defaultCompilerContext: CompilerContext | undefined
 
-function createCompilerContext() {
+type CompilerContext = {
+	pathInfo: Record<string, unknown>
+	configInfo: Record<string, unknown>
+	npmResolver: NpmResolver | null
+	dependencyGraph: DependencyGraph
+	compilerOptions: ReturnType<typeof normalizeFileTypes>
+}
+
+function createCompilerContext(): CompilerContext {
 	return {
 		pathInfo: {},
 		configInfo: {},
@@ -23,24 +31,24 @@ function createCompilerContext() {
 	}
 }
 
-function getCompilerContext() {
+function getCompilerContext(): CompilerContext {
 	defaultCompilerContext ||= createCompilerContext()
 	return compilerContextStorage.getStore() || defaultCompilerContext
 }
 
 // 将现有属性访问路由到当前异步构建上下文。直接调用 storeInfo() 的测试和
 // 独立 Worker 没有 AsyncLocalStorage store 时，仍使用各自进程内的默认上下文。
-const pathInfo = new Proxy({}, {
-	get: (_, key) => getCompilerContext().pathInfo[key],
+const pathInfo: Record<string, unknown> = new Proxy({}, {
+	get: (_, key) => getCompilerContext().pathInfo[key as string],
 	set: (_, key, value) => {
-		getCompilerContext().pathInfo[key] = value
+		getCompilerContext().pathInfo[key as string] = value
 		return true
 	},
 })
-const configInfo = new Proxy({}, {
-	get: (_, key) => getCompilerContext().configInfo[key],
+const configInfo: Record<string, unknown> = new Proxy({}, {
+	get: (_, key) => getCompilerContext().configInfo[key as string],
 	set: (_, key, value) => {
-		getCompilerContext().configInfo[key] = value
+		getCompilerContext().configInfo[key as string] = value
 		return true
 	},
 })
@@ -81,7 +89,7 @@ const RESERVED_EXTS = new Set([
  * 均返回 null，由调用方丢弃。扩展名会用于生成尾部匹配正则和查找文件，
  * 放行元字符可能导致误匹配。
  */
-function normalizeExt(raw) {
+function normalizeExt(raw: unknown): string | null {
 	if (typeof raw !== 'string') {
 		return null
 	}
@@ -98,7 +106,7 @@ function normalizeExt(raw) {
  * 且只能包含字母、数字、连字符和下划线。拒绝选择器元字符，避免 'qds,view'
  * 误选并删除 <view>，破坏编译产物。
  */
-function normalizeTag(raw) {
+function normalizeTag(raw: unknown): string | null {
 	if (typeof raw !== 'string') {
 		return null
 	}
@@ -113,7 +121,7 @@ function normalizeTag(raw) {
  * 合并并去重内置项和自定义项；内置项在前，顺序即同名文件的查找优先级。
  * 传入 reserved 时，落在其中的自定义项被丢弃（防止占用其他角色/逻辑/配置的扩展名）。
  */
-function mergeUnique(builtins, custom, normalizer, reserved) {
+function mergeUnique(builtins: string[], custom: unknown, normalizer: (raw: unknown) => string | null, reserved?: Set<string>): string[] {
 	const out = [...builtins]
 	const seen = new Set(builtins)
 	if (Array.isArray(custom)) {
@@ -132,8 +140,9 @@ function mergeUnique(builtins, custom, normalizer, reserved) {
  * 根据 options.fileTypes 生成本次构建使用的自定义扩展名和标签。
  * viewScript 同时用于生成文件扩展名和内联标签。
  */
-function normalizeFileTypes(fileTypes = {}) {
-	const ft = fileTypes || {}
+interface FileTypesInput { template?: string[]; style?: string[]; viewScript?: string[] }
+function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: string[]; templateDirectivePrefixes: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[] } {
+	const ft: FileTypesInput = fileTypes || {}
 	const templateExts = mergeUnique(DEFAULT_TEMPLATE_EXTS, ft.template, normalizeExt, RESERVED_EXTS)
 	return {
 		templateExts,
@@ -147,12 +156,8 @@ function normalizeFileTypes(fileTypes = {}) {
 	}
 }
 
-/**
- * 持久化编译过程的上下文
- * @param {string} workPath 编译工作目录
- * @param {{ fileTypes?: { template?: string[], style?: string[], viewScript?: string[] } }} [options] 构建选项
- */
-function storeInfo(workPath, options = {}) {
+interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: unknown }
+function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: unknown } {
 	const context = getCompilerContext()
 	// 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
 	context.compilerOptions = normalizeFileTypes(options.fileTypes)
@@ -161,7 +166,7 @@ function storeInfo(workPath, options = {}) {
 	storeAppConfig()
 	storePageConfig()
 	context.dependencyGraph = createInitialDependencyGraph()
-	context.dependencyGraph.merge(options.dependencyGraph)
+	context.dependencyGraph.merge(options.dependencyGraph as never)
 
 	return {
 		pathInfo: context.pathInfo,
@@ -171,13 +176,13 @@ function storeInfo(workPath, options = {}) {
 	}
 }
 
-function resetStoreInfo(opts) {
+function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: unknown }): void {
 	const context = getCompilerContext()
 	context.pathInfo = opts.pathInfo
 	context.configInfo = opts.configInfo
 	// Worker 恢复上下文时使用主线程生成的自定义文件类型配置，缺省时回退到内置配置。
 	context.compilerOptions = opts.compilerOptions || normalizeFileTypes()
-	context.dependencyGraph = new DependencyGraph(opts.dependencyGraph)
+	context.dependencyGraph = new DependencyGraph(opts.dependencyGraph as never)
 
 	// 重新初始化 npm 解析器
 	if (pathInfo.workPath) {
@@ -185,7 +190,7 @@ function resetStoreInfo(opts) {
 	}
 }
 
-function runWithCompilerContext(callback) {
+function runWithCompilerContext<T>(callback: () => T): T {
 	return compilerContextStorage.run(createCompilerContext(), callback)
 }
 
@@ -215,7 +220,7 @@ function getDependencyGraph() {
 	return getCompilerContext().dependencyGraph
 }
 
-function storePathInfo(workPath) {
+function storePathInfo(workPath: string): void {
 	pathInfo.workPath = workPath
 	
 	// 优先使用环境变量中的 TARGET_PATH
@@ -249,7 +254,7 @@ function storeProjectConfig() {
 			defaultConfig = parseContentByPath(defaultConfigPath)
 		}
 		catch (e) {
-			console.warn('Failed to parse project.config.json:', e.message)
+			console.warn('Failed to parse project.config.json:', (e as Error).message)
 		}
 	}
 
@@ -259,7 +264,7 @@ function storeProjectConfig() {
 			privateConfig = parseContentByPath(privateConfigPath)
 		}
 		catch (e) {
-			console.warn('Failed to parse project.private.config.json:', e.message)
+			console.warn('Failed to parse project.private.config.json:', (e as Error).message)
 		}
 	}
 
@@ -267,8 +272,8 @@ function storeProjectConfig() {
 	configInfo.projectInfo = { ...defaultConfig, ...privateConfig }
 }
 
-function getProjectConfig() {
-	return configInfo.projectInfo
+function getProjectConfig(): Record<string, unknown> {
+	return configInfo.projectInfo as Record<string, unknown>
 }
 
 function storeAppConfig() {
@@ -293,7 +298,7 @@ function storeAppConfig() {
 		return
 	}
 
-	const newObj = {}
+	const newObj: Record<string, unknown> = {}
 	for (const key in content) {
 		if (Object.prototype.hasOwnProperty.call(content, key)) {
 			// 兼容 subpackages / subPackages
@@ -312,12 +317,12 @@ function storeAppConfig() {
 	configInfo.appInfo = newObj
 }
 
-function detectRuntimeType() {
-	const compileType = configInfo.projectInfo?.compileType
-	const hasMiniProgramConfig = fs.existsSync(path.join(pathInfo.workPath, 'app.json'))
-	const hasMiniGameConfig = fs.existsSync(path.join(pathInfo.workPath, 'game.json'))
+function detectRuntimeType(): string {
+	const compileType = (configInfo.projectInfo as { compileType?: string } | undefined)?.compileType
+	const hasMiniProgramConfig = fs.existsSync(path.join(pathInfo.workPath as string, 'app.json'))
+	const hasMiniGameConfig = fs.existsSync(path.join(pathInfo.workPath as string, 'game.json'))
 	const hasMiniGameEntry = ['game.js', 'game.ts']
-		.some(fileName => fs.existsSync(path.join(pathInfo.workPath, fileName)))
+		.some(fileName => fs.existsSync(path.join(pathInfo.workPath as string, fileName)))
 
 	if (compileType === 'game') {
 		return MINI_GAME_RUNTIME_TYPE
@@ -331,39 +336,40 @@ function detectRuntimeType() {
 	return MINI_PROGRAM_RUNTIME_TYPE
 }
 
-function getRuntimeType() {
-	return configInfo.runtimeType || MINI_PROGRAM_RUNTIME_TYPE
+function getRuntimeType(): string {
+	return (configInfo.runtimeType as string) || MINI_PROGRAM_RUNTIME_TYPE
 }
 
-function isMiniGame() {
+function isMiniGame(): boolean {
 	return getRuntimeType() === MINI_GAME_RUNTIME_TYPE
 }
 
-function getContentByPath(path) {
+function getContentByPath(path: string): string {
 	return fs.readFileSync(path, { encoding: 'utf-8' })
 }
 
-function parseContentByPath(path) {
-	return JSON.parse(getContentByPath(path))
+function parseContentByPath(path: string): Record<string, unknown> {
+	return JSON.parse(getContentByPath(path)) as Record<string, unknown>
 }
 
 /**
  * 收集页面 json 信息
  */
-function storePageConfig() {
+function storePageConfig(): void {
 	if (isMiniGame()) {
 		configInfo.pageInfo = {}
 		configInfo.componentInfo = {}
 		return
 	}
-	const { pages, subPackages } = configInfo.appInfo
+	const appInfo = configInfo.appInfo as { pages?: string[]; subPackages?: { root: string; pages: string[]; independent?: boolean }[]; usingComponents?: Record<string, string> }
+	const { pages, subPackages } = appInfo
 	configInfo.pageInfo = {}
 	configInfo.componentInfo = {}
 
 	// 首先处理 app.json 中的全局 usingComponents
-	if (configInfo.appInfo.usingComponents) {
+	if (appInfo.usingComponents) {
 		const appFilePath = `${pathInfo.workPath}/app.json`
-		storeComponentConfig(configInfo.appInfo, appFilePath)
+		storeComponentConfig(configInfo.appInfo as Record<string, unknown>, appFilePath)
 	}
 
 	collectionPageJson(pages)
@@ -371,7 +377,7 @@ function storePageConfig() {
 	// 处理分包信息
 	// https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages/basic.html
 	if (subPackages) {
-		subPackages.forEach((subPkg) => {
+		subPackages?.forEach((subPkg: { root: string; pages: string[]; independent?: boolean }) => {
 			collectionPageJson(subPkg.pages, subPkg.root)
 		})
 	}
@@ -384,13 +390,13 @@ function storePageConfig() {
  * 不需要在 usingComponents 中显式声明它，因此编译阶段补一个内部组件引用，
  * 让逻辑、视图和样式三个编译器都能沿现有依赖图收集该组件。
  */
-function storeCustomTabBarConfig() {
-	const tabBar = configInfo.appInfo?.tabBar
+function storeCustomTabBarConfig(): void {
+	const tabBar = (configInfo.appInfo as { tabBar?: { custom?: boolean; list?: { pagePath?: string }[] } } | undefined)?.tabBar
 	if (tabBar?.custom !== true || !Array.isArray(tabBar.list)) {
 		return
 	}
 
-	const componentJsonPath = path.join(pathInfo.workPath, 'custom-tab-bar/index.json')
+	const componentJsonPath = path.join(pathInfo.workPath as string, 'custom-tab-bar/index.json')
 	if (!fs.existsSync(componentJsonPath)) {
 		console.warn('[env] tabBar.custom 已启用，但找不到 custom-tab-bar/index.json')
 		return
@@ -402,8 +408,8 @@ function storeCustomTabBarConfig() {
 			[dependencyName]: CUSTOM_TAB_BAR_COMPONENT_PATH,
 		},
 	}
-	storeComponentConfig(internalConfig, path.join(pathInfo.workPath, 'app.json'))
-	const componentConfig = configInfo.componentInfo[CUSTOM_TAB_BAR_COMPONENT_PATH]
+	storeComponentConfig(internalConfig, path.join(pathInfo.workPath as string, 'app.json'))
+	const componentConfig = (configInfo.componentInfo as Record<string, Record<string, unknown>>)[CUSTOM_TAB_BAR_COMPONENT_PATH]
 	if (componentConfig) {
 		componentConfig.customTabBar = true
 	}
@@ -412,14 +418,14 @@ function storeCustomTabBarConfig() {
 		const pagePath = typeof item?.pagePath === 'string'
 			? item.pagePath.replace(/^\/+/, '')
 			: ''
-		if (!pagePath || !configInfo.appInfo.pages?.includes(pagePath)) {
+		if (!pagePath || !(configInfo.appInfo as { pages?: string[] } | undefined)?.pages?.includes(pagePath)) {
 			continue
 		}
-		const pageConfig = configInfo.pageInfo[pagePath] ||= {}
-		pageConfig.usingComponents ||= {}
+		const pageConfig: Record<string, unknown> = ((configInfo.pageInfo as Record<string, Record<string, unknown>>)[pagePath] ||= {})
+		pageConfig.usingComponents = (pageConfig as { usingComponents?: Record<string, string> }).usingComponents ||= {}
 		const declaredComponents = {
-			...(configInfo.appInfo.usingComponents || {}),
-			...pageConfig.usingComponents,
+			...((configInfo.appInfo as { usingComponents?: Record<string, string> } | undefined)?.usingComponents || {}),
+			...((pageConfig as { usingComponents?: Record<string, string> }).usingComponents || {}),
 		}
 		const declaredEntry = Object.entries(declaredComponents)
 			.find(([, componentPath]) => componentPath === CUSTOM_TAB_BAR_COMPONENT_PATH)
@@ -432,16 +438,11 @@ function storeCustomTabBarConfig() {
 			suffix++
 			componentName = `${dependencyName}-${suffix}`
 		}
-		pageConfig.usingComponents[componentName] = CUSTOM_TAB_BAR_COMPONENT_PATH
-		pageConfig.customTabBar = { componentName }
+		Object.assign(pageConfig, { usingComponents: { ...(pageConfig.usingComponents as Record<string, string>), [componentName]: CUSTOM_TAB_BAR_COMPONENT_PATH }, customTabBar: { componentName } })
 	}
 }
 
-/**
- * 匹配页面和对应的配置信息
- * @param {*} pages
- */
-function collectionPageJson(pages, root) {
+function collectionPageJson(pages: string[] | undefined, root?: string): void {
 	if (!Array.isArray(pages)) {
 		return
 	}
@@ -457,9 +458,9 @@ function collectionPageJson(pages, root) {
 		if (fs.existsSync(pageFilePath)) {
 			const pageJsonContent = parseContentByPath(pageFilePath)
 			if (root) {
-				pageJsonContent.root = transSubDir(root)
+				(pageJsonContent as { root?: string }).root = transSubDir(root)
 			}
-			configInfo.pageInfo[np] = pageJsonContent
+			(configInfo.pageInfo as Record<string, unknown>)[np] = pageJsonContent
 
 			// 递归解析自定义组件
 			storeComponentConfig(pageJsonContent, pageFilePath)
@@ -467,21 +468,16 @@ function collectionPageJson(pages, root) {
 	})
 }
 
-/**
- * 按页面收集组件 json 信息
- * @param {*} pageJsonContent
- * @param {*} pageFilePath
- */
-function storeComponentConfig(pageJsonContent, pageFilePath) {
-	if (isObjectEmpty(pageJsonContent.usingComponents)) {
+function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFilePath: string): void {
+	if (isObjectEmpty(pageJsonContent.usingComponents as Record<string, unknown>)) {
 		return
 	}
 	// 解析当前页面的自定义组件信息
-	for (const [componentName, componentPath] of Object.entries(pageJsonContent.usingComponents)) {
+	for (const [componentName, componentPath] of Object.entries(pageJsonContent.usingComponents as Record<string, string>)) {
 		const moduleId = getModuleId(componentPath, pageFilePath)
-		pageJsonContent.usingComponents[componentName] = moduleId
+		;(pageJsonContent.usingComponents as Record<string, string>)[componentName] = moduleId
 
-		if (configInfo.componentInfo[moduleId]) {
+		if ((configInfo.componentInfo as Record<string, unknown>)[moduleId]) {
 			continue
 		}
 
@@ -512,31 +508,33 @@ function storeComponentConfig(pageJsonContent, pageFilePath) {
 			}
 		}
 		
-		const cUsing = cContent.usingComponents || {}
-		const isComponent = cContent.component || false
+		const cUsing: Record<string, string> = ((cContent as { usingComponents?: Record<string, string> }).usingComponents) || {}
+		const isComponent = (cContent as { component?: boolean }).component || false
 		const styleIsolation = resolveComponentStyleIsolation(cContent, componentFilePath)
-		const cComponents = Object.keys(cUsing).reduce((acc, key) => {
-			acc[key] = getModuleId(cUsing[key], componentFilePath)
-			return acc
-		}, {})
+		const cComponents: Record<string, string> = {}
+		for (const key of Object.keys(cUsing)) {
+			cComponents[key] = getModuleId(cUsing[key] as string, componentFilePath)
+		}
+		// (replaced reduce)
+		// (old reduce removed)
 
-		configInfo.componentInfo[moduleId] = {
+		(configInfo.componentInfo as Record<string, unknown>)[moduleId] = {
 			id: uuid(moduleId),
 			path: moduleId,
 			component: isComponent,
 			styleIsolation,
 			usingComponents: cComponents,
-			componentPlaceholder: { ...(cContent.componentPlaceholder || {}) },
+			componentPlaceholder: { ...((cContent as { componentPlaceholder?: Record<string, unknown> }).componentPlaceholder || {}) },
 		}
 
 		// 只有当配置文件存在时才递归处理
-		if (cContent.usingComponents && Object.keys(cContent.usingComponents).length > 0) {
-			storeComponentConfig(configInfo.componentInfo[moduleId], componentFilePath)
+		if (cContent.usingComponents && Object.keys(cContent.usingComponents as Record<string, string>).length > 0) {
+			storeComponentConfig((configInfo.componentInfo as Record<string, unknown>)[moduleId] as Record<string, unknown>, componentFilePath)
 		}
 	}
 }
 
-function getStaticProperty(objectExpression, propertyName) {
+function getStaticProperty(objectExpression: { type?: string; properties?: Array<{ type?: string; computed?: boolean; key?: { name?: string; value?: string }; value?: unknown }> } | null | undefined, propertyName: string): unknown {
 	if (objectExpression?.type !== 'ObjectExpression') {
 		return undefined
 	}
@@ -548,8 +546,8 @@ function getStaticProperty(objectExpression, propertyName) {
 	})?.value
 }
 
-function normalizeStyleIsolation(value) {
-	return STYLE_ISOLATION_VALUES.has(value) ? value : undefined
+function normalizeStyleIsolation(value: unknown): string | undefined {
+	return typeof value === 'string' && STYLE_ISOLATION_VALUES.has(value) ? value : undefined
 }
 
 /**
@@ -558,8 +556,8 @@ function normalizeStyleIsolation(value) {
  * runtime starts, so only statically-declared literal options participate.
  * addGlobalClass is the legacy equivalent of apply-shared.
  */
-function resolveComponentStyleIsolation(componentConfig, componentJsonPath) {
-	const jsonValue = normalizeStyleIsolation(componentConfig?.styleIsolation)
+function resolveComponentStyleIsolation(componentConfig: Record<string, unknown>, componentJsonPath: string): string {
+	const jsonValue = normalizeStyleIsolation((componentConfig as { styleIsolation?: unknown }).styleIsolation)
 	if (jsonValue) {
 		return jsonValue
 	}
@@ -577,29 +575,30 @@ function resolveComponentStyleIsolation(componentConfig, componentJsonPath) {
 		const { program } = parseSync(scriptPath, source, {
 			sourceType: 'unambiguous',
 		})
-		let extractedValue
+		let extractedValue: string | undefined
 		walk(program, {
-			enter(expression) {
+			enter(expression: unknown) {
 				if (extractedValue) {
 					return
 				}
+				const expr = expression as { type?: string; callee?: { type?: string; name?: string }; arguments?: unknown[] }
 				if (
-					expression?.type !== 'CallExpression'
-					|| expression.callee?.type !== 'Identifier'
-					|| expression.callee.name !== 'Component'
+					expr?.type !== 'CallExpression'
+					|| expr.callee?.type !== 'Identifier'
+					|| expr.callee?.name !== 'Component'
 				) {
 					return
 				}
-				const definition = expression.arguments?.[0]
-				const options = getStaticProperty(definition, 'options')
-				const styleIsolation = getStaticProperty(options, 'styleIsolation')?.value
-				const normalized = normalizeStyleIsolation(styleIsolation)
+				const definition = expr.arguments?.[0] as { type?: string; properties?: Array<{ type?: string; computed?: boolean; key?: { name?: string; value?: string }; value?: unknown }> } | null | undefined
+				const options = getStaticProperty(definition, 'options') as { type?: string; properties?: Array<{ type?: string; computed?: boolean; key?: { name?: string; value?: string }; value?: unknown }> } | null | undefined
+				const styleIsolation = (getStaticProperty(options, 'styleIsolation') as { value?: unknown } | undefined)?.value
+				const normalized = normalizeStyleIsolation(styleIsolation as string)
 				if (normalized) {
 					extractedValue = normalized
 					return
 				}
-				if (getStaticProperty(options, 'addGlobalClass')?.value === true) {
-					extractedValue = 'apply-shared'
+				if ((getStaticProperty(options, 'addGlobalClass') as { value?: unknown } | undefined)?.value === true) {
+						extractedValue = 'apply-shared'
 				}
 			},
 		})
@@ -608,18 +607,13 @@ function resolveComponentStyleIsolation(componentConfig, componentJsonPath) {
 		}
 	}
 	catch (error) {
-		console.warn(`[env] 无法解析组件样式隔离配置 ${scriptPath}: ${error.message}`)
+		console.warn(`[env] 无法解析组件样式隔离配置 ${scriptPath}: ${(error as Error).message}`)
 	}
 
 	return 'isolated'
 }
 
-/**
- * 转化为相对小程序根目录的绝对路径，作为模块唯一性 id
- * 支持 npm 组件解析
- * @param {string} src
- */
-function getModuleId(src, pageFilePath) {
+function getModuleId(src: string, pageFilePath: string): string {
 	const resolvedAlias = resolveAppAlias(src)
 	if (resolvedAlias) {
 		return resolvedAlias
@@ -639,13 +633,13 @@ function getModuleId(src, pageFilePath) {
 	return npmResolver.resolveComponentPath(src, pageFilePath)
 }
 
-function resolveAppAlias(src) {
-	const resolveAlias = configInfo.appInfo?.resolveAlias
+function resolveAppAlias(src: string): string | null {
+	const resolveAlias = (configInfo.appInfo as { resolveAlias?: Record<string, string> } | undefined)?.resolveAlias
 	if (!resolveAlias || typeof src !== 'string') {
 		return null
 	}
 
-	for (const [alias, target] of Object.entries(resolveAlias)) {
+	for (const [alias, target] of Object.entries(resolveAlias as Record<string, string>)) {
 		if (alias.endsWith('/*') && target.endsWith('/*')) {
 			const aliasPrefix = alias.slice(0, -1)
 			const targetPrefix = target.slice(0, -1)
@@ -661,42 +655,42 @@ function resolveAppAlias(src) {
 	return null
 }
 
-function getTargetPath() {
-	return pathInfo.targetPath
+function getTargetPath(): string {
+	return pathInfo.targetPath as string
 }
 
-function getComponent(src) {
-	return configInfo.componentInfo[src]
+function getComponent(src: string): unknown {
+	return (configInfo.componentInfo as Record<string, unknown>)[src]
 }
 
-function getPageConfigInfo() {
-	return configInfo.pageInfo
+function getPageConfigInfo(): Record<string, unknown> {
+	return configInfo.pageInfo as Record<string, unknown>
 }
 
-function getAppConfigInfo() {
-	return configInfo.appInfo
+function getAppConfigInfo(): Record<string, unknown> {
+	return configInfo.appInfo as Record<string, unknown>
 }
 
-function getWorkPath() {
-	return pathInfo.workPath
+function getWorkPath(): string {
+	return pathInfo.workPath as string
 }
 
-function getNpmResolver() {
+function getNpmResolver(): NpmResolver | null {
 	return getCompilerContext().npmResolver
 }
 
-function getAppId() {
-	return configInfo.projectInfo.appid
+function getAppId(): string | undefined {
+	return (configInfo.projectInfo as { appid?: string }).appid
 }
 
-function getAppName() {
-	if (configInfo.projectInfo.projectname) {
-		return decodeURIComponent(configInfo.projectInfo.projectname)
+function getAppName(): string | undefined {
+	if ((configInfo.projectInfo as { projectname?: string }).projectname) {
+		return decodeURIComponent((configInfo.projectInfo as { projectname?: string }).projectname!)
 	}
 	return getAppId()
 }
 
-function transSubDir(name) {
+function transSubDir(name: string): string {
 	// 去除尾部的斜杠，并在前面添加 'sub_'
 	return `sub_${name.replace(/\/$/, '')}`
 }
@@ -704,7 +698,7 @@ function transSubDir(name) {
 /**
  * 获取页面及其配置信息，并生成id（输出的 json 文件没有 id)
  */
-function getPages() {
+function getPages(): { mainPages: unknown[]; subPages: Record<string, unknown> } {
 	if (isMiniGame()) {
 		return {
 			mainPages: [{
@@ -717,8 +711,9 @@ function getPages() {
 		}
 	}
 	// 获取所有页面路径
-	const { pages, subPackages = [], usingComponents: globalComponents = {} } = getAppConfigInfo()
-	const pageInfo = getPageConfigInfo()
+	const appConfig = getAppConfigInfo() as { pages: string[]; subPackages?: { root: string; pages: string[]; independent?: boolean }[]; usingComponents?: Record<string, string> }
+	const { pages, subPackages = [], usingComponents: globalComponents = {} } = appConfig
+	const pageInfo = getPageConfigInfo() as Record<string, { usingComponents?: Record<string, string>; componentPlaceholder?: Record<string, unknown>; customTabBar?: unknown }>
 	
 	const mainPages = pages.map(path => {
 		const pageComponents = pageInfo[path]?.usingComponents || {}
@@ -736,8 +731,8 @@ function getPages() {
 		}
 	})
 
-	const subPages = {}
-	subPackages.forEach((subPkg) => {
+	const subPages: Record<string, unknown> = {}
+	subPackages?.forEach((subPkg: { root: string; pages: string[]; independent?: boolean }) => {
 		const rootPath = subPkg.root.endsWith('/') ? subPkg.root : `${subPkg.root}/`
 		const independent = subPkg.independent ? subPkg.independent : false
 		subPages[transSubDir(rootPath)] = {
@@ -766,7 +761,7 @@ function getPages() {
 	}
 }
 
-function addExistingModuleFiles(graph, moduleId) {
+function addExistingModuleFiles(graph: DependencyGraph, moduleId: string): void {
 	const relativeId = moduleId.replace(/^\/+/, '')
 	const basePath = path.resolve(getWorkPath(), relativeId)
 	const baseCandidates = [basePath, path.join(basePath, 'index')]
@@ -788,7 +783,7 @@ function addExistingModuleFiles(graph, moduleId) {
 	}
 }
 
-function getFileDependencyKind(filePath) {
+function getFileDependencyKind(filePath: string): string {
 	const extension = path.extname(filePath).toLowerCase()
 	if (extension === '.json') return 'config'
 	if (extension === '.js' || extension === '.ts') return 'logic'
@@ -797,7 +792,7 @@ function getFileDependencyKind(filePath) {
 	return 'module'
 }
 
-function createInitialDependencyGraph() {
+function createInitialDependencyGraph(): DependencyGraph {
 	const graph = new DependencyGraph()
 	if (isMiniGame()) {
 		graph.addNode(MINI_GAME_ENTRY_PATH, { type: MINI_GAME_RUNTIME_TYPE, entry: true })
@@ -829,28 +824,28 @@ function createInitialDependencyGraph() {
 		}
 	}
 	addExistingModuleFiles(graph, 'app')
-	for (const item of getAppConfigInfo().tabBar?.list || []) {
+	for (const item of (getAppConfigInfo() as { tabBar?: { list?: Array<{ iconPath?: string; selectedIconPath?: string }> } }).tabBar?.list || []) {
 		for (const field of ['iconPath', 'selectedIconPath']) {
-			if (!item[field]) continue
-			const assetPath = resolveAssetSourcePath(getWorkPath(), '', item[field])
+			if (!item[field as 'iconPath' | 'selectedIconPath']) continue
+			const assetPath = resolveAssetSourcePath(getWorkPath(), '', item[field as 'iconPath' | 'selectedIconPath']!)
 			if (fs.existsSync(assetPath)) {
 				graph.addFile('app', assetPath, 'config')
 			}
 		}
 	}
 
-	for (const component of Object.values(configInfo.componentInfo || {})) {
+	for (const component of Object.values((configInfo.componentInfo as Record<string, { path: string; usingComponents?: Record<string, string> }>) || {})) {
 		graph.addNode(component.path, { type: 'component' })
 		addExistingModuleFiles(graph, component.path)
 	}
-	for (const component of Object.values(configInfo.componentInfo || {})) {
+	for (const component of Object.values((configInfo.componentInfo as Record<string, { path: string; usingComponents?: Record<string, string> }>) || {})) {
 		for (const dependencyPath of Object.values(component.usingComponents || {})) {
 			graph.addDependency(component.path, dependencyPath, 'component')
 		}
 	}
 
 	const pages = getPages()
-	const addEntry = (page, packageRoot) => {
+	const addEntry = (page: { path: string; usingComponents?: Record<string, string> }, packageRoot: string | null) => {
 		graph.addNode(page.path, {
 			type: 'page',
 			entry: true,
@@ -862,10 +857,10 @@ function createInitialDependencyGraph() {
 			graph.addDependency(page.path, dependencyPath, 'component')
 		}
 	}
-	for (const page of pages.mainPages) {
+	for (const page of pages.mainPages as { path: string; usingComponents?: Record<string, string> }[]) {
 		addEntry(page, null)
 	}
-	for (const [packageRoot, subPackage] of Object.entries(pages.subPages)) {
+	for (const [packageRoot, subPackage] of Object.entries(pages.subPages as Record<string, { info: { path: string; usingComponents?: Record<string, string> }[] }>)) {
 		for (const page of subPackage.info) {
 			addEntry(page, packageRoot)
 		}
@@ -873,15 +868,15 @@ function createInitialDependencyGraph() {
 	return graph
 }
 
-function collectSharedStyleScopeIds(usingComponents) {
-	const result = []
+function collectSharedStyleScopeIds(usingComponents: Record<string, string> | undefined): string[] {
+	const result: string[] = []
 	const visited = new Set()
-	const visit = (componentPath) => {
+	const visit = (componentPath: string) => {
 		if (visited.has(componentPath)) {
 			return
 		}
 		visited.add(componentPath)
-		const component = configInfo.componentInfo[componentPath]
+		const component = (configInfo.componentInfo as Record<string, { id: string; styleIsolation?: string; usingComponents?: Record<string, string> }>)[componentPath]
 		if (!component) {
 			return
 		}
@@ -898,11 +893,11 @@ function collectSharedStyleScopeIds(usingComponents) {
 	return result
 }
 
-function getAppStyleScopeId() {
+function getAppStyleScopeId(): string {
 	return uuid('app')
 }
 
-function isTemporaryTargetPath() {
+function isTemporaryTargetPath(): boolean {
 	return pathInfo.temporaryTargetPath === true
 }
 

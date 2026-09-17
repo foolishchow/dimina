@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { storeInfo } from '../src/compiler/core/env.js'
+import { storeInfo } from '../src/compiler/core/env.ts'
 import { compileJS } from '../src/compiler/logic/index.js'
 
 describe('logic compiler asset paths', () => {

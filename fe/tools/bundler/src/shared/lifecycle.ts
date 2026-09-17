@@ -26,16 +26,16 @@ export const LIFECYCLE_EVENTS = Object.freeze({
 	BUILD_ERROR: 'build:error',
 })
 
-function logIsolatedListenerError(event, error) {
+function logIsolatedListenerError(event: string, error: unknown): void {
 	// 诊断日志统一前缀与结构化字段（Experience-Review §7）
-	console.error(`[lifecycle] listener error on ${event}: ${error?.stack || error?.message || error}`)
+	console.error(`[lifecycle] listener error on ${event}: ${(error as { stack?: string; message?: string })?.stack || (error as { message?: string })?.message || error}`)
 }
 
 function createLifecycle() {
-	const listeners = new Map()
-	const isolatedListenerErrors = []
+	const listeners = new Map<string, Array<(payload: unknown) => void | Promise<void>>>()
+	const isolatedListenerErrors: { event: string; error: unknown }[] = []
 
-	const on = (event, listener) => {
+	const on = (event: string, listener: (payload: unknown) => void | Promise<void>) => {
 		if (typeof event !== 'string' || event.length === 0) {
 			throw new TypeError('lifecycle event name must be a non-empty string')
 		}
@@ -47,7 +47,7 @@ function createLifecycle() {
 		listeners.set(event, bucket)
 	}
 
-	const emit = async (event, payload) => {
+	const emit = async (event: string, payload: unknown) => {
 		const bucket = listeners.get(event)
 		if (!bucket || bucket.length === 0) {
 			return

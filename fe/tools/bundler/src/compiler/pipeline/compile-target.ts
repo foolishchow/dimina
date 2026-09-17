@@ -17,9 +17,9 @@
 import type { CompileTarget, LoadBindings } from './compile-target.types.js'
 
 import path from 'node:path'
-import { resolveCompileConfig } from '../../shared/compile-config.js'
-import { assertRendererSupportsPlatform } from '../../shared/platforms.js'
-import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from '../core/env.js'
+import { resolveCompileConfig } from '../../shared/compile-config.ts'
+import { assertRendererSupportsPlatform } from '../../shared/platforms.ts'
+import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from '../core/env.ts'
 import { getRenderer, resolveProjectRenderers } from '../core/renderers.js'
 
 const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']

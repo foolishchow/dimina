@@ -46,7 +46,7 @@ describe('canvas 视图编译', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { getPages, storeInfo } = await import('../src/compiler/core/env.js')
+		const { getPages, storeInfo } = await import('../src/compiler/core/env.ts')
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')

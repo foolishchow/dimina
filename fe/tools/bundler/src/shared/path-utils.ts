@@ -2,27 +2,27 @@ import path from 'node:path'
 
 const WINDOWS_FS_PATH_RE = /^(?:[a-zA-Z]:[\\/]|\\\\)/
 
-function isWindowsFsPath(targetPath) {
+function isWindowsFsPath(targetPath: unknown): boolean {
 	return typeof targetPath === 'string'
 		&& (WINDOWS_FS_PATH_RE.test(targetPath) || targetPath.includes('\\'))
 }
 
-function getFsPathApi(targetPath) {
+function getFsPathApi(targetPath: string) {
 	return isWindowsFsPath(targetPath) ? path.win32 : path.posix
 }
 
-function normalizeToPosixPath(targetPath) {
+function normalizeToPosixPath(targetPath: string): string {
 	return targetPath.replace(/\\/g, '/')
 }
 
-function resolveMiniProgramPath(workPath, importerPath, sourcePath) {
+function resolveMiniProgramPath(workPath: string, importerPath: string, sourcePath: string): string {
 	const pathApi = getFsPathApi(importerPath || workPath)
 	return sourcePath.startsWith('/')
 		? pathApi.join(workPath, sourcePath)
 		: pathApi.resolve(pathApi.dirname(importerPath), sourcePath)
 }
 
-function toMiniProgramModuleId(resolvedPath, workPath) {
+function toMiniProgramModuleId(resolvedPath: string, workPath: string): string {
 	const normalizedResolvedPath = normalizeToPosixPath(resolvedPath)
 	const normalizedWorkPath = normalizeToPosixPath(workPath)
 
@@ -38,7 +38,7 @@ function toMiniProgramModuleId(resolvedPath, workPath) {
 	return moduleId
 }
 
-function getRelativePosixPath(targetPath, rootPath) {
+function getRelativePosixPath(targetPath: string, rootPath: string): string {
 	return normalizeToPosixPath(targetPath)
 		.replace(normalizeToPosixPath(rootPath), '')
 		.replace(/^\//, '')

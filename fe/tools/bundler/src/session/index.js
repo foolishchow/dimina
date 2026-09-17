@@ -30,7 +30,7 @@
  */
 
 import { createBuildWatcher } from '../watch/watch-runner.js'
-import { createLifecycle } from '../shared/lifecycle.js'
+import { createLifecycle } from '../shared/lifecycle.ts'
 import { createWebPreviewAdapter } from './preview-adapter.js'
 import { createProjectStore } from '../model/project-store.js'
 import { createSessionRunner, COMPILE_KEYS } from './runner.js'

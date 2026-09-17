@@ -1,8 +1,8 @@
 import { Parser } from 'htmlparser2'
 import { isHTMLTag } from '@vue/shared'
-import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.js'
+import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.ts'
 import { supportedBuiltinComponents, supportedWxApis } from '../core/compatibility-reference.js'
-import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.js'
+import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.ts'
 import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
 import { consoleFallback } from '../worker-runtime/loggers.js'  // P-WR03：D-WR-4 兜底
 

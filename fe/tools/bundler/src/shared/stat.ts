@@ -1,13 +1,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import * as cheerio from 'cheerio'
-import { miniProgramBuiltinTags } from './utils.js'
+import { miniProgramBuiltinTags } from './utils.ts'
 
 // 用来存储所有遇到的HTML标签
 const tags = new Set()
 
 // 递归读取指定文件夹下的所有.html文件
-function readDirRecursive(dir, ext) {
+function readDirRecursive(dir: string, ext: string): void {
 	fs.readdirSync(dir).forEach((file) => {
 		const filePath = path.join(dir, file)
 		const stat = fs.statSync(filePath)
@@ -23,10 +23,10 @@ function readDirRecursive(dir, ext) {
 }
 
 // 读取一个HTML文件并统计其中的标签
-function readHtmlFile(htmlContent) {
+function readHtmlFile(htmlContent: string): void {
 	const $ = cheerio.load(htmlContent)
-	$('*').each((_, elem) => {
-		tags.add(elem.name)
+	$('*').each((_: number, elem: unknown) => {
+		tags.add((elem as { name: string }).name)
 	})
 }
 
@@ -34,7 +34,7 @@ function readHtmlFile(htmlContent) {
 const wxMethods = new Set()
 
 // 查找wx.开头的方法
-function parseHtmlForWxMethods(htmlContent) {
+function parseHtmlForWxMethods(htmlContent: string): void {
 	const scriptRegex = /<script>([\s\S]*?)<\/script>/g
 	let match
 	// eslint-disable-next-line no-cond-assign
@@ -57,7 +57,7 @@ readDirRecursive(directory, '.mpx')
 
 const intersection = new Set()
 for (const tag of tags) {
-	if (miniProgramBuiltinTags.has(tag)) {
+	if (miniProgramBuiltinTags.has(tag as string)) {
 		intersection.add(tag)
 	}
 }

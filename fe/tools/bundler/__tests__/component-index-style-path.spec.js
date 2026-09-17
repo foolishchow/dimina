@@ -54,7 +54,7 @@ describe('目录组件样式路径', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/compiler/core/env.js')
+		const { storeInfo, getPages } = await import('../src/compiler/core/env.ts')
 		storeInfo(tempDir)
 
 		const { compileSS } = await import('../src/compiler/style/index.js')

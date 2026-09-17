@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getAbsolutePath } from '../../../../shared/utils.js'
-import { getTemplateExts, getViewScriptExts } from '../../../core/env.js'
+import { getAbsolutePath } from '../../../../shared/utils.ts'
+import { getTemplateExts, getViewScriptExts } from '../../../core/env.ts'
 
 /**
  * 根据扩展名列表生成匹配尾部扩展名的正则，如 ['.wxs', '.qds'] -> /(\.wxs|\.qds)$/

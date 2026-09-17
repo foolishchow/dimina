@@ -8,8 +8,8 @@
  * 约束（D-BM-7）：不做通用 RPC / 请求复用 / 重连 / IDL。
  */
 
-import { formatCompileProgress } from '../../shared/compile-progress.js'
-import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.js'
+import { formatCompileProgress } from '../../shared/compile-progress.ts'
+import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import { executeTask } from '../worker-runtime/executor.js'
 import { viewEngine } from '../view/index.js'
 import { logicEngine } from '../logic/index.js'

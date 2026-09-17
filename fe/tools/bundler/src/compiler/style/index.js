@@ -6,8 +6,8 @@ import autoprefixer from 'autoprefixer'
 import { transform } from 'esbuild'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
-import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.js'
-import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.js'
+import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.ts'
+import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.js'  // P-WR02
 import { abilityContext } from '../worker-runtime/context.js'  // P-WR03
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.js'

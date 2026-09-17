@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { storeInfo } from '../src/compiler/core/env.js'
+import { storeInfo } from '../src/compiler/core/env.ts'
 import { compileJS } from '../src/compiler/logic/index.js'
 
 describe('Require Path Resolution', () => {
