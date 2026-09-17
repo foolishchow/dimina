@@ -12,7 +12,7 @@
 | P-TM05 | view/ + view/wxml/ 14 + logic/ 2 + style/ 2 类型化 | P-TM04 | tsc --checkJs view+logic+style 清零 + diff=0 |
 | P-TM06 | bin/ 3 + dev/ 5 + src/根 2 类型化 | P-TM05 | tsc --checkJs 全 src 清零 + diff=0 |
 | P-TM07 | __tests__/ import 后缀（D-TM-2 scope 内）| P-TM06 | vitest 584/584 |
-| P-TM08 | 全量验证 | P-TM07 | grep 零 .js + 零 @typedef + 零 any + 4 组 diff=0 + 584/584 + tsc strict OK |
+| P-TM08 | 全量验证 + tsconfig include 清理（R18 F54）| P-TM07 | grep 零 .js + 零 @typedef + 零 any + 4 组 diff=0 + 584/584 + tsc strict OK |
 
 ## 类型化步骤模板（每文件）
 

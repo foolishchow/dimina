@@ -675,6 +675,29 @@ POC 步骤：
 
 **pass-with-findings** —— F51（medium，executor→worker-pool 跨阶段依赖，已修）+ F52（🟢 验证通过）。F51 是 F34 工作量的补充。可授权实施。
 
+## 23. R18 review（2026-09-16，worker-pool 契约 + tsconfig include + session 构成）
+
+### R18 findings
+
+#### F53 — 🟢 worker-pool.js WorkerPool 契约清晰（验证通过）
+
+- **Evidence**: `class WorkerPool { async runWorker(workerCreator) {...} getWorkerOptions() {...} }`——executor.js 用 `workerPool.runWorker(creator)` + `workerPool.getWorkerOptions()`
+- **Conclusion**: P-TM04 类型化 worker-pool 契约清晰（runWorker 收 creator 函数，getWorkerOptions 返回 worker 选项）✓
+
+#### F54 — 🟡 tsconfig include "src/**/*.js" 迁移后空模式（low）→ 已修
+
+- **Evidence**: `tsconfig.build.json` include `"src/**/*.js" + "src/**/*.ts"`——全 .ts 后 .js 模式无匹配（空 glob 合法，tsc 不报错但冗余）
+- **Correction**: P-TM08 可清理为只 `"src/**/*.ts"`（可选，非必需）
+
+#### F55 — 🟢 session/index.js 34 错构成（验证通过）
+
+- **Evidence**: TS2339 property any 21 + TS7006 隐式 any 4 + TS7019 3 + TS2556 spread 3 + 其他
+- **Conclusion**: TS2339 为主——session 动态配置对象需 interface；TS7019/TS2556 少量 spread 修正 ✓
+
+### R18 verdict
+
+**pass-with-findings** —— F54（low，tsconfig include 清理可选，已修）+ F53/F55（🟢 验证通过）。无新 blocker。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
