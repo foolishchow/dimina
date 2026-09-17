@@ -1,12 +1,12 @@
 import { getTemplateDirectiveName } from '../../../core/compatibility.js'
-import { createElement } from '../common/document.js'
+import { createElement } from '../common/document.ts'
 import {
 	append,
 	attrsRecord,
 	getTagName,
 	queryAll,
 	setAttr,
-} from '../common/document-ops.js'
+} from '../common/document-ops.ts'
 
 /**
  * 处理 include 节点的条件属性。

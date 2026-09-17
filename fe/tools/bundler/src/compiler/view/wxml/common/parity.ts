@@ -4,7 +4,7 @@
  * 比较 type/name、attrs 名与值分类、directives、特殊节点字段、可用 span。
  * cheerio 属性 span 为 null 不构成不等价（D-WR-5）。
  */
-import { attrValueRaw } from './document.js'
+import { attrValueRaw } from './document.ts'
 
 interface CompareDiffs {
 	path: string

@@ -1,11 +1,10 @@
-// @ts-check
 /**
  * loadTemplates — load 阶段（fe-tools-wxml-refactor · W2）。
  *
  * 只经 Document 操作面访问树；投影工具句柄不得进入本模块。
  * include 内联节点经 Symbol(WIR_SRC) 标记源文件，供 vue 行源表使用。
  */
-import { attachProjection } from '../common/document.js'
+import { attachProjection } from '../common/document.ts'
 import {
 	bindDocument,
 	getAttr,
@@ -16,7 +15,7 @@ import {
 	replaceNode,
 	serialize,
 	wrapRootIfMulti,
-} from '../common/document-ops.js'
+} from '../common/document-ops.ts'
 import { parseWxml } from '../parse.js'
 
 /**
@@ -53,9 +52,9 @@ function requireEnv(env) {
 }
 
 /**
- * @param {import('../common/wxml-ir.types.js').WxmlDocument} document parse 产物（标准 Document；可挂 `_source` 原文）
- * @param {import('../common/wxml-ir.types.js').LoadTemplatesCtx} ctx
- * @returns {import('../common/wxml-ir.types.js').LoadedGraph} LoadedGraph：展开后 Document + templateModule + scriptModule + sourceTexts
+ * @param {import('../common/wxml-ir.types.ts').WxmlDocument} document parse 产物（标准 Document；可挂 `_source` 原文）
+ * @param {import('../common/wxml-ir.types.ts').LoadTemplatesCtx} ctx
+ * @returns {import('../common/wxml-ir.types.ts').LoadedGraph} LoadedGraph：展开后 Document + templateModule + scriptModule + sourceTexts
  */
 export function loadTemplates(document, ctx) {
 	const {
@@ -247,7 +246,7 @@ export function loadTemplates(document, ctx) {
 	attachProjection(document, '_source', originalContent)
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
 
-	const loaded = /** @type {import('../common/wxml-ir.types.js').LoadedGraph} */ (document)
+	const loaded = /** @type {import('../common/wxml-ir.types.ts').LoadedGraph} */ (document)
 	loaded.templateModule = templateModule
 	loaded.scriptModule = scriptModule
 	loaded.sourceTexts = sourceTexts

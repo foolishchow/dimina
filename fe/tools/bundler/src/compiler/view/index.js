@@ -20,7 +20,7 @@ import {
 	removeAll,
 	serializeChildren,
 	setAttr,
-} from './wxml/common/document-ops.js'
+} from './wxml/common/document-ops.ts'
 import {
 	buildExtStripRegex,
 	stripViewScriptExt,
@@ -37,7 +37,7 @@ import {
 } from './wxml/renderer/vue/tools.js'
 import { bindVueToolsLive } from './wxml/renderer/vue/live.js'
 import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.js'
-import { emitEntry } from '../pipeline/emit.js'
+import { emitEntry } from '../pipeline/emit.ts'
 
 // TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）
 if (!getWxmlRenderer(VUE_RENDERER_ID)) {

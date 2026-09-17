@@ -4,7 +4,7 @@
  * 消费标准 Document / LoadedGraph；经 Document 操作面 normalize + serialize。
  * 不得经投影工具句柄访问树。
  */
-import { getRootChildren, getSourceOrigin, serialize } from '../../common/document-ops.js'
+import { getRootChildren, getSourceOrigin, serialize } from '../../common/document-ops.ts'
 
 export const VUE_RENDERER_ID = 'vue'
 

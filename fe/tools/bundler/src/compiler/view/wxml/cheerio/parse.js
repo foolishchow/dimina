@@ -17,8 +17,8 @@ import {
 	createTextNode,
 	createWxs,
 	attrsFromRecord,
-} from '../common/document.js'
-import { bindDocument } from '../common/document-ops.js'
+} from '../common/document.ts'
+import { bindDocument } from '../common/document-ops.ts'
 
 /** 与今日 view-compiler 主解析一致的 cheerio 选项（保真投影） */
 export const PARSE_OPTIONS = Object.freeze({
@@ -34,7 +34,7 @@ export const PARSE_OPTIONS = Object.freeze({
 /**
  * @param {string} source WXML 源串
  * @param {{ sourceFile?: string }} [options]
- * @returns {import('../common/document.js').WxmlDocument}
+ * @returns {import('../common/wxml-ir.types.ts').WxmlDocument}
  */
 export function parseWxml(source, options = {}) {
 	const { sourceFile } = options

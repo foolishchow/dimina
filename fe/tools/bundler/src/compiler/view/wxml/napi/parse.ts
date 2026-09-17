@@ -6,6 +6,8 @@
  *（与 cheerio / deriveLineColumn 对齐）。开标签属性按源码序写入 attrs。
  */
 import { parseWxmlSpanView } from '@dimina/wxml-parser-napi'
+import type { WxmlDocument } from '../common/wxml-ir.types.ts'
+import type { WxmlNode, Attr, Span, Value } from '../common/document.ts'
 import {
 	createCommentNode,
 	createDocument,
@@ -19,20 +21,20 @@ import {
 	createWxs,
 	makeAttr,
 	makeValue,
-} from '../common/document.js'
-import { bindDocument } from '../common/document-ops.js'
+} from '../common/document.ts'
+import { bindDocument } from '../common/document-ops.ts'
 
 /**
  * @param {string} source
  * @param {{ sourceFile?: string }} [options]
- * @returns {import('../common/document.js').WxmlDocument}
+ * @returns {WxmlDocument}
  */
-export function parseWxml(source, options = {}) {
+export function parseWxml(source: string, options: { sourceFile?: string } = {}): WxmlDocument {
 	const { sourceFile } = options
 	if (typeof source !== 'string') {
 		throw new TypeError(`[wxml] parse: source must be a string${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`)
 	}
-	const view = parseWxmlSpanView(source, sourceFile)
+	const view = parseWxmlSpanView(source, sourceFile) as unknown as SpanView
 	const ctx = createSourceContext(source)
 	const body = fromNodeList(view.body || [], ctx, sourceFile, 0, ctx.buf.length)
 	const document = createDocument({
@@ -41,7 +43,7 @@ export function parseWxml(source, options = {}) {
 		span: toCharSpan(ctx, view.span),
 	})
 	bindDocument(document)
-	return document
+	return document as WxmlDocument
 }
 
 /**
@@ -49,7 +51,7 @@ export function parseWxml(source, options = {}) {
  * @param {object} view
  * @param {string} [source]
  */
-export function documentFromSpanView(view, source = '') {
+export function documentFromSpanView(view: SpanView | null | undefined, source: string = ''): WxmlDocument {
 	const sourceFile = view?.sourceFile
 	const ctx = createSourceContext(source)
 	const body = fromNodeList(view?.body || [], ctx, sourceFile, 0, ctx.buf.length)
@@ -59,12 +61,40 @@ export function documentFromSpanView(view, source = '') {
 		span: toCharSpan(ctx, view?.span),
 	})
 	bindDocument(document)
-	return document
+	return document as WxmlDocument
 }
 
-/** @typedef {{ source: string, buf: Buffer, byteToChar: Int32Array }} SourceContext */
+interface ByteSpan { start: number; end: number }
+interface SpanViewAttr { name: string; value: { raw?: string | null } | null; span?: ByteSpan | null }
+interface SpanViewNode {
+	type: string
+	tag?: string
+	name?: string
+	src?: string | null
+	module?: string | null
+	is?: string
+	attrs?: SpanViewAttr[]
+	children?: SpanViewNode[]
+	body?: SpanViewNode[]
+	span?: ByteSpan | null
+	value?: string | null
+	directives?: unknown[]
+	slot?: { name?: string | null; span?: ByteSpan | null } | null
+	selfClosing?: boolean
+	[key: string]: unknown
+}
+interface SpanView {
+	body?: SpanViewNode[]
+	span?: ByteSpan | null
+	sourceFile?: string | null
+}
+export interface SourceContext {
+	source: string
+	buf: Buffer
+	byteToChar: Int32Array
+}
 
-function createSourceContext(source) {
+function createSourceContext(source: string): SourceContext {
 	const buf = Buffer.from(source, 'utf8')
 	const byteToChar = new Int32Array(buf.length + 1)
 	let charIndex = 0
@@ -90,7 +120,7 @@ function createSourceContext(source) {
 	return { source, buf, byteToChar }
 }
 
-function toCharSpan(ctx, span) {
+function toCharSpan(ctx: SourceContext, span: ByteSpan | null | undefined): null | Span {
 	if (!span || typeof span.start !== 'number' || typeof span.end !== 'number') {
 		return null
 	}
@@ -102,14 +132,14 @@ function toCharSpan(ctx, span) {
 	return { start, end }
 }
 
-function sliceBytes(ctx, span) {
+function sliceBytes(ctx: SourceContext, span: ByteSpan | null | undefined): string {
 	if (!span || typeof span.start !== 'number' || typeof span.end !== 'number') {
 		return ''
 	}
 	return ctx.buf.subarray(span.start, span.end).toString('utf8')
 }
 
-function fromNodeList(nodes, ctx, sourceFile, rangeStart, rangeEnd) {
+function fromNodeList(nodes: SpanViewNode[] | null | undefined, ctx: SourceContext, sourceFile: string | null | undefined, rangeStart: number, rangeEnd: number): WxmlNode[] {
 	const out = []
 	let cursor = typeof rangeStart === 'number' ? rangeStart : 0
 	const endLimit = typeof rangeEnd === 'number' ? rangeEnd : ctx.buf.length
@@ -146,16 +176,16 @@ function fromNodeList(nodes, ctx, sourceFile, rangeStart, rangeEnd) {
 	return out.filter(n => !(n.type === 'text' && n.value === ''))
 }
 
-function fromSpanNode(node, ctx, sourceFile) {
+function fromSpanNode(node: SpanViewNode | null | undefined, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode | null {
 	if (!node || typeof node !== 'object') {
-		return null
+		return null as unknown as WxmlNode
 	}
 	switch (node.type) {
 		case 'text':
 			return fromText(node, ctx, sourceFile)
 		case 'comment':
 			return createCommentNode({
-				value: node.text ?? node.value ?? '',
+				value: String((node as Record<string, unknown>).text ?? node.value ?? ''),
 				loc: toCharSpan(ctx, node.span),
 				sourceFile,
 			})
@@ -180,38 +210,38 @@ function fromSpanNode(node, ctx, sourceFile) {
 	}
 }
 
-function fromText(node, ctx, sourceFile) {
-	const span = node.span
+function fromText(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
 	const value = textContent(node, ctx)
 	if (value === '') {
-		return null
+		return null as unknown as WxmlNode
 	}
 	return createTextNode({ value, loc: toCharSpan(ctx, span), sourceFile })
 }
 
-function textContent(node, ctx) {
+function textContent(node: SpanViewNode, ctx: SourceContext): string {
 	if (node.span && ctx?.buf) {
 		return sliceBytes(ctx, node.span)
 	}
 	const v = node.value
 	if (typeof v === 'string') {
-		return v
+		return String(v ?? '')
 	}
 	if (!v || typeof v !== 'object') {
-		return node.raw ?? ''
+		return (node as { raw?: string | null }).raw ?? ''
 	}
-	if (v.kind === 'expr') {
-		const raw = v.raw ?? ''
+	if ((v as { kind?: string }).kind === 'expr') {
+		const raw = (v as { raw?: string | null })?.raw ?? ''
 		return raw.includes('{{') ? raw : `{{${raw}}}`
 	}
-	return v.raw ?? v.value ?? node.raw ?? ''
+	return (v as { raw?: string | null })?.raw ?? (v as { value?: string | null })?.value ?? (node as { raw?: string | null }).raw ?? ''
 }
 
-function fromElement(node, ctx, sourceFile) {
-	const span = node.span
+function fromElement(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
 	const attrs = attrsFromOpeningTag(ctx, span) ?? convertSpanAttrs(node.attrs, ctx)
-	const childRangeStart = openingTagEndByte(ctx, span) ?? span?.start
-	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? span?.end
+	const childRangeStart = openingTagEndByte(ctx, span) ?? (span?.start ?? 0)
+	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? (span?.end ?? 0)
 	const children = fromNodeList(node.children || [], ctx, sourceFile, childRangeStart, childRangeEnd)
 	const directives = convertDirectives(node.directives, ctx)
 	const slot = convertSlot(node.slot, ctx)
@@ -223,14 +253,14 @@ function fromElement(node, ctx, sourceFile) {
 		sourceFile,
 		selfClosing: Boolean(node.selfClosing),
 		directives,
-		slot,
+		slot: slot as unknown as null | string,
 	})
 }
 
-function fromInclude(node, ctx, sourceFile) {
-	const span = node.span
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField(node.src, 'src', ctx)
-	const src = pathFieldValue(node.src) ?? findAttrRaw(attrs, 'src')
+function fromInclude(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField((node.src ?? '') as string, 'src', ctx)
+	const src = pathFieldValue(node.src ?? '') ?? findAttrRaw(attrs as Attr[], 'src')
 	return createInclude({
 		attrs,
 		children: [],
@@ -241,10 +271,10 @@ function fromInclude(node, ctx, sourceFile) {
 	})
 }
 
-function fromImport(node, ctx, sourceFile) {
-	const span = node.span
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField(node.src, 'src', ctx)
-	const src = pathFieldValue(node.src) ?? findAttrRaw(attrs, 'src')
+function fromImport(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField((node.src ?? '') as string, 'src', ctx)
+	const src = pathFieldValue(node.src ?? '') ?? findAttrRaw(attrs as Attr[], 'src')
 	return createImport({
 		attrs,
 		children: [],
@@ -255,17 +285,17 @@ function fromImport(node, ctx, sourceFile) {
 	})
 }
 
-function fromWxs(node, ctx, sourceFile) {
-	const span = node.span
+function fromWxs(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
 	const attrs = attrsFromOpeningTag(ctx, span) ?? [
-		...attrsFromNamedField(node.module, 'module', ctx),
-		...attrsFromPathField(node.src, 'src', ctx),
+		...attrsFromNamedField((node.module ?? '') as string, 'module', ctx),
+		...attrsFromPathField((node.src ?? '') as string, 'src', ctx),
 	]
 	const children = []
-	if (node.content?.raw) {
+	if ((node.content as { raw?: string | null } | null)?.raw) {
 		children.push(createTextNode({
-			value: node.content.raw,
-			loc: toCharSpan(ctx, node.content.span),
+			value: (node.content as { raw?: string | null } | null)?.raw ?? '',
+			loc: toCharSpan(ctx, (node.content as { span?: ByteSpan | null } | null)?.span),
 			sourceFile,
 		}))
 	}
@@ -275,19 +305,19 @@ function fromWxs(node, ctx, sourceFile) {
 		loc: toCharSpan(ctx, span),
 		sourceFile,
 		selfClosing: Boolean(node.selfClosing),
-		module: pathFieldValue(node.module) ?? findAttrRaw(attrs, 'module'),
-		src: pathFieldValue(node.src) ?? findAttrRaw(attrs, 'src'),
+		module: pathFieldValue(node.module) ?? findAttrRaw(attrs as Attr[], 'module'),
+		src: pathFieldValue(node.src ?? '') ?? findAttrRaw(attrs as Attr[], 'src'),
 		tagName: 'wxs',
 	})
 }
 
-function fromTemplateDef(node, ctx, sourceFile) {
-	const span = node.span
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField(node.name, 'name', ctx)
-	const childRangeStart = openingTagEndByte(ctx, span) ?? span?.start
-	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? span?.end
+function fromTemplateDef(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField((node.name ?? '') as string, 'name', ctx)
+	const childRangeStart = openingTagEndByte(ctx, span) ?? (span?.start ?? 0)
+	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? (span?.end ?? 0)
 	const children = fromNodeList(node.body || node.children || [], ctx, sourceFile, childRangeStart, childRangeEnd)
-	const name = pathFieldValue(node.name) ?? findAttrRaw(attrs, 'name') ?? ''
+	const name = pathFieldValue(node.name) ?? findAttrRaw(attrs as Attr[], 'name') ?? ''
 	return createTemplateDef({
 		attrs,
 		children,
@@ -298,13 +328,13 @@ function fromTemplateDef(node, ctx, sourceFile) {
 	})
 }
 
-function fromTemplateRef(node, ctx, sourceFile) {
-	const span = node.span
+function fromTemplateRef(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
 	const attrs = attrsFromOpeningTag(ctx, span) ?? [
-		...attrsFromValueField(node.target, 'is', ctx),
-		...(node.data ? [makeAttr('data', dataAttrRaw(node.data), toCharSpan(ctx, node.data.span))] : []),
+		...attrsFromValueField((node.target ?? '') as string, 'is', ctx),
+		...(node.data ? [makeAttr('data', dataAttrRaw(node.data), toCharSpan(ctx, (node.data as { span?: ByteSpan | null } | null)?.span))] : []),
 	]
-	const is = valueFieldRaw(node.target) ?? findAttrRaw(attrs, 'is') ?? ''
+	const is = valueFieldRaw(node.target) ?? findAttrRaw(attrs as Attr[], 'is') ?? ''
 	return createTemplateRef({
 		attrs,
 		children: [],
@@ -315,14 +345,14 @@ function fromTemplateRef(node, ctx, sourceFile) {
 	})
 }
 
-function fromSlot(node, ctx, sourceFile) {
-	const span = node.span
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField(node.name, 'name', ctx)
-	const childRangeStart = openingTagEndByte(ctx, span) ?? span?.start
-	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? span?.end
+function fromSlot(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+	const span = node.span ?? null
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField((node.name ?? '') as string, 'name', ctx)
+	const childRangeStart = openingTagEndByte(ctx, span) ?? (span?.start ?? 0)
+	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? (span?.end ?? 0)
 	const children = fromNodeList(node.children || [], ctx, sourceFile, childRangeStart, childRangeEnd)
 	const directives = convertDirectives(node.directives, ctx)
-	const name = pathFieldValue(node.name) ?? findAttrRaw(attrs, 'name')
+	const name = pathFieldValue(node.name) ?? findAttrRaw(attrs as Attr[], 'name')
 	const slotNode = createSlot({
 		attrs,
 		children,
@@ -336,14 +366,14 @@ function fromSlot(node, ctx, sourceFile) {
 }
 
 /** 开标签结束字节（`>` 之后） */
-function openingTagEndByte(ctx, span) {
+function openingTagEndByte(ctx: SourceContext, span: ByteSpan | null | undefined): number {
 	if (!ctx?.buf || !span || typeof span.start !== 'number') {
-		return null
+		return 0
 	}
 	const buf = ctx.buf
 	let i = span.start
 	if (buf[i] !== 0x3c) {
-		return null
+		return 0
 	}
 	i += 1
 	while (i < buf.length && i < span.end) {
@@ -359,19 +389,19 @@ function openingTagEndByte(ctx, span) {
 		}
 		i += 1
 	}
-	return null
+	return 0
 }
 
 /** 闭标签起始字节；自闭合则返回 span.end */
-function closingTagStartByte(ctx, span, selfClosing) {
+function closingTagStartByte(ctx: SourceContext, span: ByteSpan | null | undefined, selfClosing: boolean | undefined): number {
 	if (!span || typeof span.end !== 'number') {
-		return null
+		return 0
 	}
-	if (selfClosing) {
+	if (selfClosing ?? false) {
 		return span.end
 	}
 	if (!ctx?.buf) {
-		return null
+		return 0
 	}
 	const buf = ctx.buf
 	// 从末尾回找 </
@@ -393,7 +423,7 @@ function closingTagStartByte(ctx, span, selfClosing) {
 	return span.end
 }
 
-function convertSpanAttrs(attrs, ctx) {
+function convertSpanAttrs(attrs: SpanViewAttr[] | null | undefined, ctx: SourceContext): Attr[] {
 	if (!Array.isArray(attrs)) {
 		return []
 	}
@@ -407,72 +437,73 @@ function convertSpanAttrs(attrs, ctx) {
 	})
 }
 
-function convertValue(v, ctx) {
+function convertValue(v: { raw?: string | null; span?: ByteSpan | null; kind?: string; value?: { raw?: string | null } | null; parts?: unknown[] } | null | undefined, ctx: SourceContext): Value {
 	if (!v || typeof v !== 'object') {
 		return makeValue(v == null ? '' : String(v))
 	}
 	const span = toCharSpan(ctx, v.span)
 	if (v.kind === 'static') {
-		return { kind: 'static', raw: v.raw ?? v.value ?? '', span }
+		return { kind: 'static', raw: (v as { raw?: string | null })?.raw ?? String((v as { value?: { raw?: string | null } | null })?.value ?? ''), span }
 	}
-	if (v.kind === 'expr') {
-		const raw = v.raw ?? ''
+	if ((v as { kind?: string }).kind === 'expr') {
+		const raw = (v as { raw?: string | null })?.raw ?? ''
 		const withBraces = raw.includes('{{') ? raw : `{{${raw}}}`
 		return { kind: 'expr', raw: withBraces, span }
 	}
 	if (v.kind === 'template') {
 		return {
 			kind: 'template',
-			raw: v.raw ?? '',
+			raw: (v as { raw?: string | null })?.raw ?? '',
 			span,
 			parts: Array.isArray(v.parts) ? v.parts.map(p => convertTemplatePart(p, ctx)) : undefined,
 		}
 	}
-	return makeValue(v.raw ?? '', span)
+	return makeValue((v as { raw?: string | null })?.raw ?? '', span)
 }
 
-function convertTemplatePart(part, ctx) {
+function convertTemplatePart(part: unknown, ctx: SourceContext): unknown {
 	if (!part) {
 		return part
 	}
-	const span = toCharSpan(ctx, part.span)
-	if (part.kind === 'expr') {
-		return { kind: 'expr', raw: part.raw ?? '', span }
+	const span = toCharSpan(ctx, (part as { span?: ByteSpan | null } | null)?.span)
+	if ((part as { kind?: string }).kind === 'expr') {
+		return { kind: 'expr', raw: (part as { raw?: string | null }).raw ?? '', span }
 	}
-	return { kind: 'static', raw: part.raw ?? part.value ?? '', span, value: part.value }
+	return { kind: 'static', raw: (part as { raw?: string | null }).raw ?? String((part as { value?: unknown }).value ?? ''), span, value: (part as { value?: unknown }).value }
 }
 
-function convertDirectives(dirs, ctx) {
+function convertDirectives(dirs: unknown[] | null | undefined, ctx: SourceContext): unknown[] {
 	if (!Array.isArray(dirs)) {
 		return []
 	}
-	return dirs.map((d) => {
-		const out = {
-			kind: d.kind,
-			span: toCharSpan(ctx, d.span),
-			test: d.test
-				? { raw: d.test.raw, span: toCharSpan(ctx, d.test.span) }
+	return dirs.map((d: unknown) => {
+		const dd = d as { kind?: string; span?: ByteSpan | null; test?: { raw?: string | null; span?: ByteSpan | null } | null; item?: unknown; index?: unknown; value?: unknown }
+		const out: Record<string, unknown> = {
+			kind: dd.kind,
+			span: toCharSpan(ctx, dd.span),
+			test: dd.test
+				? { raw: dd.test?.raw, span: toCharSpan(ctx, dd.test?.span) }
 				: null,
 		}
-		if (d.item !== undefined) {
-			out.item = d.item
+		if (dd.item !== undefined) {
+			out.item = dd.item
 		}
-		if (d.index !== undefined) {
-			out.index = d.index
+		if (dd.index !== undefined) {
+			out.index = dd.index
 		}
-		if (d.value !== undefined) {
-			out.value = d.value
+		if (dd.value !== undefined) {
+			out.value = dd.value
 		}
 		return out
 	})
 }
 
-function convertSlot(slot, ctx) {
+function convertSlot(slot: SpanViewNode['slot'] | null | undefined, ctx: SourceContext): { name: string | null; span: Span | null } | null {
 	if (!slot) {
 		return null
 	}
 	return {
-		name: typeof slot.name === 'string' ? slot.name : slot.name?.value ?? slot.name?.raw ?? null,
+		name: typeof slot.name === 'string' ? slot.name : (slot.name as { value?: string | null; raw?: string | null } | null)?.value ?? (slot.name as { value?: string | null; raw?: string | null } | null)?.raw ?? null,
 		span: toCharSpan(ctx, slot.span),
 	}
 }
@@ -481,9 +512,9 @@ function convertSlot(slot, ctx) {
  * 从源码开标签解析属性（byte 扫描；保序；含 wx:* / hidden）。
  * @param {SourceContext} ctx
  * @param {{start:number,end:number}|null} span byte span
- * @returns {import('../common/document.js').Attr[]|null}
+ * @returns {Attr[] | null}
  */
-export function attrsFromOpeningTag(ctx, span) {
+export function attrsFromOpeningTag(ctx: SourceContext, span: ByteSpan | null): Attr[] | null {
 	if (!ctx?.buf || !span || typeof span.start !== 'number') {
 		return null
 	}
@@ -553,10 +584,10 @@ export function attrsFromOpeningTag(ctx, span) {
 			end: ctx.byteToChar[i],
 		}))
 	}
-	return attrs
+	return attrs as Attr[]
 }
 
-function isNameByte(b) {
+function isNameByte(b: number): boolean {
 	return (b >= 0x41 && b <= 0x5a)
 		|| (b >= 0x61 && b <= 0x7a)
 		|| (b >= 0x30 && b <= 0x39)
@@ -564,73 +595,73 @@ function isNameByte(b) {
 		|| b === 0x2d
 }
 
-function isAttrNameByte(b) {
+function isAttrNameByte(b: number): boolean {
 	return isNameByte(b) || b === 0x3a /* : */ || b === 0x40 /* @ */ || b === 0x2e /* . */
 }
 
-function isSpaceByte(b) {
+function isSpaceByte(b: number): boolean {
 	return b === 0x20 || b === 0x0a || b === 0x0d || b === 0x09
 }
 
-function attrsFromPathField(field, name, ctx) {
+function attrsFromPathField(field: string, name: string, ctx: SourceContext): Attr[] {
 	const value = pathFieldValue(field)
 	if (value == null || value === '') {
 		return []
 	}
-	return [makeAttr(name, value, toCharSpan(ctx, field?.span))]
+	return [makeAttr(name, value, toCharSpan(ctx, (field as { span?: ByteSpan | null })?.span))]
 }
 
-function attrsFromNamedField(field, name, ctx) {
+function attrsFromNamedField(field: string, name: string, ctx: SourceContext): Attr[] {
 	return attrsFromPathField(field, name, ctx)
 }
 
-function attrsFromValueField(field, name, ctx) {
+function attrsFromValueField(field: unknown, name: string, ctx: SourceContext): Attr[] {
 	const raw = valueFieldRaw(field)
 	if (raw == null || raw === '') {
 		return []
 	}
-	return [makeAttr(name, raw, toCharSpan(ctx, field?.span))]
+	return [makeAttr(name, raw, toCharSpan(ctx, (field as { span?: ByteSpan | null })?.span))]
 }
 
-function pathFieldValue(field) {
+function pathFieldValue(field: unknown): string {
 	if (field == null) {
-		return null
+		return ''
 	}
 	if (typeof field === 'string') {
 		return field
 	}
-	return field.value ?? field.raw ?? null
+	return (field as { value?: string | null; raw?: string | null })?.value ?? (field as { raw?: string | null })?.raw ?? ''
 }
 
-function valueFieldRaw(field) {
+function valueFieldRaw(field: unknown): string {
 	if (field == null) {
-		return null
+		return ''
 	}
 	if (typeof field === 'string') {
 		return field
 	}
-	if (field.kind === 'expr') {
-		const raw = field.raw ?? ''
+	if ((field as { kind?: string }).kind === 'expr') {
+		const raw = (field as { raw?: string | null }).raw ?? ''
 		return raw.includes('{{') ? raw : `{{${raw}}}`
 	}
-	return field.value ?? field.raw ?? null
+	return (field as { value?: string | null; raw?: string | null })?.value ?? (field as { raw?: string | null })?.raw ?? ''
 }
 
-function dataAttrRaw(data) {
+function dataAttrRaw(data: unknown): string {
 	if (!data) {
 		return ''
 	}
-	const raw = data.raw ?? ''
+	const raw = (data as { raw?: string | null })?.raw ?? ''
 	return raw.includes('{{') ? raw : `{{${raw}}}`
 }
 
-function findAttrRaw(attrs, name) {
-	const found = attrs.find(a => a.name === name)
+function findAttrRaw(attrs: Attr[], name: string): string | undefined {
+	const found = attrs.find((a: Attr) => a.name === name)
 	if (!found) {
 		return undefined
 	}
-	if (found.value == null) {
+	if ((found as Attr).value == null) {
 		return ''
 	}
-	return typeof found.value === 'string' ? found.value : found.value.raw
+	return typeof found.value === 'string' ? found.value : (found.value?.raw ?? '')
 }

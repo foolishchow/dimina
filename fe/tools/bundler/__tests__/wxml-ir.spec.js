@@ -14,8 +14,8 @@ import {
 	plainTree,
 	templateNodeKind,
 	valueKind,
-} from '../src/compiler/view/wxml/common/document.js'
-import { serialize } from '../src/compiler/view/wxml/common/document-ops.js'
+} from '../src/compiler/view/wxml/common/document.ts'
+import { serialize } from '../src/compiler/view/wxml/common/document-ops.ts'
 import { parseWxml } from '../src/compiler/view/wxml/parse.js'
 import { loadTemplates } from '../src/compiler/view/wxml/load/index.js'
 import { getWxmlRenderer, listWxmlRenderers, registerWxmlRenderer, unregisterWxmlRenderer } from '../src/compiler/view/wxml/renderer/registry.ts'
@@ -25,7 +25,7 @@ const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(testDir, '../src/compiler')
 const compileSrc = fs.readFileSync(path.join(srcRoot, 'view/wxml/compile.js'), 'utf8')
 const wxmlFiles = [
-	'view/wxml/common/document.js',
+	'view/wxml/common/document.ts',
 	'view/wxml/parse.js',
 	'view/wxml/load/index.js',
 	'view/wxml/renderer/registry.ts',

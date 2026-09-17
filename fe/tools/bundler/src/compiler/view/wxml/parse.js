@@ -4,7 +4,7 @@
  * `process.env.WXML_PARSER ?? 'napi'` → 仅 `napi` | `cheerio`；非法值抛 `[wxml]`。
  */
 import { parseWxml as parseWxmlCheerio, PARSE_OPTIONS, projectDocument } from './cheerio/parse.js'
-import { parseWxml as parseWxmlNapi, documentFromSpanView, attrsFromOpeningTag } from './napi/parse.js'
+import { parseWxml as parseWxmlNapi, documentFromSpanView, attrsFromOpeningTag } from './napi/parse.ts'
 
 const ENGINES = new Set(['napi', 'cheerio'])
 

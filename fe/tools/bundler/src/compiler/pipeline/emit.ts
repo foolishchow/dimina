@@ -5,19 +5,68 @@ import { mergeSourcemap } from '../core/sourcemap.js'
 import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { abilityContext } from '../worker-runtime/context.js'  // P-WR03：收敛点 getStore
 
-/**
- * @typedef {{ moduleId: string, code: string, map: string | null, extraInfoCode?: string }} EmitModule
- * @typedef {Iterable<EmitModule>} ModuleCollection
- */
+export interface EmitModule {
+	moduleId: string
+	code: string
+	map: string | null
+	extraInfoCode?: string
+}
+export type ModuleCollection = Iterable<EmitModule>
+
+export interface EmitEntryFile {
+	path: string
+	code: string
+}
+export interface EmitEntrySourcemap {
+	path: string
+	map: unknown
+}
+export interface EmitEntry {
+	entryId: string
+	kind: 'view' | 'logic'
+	files: EmitEntryFile[]
+	sourcemaps?: EmitEntrySourcemap[]
+}
+
+export interface EmitTransformConfig {
+	minify: boolean
+	target: string
+	platform: string
+}
+
+export interface EmitBundleCtx {
+	modules: ModuleCollection
+	transform: EmitTransformConfig
+	sourcemap: boolean
+	filename: string
+	relPrefix: string
+	entryId: string
+}
+
+export interface EmitPerModuleCtx {
+	modules: ModuleCollection
+	transform: EmitTransformConfig
+	sourcemap: boolean
+	sourcemapTargetPath: string | null
+	relPrefix: string
+	entryId: string
+}
+
+export interface EmitEntryParams {
+	entryId: string
+	kind: 'view' | 'logic'
+	modules: ModuleCollection
+	transform: EmitTransformConfig & { strategy: string }
+	sourcemap: boolean
+	sourcemapTargetPath: string | null
+	filename: string
+	relPrefix: string
+}
 
 const strategies = {
 	// bundle 策略（view 整包拼接 + moduleRanges 行定位，布局私有）
 	bundle: {
-		/**
-		 * @param {{ modules: ModuleCollection, transform: { minify: boolean, target: string, platform: string }, sourcemap: boolean, filename: string, relPrefix: string, entryId: string }} ctx
-		 * @returns {Promise<{ entry: import('./output.js').EmitEntry }>}
-		 */
-		async apply({ modules, transform: cfg, sourcemap, filename, relPrefix, entryId }) {
+		async apply({ modules, transform: cfg, sourcemap, filename, relPrefix, entryId }: EmitBundleCtx): Promise<{ entry: EmitEntry }> {
 			const moduleList = [...modules]
 			if (sourcemap) {
 				const compileRes = moduleList.map(m => ({ path: m.moduleId, code: m.code, map: m.map }))
@@ -50,12 +99,13 @@ const strategies = {
 				const { code } = await transform(bundleSource, {
 					minify: effectiveJsMinify({ minify: cfg.minify, sourcemap: false }),
 					target: [cfg.target],
-					platform: cfg.platform,
+					platform: cfg.platform as 'node' | 'browser' | 'neutral',
 				})
 				mergeRender = code
 			}
 			catch (error) {
-				const location = error.errors?.[0]?.location
+				const err = error as { errors?: { location?: { line: number } }[] } & Error
+				const location = err.errors?.[0]?.location
 				const sourceLines = bundleSource.split('\n')
 				const sourceHint = location?.line
 					? sourceLines
@@ -64,8 +114,8 @@ const strategies = {
 						.join('\n')
 					: ''
 				const failedModule = moduleRanges.find(range =>
-					location?.line >= range.startLine && location.line <= range.endLine)
-				error.message = `视图模块 ${failedModule?.key || 'bundle'} 转换失败: ${error.message}${sourceHint ? `\n${sourceHint}` : ''}`
+					location?.line != null && location.line >= range.startLine && location.line <= range.endLine)
+				err.message = `视图模块 ${failedModule?.key || 'bundle'} 转换失败: ${err.message}${sourceHint ? `\n${sourceHint}` : ''}`
 				throw error
 			}
 			return {
@@ -79,18 +129,14 @@ const strategies = {
 	},
 	// perModule 策略（logic 逐模块 + sourcemap rebase，布局私有）
 	perModule: {
-		/**
-		 * @param {{ modules: ModuleCollection, transform: { minify: boolean, target: string, platform: string }, sourcemap: boolean, sourcemapTargetPath: string | null, relPrefix: string, entryId: string }} ctx
-		 * @returns {Promise<{ entry: import('./output.js').EmitEntry }>}
-		 */
-		async apply({ modules, transform: cfg, sourcemap, sourcemapTargetPath, relPrefix, entryId }) {
+		async apply({ modules, transform: cfg, sourcemap, sourcemapTargetPath, relPrefix, entryId }: EmitPerModuleCtx): Promise<{ entry: EmitEntry }> {
 			const moduleList = [...modules]
 			if (sourcemap) {
 				// rebase（D-E-12 留策略）：module.map.sources 绝对路径 → relative(finalOutputDir, resolve(workPath, source))
-				const finalOutputDir = resolve(sourcemapTargetPath, relPrefix)
+				const finalOutputDir = resolve(sourcemapTargetPath ?? '', relPrefix)
 				const rebasedCompileRes = moduleList.map((m) => {
 					if (!m.map) return { path: m.moduleId, code: m.code, map: m.map, extraInfoCode: m.extraInfoCode }
-					const moduleMap = JSON.parse(m.map)
+					const moduleMap = JSON.parse(m.map) as { sources: string[] }
 					moduleMap.sources = moduleMap.sources.map((source) => {
 						const sourcePath = source.replace(/^[/\\]+/, '')
 						return relative(finalOutputDir, resolve(getWorkPath(), sourcePath)).split(sep).join('/')
@@ -118,7 +164,7 @@ ${m.code}
 					const { code: minifiedCode } = await transform(amdFormat, {
 						minify: true,
 						target: [cfg.target],
-						platform: cfg.platform,
+						platform: cfg.platform as 'node' | 'browser' | 'neutral',
 					})
 					mergeCode += minifiedCode
 				}
@@ -164,8 +210,8 @@ ${m.code}
  * @param {string} params.relPrefix
  * @returns {Promise<void>}
  */
-export async function emitEntry(params) {
-	const strategy = strategies[params.transform.strategy]
+export async function emitEntry(params: EmitEntryParams) {
+	const strategy = strategies[params.transform.strategy as keyof typeof strategies]
 	if (!strategy) {
 		throw new Error(`emitEntry: 未知 transform 策略 ${params.transform.strategy}`)
 	}

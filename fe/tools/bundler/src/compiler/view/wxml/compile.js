@@ -7,7 +7,7 @@ import {
 	getViewScriptTags,
 	getWorkPath,
 } from '../../core/env.js'
-import { attachProjection } from './common/document.js'
+import { attachProjection } from './common/document.ts'
 import { parseWxml } from './parse.js'
 import { loadTemplates } from './load/index.js'
 import { getWxmlRenderer } from './renderer/registry.ts'

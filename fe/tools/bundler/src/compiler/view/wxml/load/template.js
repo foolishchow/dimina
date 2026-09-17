@@ -5,7 +5,7 @@ import {
 	removeMatching,
 	removeNode,
 	serializeChildren,
-} from '../common/document-ops.js'
+} from '../common/document-ops.ts'
 import { transAsses } from './orchestrator-live.js'
 import { normalizeTemplateDom, transHtmlTag } from '../renderer/vue/tools.js'
 

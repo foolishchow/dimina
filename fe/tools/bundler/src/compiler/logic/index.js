@@ -10,7 +10,7 @@ import { effectiveJsMinify } from '../../shared/compile-config.js'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.js'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.js'
 import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.js'
-import { emitEntry } from '../pipeline/emit.js'
+import { emitEntry } from '../pipeline/emit.ts'
 
 // 用于缓存已处理的模块
 const processedModules = new Set()
