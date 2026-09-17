@@ -56,6 +56,8 @@
 
 **R14 F45 注意**：document.ts 改 @typedef→type 后，document-ops.js（还 .js）import document 类型可能触发 TS2353（对象字面量属性检查变严）。P-TM01 要同步处理 document-ops 的 @typedef→type + 对象字面量类型修正。
 
+**R23 F67 注意（emit.js JSDoc 残留）**：`emit.js:18/84` JSDoc `@returns {Promise<{ entry: import('./output.js').EmitEntry }>}` 引用已删的 `./output.js`（worker-runtime P-WR03 删除，EmitEntry 类型无定义）→ tsc 报 TS2307。P-TM01 处理：删 JSDoc 残留注释 + 定义 `EmitEntry` 类型（基于实际返回形状 `{ entryId, kind, files, sourcemaps }`）。
+
 转换：
 ```ts
 // 旧

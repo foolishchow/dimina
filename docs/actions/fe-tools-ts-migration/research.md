@@ -800,6 +800,32 @@ POC 步骤：
 
 **pass** —— F65/F66 全验证通过，无新 finding。所有 72 文件的错误构成已验证（1134 全机械可解，无未知类别）。最终终检通过——文档完整一致。可授权实施。
 
+## 28. R23 review（2026-09-16，emit.js JSDoc 残留引用已删类型）
+
+### R23 findings
+
+#### F67 — 🟠 emit.js JSDoc 残留引用已删 output.js 类型（high）→ 已修
+
+- **Evidence**:
+  - `emit.js:18/84` JSDoc `@returns {Promise<{ entry: import('./output.js').EmitEntry }>}`——引用 `./output.js`
+  - **output.js 已被 worker-runtime 删除**（P-WR03 ad710ffe：FileSink 移到 sinks.js）
+  - **EmitEntry 类型现在无任何定义**（grep 全 src 无结果）——dead reference
+  - tsc --checkJs 报 TS2307（`Cannot find module './output.js'`）
+- **Root cause**: worker-runtime 重构删除 output.js 时，emit.js 的 JSDoc 注释未同步更新——**重构遗留**
+- **Impact**: P-TM01 改 emit.js→emit.ts 时，JSDoc `import('./output.js')` 在 .ts 不工作（output.js 已删）——需处理
+- **Correction**: P-TM01 处理 emit.js 时：
+  - 删 JSDoc 残留注释（`import('./output.js').EmitEntry`）
+  - 定义 `EmitEntry` 类型（基于实际返回形状 `{ entryId, kind, files, sourcemaps }`）或替换引用
+
+#### F68 — 🟢 stage-channel/runner/publish 错构成（验证通过）
+
+- **Evidence**: stage-channel.js 12 TS2339 + 2 TS7006（property any 为主）；runner.js 36 错 14 TS2339（session 动态配置）；publish.js + compile-stages.js TS7006 5 + TS18046 1
+- **Conclusion**: 全机械可解，无新错误类别 ✓
+
+### R23 verdict
+
+**pass-with-findings** —— F67（high，emit.js JSDoc 残留引用已删类型——worker-runtime 重构遗留，P-TM01 处理）+ F68（🟢 验证通过）。F67 是 .ts 迁移的真实前置问题——但非本 Action 引入，是重构遗留清理。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
