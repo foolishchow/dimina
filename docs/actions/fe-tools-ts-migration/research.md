@@ -491,6 +491,31 @@ POC 步骤：
 
 **pass-with-findings** —— F31（medium，import 清单补全，已修）+ F32/F33（🟢 验证通过）。P-TM01 共 21 处 import 修正已全列。可授权实施。
 
+## 16. R11 review（2026-09-16，跨阶段 import 工作量 + worker-entry 链依赖）
+
+### R11 findings
+
+#### F34 — 🟡 跨阶段 import 后缀修正工作量未量化（medium）→ 已修
+
+- **Evidence**: P-TM02 shared/ 35 处（utils 11 + lifecycle 7 + compile-config 6 + path-utils 5 + platforms 3 + compile-progress 2 + art 1）+ P-TM03 worker-runtime 16 处（context 5 + runtime 3 + loggers 3 + define-engine 3 + sinks 1 + executor 1）
+- **Broken**: implementation-plan 只说"grep 所有 import 方改后缀"，没量化每阶段工作量
+- **Correction**: implementation-plan 补跨阶段 import 修正工作量表（P-TM01 21 + P-TM02 35 + P-TM03 16+ + ...）
+
+#### F35 — 🟡 worker-entry 链跨阶段依赖未提（medium）→ 已修
+
+- **Evidence**: 3 个 `worker-entry.js`（view/logic/style）各 import `'../worker-runtime/runtime.js'`（P-TM03）+ `'./index.js'`（P-TM05）。P-TM03 改 runtime.ts 时，worker-entry.js（还 .js）的 import 要跨阶段改 .ts
+- **Broken**: plan 没提 worker-entry 跨阶段依赖（P-TM03 碰 worker-entry import，P-TM05 再碰）
+- **Correction**: implementation-plan 补 worker-entry 跨阶段依赖说明（P-TM03 改 runtime import 后缀；P-TM05 改 worker-entry .ts + index import 后缀）
+
+#### F36 — 🟢 P-TM08 最终 tsc --noEmit 验证（验证通过）
+
+- **Evidence**: 现状 `tsc --noEmit`（非 checkJs）= 0 错误（.ts 已类型完善，.js 不检查）。全量 .ts 后 tsc strict 0 错误是 P-TM08 验证点。
+- **Conclusion**: P-TM08 `tsc --noEmit` 0 错误作为最终 tsc 验证 ✓
+
+### R11 verdict
+
+**pass-with-findings** —— F34/F35（medium，工作量 + 跨阶段依赖，已修）+ F36（🟢 验证通过）。跨阶段 import 修正工作量 + worker-entry 依赖已落盘。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

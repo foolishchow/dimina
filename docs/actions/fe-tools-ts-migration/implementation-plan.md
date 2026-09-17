@@ -122,3 +122,24 @@ export type Attr = { span: Span; name: string; value: Value }
 ## P-TM06 — bin/ + dev/ + src/根
 
 - bin/ 3, dev/ 5, src/根 2
+
+## 跨阶段 import 后缀修正工作量（R11 F34）
+
+每阶段改名后需 grep 所有 import 方改后缀 `.ts`（含跨阶段文件，仅改后缀不改名）：
+
+| 阶段 | 文件 | 跨 import 修正处 |
+| --- | --- | --- |
+| P-TM01 | document/document-ops/emit/napi-parse | 21 处 |
+| P-TM02 | shared/ 8 | 35 处（utils 11 + lifecycle 7 + compile-config 6 + path-utils 5 + platforms 3 + compile-progress 2 + art 1）|
+| P-TM03 | core/ 其余 + worker-runtime/ 6 | 16 处 worker-runtime（context 5 + runtime 3 + loggers 3 + define-engine 3 + sinks 1 + executor 1）+ core 待统计 |
+| P-TM04 | pipeline/ + model/ + session/ + watch/ | 待统计 |
+| P-TM05 | view/ + logic/ + style/ | 待统计 |
+| P-TM06 | bin/ + dev/ + src/根 | 待统计 |
+
+## worker-entry 链跨阶段依赖（R11 F35）
+
+3 个 `worker-entry.js`（view/logic/style）各 import：
+- `'../worker-runtime/runtime.js'` ← P-TM03 改 runtime.ts 时跨阶段改后缀（worker-entry 还 .js）
+- `'./index.js'` ← P-TM05 改 index.ts 时改后缀
+
+**跨阶段依赖**：P-TM03 碰 worker-entry 的 runtime import（改后缀 .ts，不改名）；P-TM05 再碰 worker-entry（改名 .ts + index import 后缀）。worker `/src/` 跑时 strip-types + .ts resolve。
