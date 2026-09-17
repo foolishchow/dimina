@@ -131,6 +131,16 @@ export type Attr = { span: Span; name: string; value: Value }
 
 - bin/ 3, dev/ 5, src/根 2
 
+## P-TM07 — __tests__/ import 后缀（D-TM-2 scope 内）
+
+**工作量（R15 F46）**：61 个测试文件 100 处 import 修正。
+
+**helpers 说明（R15 F47）**：`__tests__/helpers/run-with-abilities.js` 保持 .js（Non-goals 不改测试逻辑），但 import 后缀随阶段改 .ts：
+- P-TM03 后：`import { abilityContext } from '.../context.js'` → `'.../context.ts'`（+ sinks/loggers 同理）
+- 14 个测试 import helpers——helpers 的 import 后缀修正是 P-TM07 的 100 处之一
+
+修正规则：`grep -rl "from '.*src/.*\.js'" __tests__/` 全改 `.ts` 后缀（仅后缀，不改逻辑）。
+
 ## 跨阶段 import 后缀修正工作量（R11 F34）
 
 每阶段改名后需 grep 所有 import 方改后缀 `.ts`（含跨阶段文件，仅改后缀不改名）：

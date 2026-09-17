@@ -600,6 +600,31 @@ POC 步骤：
 
 **pass-with-findings** —— F44（🟢 P-TM01 核心可行性验证通过）+ F45（medium，TS2353 类型渗透，P-TM01 scope 内）。P-TM01 @typedef→type 路径验证可行。可授权实施。
 
+## 20. R15 review（2026-09-16，__tests__ 修正量 + engine 契约 + helpers）
+
+### R15 findings
+
+#### F46 — 🟡 __tests__ import 修正量未量化（medium）→ 已修
+
+- **Evidence**: `grep -rl "from '.*src/.*\.js'" __tests__/` = **61 个测试文件 100 处 import**
+- **Broken**: D-TM-2 只说"__tests__ import .js→.ts 同步改"，P-TM07 工作量被低估（61 文件 100 处）
+- **Correction**: implementation-plan P-TM07 补工作量（61 文件 100 处 import）
+
+#### F47 — 🟡 helpers/run-with-abilities.js 状态未定（medium）→ 已修
+
+- **Evidence**: `__tests__/helpers/run-with-abilities.js` import context.js/sinks.js/loggers.js（worker-runtime 3 文件）；14 个测试 import helpers
+- **Broken**: P-TM03 改 worker-runtime .ts 后，helpers 的 import 要改 .ts 后缀（helpers 本身 .js 保持——Non-goals 不改测试逻辑）
+- **Correction**: implementation-plan 补 helpers 说明——helpers 保持 .js，import 后缀随 P-TM03 改 .ts
+
+#### F48 — 🟢 engine 契约类型形状清晰（验证通过）
+
+- **Evidence**: `defineEngine` 返回 `{ name, buildConfig: msg => ..., cleanup, successPayload: ({logger}) => ..., normalizeError: e => ..., ...overrides }`——D-WR 契约形状明确
+- **Conclusion**: P-TM03 类型化直接用 D-WR 契约形状 ✓
+
+### R15 verdict
+
+**pass-with-findings** —— F46/F47（medium，__tests__ 修正量 + helpers 状态，已修）+ F48（🟢 engine 契约清晰）。P-TM07 工作量 61 文件 100 处已量化。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
