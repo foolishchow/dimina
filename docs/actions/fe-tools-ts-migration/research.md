@@ -1155,6 +1155,22 @@ POC 步骤：
 
 **pass-with-findings** —— F94/F95（medium，统计补全 + 口径明确，已修）。可授权实施。
 
+## 45. R40 review（2026-09-16，边界点扫描）
+
+### R40 findings
+
+#### F96 — 🟢 边界点扫描确认（验证）
+
+- **Evidence**:
+  - **.d.ts 文件**：0 个——tsconfig include `src/**/*.d.ts` 空 glob，不报错；F54 已覆盖 P-TM08 include 清理 ✓
+  - **require() 调用**：`view/index.js:1385` 的 `require()` 是生成代码（`declarations.push` 字符串模板，WXML script 编译产物），非源码 CJS——不需处理 ✓
+  - **import attributes**：`bin/index.js:6` `import pack from '../../package.json' with { type: 'json' }`——TS 原生支持，tsc 0 错误；package.json 不改名（保持 .json），V-TM08 grep `from '.*\.js'` 不命中 ✓
+- **Conclusion**: 三个边界点（.d.ts / require / import attributes）全确认，无遗漏 ✓
+
+### R40 verdict
+
+**pass** —— F96 验证通过，无新 finding。边界点全确认。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
