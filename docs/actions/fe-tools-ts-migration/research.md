@@ -656,6 +656,25 @@ POC 步骤：
 
 **pass-with-findings** —— F49（high，ENTRY_PATH 动态后缀，已修）+ F50（🟢 一致性通过）。F49 是 P-TM05 的关键实施点。可授权实施。
 
+## 22. R17 review（2026-09-16，executor→worker-pool 跨阶段依赖 + view/index.js 构成）
+
+### R17 findings
+
+#### F51 — 🟡 executor→worker-pool 跨阶段依赖未列（medium）→ 已修
+
+- **Evidence**: `executor.js:2` `import { workerPool } from '../../watch/worker-pool.js'`——worker-pool.js 只被 executor.js import（1 处）
+- **Broken**: F35 只提 worker-entry 链跨阶段依赖（P-TM03 碰 worker-entry），没提 executor→worker-pool（P-TM04 改 watch/worker-pool.ts 时，executor.js 已改 .ts 的 import 后缀要改 .ts）
+- **Correction**: F34 工作量表 P-TM04 补 executor→worker-pool（1 处）
+
+#### F52 — 🟢 view/index.js 101 错构成清晰（验证通过）
+
+- **Evidence**: TS7006 隐式 any 参数 39 + TS2339 property 17 + TS18046 9 + TS2314 泛型 8 + 其他——隐式 any 为主
+- **Conclusion**: P-TM05 类型化 view/index.js 机械可解（:type 为主）✓
+
+### R17 verdict
+
+**pass-with-findings** —— F51（medium，executor→worker-pool 跨阶段依赖，已修）+ F52（🟢 验证通过）。F51 是 F34 工作量的补充。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

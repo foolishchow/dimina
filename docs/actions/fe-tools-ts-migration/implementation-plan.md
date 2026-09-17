@@ -150,7 +150,7 @@ export type Attr = { span: Span; name: string; value: Value }
 | P-TM01 | document/document-ops/emit/napi-parse | 21 处 |
 | P-TM02 | shared/ 8 | 35 处（utils 11 + lifecycle 7 + compile-config 6 + path-utils 5 + platforms 3 + compile-progress 2 + art 1）|
 | P-TM03 | core/ 其余 + worker-runtime/ 6 | 16 处 worker-runtime（context 5 + runtime 3 + loggers 3 + define-engine 3 + sinks 1 + executor 1）+ core 待统计 |
-| P-TM04 | pipeline/ + model/ + session/ + watch/ | 待统计 |
+| P-TM04 | pipeline/ + model/ + session/ + watch/ | 待统计（含 executor→worker-pool 1 处，R17 F51）|
 | P-TM05 | view/ + logic/ + style/ | 待统计 |
 | P-TM06 | bin/ + dev/ + src/根 | 待统计 |
 
