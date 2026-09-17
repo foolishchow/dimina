@@ -1094,6 +1094,28 @@ POC 步骤：
 
 **pass** —— F89/F90 全验证通过，无新 finding。P-TM01..06 vitest 可行性确认。可授权实施。
 
+## 42. R37 review（2026-09-16，dist exports 验证覆盖 + build 产物后缀）
+
+### R37 findings
+
+#### F91 — 🟢 dist exports 验证覆盖（验证）
+
+- **Evidence**: V-TM01..06 每阶段 `node pnpm.mjs run build`（含 postbuild）覆盖：
+  - `check-package-exports.js`：`await import(entry)` 验证 6 ESM exports（@dimina/bundler 等）可 import
+  - `spawnSync('dist/bin/index.js', '--version')` 验证 CLI
+  - `assert.equal(stdout, packageJson.version)` 验证 version 输出
+  - `copy-sdk-assets.js` 拷贝 SDK assets + mitt 到 dist/sdk/
+- **Conclusion**: dist exports 验证完整覆盖 ✓（P-TM01..06 每阶段 build 后 postbuild 验证 dist 可 import）
+
+#### F92 — 🟢 build 产物 import 后缀全 .js（验证）
+
+- **Evidence**: dist 全 .js 后缀（0 .ts 拋留）——`rewriteRelativeImportExtensions:true` rewrite .ts→.js
+- **Conclusion**: build 产物 import 后缀正确 ✓
+
+### R37 verdict
+
+**pass** —— F91/F92 全验证通过，无新 finding。dist exports 验证维度完整。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
