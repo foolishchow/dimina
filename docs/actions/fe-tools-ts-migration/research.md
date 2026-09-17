@@ -464,6 +464,33 @@ POC 步骤：
 
 **pass** —— F29/F30 全验证通过，无新 finding。dist 字节保证 POC 确认行为 0 基础。ready gate 最终 pass，可授权实施。
 
+## 15. R10 review（2026-09-16，P-TM01 import 清单补全 + type-only/vitest 验证）
+
+### R10 findings
+
+#### F31 — 🟡 P-TM01 import 修正清单不全（medium）→ 已修
+
+- **Evidence**: F24 只列 document.js 的 9 处 import 方，缺：
+  - `document-ops.js`：9 处（tools/index/load×3/cheerio/napi/view + 3 __tests__）
+  - `emit.js`：2 处（logic/index.js + view/index.js）
+  - `napi/parse.js`：1 处（view/wxml/parse.js）
+- **Broken**: P-TM01 共需改 21 处 import 后缀（document 9 + document-ops 9 + emit 2 + napi-parse 1），F24 只列 9
+- **Correction**: implementation-plan P-TM01 补全 document-ops/emit/napi-parse import 清单（21 处）
+
+#### F32 — 🟢 type-only import .ts 显式后缀 dist rewrite（验证通过）
+
+- **Evidence**: POC `compile-target.ts` import type `'./compile-target.types.ts'` → dist `compile-target.js` 无 types import 行（tsc 正确 erase type-only）
+- **Conclusion**: type-only import .ts 显式后缀，tsc erase + dist 无残留 ✓
+
+#### F33 — 🟢 vitest .ts transform（验证通过）
+
+- **Evidence**: 无 vitest.config（默认 vite transform）；现状 .ts 文件（parity/registry/compile-target）vitest 跑通 584/584
+- **Conclusion**: vitest 无需 config 调整，.ts transform 默认支持 ✓
+
+### R10 verdict
+
+**pass-with-findings** —— F31（medium，import 清单补全，已修）+ F32/F33（🟢 验证通过）。P-TM01 共 21 处 import 修正已全列。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

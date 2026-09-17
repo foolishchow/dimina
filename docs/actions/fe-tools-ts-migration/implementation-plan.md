@@ -61,9 +61,11 @@ export type Value = { raw: string; span: Span | null; /* ... */ }
 export type Attr = { span: Span; name: string; value: Value }
 ```
 
-### P-TM01 import 后缀修正文件清单（R7 F24）
+### P-TM01 import 后缀修正文件清单（R7 F24 + R10 F31）
 
-document.js 被 9 处 import（改名 .ts 后同步改后缀）：
+共 21 处 import 修正（4 个 @typedef 文件的 import 方）：
+
+**document.js**（9 处）：
 - `src/compiler/view/wxml/common/wxml-ir.types.ts`（import type { Span, Attr, Value }）
 - `src/compiler/view/wxml/common/parity.ts`（import { attrValueRaw }）
 - `src/compiler/view/wxml/common/document-ops.js`（import 多个）
@@ -74,7 +76,23 @@ document.js 被 9 处 import（改名 .ts 后同步改后缀）：
 - `src/compiler/view/wxml/compile.js`（import { attachProjection }）
 - `src/compiler/view/wxml/parse.js`（import { parseWxml... } from './napi/parse.js'）
 
-emit.js + napi/parse.js 的 import 方同理 grep 修正。
+**document-ops.js**（9 处）：
+- `src/compiler/view/wxml/renderer/vue/tools.js`
+- `src/compiler/view/wxml/renderer/vue/index.js`
+- `src/compiler/view/wxml/load/index.js`
+- `src/compiler/view/wxml/load/include.js`
+- `src/compiler/view/wxml/load/template.js`
+- `src/compiler/view/wxml/cheerio/parse.js`
+- `src/compiler/view/wxml/napi/parse.js`
+- `src/compiler/view/index.js`
+- `__tests__/include-conditional-attrs.spec.js` + `__tests__/wxml-ir.spec.js` + `__tests__/wxml-parser-switch.spec.js`（3 测试）
+
+**emit.js**（2 处）：
+- `src/compiler/logic/index.js`（import { emitEntry }）
+- `src/compiler/view/index.js`（import { emitEntry }）
+
+**napi/parse.js**（1 处）：
+- `src/compiler/view/wxml/parse.js`（import { parseWxml... }）
 
 ## P-TM02 — shared/ + core/env.js（基础渗透）
 
