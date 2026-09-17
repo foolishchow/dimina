@@ -1,7 +1,7 @@
 # fe-tools-ts-migration
 
 - Action: `fe-tools-ts-migration`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-16
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-worker-runtime`](../_archive/complete/fe-tools-worker-runtime/README.md)（worker-runtime 新增 9 .js 文件，触发全仓 TS 迁移动机）；`fe-tools-bundler-tsc-dist`（D-TD-20 .js→.ts 隐式映射限制 + tsc rewrite 配置）
