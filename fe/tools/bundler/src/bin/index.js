@@ -4,8 +4,8 @@ import path from 'node:path'
 import process from 'node:process'
 import { program } from 'commander'
 import pack from '../../package.json' with { type: 'json' }
-import { createBundler } from '../session/index.js'
-import { resolveBundlerConfig } from '../session/resolve.js'
+import { createBundler } from '../session/index.ts'
+import { resolveBundlerConfig } from '../session/resolve.ts'
 import { registerDevCommand } from './dev.js'
 
 const EVENT_LABELS = {

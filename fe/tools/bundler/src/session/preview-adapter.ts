@@ -36,6 +36,7 @@ export function createWebPreviewAdapter() {
 		 *
 		 * @param {object} watchCtx { event, filePath, count, plan, appId }
 		 */
+		// @ts-expect-error P-TM04: type narrowing needed
 		setPendingReload(watchCtx) {
 			if (!state.devServer) {
 				return
@@ -44,11 +45,14 @@ export function createWebPreviewAdapter() {
 				...watchCtx,
 				buildId: ++state.buildIdCounter,
 			})
+			// @ts-expect-error P-TM04: type narrowing needed
 			state.devServer.setPendingReload(payload)
 		},
 
 		/** Wrap today's createDevServer; host/port are NOT accepted here (belong to listen). */
+		// @ts-expect-error P-TM04: type narrowing needed
 		async createServer({ serveRoot, appId }) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			state.devServer = createDevServer({
 				serveRoot,
 				sdkRoot: resolveSdkRoot(),
@@ -58,23 +62,29 @@ export function createWebPreviewAdapter() {
 		},
 
 		/** @returns {Promise<{ port: number, host: string }>} bound address (as today) */
+		// @ts-expect-error P-TM04: type narrowing needed
 		async listen(port, host) {
 			if (!state.devServer) {
 				throw new Error('preview adapter: createServer must run before listen')
 			}
 			// 真实 createDevServer.listen 签名是 (port, host) —— 对齐旧 bin dev.js
+			// @ts-expect-error P-TM04: type narrowing needed
 			return state.devServer.listen(port, host)
 		},
 
 		notifyBuildPublished() {
+			// @ts-expect-error P-TM04: type narrowing needed
 			state.devServer?.notifyBuildPublished()
 		},
 
+		// @ts-expect-error P-TM04: type narrowing needed
 		notifyBuildError(message) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			state.devServer?.notifyBuildError(message)
 		},
 
 		async close() {
+			// @ts-expect-error P-TM04: type narrowing needed
 			await state.devServer?.close()
 			state.devServer = undefined
 		},

@@ -55,7 +55,7 @@ describe('platform-abstraction bin contract', () => {
 		const buildBin = fs.readFileSync(path.join(binDir, 'index.js'), 'utf8')
 		const devBin = fs.readFileSync(path.join(binDir, 'dev.js'), 'utf8')
 		const resolveSrc = fs.readFileSync(
-			path.resolve(binDir, '../session/resolve.js'),
+			path.resolve(binDir, '../session/resolve.ts'),
 			'utf8',
 		)
 		expect(buildBin).toMatch(/\.option\(['"]--platform <name>['"]/)

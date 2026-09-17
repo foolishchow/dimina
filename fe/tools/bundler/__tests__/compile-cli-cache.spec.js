@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { COMPILE_CACHE_VERSION } from '../src/model/compile-cache.js'
+import { COMPILE_CACHE_VERSION } from '../src/model/compile-cache.ts'
 import { storeInfo } from '../src/compiler/core/env.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))

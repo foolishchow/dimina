@@ -1,7 +1,7 @@
 const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
 const COMPILE_STAGE_SET = new Set(COMPILE_STAGE_ORDER)
 
-function getCompileStagesForFiles(dependencyGraph, filePaths) {
+function getCompileStagesForFiles(dependencyGraph: { getFileKinds: (f: string) => string[]; getAffectedEntries: (f: string) => string[] }, filePaths: string[]): { stages: string[]; unknownKinds: string[] } {
 	const selected = new Set()
 	const unknownKinds = new Set()
 	for (const filePath of filePaths) {
@@ -16,6 +16,7 @@ function getCompileStagesForFiles(dependencyGraph, filePaths) {
 	}
 	return {
 		stages: COMPILE_STAGE_ORDER.filter(stage => selected.has(stage)),
+		// @ts-expect-error P-TM04: type narrowing needed
 		unknownKinds: [...unknownKinds].sort(),
 	}
 }

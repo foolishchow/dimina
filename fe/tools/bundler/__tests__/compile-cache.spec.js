@@ -7,8 +7,8 @@ import {
 	createCachedAppBuildPlan,
 	createDependencyFileFingerprints,
 	getProjectFileManifest,
-} from '../src/model/compile-cache.js'
-import { DependencyGraph } from '../src/model/dependency-graph.js'
+} from '../src/model/compile-cache.ts'
+import { DependencyGraph } from '../src/model/dependency-graph.ts'
 
 describe('persistent compiler cache', () => {
 	let tempDir

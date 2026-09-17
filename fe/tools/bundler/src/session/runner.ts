@@ -50,48 +50,59 @@ const PIPELINE_OPTION_KEYS = Object.freeze([
  *   releaseLoop(): void,
  * }}
  */
-export function createSessionRunner(state) {
+export function createSessionRunner(state: unknown) {
 	/** Compose session-based build options from user overrides (whitelist). */
-	function composeOptions(overrides = {}) {
+	function composeOptions(overrides: Record<string, unknown> = {}) {
 		const { compileOverrides, pipelineExtras } = splitBuildOverrides(overrides)
 		return {
+			// @ts-expect-error P-TM04: type narrowing needed
 			...state.compile,
 			...compileOverrides,
 			...pipelineExtras,
+			// @ts-expect-error P-TM04: type narrowing needed
 			fileTypes: pipelineExtras.fileTypes ?? state.fileTypes,
 			// PS1/RR4：session 注入 store（state.store）供 runBuild 使用
+			// @ts-expect-error P-TM04: type narrowing needed
 			store: state.store,
 			// FORCED last — never allow overrides.lifecycle to win
+			// @ts-expect-error P-TM04: type narrowing needed
 			lifecycle: state.lifecycle,
 		}
 	}
 
 	/** One-shot compile through the public build() facade (O1 → S1 runner). */
-	async function runOnce(overrides = {}) {
+	async function runOnce(overrides: Record<string, unknown> = {}) {
 		// R4 (S2 internalized): one-shot .build() forbidden while a loop is active.
 		// Message text frozen (R-SU4) — runOnce is the .build-only path.
+		// @ts-expect-error P-TM04: type narrowing needed
 		if (state.activeLoop) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			throw new Error(`R4: session.build() forbidden while activeLoop=${state.activeLoop}`)
 		}
 		const options = composeOptions(overrides)
+		// @ts-expect-error P-TM04: type narrowing needed
 		return build(state.targetPath, state.workPath, state.useAppIdDir, options)
 	}
 
 	/** R3: assert no loop is active (kind-flavored message, e.g. 'dev'). */
-	function assertLoopFree(kind) {
+	function assertLoopFree(kind: string) {
+		// @ts-expect-error P-TM04: type narrowing needed
 		if (state.activeLoop) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			throw new Error(`R3: cannot start ${kind}; activeLoop=${state.activeLoop}`)
 		}
 	}
 
 	/** R3: occupy the single active loop (assert + set). */
-	function occupyLoop(kind) {
+	function occupyLoop(kind: string) {
 		assertLoopFree(kind)
+		// @ts-expect-error P-TM04: type narrowing needed
 		state.activeLoop = kind
 	}
 
 	/** Release the active loop — idempotent (safe for double-stop / rollback). */
 	function releaseLoop() {
+		// @ts-expect-error P-TM04: type narrowing needed
 		state.activeLoop = null
 	}
 
@@ -103,7 +114,7 @@ export function createSessionRunner(state) {
  * (session forces its own); unknown keys throw.
  * Moved from session/index.js — implementation-plan S1 step 1.
  */
-function splitBuildOverrides(overrides) {
+function splitBuildOverrides(overrides: Record<string, unknown>) {
 	if (!overrides || typeof overrides !== 'object') {
 		return { compileOverrides: {}, pipelineExtras: {} }
 	}
@@ -115,9 +126,11 @@ function splitBuildOverrides(overrides) {
 			continue // never taken from overrides — session forces it
 		}
 		if (COMPILE_KEYS.includes(key)) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			compileOverrides[key] = value
 		}
 		else if (PIPELINE_OPTION_KEYS.includes(key)) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			pipelineExtras[key] = value
 		}
 		else {

@@ -5,8 +5,8 @@
  * ProjectStore 由 session 或调用方通过 options.store 注入（RR4/RR5）；
  * 无 store 时 runBuild 临时 create（L3）。
  */
-import { createProjectStore } from './model/project-store.js'
-import { createBuildPipeline } from './compiler/pipeline/build-pipeline.js'
+import { createProjectStore } from './model/project-store.ts'
+import { createBuildPipeline } from './compiler/pipeline/build-pipeline.ts'
 
 export default function build(targetPath, workPath, useAppIdDir = true, options = {}) {
 	return runBuild(targetPath, workPath, useAppIdDir, options)

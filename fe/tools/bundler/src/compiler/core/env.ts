@@ -8,7 +8,7 @@ import { walk } from 'oxc-walker'
 import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path-utils.ts'
 import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.ts'
 import { NpmResolver } from './npm-resolver.ts'
-import { DependencyGraph } from '../../model/dependency-graph.js'
+import { DependencyGraph } from '../../model/dependency-graph.ts'
 
 const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
 let defaultCompilerContext: CompilerContext | undefined

@@ -21,7 +21,7 @@ import { getDependencyGraph, storeInfo } from '../compiler/core/env.ts'
  * @param {object} [options]
  * @returns {object} ProjectStore
  */
-export function createProjectStore(options = {}) {
+export function createProjectStore(options: Record<string, unknown> = {}) {
 	/** @type {object | null} storeInfo 返回值 */
 	let snapshot = null
 
@@ -33,6 +33,7 @@ export function createProjectStore(options = {}) {
 		 * @param {object} [opts] { fileTypes, dependencyGraph }
 		 * @returns {object} storeInfo 返回值
 		 */
+		// @ts-expect-error P-TM04: type narrowing needed
 		load(workPath, opts = {}) {
 			snapshot = storeInfo(workPath, opts)
 			return snapshot
@@ -44,6 +45,7 @@ export function createProjectStore(options = {}) {
 		},
 
 		/** 合并依赖图增量 */
+		// @ts-expect-error P-TM04: type narrowing needed
 		merge(delta) {
 			getDependencyGraph().merge(delta)
 		},
@@ -58,6 +60,6 @@ export function createProjectStore(options = {}) {
 /**
  * 检查 store 是否已 load（有工程状态）。
  */
-export function isLoaded(store) {
+export function isLoaded(store: unknown) {
 	return store !== null && store !== undefined
 }

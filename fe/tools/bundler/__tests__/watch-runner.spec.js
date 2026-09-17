@@ -15,7 +15,7 @@ vi.mock('chokidar', () => ({
 	},
 }))
 
-const { createBuildWatcher } = await import('../src/watch/watch-runner.js')
+const { createBuildWatcher } = await import('../src/watch/watch-runner.ts')
 
 function createFakeWatcher() {
 	const emitter = new EventEmitter()

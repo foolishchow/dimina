@@ -21,7 +21,7 @@ describe('watch-api bin contract (A-005, updated for bundler-session)', () => {
 		}
 		// session delegates to the low-level watcher (kept as the single chokidar owner)
 		const sessionSrc = fs.readFileSync(
-			path.resolve(binDir, '../session/index.js'),
+			path.resolve(binDir, '../session/index.ts'),
 			'utf8',
 		)
 		expect(sessionSrc).toMatch(/createBuildWatcher/)

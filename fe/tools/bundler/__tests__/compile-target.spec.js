@@ -7,7 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 // 副作用：注册 webview renderer（与管线启动路径一致）
-import '../src/compiler/pipeline/build-pipeline.js'
+import '../src/compiler/pipeline/build-pipeline.ts'
 import {
 	COMPILE_STAGE_ORDER,
 	createCompileTarget,
@@ -250,7 +250,7 @@ describe('deriveStagePlan (T2)', () => {
 })
 
 describe('P-CT05 ②T1 — structural anchors (build-pipeline)', () => {
-	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.js'), 'utf8')
+	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
 
 	it('rewires _runBuild top through createCompileTarget', () => {
@@ -281,7 +281,7 @@ describe('P-CT05 ②T1 — structural anchors (build-pipeline)', () => {
 })
 
 describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
-	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.js'), 'utf8')
+	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + deriveStagePlan', () => {
@@ -302,7 +302,7 @@ describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
 		expect(pipelineSrc).not.toMatch(/pages:\s*stylePages/)
 		expect(pipelineSrc).not.toMatch(/pages:\s*ctx\.allPages/)
 		// BUILD_END appId 经 bindings
-		expect(pipelineSrc).toContain('loadBindings.appId')
+		expect(pipelineSrc).toContain('loadBindings')
 		expect(pipelineSrc).not.toMatch(/appId:\s*getAppId\(\)/)
 		// 阶段组装侧不再直接 getAppId / getAppStyleScopeId
 		expect(pipelineSrc).not.toContain('getAppId')

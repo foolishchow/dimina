@@ -1,5 +1,5 @@
 import { Worker } from 'node:worker_threads'
-import { workerPool } from '../../watch/worker-pool.js'
+import { workerPool } from '../../watch/worker-pool.ts'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 

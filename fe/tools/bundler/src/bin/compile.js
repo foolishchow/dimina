@@ -6,7 +6,7 @@ import {
 	COMPILE_CACHE_VERSION,
 	createAppCacheEntry,
 	createCachedAppBuildPlan,
-} from '../model/compile-cache.js'
+} from '../model/compile-cache.ts'
 
 const EXAMPLE_ROOT = path.resolve('../examples/miniprogram')
 const TARGET_PATH = path.resolve('./packages/container/public')

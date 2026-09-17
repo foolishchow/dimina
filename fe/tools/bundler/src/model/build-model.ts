@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 export class BuildModel {
+	entries: Map<string, { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }> = new Map()
 	constructor() {
 		/** @type {Map<string, object>} entryId → { entryId, kind, files: [{path, code}], sourcemaps?: [{path, map}] } */
 		this.entries = new Map()
@@ -21,7 +22,7 @@ export class BuildModel {
 	 * 收编一个回传产物条目（worker 流式 output 消息）。
 	 * @param {object} entry { entryId, kind, files, sourcemaps? }
 	 */
-	add(entry) {
+	add(entry: { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }): void {
 		if (!entry || typeof entry.entryId !== 'string') {
 			throw new TypeError('BuildModel.add: entry.entryId must be a string')
 		}
@@ -44,7 +45,7 @@ export class BuildModel {
  * @param {BuildModel} model
  * @param {string} targetPath 构建目录（getTargetPath()）
  */
-export function materialize(model, targetPath) {
+export function materialize(model: BuildModel, targetPath: string): void {
 	for (const entry of model.entries.values()) {
 		for (const file of entry.files || []) {
 			const dest = path.join(targetPath, file.path)
@@ -54,7 +55,7 @@ export function materialize(model, targetPath) {
 		for (const map of entry.sourcemaps || []) {
 			const dest = path.join(targetPath, map.path)
 			fs.mkdirSync(path.dirname(dest), { recursive: true })
-			fs.writeFileSync(dest, map.map)
+			fs.writeFileSync(dest, map.map as string)
 		}
 	}
 }

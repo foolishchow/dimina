@@ -17,10 +17,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createBundler } from '../src/session/index.js'
-import { resolveBundlerConfig } from '../src/session/resolve.js'
+import { createBundler } from '../src/session/index.ts'
+import { resolveBundlerConfig } from '../src/session/resolve.ts'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../src/shared/lifecycle.ts'
-import { createSessionRunner } from '../src/session/runner.js'
+import { createSessionRunner } from '../src/session/runner.ts'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const sourceRoot = path.resolve(testDir, '../src/session')
@@ -137,7 +137,7 @@ describe('session unify — S1 kernel', () => {
 
 	describe('A-SU05② — static structural criterion (no inlined assembly in shells)', () => {
 		it('session/index.js delegates to runner and contains no inlined options assembly', () => {
-			const indexSrc = fs.readFileSync(path.join(sourceRoot, 'index.js'), 'utf8')
+			const indexSrc = fs.readFileSync(path.join(sourceRoot, 'index.ts'), 'utf8')
 			expect(indexSrc).toContain('createSessionRunner')
 			expect(indexSrc).toContain('runner.composeOptions')
 			expect(indexSrc).toContain('runner.runOnce')
@@ -147,7 +147,7 @@ describe('session unify — S1 kernel', () => {
 		})
 
 		it('runner.js owns the assembly and exposes composeOptions / runOnce', () => {
-			const runnerSrc = fs.readFileSync(path.join(sourceRoot, 'runner.js'), 'utf8')
+			const runnerSrc = fs.readFileSync(path.join(sourceRoot, 'runner.ts'), 'utf8')
 			expect(runnerSrc).toContain('...state.compile')
 			const runner = createSessionRunner({
 				compile: {},
@@ -162,13 +162,13 @@ describe('session unify — S1 kernel', () => {
 
 	describe('S2 — 调度收口（activeLoop 单一化进内核）', () => {
 		it('shells hold no direct state.activeLoop access — kernel owns occupy/release (A-SU05②)', () => {
-			const indexSrc = fs.readFileSync(path.join(sourceRoot, 'index.js'), 'utf8')
+			const indexSrc = fs.readFileSync(path.join(sourceRoot, 'index.ts'), 'utf8')
 			// S2: occupation / release / R3-R4 assertions all live in runner.js
 			expect(indexSrc).not.toMatch(/\bstate\.activeLoop\s*=/)
 			expect(indexSrc).not.toContain('assertCanStartLoop')
 			expect(indexSrc).not.toContain('assertNoActiveLoop')
 
-			const runnerSrc = fs.readFileSync(path.join(sourceRoot, 'runner.js'), 'utf8')
+			const runnerSrc = fs.readFileSync(path.join(sourceRoot, 'runner.ts'), 'utf8')
 			expect(runnerSrc).toContain('assertLoopFree')
 			expect(runnerSrc).toContain('occupyLoop')
 			expect(runnerSrc).toContain('releaseLoop')

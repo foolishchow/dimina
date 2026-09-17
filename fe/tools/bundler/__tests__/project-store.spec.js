@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import build from '../src/index.js'
-import { createProjectStore } from '../src/model/project-store.js'
+import { createProjectStore } from '../src/model/project-store.ts'
 
 /**
  * M-A（PS1 / BP1 共同不变量）：注入 `options.store` 时，pipeline 必须实际使用

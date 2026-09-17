@@ -3,7 +3,7 @@ import process from 'node:process'
 import fs from 'node:fs'
 import { getAppId, getTargetPath, isTemporaryTargetPath } from '../core/env.ts'
 
-function copyDir(src, dest) {
+function copyDir(src: string, dest: string): void {
 	fs.mkdirSync(dest, { recursive: true })
 	for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
 		const srcPath = path.join(src, entry.name)
@@ -18,7 +18,7 @@ function copyDir(src, dest) {
 	}
 }
 
-function createDist(seedPath) {
+function createDist(seedPath: string | null | undefined): void {
 	const distPath = getTargetPath()
 	if (fs.existsSync(distPath)) {
 		fs.rmSync(distPath, { recursive: true, force: true })
@@ -33,7 +33,7 @@ function createDist(seedPath) {
  * @param {string} dist 目标路径
  * @param {boolean} useAppIdDir 是否在路径中包含appId
  */
-function publishToDist(dist, useAppIdDir = true) {
+function publishToDist(dist: string, useAppIdDir: boolean = true) {
 	const distPath = getTargetPath()
 	const appId = getAppId()
 	const absolutePath = useAppIdDir
@@ -56,8 +56,8 @@ function publishToDist(dist, useAppIdDir = true) {
 			fs.renameSync(distPath, absolutePath)
 			return
 		}
-		catch (error) {
-			if (error.code !== 'EXDEV') {
+		catch (error: unknown) {
+			if ((error as { code?: string }).code !== 'EXDEV') {
 				throw error
 			}
 			// 跨文件系统时保留原有复制语义，复制完成后清理编译器临时目录。

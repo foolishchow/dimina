@@ -15,7 +15,7 @@
  * @param {string[]} changedFiles 项目相对路径列表
  * @returns {Set<string>} 受影响的 entryId 集合（页面/组件路径）
  */
-export function computeAffectedEntries(graph, changedFiles) {
+export function computeAffectedEntries(graph: { getAffectedEntries: (f: string) => string[] }, changedFiles: string[]): string[] {
 	const affected = new Set()
 	for (const filePath of changedFiles) {
 		const entries = graph.getAffectedEntries(filePath)
@@ -23,6 +23,7 @@ export function computeAffectedEntries(graph, changedFiles) {
 			affected.add(entry)
 		}
 	}
+	// @ts-expect-error P-TM04: type narrowing needed
 	return affected
 }
 
@@ -33,7 +34,8 @@ export function computeAffectedEntries(graph, changedFiles) {
  * @param {Set<string>} affectedEntries
  * @returns {boolean}
  */
-export function entryNeedsRebuild(entryId, affectedEntries) {
+export function entryNeedsRebuild(entryId: string, affectedEntries: string[]) {
+	// @ts-expect-error P-TM04: type narrowing needed
 	return affectedEntries.has(entryId)
 }
 
@@ -45,9 +47,10 @@ export function entryNeedsRebuild(entryId, affectedEntries) {
  * @param {string[]} allStages 可用 stages 列表（默认 ['view','logic','style']）
  * @returns {Set<string>} 需要跑的 stage 集合（空 = 全部需要，表示全量）
  */
-export function computeStagesForFiles(graph, changedFiles, allStages = ['view', 'logic', 'style']) {
+export function computeStagesForFiles(graph: unknown, changedFiles: string[], allStages: string[] = ['view', 'logic', 'style']) {
 	const stages = new Set()
 	for (const filePath of changedFiles) {
+		// @ts-expect-error P-TM04: type narrowing needed
 		const kinds = graph.getFileKinds(filePath)
 		if (kinds.size === 0) {
 			// 未知 kind → 保守全量

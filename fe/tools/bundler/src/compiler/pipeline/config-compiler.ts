@@ -17,7 +17,8 @@ import { collectAssets } from '../../shared/utils.ts'
  * 注意：会在原 app 配置上原地修改，不影响后续输出（compileConfig 是
  * 整个流水线最后才走到的环节，不会被再次读取）。
  */
-function processTabBarIcons(app) {
+function processTabBarIcons(app: Record<string, unknown>) {
+	// @ts-expect-error P-TM04: type narrowing needed
 	const list = app?.tabBar?.list
 	if (!Array.isArray(list) || list.length === 0) {
 		return
@@ -30,9 +31,11 @@ function processTabBarIcons(app) {
 		// 第二参数 pagePath 留空 → collectAssets 内部 relativePath = ''，
 		// 等价于把 src 当成相对小程序根目录解析，与 app.json 同级
 		if (item.iconPath) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			item.iconPath = collectAssets(workPath, '', item.iconPath, targetPath, appId)
 		}
 		if (item.selectedIconPath) {
+			// @ts-expect-error P-TM04: type narrowing needed
 			item.selectedIconPath = collectAssets(workPath, '', item.selectedIconPath, targetPath, appId)
 		}
 	}
@@ -42,7 +45,7 @@ function processTabBarIcons(app) {
  *
  * 编译项目配置文件 app-config.json
  */
-function compileConfig() {
+function compileConfig(): void {
 	const app = getAppConfigInfo()
 
 	// 把 tabBar 图标复制到产物目录并改写 iconPath

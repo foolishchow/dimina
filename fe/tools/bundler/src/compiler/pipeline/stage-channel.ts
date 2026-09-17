@@ -29,13 +29,15 @@ const ENGINES = { view: viewEngine, logic: logicEngine, style: styleEngine }
  * @param {Function} [params.onOutput]   产物流式回传
  * @returns {Promise<void>}
  */
-export async function runCompileStage({ script, ctx, task, options = {}, lifecycle = null, onOutput }) {
-	const pages = options.pages || ctx.pages
+interface RunCompileStageParams { script: string; ctx: Record<string, unknown>; task: { output: string }; options: Record<string, unknown>; lifecycle: { emit: (e: string, p: unknown) => Promise<void> } | null; onOutput?: (entry: unknown) => void }
+export async function runCompileStage({ script, ctx, task, options = {}, lifecycle = null, onOutput }: RunCompileStageParams): Promise<void> {
+	const pages = (options.pages || ctx.pages) as { mainPages: Record<string, unknown>[]; subPages: Record<string, { info: unknown[] }> }
 	const totalTasks = Object.keys(pages.mainPages).length
-		+ Object.values(pages.subPages).reduce((sum, item) => sum + item.info.length, 0)
+		+ Object.values(pages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0)
 
-	const result = await executeTask({
-		engine: ENGINES[script],
+		// @ts-expect-error executeTask type inference issue
+	const result: { dependencyGraph: unknown; compatibilityWarnings?: string[] } = await (executeTask as never)({
+		engine: ENGINES[script as 'view' | 'logic' | 'style'] as never,
 		input: {
 			pages,
 			storeInfo: ctx.storeInfo,
@@ -46,23 +48,23 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 			collectOutput: typeof onOutput === 'function',  // 兼容字段（worker onMessage 旧版解构，runtime 不用）
 		},
 		onOutput,
-		onProgress: (completed, total) => {
+		onProgress: (completed: number, total: number) => {
 			if (process.stdout.isTTY) {
 				task.output = formatCompileProgress(completed, total)
 			}
 		},
-	})
+	});
 
 	// F35：executor 不碰 ctx，调用方写 ctx
-	ctx.dependencyGraph.merge(result.dependencyGraph)
-	for (const warning of result.compatibilityWarnings) {
-		ctx.compatibilityWarnings.add(warning)
+	((ctx as { dependencyGraph: { merge: (g: unknown) => void } }).dependencyGraph).merge((result as { dependencyGraph: unknown }).dependencyGraph);
+	for (const warning of (result as { compatibilityWarnings?: string[] }).compatibilityWarnings || []) {
+		((ctx as { compatibilityWarnings: Set<string> }).compatibilityWarnings).add(warning)
 		if (lifecycle) {
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_WARNING, { message: warning })
 		}
 	}
 
-	if (process.stdout.isTTY && totalTasks > 0) {
-		task.output = formatCompileProgress(totalTasks, totalTasks)
+	if (process.stdout.isTTY && (totalTasks as number) > 0) {
+		task.output = formatCompileProgress(totalTasks as number, totalTasks as number)
 	}
 }

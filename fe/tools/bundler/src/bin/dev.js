@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
-import { createBundler } from '../session/index.js'
-import { resolveBundlerConfig } from '../session/resolve.js'
+import { createBundler } from '../session/index.ts'
+import { resolveBundlerConfig } from '../session/resolve.ts'
 
 // M-F3 兼容：resolveSdkRoot 已迁 common/sdk-root.js；此处 re-export 保持向后兼容
 export { resolveSdkRoot } from '../dev/sdk-root.js'

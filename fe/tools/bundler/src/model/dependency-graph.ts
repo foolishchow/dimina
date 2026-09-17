@@ -1,16 +1,25 @@
 import path from 'node:path'
 
-function normalizeFilePath(filePath) {
+function normalizeFilePath(filePath: string): string {
 	return path.resolve(filePath)
 }
 
-function normalizeKinds(kinds) {
+function normalizeKinds(kinds: string | string[] | null | undefined): Set<string> | null {
 	if (!kinds) return null
 	return new Set(Array.isArray(kinds) ? kinds : [kinds])
 }
 
+interface GraphNode { id: string; type: string; entry: boolean; packageRoot: string | null; files: Set<string> }
+interface GraphSnapshot { nodes?: Array<GraphNode & { files?: string[] }>; edges?: Array<{ from: string; to: string; kinds?: string[] }>; fileEdges?: Array<{ file: string; owner: string; kinds?: string[] }> }
+
 class DependencyGraph {
-	constructor(snapshot) {
+	nodes: Map<string, GraphNode>
+	dependencies: Map<string, Map<string, Set<string>>>
+	dependents: Map<string, Map<string, Set<string>>>
+	fileOwners: Map<string, Set<string>>
+	fileKinds: Map<string, Map<string, Set<string>>>
+
+	constructor(snapshot?: GraphSnapshot | DependencyGraph | null) {
 		this.nodes = new Map()
 		this.dependencies = new Map()
 		this.dependents = new Map()
@@ -21,9 +30,9 @@ class DependencyGraph {
 		}
 	}
 
-	addNode(id, metadata = {}) {
+	addNode(id: string, metadata: { type?: string; entry?: boolean; packageRoot?: string | null; files?: string[] } = {}): GraphNode | null {
 		if (!id) return null
-		const current = this.nodes.get(id) || {
+		const current: GraphNode = this.nodes.get(id) || {
 			id,
 			type: 'module',
 			entry: false,
@@ -40,9 +49,10 @@ class DependencyGraph {
 		return current
 	}
 
-	addFile(id, filePath, kind = 'module') {
+	addFile(id: string, filePath: string, kind: string = 'module'): void {
 		if (!id || !filePath) return
 		const node = this.addNode(id)
+		if (!node) return
 		const normalizedPath = normalizeFilePath(filePath)
 		node.files.add(normalizedPath)
 		const owners = this.fileOwners.get(normalizedPath) || new Set()
@@ -55,7 +65,7 @@ class DependencyGraph {
 		this.fileKinds.set(normalizedPath, ownerKinds)
 	}
 
-	addDependency(from, to, kind = 'module') {
+	addDependency(from: string, to: string, kind: string = 'module'): void {
 		if (!from || !to) return
 		this.addNode(from)
 		this.addNode(to)
@@ -72,21 +82,21 @@ class DependencyGraph {
 		this.dependents.set(to, incoming)
 	}
 
-	getDirectDependencies(id, kinds) {
+	getDirectDependencies(id: string, kinds?: string | string[] | null): string[] {
 		return this.#filterEdges(this.dependencies.get(id), kinds)
 	}
 
-	getDirectDependents(id, kinds) {
+	getDirectDependents(id: string, kinds?: string | string[] | null): string[] {
 		return this.#filterEdges(this.dependents.get(id), kinds)
 	}
 
-	getAffectedEntries(filePath) {
+	getAffectedEntries(filePath: string): string[] {
 		const owners = this.fileOwners.get(normalizeFilePath(filePath)) || new Set()
 		const pending = [...owners]
 		const visited = new Set()
 		const entries = new Set()
 		while (pending.length > 0) {
-			const id = pending.pop()
+			const id = pending.pop()!
 			if (visited.has(id)) continue
 			visited.add(id)
 			const node = this.nodes.get(id)
@@ -95,14 +105,14 @@ class DependencyGraph {
 				pending.push(dependent)
 			}
 		}
-		return [...entries].sort()
+		return [...entries].sort() as string[]
 	}
 
-	hasFile(filePath) {
+	hasFile(filePath: string): boolean {
 		return this.fileOwners.has(normalizeFilePath(filePath))
 	}
 
-	getFileKinds(filePath) {
+	getFileKinds(filePath: string): string[] {
 		const ownerKinds = this.fileKinds.get(normalizeFilePath(filePath))
 		if (!ownerKinds) return []
 		return [...new Set(
@@ -110,10 +120,10 @@ class DependencyGraph {
 		)].sort()
 	}
 
-	merge(snapshotOrGraph) {
-		const snapshot = snapshotOrGraph instanceof DependencyGraph
-			? snapshotOrGraph.toJSON()
-			: snapshotOrGraph
+	merge(snapshotOrGraph: GraphSnapshot | DependencyGraph): this {
+		const snapshot: GraphSnapshot = snapshotOrGraph instanceof DependencyGraph
+			? (snapshotOrGraph.toJSON() as GraphSnapshot)
+			: (snapshotOrGraph as GraphSnapshot)
 		const fileEdges = snapshot?.fileEdges || []
 		for (const node of snapshot?.nodes || []) {
 			this.addNode(node.id, { ...node, files: [] })
@@ -136,7 +146,7 @@ class DependencyGraph {
 		return this
 	}
 
-	toJSON() {
+	toJSON(): { nodes: Array<{ id: string; type: string; entry: boolean; packageRoot: string | null; files: string[] }>; edges: Array<{ from: string; to: string; kinds: string[] }>; fileEdges: Array<{ file: string; owner: string; kinds: string[] }> } {
 		return {
 			nodes: [...this.nodes.values()]
 				.map(node => ({
@@ -164,7 +174,7 @@ class DependencyGraph {
 		}
 	}
 
-	#filterEdges(edges, kinds) {
+	#filterEdges(edges: Map<string, Set<string>> | undefined, kinds: string | string[] | null | undefined): string[] {
 		if (!edges) return []
 		const acceptedKinds = normalizeKinds(kinds)
 		return [...edges.entries()]

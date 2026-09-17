@@ -2,14 +2,14 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { getCompileStagesForFiles } from '../compiler/pipeline/compile-stages.js'
-import { DependencyGraph } from './dependency-graph.js'
+import { getCompileStagesForFiles } from '../compiler/pipeline/compile-stages.ts'
+import { DependencyGraph } from './dependency-graph.ts'
 
 const COMPILE_CACHE_VERSION = 2
 
-function getProjectFileManifest(workPath) {
-	const files = []
-	const visit = (directory) => {
+function getProjectFileManifest(workPath: string): string[] {
+	const files: string[] = []
+	const visit = (directory: string) => {
 		for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
 			const filePath = path.join(directory, entry.name)
 			if (entry.isDirectory()) {
@@ -24,61 +24,62 @@ function getProjectFileManifest(workPath) {
 	return files.sort()
 }
 
-function getRawDependencyFiles(dependencyGraph) {
+function getRawDependencyFiles(dependencyGraph: { nodes?: Array<{ files?: string[] }> } | null | undefined): string[] {
 	return [...new Set(
 		(dependencyGraph?.nodes || []).flatMap(node => node.files || []),
 	)].sort()
 }
 
-function resolveDependencyFilePath(filePath, workPath) {
+function resolveDependencyFilePath(filePath: string, workPath: string): string {
 	return path.isAbsolute(filePath) ? filePath : path.resolve(workPath, filePath)
 }
 
-function getDependencyFiles(dependencyGraph, workPath = process.cwd()) {
+function getDependencyFiles(dependencyGraph: { nodes?: Array<{ files?: string[] }> } | null | undefined, workPath: string = process.cwd()): string[] {
 	return getRawDependencyFiles(dependencyGraph)
 		.map(filePath => resolveDependencyFilePath(filePath, workPath))
 }
 
-function toCachePath(workPath, filePath) {
+function toCachePath(workPath: string, filePath: string): string {
 	return path.relative(workPath, path.resolve(filePath)).split(path.sep).join('/')
 }
 
-function serializeDependencyGraphForCache(dependencyGraph, workPath) {
+function serializeDependencyGraphForCache(dependencyGraph: Record<string, unknown> | null | undefined, workPath: string): Record<string, unknown> {
 	return {
 		...dependencyGraph,
 		pathFormat: 'relative',
-		nodes: (dependencyGraph?.nodes || []).map(node => ({
+		nodes: ((dependencyGraph?.nodes as Array<{ files?: string[] }>) || []).map(node => ({
 			...node,
-			files: (node.files || []).map(filePath => toCachePath(workPath, filePath)),
+			files: (node.files || []).map((filePath: string) => toCachePath(workPath, filePath)),
 		})),
-		fileEdges: (dependencyGraph?.fileEdges || []).map(fileEdge => ({
+		fileEdges: ((dependencyGraph?.fileEdges as Array<{ file: string }>) || []).map(fileEdge => ({
 			...fileEdge,
 			file: toCachePath(workPath, fileEdge.file),
 		})),
 	}
 }
 
-function hydrateDependencyGraphFromCache(dependencyGraph, workPath) {
+function hydrateDependencyGraphFromCache(dependencyGraph: Record<string, unknown> | null | undefined, workPath: string): Record<string, unknown> | null | undefined {
 	if (dependencyGraph?.pathFormat !== 'relative') {
 		return dependencyGraph
 	}
-	const snapshot = { ...dependencyGraph }
+	const snapshot: Record<string, unknown> = { ...dependencyGraph }
 	delete snapshot.pathFormat
 	return {
 		...snapshot,
-		nodes: (snapshot.nodes || []).map(node => ({
+		nodes: ((snapshot.nodes as Array<{ files?: string[] }>) || []).map(node => ({
 			...node,
-			files: (node.files || []).map(filePath => path.resolve(workPath, filePath)),
+			files: (node.files || []).map((filePath: string) => path.resolve(workPath, filePath)),
 		})),
-		fileEdges: (snapshot.fileEdges || []).map(fileEdge => ({
+		fileEdges: ((snapshot.fileEdges as Array<{ file: string }>) || []).map(fileEdge => ({
 			...fileEdge,
 			file: path.resolve(workPath, fileEdge.file),
 		})),
 	}
 }
 
-function fingerprintFile(filePath, previousFingerprint) {
-	let stat
+interface FileFingerprint { missing?: boolean; mtimeMs?: number; ctimeMs?: number; size?: number; hash?: string }
+function fingerprintFile(filePath: string, previousFingerprint: FileFingerprint | undefined): FileFingerprint {
+	let stat: fs.Stats
 	try {
 		stat = fs.statSync(filePath)
 	}
@@ -104,7 +105,7 @@ function fingerprintFile(filePath, previousFingerprint) {
 	}
 }
 
-function createDependencyFileFingerprints(dependencyGraph, previousFingerprints = {}, workPath = process.cwd()) {
+function createDependencyFileFingerprints(dependencyGraph: { nodes?: Array<{ files?: string[] }> } | null | undefined, previousFingerprints: Record<string, FileFingerprint> = {}, workPath: string = process.cwd()): Record<string, FileFingerprint> {
 	return Object.fromEntries(
 		getRawDependencyFiles(dependencyGraph).map(cachePath => [
 			cachePath,
@@ -116,7 +117,7 @@ function createDependencyFileFingerprints(dependencyGraph, previousFingerprints 
 	)
 }
 
-function inspectDependencyFileChanges(dependencyGraph, previousFingerprints, workPath = process.cwd()) {
+function inspectDependencyFileChanges(dependencyGraph: { nodes?: Array<{ files?: string[] }> } | null | undefined, previousFingerprints: Record<string, FileFingerprint> | undefined, workPath: string = process.cwd()): { changedFiles: Array<{ filePath: string; event: string }>; currentFingerprints: Record<string, FileFingerprint>; invalidFiles: string[] } {
 	const currentFingerprints = createDependencyFileFingerprints(dependencyGraph, previousFingerprints, workPath)
 	const changedFiles = []
 	const invalidFiles = []
@@ -141,36 +142,36 @@ function inspectDependencyFileChanges(dependencyGraph, previousFingerprints, wor
 	return { changedFiles, currentFingerprints, invalidFiles }
 }
 
-function createFullBuildPlan(reason) {
+function createFullBuildPlan(reason: string): { mode: string; reason: string; options: Record<string, unknown> } {
 	return { mode: 'full', reason, options: {} }
 }
 
-function isNpmPackageFile(filePath) {
+function isNpmPackageFile(filePath: string): boolean {
 	return path.normalize(filePath).split(path.sep).includes('miniprogram_npm')
 }
 
-function createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }) {
-	if (!cacheEntry?.appInfo || !cacheEntry.dependencyGraph || !cacheEntry.fileFingerprints) {
+function createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }: { cacheEntry: Record<string, unknown> | null | undefined; workPath: string; publishedPath: string }): Record<string, unknown> {
+	if (!cacheEntry?.appInfo || !cacheEntry?.dependencyGraph || !cacheEntry?.fileFingerprints) {
 		return createFullBuildPlan('missing-cache-data')
 	}
 	if (!fs.existsSync(publishedPath)) {
 		return createFullBuildPlan('missing-output')
 	}
-	if (!Array.isArray(cacheEntry.dependencyGraph.fileEdges)) {
+	if (!Array.isArray((cacheEntry?.dependencyGraph as { fileEdges?: unknown })?.fileEdges)) {
 		return createFullBuildPlan('untyped-dependency-graph')
 	}
-	if (!Array.isArray(cacheEntry.projectFiles)) {
+	if (!Array.isArray(cacheEntry?.projectFiles)) {
 		return createFullBuildPlan('missing-project-manifest')
 	}
 	const projectFiles = getProjectFileManifest(workPath)
-	if (projectFiles.length !== cacheEntry.projectFiles.length
-		|| projectFiles.some((filePath, index) => filePath !== cacheEntry.projectFiles[index])) {
+	if (projectFiles.length !== (cacheEntry?.projectFiles as string[]).length
+		|| projectFiles.some((filePath, index) => filePath !== (cacheEntry?.projectFiles as string[])[index])) {
 		return createFullBuildPlan('file-structure-changed')
 	}
 
 	const inspection = inspectDependencyFileChanges(
-		cacheEntry.dependencyGraph,
-		cacheEntry.fileFingerprints,
+		(cacheEntry?.dependencyGraph as { nodes?: Array<{ files?: string[] }> }),
+		(cacheEntry?.fileFingerprints as Record<string, FileFingerprint>),
 		workPath,
 	)
 	if (inspection.invalidFiles.length > 0) {
@@ -190,7 +191,7 @@ function createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }) {
 		return createFullBuildPlan('config-changed')
 	}
 
-	const hydratedDependencyGraph = hydrateDependencyGraphFromCache(cacheEntry.dependencyGraph, workPath)
+	const hydratedDependencyGraph = hydrateDependencyGraphFromCache(cacheEntry?.dependencyGraph as Record<string, unknown>, workPath)
 	const dependencyGraph = new DependencyGraph(hydratedDependencyGraph)
 	const changedFilePaths = inspection.changedFiles.map(change => change.filePath)
 	const { stages, unknownKinds } = getCompileStagesForFiles(dependencyGraph, changedFilePaths)
@@ -224,8 +225,8 @@ function createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }) {
 	}
 }
 
-function createAppCacheEntry(buildResult, workPath, previousFingerprints = {}) {
-	const { dependencyGraph, ...appInfo } = buildResult
+function createAppCacheEntry(buildResult: Record<string, unknown>, workPath: string, previousFingerprints: Record<string, FileFingerprint> = {}): Record<string, unknown> {
+	const { dependencyGraph, ...appInfo } = buildResult as { dependencyGraph: Record<string, unknown> }
 	const cachedDependencyGraph = serializeDependencyGraphForCache(dependencyGraph, workPath)
 	return {
 		lastCompileTime: Date.now(),
