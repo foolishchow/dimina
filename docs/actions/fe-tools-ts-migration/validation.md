@@ -84,7 +84,7 @@ find src -name "*.js"  # 零残留（72→0）
 grep -rn "from '.*\.js'" src/ | grep -v node_modules  # 零 .js import in src
 grep -rn "@typedef" src/  # 零（9→0）
 grep -rn ": any\b\|<any\|as any\|: any\b" src/  # 零 any
-grep -n "experimental-strip-types" src/compiler/pipeline/stage-channel.js src/compiler/worker-runtime/executor.js  # worker strip-types 保留
+grep -n "experimental-strip-types" src/compiler/worker-runtime/executor.js  # worker strip-types 保留（new Worker only executor.js，D-WR-5）
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-final-$name/out && echo "$name ✓"; done
 node pnpm.mjs test 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 node pnpm.mjs run build 2>&1 | tail -1  # tsc strict OK

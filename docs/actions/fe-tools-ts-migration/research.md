@@ -344,6 +344,32 @@ POC 步骤：
 
 **pass** —— F14-F21 全是文档同步问题，已全部落盘修正。无技术 blocker。ready gate 通过，可授权实施。
 
+## 11. R6 review（2026-09-16，实施前技术风险终检）
+
+### R6 验证
+
+- tsconfig include 覆盖全 src（`src/**/*.js` + `src/**/*.ts`）✓
+- mitt/listr2/cheerio 第三方类型无 tsc 错误 ✓
+- CompileConfig/FileTypes 形状清晰（resolveCompileConfig 返回 + fileTypes 字段）✓
+- type-only import .ts 后缀（R4 POC 已验证）✓
+- 分阶段中间状态 vitest（现状 build-pipeline.js import .ts，584/584）✓
+- P-TM01 @typedef 字段全清晰（Value/Attr/Document）✓
+- worker strip-types 注入点：只在 executor.js（不在 stage-channel）⚠
+
+### R6 findings
+
+#### F22 — 🟡 A-TM4/V-TM08 grep 目标错误（medium）→ 已修
+
+- **Evidence**: `grep -n "experimental-strip-types" src/compiler/pipeline/stage-channel.js` 无输出；strip-types 只在 `src/compiler/worker-runtime/executor.js:23`
+- **Root cause**: worker-runtime 重构后 `new Worker` only executor.js（D-WR-5 thin entry + executor）；stage-channel.js 不创建 worker
+- **Correction**: acceptance A-TM4 + validation V-TM08 grep 目标改为只 `executor.js`（去掉 stage-channel）
+
+#### F23 — 🟢 tsconfig include 覆盖全 src（无 finding）
+
+### R6 verdict
+
+**pass-with-findings** —— F22（medium，文档修正）+ F23（🟢 验证通过）。仅 1 个文档修正点，无技术 blocker。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
