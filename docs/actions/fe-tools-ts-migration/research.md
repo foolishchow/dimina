@@ -397,6 +397,38 @@ POC 步骤：
 
 **pass-with-findings** —— F26（high 验证脚本断裂，已修）+ F24/F25（medium 难点，已修）。验证流程 + 类型化难点已落盘。可授权实施。
 
+## 13. R8 review（2026-09-16，类型化难点深挖）
+
+### R8 findings
+
+#### F27 — 🟡 TS2345/2322/2314 类型不兼容 + 泛型缺失（medium）→ 已修
+
+- **Evidence**:
+  - **TS2345/2322 类型不兼容**：
+    - `string | null` → `string`（emit.js:90, style/index.js:57）——需 null 检查或断言
+    - `string` → `Platform | undefined`（emit.js:53/121）——需字面量联合或断言
+    - `TransformOptions` 形状不匹配（logic/index.js:381，esbuild loader）——需适配第三方类型
+    - `WxmlRenderer` 形状不匹配（view/index.js:44，meta.backend/lineOrigins）——需补全 WxmlRenderer interface 字段
+    - `CompilerOptions` 形状不匹配（view/index.js:546，vue compiler）——需适配 vue 类型
+    - 函数签名不兼容（build-pipeline.js:218，runOptions vs object）——需精确函数签名
+  - **TS2314 泛型缺失**：
+    - `Map<K,V>` 需 2 参数（npm-builder.js:246）
+    - `Array<T>`/`Set<T>` 需 1 参数（view/index.js:619/869）
+- **Broken**: F25 只提递归函数 + 事件解构，未覆盖类型不兼容 + 泛型缺失
+- **Correction**: implementation-plan 类型化难点补——TS2345/2322 类型不兼容（null/字面量联合/第三方形状）+ TS2314 泛型缺失（Map/Array/Set 类型参数）
+
+#### F28 — 🟢 strip-types 递归 import 链全支持（验证通过）
+
+- **Evidence**: POC 验证 Node 22.22 `--experimental-strip-types`：
+  - `.ts → .ts` import 链递归 ✓
+  - `import type` ✓
+  - interface / union / generics ✓
+- **Conclusion**: F26 修正方案（V-TM06/V-TM08 strip-types）可行
+
+### R8 verdict
+
+**pass-with-findings** —— F27（medium，类型化难点扩展，已修）+ F28（🟢 strip-types 验证通过）。F27 是 F25 的补充——类型不兼容和泛型缺失需逐个适配。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

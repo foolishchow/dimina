@@ -24,11 +24,21 @@
 6. tsc --checkJs 该文件错误清零
 7. vitest + 4 组 diff=0
 
-### 类型化难点（R7 F25）
+### 类型化难点（R7 F25 + R8 F27）
 
 - **TS7023 递归函数自引用 any**：`resolveModuleIdToExistingPath` / `buildCompileView` / `projectChildren`——返回类型推断不了（自引用），**需显式返回类型注解**
 - **TS7031 事件回调解构**：`{ event, filePath, count }`（bin/index.js + bin/dev.js）——**需事件 interface 定义**（如 `CompileEvent`）
 - **TS7034/7005 变量隐式 any**：接收函数返回，上游类型化后自动消除
+- **TS2345/2322 类型不兼容**（R8 F27）：
+  - `string | null` → `string`（emit.js:90, style/index.js:57）——需 null 检查或断言
+  - `string` → `Platform | undefined`（emit.js:53/121）——需字面量联合或断言
+  - `TransformOptions` 形状不匹配（logic/index.js:381，esbuild loader）——需适配第三方类型
+  - `WxmlRenderer` 形状不匹配（view/index.js:44，meta.backend/lineOrigins）——需补全 WxmlRenderer interface 字段
+  - `CompilerOptions` 形状不匹配（view/index.js:546，vue compiler）——需适配 vue 类型
+  - 函数签名不兼容（build-pipeline.js:218，runOptions vs object）——需精确函数签名
+- **TS2314 泛型缺失**（R8 F27）：
+  - `Map<K,V>` 需 2 参数（npm-builder.js:246）——需补类型参数
+  - `Array<T>`/`Set<T>` 需 1 参数（view/index.js:619/869）——需补类型参数
 
 ## P-TM01 — @typedef → TS type（先行，消除链式报错）
 
