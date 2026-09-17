@@ -147,3 +147,16 @@ export type Attr = { span: Span; name: string; value: Value }
 - `'./index.js'` ← P-TM05 改 index.ts 时改后缀
 
 **跨阶段依赖**：P-TM03 碰 worker-entry 的 runtime import（改后缀 .ts，不改名）；P-TM05 再碰 worker-entry（改名 .ts + index import 后缀）。worker `/src/` 跑时 strip-types + .ts resolve。
+
+## 提交策略（R13 F43）
+
+每 P-TM 一步独立 commit（先例 worker-runtime P-WR00..08）：
+- `P-TM00 baseline 记录`
+- `P-TM01 @typedef→type + 21 处 import`
+- `P-TM02 shared/ + core/env.js 类型化 + 35 处跨 import`
+- `P-TM03 core/ 其余 + worker-runtime/ 类型化`
+- `P-TM04 pipeline/ + model/ + session/ + watch/ 类型化`
+- `P-TM05 view/ + logic/ + style/ 类型化 + worker-entry`
+- `P-TM06 bin/ + dev/ + src/根 类型化`
+- `P-TM07 __tests__/ import 后缀`
+- `P-TM08 全量验证`

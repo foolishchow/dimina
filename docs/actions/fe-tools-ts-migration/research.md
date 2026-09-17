@@ -544,6 +544,36 @@ POC 步骤：
 
 **pass-with-findings** —— F37（medium，TS2554 新类别，已修）+ F38/F39（🟢 验证通过）。F37 是 F27 的补充——参数数量不匹配需修正调用/签名。可授权实施。
 
+## 18. R13 review（2026-09-16，build 流程 + dist 跟踪 + 提交策略）
+
+### R13 findings
+
+#### F40 — 🟢 package.json exports + postbuild 不受影响（验证通过）
+
+- **Evidence**: package.json exports 全指向 `./dist/*.js`（index/bin/watch/session/view/logic/style-compiler）；postbuild `check-package-exports.js` dynamic import dist/.js 验证
+- **Impact**: .ts 迁移后 dist 全 .js（tsc 编译），exports 不变，postbuild 验证 dist/.js 可 import
+- **Conclusion**: build 流程不受影响 ✓
+
+#### F41 — 🟢 dist 在 .gitignore（验证通过）
+
+- **Evidence**: `.gitignore` 含 `dist`——dist 不提交
+- **Conclusion**: 迁移不影响 git 跟踪的 dist ✓
+
+#### F42 — 🟢 baseline 4 组产物已删（验证）
+
+- **Evidence**: `/tmp/wr-baseline-*` 不存在（worker-runtime 实施后清理）
+- **Impact**: P-TM00 需重新生成 baseline（V-TM00 已列脚本）
+- **Conclusion**: V-TM00 baseline 脚本完整，无遗漏 ✓
+
+#### F43 — 🟢 实施提交策略未提（low）→ 已修
+
+- **Evidence**: implementation-plan 没提提交粒度
+- **Correction**: implementation-plan 补提交策略——每 P-TM 一步独立 commit（先例 worker-runtime P-WR00..08）
+
+### R13 verdict
+
+**pass-with-findings** —— F40/F41/F42（🟢 build 流程验证通过）+ F43（low 提交策略，已修）。build 流程不受影响。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定
