@@ -826,6 +826,30 @@ POC 步骤：
 
 **pass-with-findings** —— F67（high，emit.js JSDoc 残留引用已删类型——worker-runtime 重构遗留，P-TM01 处理）+ F68（🟢 验证通过）。F67 是 .ts 迁移的真实前置问题——但非本 Action 引入，是重构遗留清理。
 
+## 29. R24 review（2026-09-16，未覆盖错误类别）
+
+### R24 findings
+
+#### F69 — 🟢 TS8024/TS8032 JSDoc 校验（验证通过）
+
+- **Evidence**: `fingerprint.js` TS8024（@param 'fingerprints' 无此参数）+ TS8032（限定名需 @param {object} params）——checkJs 特有的 JSDoc 标签校验
+- **Conclusion**: .ts 迁移后 JSDoc 变普通注释（TS 签名替代），这些校验错误自然消除 ✓
+
+#### F70 — 🟡 TS2367 比较无重叠（medium）→ 已修
+
+- **Evidence**: `logic/index.js:215/239` TS2367——`node.type === 'StringLiteral'` 比较无重叠（checkJs 推断 node.type 为 150+ 字面量联合，不含 StringLiteral）
+- **Root cause**: checkJs 对 AST 节点类型推断过窄
+- **Correction**: .ts 迁移 + 类型化时——node.type 注为 `string`（或放宽类型），消除误报
+
+#### F71 — 🟡 TS7016 第三方无声明文件（medium）→ 已修
+
+- **Evidence**: `style/index.js:27` `less` 无 .d.ts；`dev-server.js:11` `ws` 无 .d.ts（maxNodeModuleJsDepth:0）
+- **Correction**: 局部 `declare module 'less'` / `declare module 'ws'`（或 @types 包）——F38 mitt 同理扩展
+
+### R24 verdict
+
+**pass-with-findings** —— F69（🟢 .ts 后消除）+ F70/F71（medium，类型化处理）。新类别全识别——无 blocker。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

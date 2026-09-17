@@ -24,7 +24,7 @@
 6. tsc --checkJs 该文件错误清零
 7. vitest + 4 组 diff=0
 
-### 类型化难点（R7 F25 + R8 F27）
+### 类型化难点（R7 F25 + R8 F27 + R12 F37）
 
 - **TS7023 递归函数自引用 any**：`resolveModuleIdToExistingPath` / `buildCompileView` / `projectChildren`——返回类型推断不了（自引用），**需显式返回类型注解**
 - **TS7031 事件回调解构**：`{ event, filePath, count }`（bin/index.js + bin/dev.js）——**需事件 interface 定义**（如 `CompileEvent`）
@@ -43,6 +43,15 @@
   - `env.js:369` `storeComponentConfig(configInfo.appInfo, appFilePath)`——签名/调用参数数不符，需核对函数签名与调用
   - `watch-plan.js:37/42`——Expected 0 got 1/2，需修正签名或调用
   - 真实调用错误，非加 `:type` 可解，需修正调用或签名
+- **TS2367 比较无重叠**（R24 F70）：
+  - `logic/index.js:215/239` `node.type === 'StringLiteral'` 比较无重叠——checkJs 对 AST 节点类型推断过窄
+  - 修正：node.type 注为 `string`（或放宽类型），消除误报
+- **TS7016 第三方无声明文件**（R24 F71）：
+  - `style/index.js` `less` + `dev-server.js` `ws` 无 .d.ts（maxNodeModuleJsDepth:0）
+  - 修正：局部 `declare module 'less'` / `declare module 'ws'`（或 @types 包）——F38 mitt 同理扩展
+- **TS8024/TS8032 JSDoc 标签校验**（R24 F69）：
+  - `fingerprint.js` @param 名不匹配 + 限定名缺 @param——checkJs 特有 JSDoc 校验
+  - .ts 迁移后自然消除（TS 签名替代，JSDoc 变普通注释）
 
 ## P-TM01 — @typedef → TS type（先行，消除链式报错）
 
