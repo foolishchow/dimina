@@ -1023,6 +1023,33 @@ POC 步骤：
 
 **pass-with-findings** —— F83（high，registry/stub import 遗漏，R28 F77 记录错误修正）+ F84（🟢 验证通过）。P-TM05 补 registry/stub 后缀修正。可授权实施。
 
+## 39. R34 review（2026-09-16，compile-target.ts 跨阶段 import 遗漏）
+
+### R34 findings
+
+#### F85 — 🟠 compile-target.ts 跨阶段 import 遗漏 4 处（high）→ 已修
+
+- **Evidence**: `compile-target.ts`（已 .ts）有 5 个 import，F76 只提了同阶段 `./compile-target.types.js`，遗漏 4 个跨阶段：
+  - `../../shared/compile-config.js`（P-TM02 改 compile-config→.ts 时同步改）
+  - `../../shared/platforms.js`（P-TM02 改 platforms→.ts 时同步改）
+  - `../core/env.js`（P-TM02 改 env→.ts 时同步改）
+  - `../core/renderers.js`（P-TM03 改 renderers→.ts 时同步改）
+- **Broken**: V-TM08 `grep 零 .js import` 会命中这 4 处 → 验证失败
+- **Root cause**: F76/F34 跨阶段清单只统计"改名文件的 import 被引用处"，没提"已 .ts 文件 import 改名文件"的情况
+- **Correction**: P-TM02/P-TM03 同步修正 compile-target.ts 的 4 个跨阶段 import 后缀
+
+#### F86 — 🟢 .js import .ts 后缀现状可行（验证通过）
+
+- **Evidence**: 3 处 .js 文件现状已用 .ts 后缀 import .ts 文件：
+  - `build-pipeline.js` import `'./compile-target.ts'`
+  - `compile.js` import `'./renderer/registry.ts'`
+  - `view/index.js` import `'./wxml/renderer/registry.ts'`
+- **Conclusion**: .js import .ts 后缀在 vitest(vite) + Node 下工作 ✓——D-TM-1 方案 A 的先行实践佐证
+
+### R34 verdict
+
+**pass-with-findings** —— F85（high，compile-target.ts 跨阶段 import 遗漏 4 处，已修）+ F86（🟢 验证通过）。P-TM02/03 同步修正 compile-target.ts 跨阶段 import。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

@@ -127,10 +127,18 @@ export type Attr = { span: Span; name: string; value: Value }
 
 类型化后基础类型渗透到下游，减少 property any（TS2339）。
 
+**已 .ts 文件跨阶段 import 同步（R34 F85）**：P-TM02 改名 shared/compile-config.js→.ts + shared/platforms.js→.ts + core/env.js→.ts 后，`compile-target.ts`（已 .ts）的 3 个跨阶段 import 同步改 `.ts`：
+- `import { resolveCompileConfig } from '../../shared/compile-config.js'` → `.ts`
+- `import { assertRendererSupportsPlatform } from '../../shared/platforms.js'` → `.ts`
+- `import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from '../core/env.js'` → `.ts`
+
 ## P-TM03 — core/ 其余 + worker-runtime/
 
 - core/ 7：compatibility(38 错), sourcemap, renderers, expression-parser, npm-builder, npm-resolver, compatibility-reference
 - worker-runtime/ 6：context, runtime, executor, sinks, loggers, define-engine
+
+**已 .ts 文件跨阶段 import 同步（R34 F85）**：P-TM03 改名 core/renderers.js→.ts 后，`compile-target.ts`（已 .ts）的 1 个跨阶段 import 同步改 `.ts`：
+- `import { getRenderer, resolveProjectRenderers } from '../core/renderers.js'` → `.ts`
 
 ## P-TM04 — pipeline/ + model/ + session/ + watch/
 
