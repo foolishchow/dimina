@@ -574,6 +574,32 @@ POC 步骤：
 
 **pass-with-findings** —— F40/F41/F42（🟢 build 流程验证通过）+ F43（low 提交策略，已修）。build 流程不受影响。可授权实施。
 
+## 19. R14 review（2026-09-16，P-TM01 核心可行性 POC）
+
+### R14 POC
+
+`document.js → document.ts` + `@typedef → type`（Span/Document/Value/Attr）+ `wxml-ir.types.ts`/`parity.ts` import `.ts` 后缀 → `tsc --noEmit`：
+- **TS2305 清零**（0 个）——@typedef→type 后类型 resolve 成功
+- `document.ts` 拋留 TS7006（raw/name/record 隐式 any）——P-TM01 预期残留（P-TM02..05 处理，符合 F19）
+- `document-ops.js` TS2353（对象字面量属性 'name'）——@typedef→type 后类型检查渗透
+
+### R14 findings
+
+#### F44 — 🟢 P-TM01 核心可行性 POC 验证通过
+
+- **Evidence**: `document.js→document.ts` + `@typedef→type`（Span/Document/Value/Attr）+ `wxml-ir.types.ts`/`parity.ts` import `.ts` 后缀 → `tsc --noEmit` **TS2305 清零**（0 个）
+- **Conclusion**: @typedef→type 后类型 resolve 成功，P-TM01 核心可行性验证通过 ✓
+
+#### F45 — 🟡 document-ops.js TS2353 类型检查渗透（medium）→ 已纳入 scope
+
+- **Evidence**: POC 后 `document-ops.js:484` 报 TS2353（对象字面量属性 'name' 不存在于类型）——@typedef→type 后 .js 文件 import 类型触发对象字面量检查变严
+- **Broken**: P-TM01 改 document.ts 后，document-ops.js（还 .js）import document 类型可能触发 TS2353 链式
+- **Correction**: P-TM01 要同步处理 document-ops 的 @typedef→type + 对象字面量类型修正（document-ops 在 P-TM01 scope，已含）
+
+### R14 verdict
+
+**pass-with-findings** —— F44（🟢 P-TM01 核心可行性验证通过）+ F45（medium，TS2353 类型渗透，P-TM01 scope 内）。P-TM01 @typedef→type 路径验证可行。可授权实施。
+
 ## 9. 拍板 D-TM-1/2/3 + 升 ready（2026-09-16）
 
 ### D-TM-1 = 方案 A（显式 .ts）✓ 拍定

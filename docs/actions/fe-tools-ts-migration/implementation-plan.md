@@ -46,11 +46,15 @@
 
 ## P-TM01 — @typedef → TS type（先行，消除链式报错）
 
+**R14 POC 验证**：`document.js→document.ts` + `@typedef→type` → TS2305 清零，类型 resolve 成功。
+
 4 文件 9 个 @typedef：
 - `src/compiler/view/wxml/common/document.js`：Span, Document, Value, Attr
 - `src/compiler/view/wxml/common/document-ops.js`：（查）
 - `src/compiler/pipeline/emit.js`：（查）
 - `src/compiler/view/wxml/napi/parse.js`：（查）
+
+**R14 F45 注意**：document.ts 改 @typedef→type 后，document-ops.js（还 .js）import document 类型可能触发 TS2353（对象字面量属性检查变严）。P-TM01 要同步处理 document-ops 的 @typedef→type + 对象字面量类型修正。
 
 转换：
 ```ts
