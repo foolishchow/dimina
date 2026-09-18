@@ -131,7 +131,7 @@ export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
 		const normalizedOptions = typeof options === 'number'
 			? { family: options }
 			: { ...(options ?? {}) }
-		lookup(hostname, { ...normalizedOptions, all: true, verbatim: true } as dns.LookupOptions, (error: NodeJS.ErrnoException | null, ...results: any[]) => {
+		lookup(hostname, { ...normalizedOptions, all: true, verbatim: true } as dns.LookupOptions, (error: NodeJS.ErrnoException | null, ...results: unknown[]) => {
 			if (error) {
 				callback(error, undefined as never, undefined as never)
 				return

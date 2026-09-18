@@ -354,13 +354,13 @@ function registerWxsModule(modulePath: string): void {
 function isRegisteredWxsModule(modulePath: string): boolean {
 	return wxsModuleRegistry.has(modulePath)
 }
-function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map()): any {
+function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map()): Record<string, unknown> | null {
 	const currentPath = module.path
 
 	// Recursive component declarations are valid. Stop only the duplicate edge
 	// on the current traversal path; the runtime keeps the recursive mapping.
 	if (activePaths.has(currentPath)) {
-		return
+		return null
 	}
 	activePaths.add(currentPath)
 
@@ -394,10 +394,10 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
 		throw error
 	}
 	if (currentInstruction && currentInstruction.scriptModule) {
-		allScriptModules.push(...currentInstruction.scriptModule)
+		allScriptModules.push(...(currentInstruction.scriptModule as unknown[]))
 	}
 	const childInheritedTemplatePaths = new Set(inheritedTemplatePaths)
-	for (const tm of currentInstruction?.templateModule || []) {
+	for (const tm of (currentInstruction?.templateModule as unknown[]) || []) {
 		childInheritedTemplatePaths.add((tm as { path: string }).path)
 	}
 
@@ -420,9 +420,9 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
 			const componentInstruction = buildCompileView(componentModule as ViewModule, true, scriptRes, activePaths, childInheritedTemplatePaths, sourceMapRes)
 			if (componentInstruction && componentInstruction.scriptModule) {
 				// 将组件的 wxs 模块添加到当前模块的 wxs 模块列表中
-				for (const sm of componentInstruction.scriptModule) {
+				for (const sm of (componentInstruction.scriptModule as unknown[])) {
 					// 避免重复添加相同的模块
-					if (!allScriptModules.find(existing => existing.path === sm.path)) {
+					if (!allScriptModules.find((existing: any) => existing.path === (sm as { path: string }).path)) {
 						allScriptModules.push(sm)
 					}
 				}
@@ -454,7 +454,7 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
  * https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/
  * @param {*} module
  */
-function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: Record<string, unknown> = {}): any {
+function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: Record<string, unknown> = {}): Record<string, unknown> | null {
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
 	const sourceMapRes = options.sourceMapRes || new Map()
 	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
@@ -802,10 +802,10 @@ function processWxsDependency(wxsFilePath: string, moduleName: string, scriptMod
  * @param {*} scriptRes
  * @param {*} allScriptModules
  */
-function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, string>, allScriptModules: unknown[], sourceMapRes: Map<string, string> = new Map()): any {
+function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, string>, allScriptModules: unknown[], sourceMapRes: Map<string, string> = new Map()): Record<string, unknown> | null {
 	const { tpl, instruction, sourceInfo } = toCompileTemplate(false, module.path, module.usingComponents, module.componentPlaceholder)
 	if (!tpl) {
-		return
+		return null
 	}
 
 	// 合并所有 wxs 模块
@@ -861,6 +861,7 @@ function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, stri
 	if (enableSourcemap) {
 		(sourceMapRes as Map<string, string>).set(module.path, moduleMap as string)
 	}
+	return mergedInstruction
 }
 
 
