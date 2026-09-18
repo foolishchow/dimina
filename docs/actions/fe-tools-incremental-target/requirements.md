@@ -6,7 +6,7 @@ Status: **ready（2026-09-19）** — D-IT-1..4 全拍板，冻结 v1
 
 增量路径（watch rebuild、compile-cache 增量）不得再以「碎片 `plan.options` + 管线隐式重解释」作为权威形态来源；权威须落在 CompileTarget / `deriveStagePlan` 上。
 
-**方案 A（D-IT-1）**：`build(options)` 字段名不变；`stages` / `affectedEntries` / `seedPath` / `prepareConfig` / `prepareNpm` 成文为 CompileTarget 输入的权威增量补丁。`deriveStagePlan` 显式消费 `affectedEntries`（§3 S9 改道）；pipeline 删除平行 `filterPagesByEntries` 私算。
+**方案 A（D-IT-1）**：`build(options)` 全 7 键字段名不变（`fileTypes` / `stages` / `affectedEntries` / `seedPath` / `dependencyGraph` / `prepareConfig` / `prepareNpm`）；其中 `stages` / `affectedEntries` / `seedPath` / `prepareConfig` / `prepareNpm` 成文为 CompileTarget 输入的权威增量补丁。`deriveStagePlan` 显式消费 `affectedEntries`（§3 S9 改道）；pipeline 删除平行 `filterPagesByEntries` 私算。
 
 ## R-IT1（MUST）行为 0
 

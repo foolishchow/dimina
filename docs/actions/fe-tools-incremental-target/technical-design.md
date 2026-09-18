@@ -115,3 +115,4 @@ export interface StagePlan {
 | 2026-09-19 | Review R4-R6（7 findings 全修正）：F8 前置上下文漏 S4；F9 I1 Step 8 加 `compile-target.spec.js` 须改（L199-219 `filteredPages` break）；F10 P-IT02 测文件列表修正（补 build-stages + compile-target，移除 watch-runner 过度陈述）；F11 D-CT-1→D-CT-4；F12 P-IT05 补 preview-adapter；F13 S2 语义升格非收口；F14 结构断言复用既有测例模式 |
 | 2026-09-19 | Review R7-R9（3 findings 全 low 全修正）：F15 P-IT03 补 `affectedEntries` 参数名 grep；F16 I2 标题「cache 路径」→「S4 单源」（implementation-plan + README 同步）；F17 `filteredPages` 术语注（旧入参 / 新返回字段 / 内部局部变量三义标注） |
 | 2026-09-19 | Review R10-R11（2 findings 全 low 全修正）：F18 D-IT-1 补全 7 键（`fileTypes`/`dependencyGraph` 漏列）；F19 P-IT02 计数修正（`affectedEntries`/`stages` 8 处 → 补 `incremental` 标 12 处）；R11 终检 pass 无新发现 |
+| 2026-09-19 | Review R12-R13（3 findings 全 low 全修正）：F20 R-IT0 补全 7 键 + 标注 5 键为增量补丁子集；F21 I1 Step 8 补 `targetSrc.toContain('filterPagesByEntries')` 正向断言（对称验证）；F22 baseline 删 stale hash `0fad4128`（保留「授权时 HEAD」语义）；R13 终检 pass |
