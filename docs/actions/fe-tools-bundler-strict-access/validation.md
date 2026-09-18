@@ -6,7 +6,9 @@
 
 ```bash
 cd fe/tools/bundler
-grep -c "noUncheckedIndexedAccess\|forceConsistentCasingInFileNames\|allowUnusedLabels" tsconfig.json  # 3
+grep -E '"noUncheckedIndexedAccess":\s*true' tsconfig.json | wc -l  # 1
+grep -E '"forceConsistentCasingInFileNames":\s*true' tsconfig.json | wc -l  # 1
+grep -E '"allowUnusedLabels":\s*false' tsconfig.json | wc -l  # 1
 ```
 
 ## V-SA1 — 编译 + lint
@@ -42,7 +44,7 @@ grep "\"strict\": true" tsconfig.json | wc -l  # 1
 
 | A-SA | V-SA | 证据 |
 | --- | --- | --- |
-| A-SA0 | V-SA0 | grep tsconfig.json 3 选项 |
+| A-SA0 | V-SA0 | grep tsconfig.json 3 选项（含值验证） |
 | A-SA1 | V-SA1 | tsc 0 错 |
 | A-SA2 | V-SA2 | diff=0 + 584/584 |
 | A-SA3 | V-SA3 | grep tsconfig.json 6 原有选项 + 3 新选项 |
