@@ -175,3 +175,16 @@
 | 依据 | A4 renderer 抽象已预留接入点；但 Lynx 需另立 RFC（RFC D3），当前无明确需求方与资源 |
 | 再激活条件 | ① 另立 Lynx RFC 并定稿；② wx 组件集子集范围确认；③ 业务侧有真实 Lynx 场景 |
 | 再激活方式 | 另立 C1 子 Action，前置为 RFC 定稿与业务需求确认 |
+
+### Bundler lint 增强——候选（2026-09-15 · 讨论收敛，未立项）
+
+| Field | Value |
+| --- | --- |
+| 背景 | ts-migration 深度类型化阶段完成：274→29 硬类型（89.4% 消除）；tsconfig 已启用 6 类 strict lint（`strict` / `noUnusedLocals` / `noUnusedParameters` / `noFallthroughCasesInSwitch` / `noImplicitReturns` / `noImplicitOverride`，35 处存量 lint 修复完毕，commit `b27ea8a3`） |
+| 已拍板 | tsc 基础 lint 已达标（0 错含 lint）；`==` 全部是 `== null` 惯用法（同时查 null+undefined），**不**应禁（eqeqeq 若引入需 `{"null": "ignore"}`）；`no-debugger` / `no-throw-literal` 已 0 错 |
+| 候选 1（零成本，建议直接开） | `forceConsistentCasingInFileNames: true`（跨平台文件名大小写一致，~0 错）+ `noUnusedLabels: true`（~0 错） |
+| 候选 2（有价值但成本高，需评估） | `noUncheckedIndexedAccess: true` — `arr[i]`/`obj[key]` 返回 `T \| undefined`；**63 处错**；能防真实 bug（越界/缺 key），但与「减少类型断言」目标矛盾（逼加 `!`/守卫）；需逐个看是潜在 bug 还是纯噪音 |
+| 候选 3（语义规则，需引 ESLint） | 引 `@typescript-eslint`：`no-console`（43 处：14 log + 21 warn + 13 error，半数 CLI 输出 intentional，半数调试残留如 `utils.ts:144 console.log(error)` 应为 `console.error`）/ `prefer-const`（~10 处 `let` 可改 `const`）/ `no-floating-promise`（2 处 `.then()` 无 `.catch()`）/ `require-await`；成本 = 整套工具链（配置文件+插件+runner），建议单独立 Action |
+| 否决（不开） | `exactOptionalPropertyTypes`（49 错，第三方库类型几乎不兼容，日常摩擦大）；`noPropertyAccessFromIndexSignature`（175 错，纯噪音，可读性反降） |
+| 形态（若做） | 候选 1 直接并入 tsconfig 小改（行为 0）；候选 2 单独立小 Action（逐文件消 63 处）；候选 3 独立 Action `fe-tools-bundler-eslint` |
+| 触发条件 | 候选 1 无（随时可做）；候选 2 需确认 63 处 ROI；候选 3 需团队确认引入 ESLint 工具链 |
