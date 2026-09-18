@@ -4,6 +4,8 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
+import type { RawSourceMap } from 'source-map-js'
+import type { CompilerOptions } from '@vue/compiler-sfc'
 import { transform } from 'esbuild'
 import { checkTemplateCompatibility, getTemplateDirectiveName } from '../core/compatibility.ts'
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
@@ -513,7 +515,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 
 		// 即使使用缓存，也需要确保返回的 instruction 包含最新的 wxs 模块信息
 		// 收集所有在 scriptRes 中的 wxs 模块（包括依赖模块）
-		const allWxsModules = collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as never[] || [])
+		const allWxsModules = collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as object[] || [])
 
 		// 将收集到的 wxs 模块添加到 instruction 中
 		if (allWxsModules.length > 0) {
@@ -548,15 +550,15 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		scoped: true,
 		inMap: enableSourcemap
 			? (((origins as unknown[]) || []).length
-				? createOriginsSourcemap(origins as never, sourceContents as Map<string, string>)
-				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)) as never
+				? createOriginsSourcemap(origins as Array<{ source: string; line: number }>, sourceContents as Map<string, string>)
+				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)) as unknown as RawSourceMap
 			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as never,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as unknown as CompilerOptions,
 	})
 
 	const templateResults = []
 	for (const tm of compileInstruction.templateModule) {
-		templateResults.push(compileTemplateModuleRender(tm as never, module.id, compileInstruction.scriptModule as never, scriptRes))
+		templateResults.push(compileTemplateModuleRender(tm as { path: string; tpl: string; sourceInfo?: { path: string; content: string; startLine?: number } | null }, module.id, compileInstruction.scriptModule as Array<{ path: string; code: string; originalName?: string }>, scriptRes))
 	}
 	const renderResult = insertWxsToRenderResult(tplCode.code, compileInstruction.scriptModule as unknown[], scriptRes, module.path, tplCode.map)
 
@@ -581,7 +583,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 	const { code, sourcemap: moduleMap } = concatSourcemap(moduleChunks, module.path)
 
 	// 收集所有在 scriptRes 中的 wxs 模块（包括依赖模块）
-	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), compileInstruction.scriptModule as never[] || [])
+	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), compileInstruction.scriptModule as object[] || [])
 
 	// 将收集到的 wxs 模块添加到 instruction 中
 	if (allWxsModules.length > 0) {
@@ -822,14 +824,14 @@ function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, stri
 		id: `data-v-${module.id}`,
 		scoped: true,
 		inMap: enableSourcemap
-			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content) as never
+			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content) as unknown as RawSourceMap
 			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as never,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as unknown as CompilerOptions,
 	})
 
 	const templateResults = []
 	for (const tm of mergedInstruction.templateModule || []) {
-		templateResults.push(compileTemplateModuleRender(tm as never, module.id, allScriptModules as never, scriptRes))
+		templateResults.push(compileTemplateModuleRender(tm as { path: string; tpl: string; sourceInfo?: { path: string; content: string; startLine?: number } | null }, module.id, allScriptModules as Array<{ path: string; code: string; originalName?: string }>, scriptRes))
 	}
 	const renderResult = insertWxsToRenderResult(tplCode.code, allScriptModules, scriptRes, module.path, tplCode.map)
 
