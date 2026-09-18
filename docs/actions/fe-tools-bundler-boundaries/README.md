@@ -1,7 +1,7 @@
 # FE Tools Bundler Boundaries
 
 - Action: `fe-tools-bundler-boundaries`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-18
 - Status authority: [Action Status](../STATUS.md)
 - 术语权威：[architecture-notes](../fe-tools-sidecar/architecture-notes.md)「架构术语：Packer / Scheme」
@@ -59,8 +59,8 @@
 
 ## Status / 授权
 
-- 当前 **`ready`**。D-BD-1..6 已拍板。落点表已填完。Readiness 门两轮 review pass，F1–F3 修正完毕。
-- 未授权改产品代码。本门剩余工作：回流 architecture-notes 指针 + 验收零 diff。升 `in_progress` 需另授。
+- 当前 **`in_progress`**（2026-09-18 授权）。D-BD-1..6 已拍板。落点表已填完。
+- 实施中：步骤 3-5（env.ts 引用核对 → architecture-notes 回流 → 零 diff 验证）。
 
 ## 闭合条件
 

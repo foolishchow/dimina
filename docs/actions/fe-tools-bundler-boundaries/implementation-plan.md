@@ -15,9 +15,9 @@ Status: **draft（2026-09-18）** — 只规划边界表。未授权改产品代
 | --- | --- | --- |
 | 1 | 拍板 D-BD-5（焊点）与 D-BD-6（目录/文件粒度） | done（draft 阶段设计决策） |
 | 2 | 核对落点表等于 R-BD1 封口全集；焊点写清两侧；无待定行 | done（draft 阶段设计决策，见 technical-design §2） |
-| 3 | 对照 `env.ts` 的 15 处引用，确认没有把总线标成某一侧的内部 | pending（实施时核对） |
-| 4 | architecture-notes 增加本边界表指针 | pending |
-| 5 | `git diff <baseline> -- fe/tools/bundler/src fe/packages` 为空。**baseline** = 授权进入 `in_progress` 时的 HEAD commit（≠ §3 扫描基线 `31db0c18`） | pending |
+| 3 | 对照 `env.ts` 的 15 处引用，确认没有把总线标成某一侧的内部 | done（15 处全核对；`getDependencyGraph` 5 方读取（logic 焊点 + 4 Scheme），确认总线两侧承载） |
+| 4 | architecture-notes 增加本边界表指针 | done（Packer/Scheme 术语节增加落点权威指针段） |
+| 5 | `git diff <baseline> -- fe/tools/bundler/src fe/packages` 为空。**baseline** = 授权进入 `in_progress` 时的 HEAD commit（≠ §3 扫描基线 `31db0c18`） | done（baseline `1215bc0a`；src + fe/packages 零 diff） |
 
 ## 不做
 

@@ -210,6 +210,8 @@ wxml/
 
 后续架构文档沿用这对术语。包名、目录名 `compiler/logic` 保持不变，直到另有 Action 改名。
 
+**落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
+
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
 | ID | 结论 |
@@ -256,3 +258,4 @@ wxml/
 | 2026-09-15 | **回流 fe-tools-bundler-tsc-dist（complete）**：**B2 build 模型**——dist 唯一生产者 = `tsc -p tsconfig.build.json`（`rootDir:src`/`outDir:dist`）；整树 sync-dist 已删除；postbuild（copy-sdk-assets + check-exports）保留。**绿场规则**：`src/` 新文件允许 `.ts`。**后缀约定（D-TD-20）**：运行时消费方写显式 `.ts` 后缀 + `rewriteRelativeImportExtensions`（emit 重写回 `.js`）；`.js`→`.ts` 隐式映射只存在于 tsc program——vitest/worker 直跑 src 不解析，显式 `.ts` 是唯一可运行写法。**worker 注记**：src 链 spawn 需 `--experimental-strip-types`（stage-channel 已按 `/src/` 探测注入）。**迁徙边界**：view/index.js、renderer/vue/tools.js、vue/index.js 禁迁；第 2 刀（document/document-ops/load）另立 |
 | 2026-09-18 | **术语**：架构讨论用 **Packer**（通用模块打包器）/ **Scheme**（Dimina 打包方案）。禁止用 bundler / logic 指这两层。包名与 `compiler/logic` 目录不因此改名 |
 | 2026-09-18 | **术语对齐**：Packer 用词改为模块标识、模块图、transform、模块产出。`compiler/logic/**` 整目录是焊点，不是 Scheme 车道 |
+| 2026-09-18 | **回流 fe-tools-bundler-boundaries**：落点表权威指针入档（4 焊点：emit.ts / logic/** / env.ts / dependency-graph.ts；D-BD-1..6） |
