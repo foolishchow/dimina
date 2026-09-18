@@ -53,11 +53,26 @@ const pathInfo: PathInfo = new Proxy({}, {
 		return true
 	},
 })
+interface PageConfig {
+	usingComponents?: Record<string, string>
+	componentPlaceholder?: Record<string, unknown>
+	customTabBar?: unknown
+	[key: string]: unknown
+}
+
+interface ComponentConfig {
+	path?: string
+	id?: string
+	styleIsolation?: string
+	usingComponents?: Record<string, string>
+	[key: string]: unknown
+}
+
 interface ConfigInfo {
 	projectInfo?: Record<string, unknown>
 	appInfo?: Record<string, unknown>
-	componentInfo?: Record<string, Record<string, unknown>>
-	pageInfo?: Record<string, Record<string, unknown>>
+	componentInfo?: Record<string, ComponentConfig>
+	pageInfo?: Record<string, PageConfig>
 	runtimeType?: string
 	[key: string]: unknown
 }
@@ -457,7 +472,7 @@ function storeCustomTabBarConfig(): void {
 			suffix++
 			componentName = `${dependencyName}-${suffix}`
 		}
-		Object.assign(pageConfig, { usingComponents: { ...(pageConfig.usingComponents as Record<string, string>), [componentName]: CUSTOM_TAB_BAR_COMPONENT_PATH }, customTabBar: { componentName } })
+		Object.assign(pageConfig, { usingComponents: { ...(pageConfig.usingComponents || {}), [componentName]: CUSTOM_TAB_BAR_COMPONENT_PATH }, customTabBar: { componentName } })
 	}
 }
 
@@ -487,14 +502,14 @@ function collectionPageJson(pages: string[] | undefined, root?: string): void {
 	})
 }
 
-function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFilePath: string): void {
-	if (isObjectEmpty(pageJsonContent.usingComponents as Record<string, unknown>)) {
+function storeComponentConfig(pageJsonContent: PageConfig, pageFilePath: string): void {
+	if (isObjectEmpty(pageJsonContent.usingComponents ?? null)) {
 		return
 	}
 	// 解析当前页面的自定义组件信息
-	for (const [componentName, componentPath] of Object.entries(pageJsonContent.usingComponents as Record<string, string>)) {
+	for (const [componentName, componentPath] of Object.entries(pageJsonContent.usingComponents || {})) {
 		const moduleId = getModuleId(componentPath, pageFilePath)
-		;(pageJsonContent.usingComponents as Record<string, string>)[componentName] = moduleId
+		;(pageJsonContent.usingComponents ?? {})[componentName] = moduleId
 
 		if ((configInfo.componentInfo!)[moduleId]) {
 			continue
@@ -547,7 +562,7 @@ function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFile
 		}
 
 		// 只有当配置文件存在时才递归处理
-		if (cContent.usingComponents && Object.keys(cContent.usingComponents as Record<string, string>).length > 0) {
+		if (cContent.usingComponents && Object.keys(cContent.usingComponents).length > 0) {
 			storeComponentConfig(configInfo.componentInfo![moduleId], componentFilePath)
 		}
 	}
@@ -853,13 +868,13 @@ function createInitialDependencyGraph(): DependencyGraph {
 		}
 	}
 
-	for (const component of Object.values((configInfo.componentInfo as Record<string, { path: string; usingComponents?: Record<string, string> }>) || {})) {
-		graph.addNode(component.path, { type: 'component' })
-		addExistingModuleFiles(graph, component.path)
+	for (const component of Object.values(configInfo.componentInfo || {})) {
+		graph.addNode(component.path!, { type: 'component' })
+		addExistingModuleFiles(graph, component.path!)
 	}
-	for (const component of Object.values((configInfo.componentInfo as Record<string, { path: string; usingComponents?: Record<string, string> }>) || {})) {
+	for (const component of Object.values(configInfo.componentInfo || {})) {
 		for (const dependencyPath of Object.values(component.usingComponents || {})) {
-			graph.addDependency(component.path, dependencyPath, 'component')
+			graph.addDependency(component.path!, dependencyPath, 'component')
 		}
 	}
 
@@ -895,12 +910,12 @@ function collectSharedStyleScopeIds(usingComponents: Record<string, string> | un
 			return
 		}
 		visited.add(componentPath)
-		const component = (configInfo.componentInfo as Record<string, { id: string; styleIsolation?: string; usingComponents?: Record<string, string> }>)[componentPath]
+		const component = configInfo.componentInfo![componentPath]
 		if (!component) {
 			return
 		}
 		if (component.styleIsolation === 'shared') {
-			result.push(component.id)
+			result.push(component.id!)
 		}
 		for (const childPath of Object.values(component.usingComponents || {})) {
 			visit(childPath)
