@@ -283,7 +283,7 @@ export function transTag(opts: { isStart?: boolean; tag: string; attrs?: Record<
 			const withoutVIf = []
 
 			for (let i = 0; i < propsAry.length; i++) {
-				const prop = propsAry[i]
+				const prop = propsAry[i]!
 				if (prop.includes('v-if') || prop.includes('v-else-if') || prop.includes('v-else')) {
 					withVIf.push(prop)
 				}

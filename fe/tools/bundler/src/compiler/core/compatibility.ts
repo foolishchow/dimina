@@ -284,7 +284,7 @@ function getLineByIndex(newlineOffsets: number[], index: number): number | null 
 	let hi = newlineOffsets.length
 	while (lo < hi) {
 		const mid = (lo + hi) >>> 1
-		if (newlineOffsets[mid] < index) {
+		if (newlineOffsets[mid]! < index) {
 			lo = mid + 1
 		}
 		else {

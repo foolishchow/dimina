@@ -547,7 +547,7 @@ function storeComponentConfig(pageJsonContent: PageConfig, pageFilePath: string)
 		const styleIsolation = resolveComponentStyleIsolation(cContent, componentFilePath)
 		const cComponents: Record<string, string> = {}
 		for (const key of Object.keys(cUsing)) {
-			cComponents[key] = getModuleId(cUsing[key], componentFilePath)
+			cComponents[key] = getModuleId(cUsing[key]!, componentFilePath)
 		}
 		// (replaced reduce)
 		// (old reduce removed)

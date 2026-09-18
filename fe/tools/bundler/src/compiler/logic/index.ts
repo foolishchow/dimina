@@ -253,10 +253,10 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 				if (
 					(isRequire || isRequireProperty)
 					&& node.arguments.length > 0
-					&& node.arguments[0].type === 'Literal' && typeof node.arguments[0].value === 'string'
+					&& node.arguments[0]!.type === 'Literal' && typeof node.arguments[0]!.value === 'string'
 				) {
-					const arg = node.arguments[0]
-					const requirePath = arg.value
+					const arg = node.arguments[0]!
+					const requirePath = (arg as { value?: string }).value
 
 					if (requirePath) {
 						const { id, shouldProcess } = resolveDependencyId(requirePath, modulePath, false)
@@ -514,7 +514,7 @@ function isBareModuleSpecifier(specifier: string): boolean {
 }
 function resolveRelativeModuleId(specifier: string, modulePath: string): string {
 	const requireFullPath = resolve(modulePath, `../${specifier}`)
-	const relativeId = requireFullPath.split(`${getWorkPath()}${sep}`)[1]
+	const relativeId = requireFullPath.split(`${getWorkPath()}${sep}`)[1]!
 	return normalizeModuleId(relativeId)
 }
 function resolveBareSiblingModuleId(specifier: string, modulePath: string): string | null {

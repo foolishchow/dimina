@@ -720,8 +720,8 @@ function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule
 
 							// 替换 require 路径
 							replacements.push({
-								start: node.arguments[0].start,
-								end: node.arguments[0].end,
+								start: node.arguments[0]!.start,
+								end: node.arguments[0]!.end,
 								value: JSON.stringify(moduleName),
 							})
 						}
@@ -737,8 +737,8 @@ function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule
 
 							// 替换 require 路径
 							replacements.push({
-								start: node.arguments[0].start,
-								end: node.arguments[0].end,
+								start: node.arguments[0]!.start,
+								end: node.arguments[0]!.end,
 								value: JSON.stringify(depModuleName),
 							})
 						}
@@ -1140,7 +1140,7 @@ function parseBraceExp(exp: string): string {
 			const matchResult = result[1].match(noBraceRegex)
 
 			if (matchResult) {
-				const statement = encodeReservedTemplateContextIdentifier(matchResult[1].trim())
+				const statement = encodeReservedTemplateContextIdentifier(matchResult[1]!.trim())
 				if (ternaryRegex.test(statement)) {
 					// 三目表达式用 () 包裹，防止影响优先级
 					group.push(`(${statement})`)
@@ -1167,7 +1167,7 @@ function parseBraceExp(exp: string): string {
 function parseTemplateDataExp(exp: string): string {
 	const matchResult = exp.trim().match(/^\{\{([\s\S]*)\}\}$/)
 	if (matchResult) {
-		return addOptionalChaining(`{${matchResult[1].trim()}}`)
+		return addOptionalChaining(`{${matchResult[1]!.trim()}}`)
 	}
 	return `{${parseSafeBraceExp(exp)}}`
 }

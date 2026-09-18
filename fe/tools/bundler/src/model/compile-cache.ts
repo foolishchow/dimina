@@ -129,13 +129,13 @@ function inspectDependencyFileChanges(dependencyGraph: { nodes?: Array<{ files?:
 			invalidFiles.push(filePath)
 			continue
 		}
-		if (previous.missing !== current.missing) {
+		if (previous.missing !== current!.missing) {
 			changedFiles.push({
 				filePath,
-				event: current.missing ? 'unlink' : 'add',
+				event: current!.missing ? 'unlink' : 'add',
 			})
 		}
-		else if (!current.missing && previous.hash !== current.hash) {
+		else if (!current!.missing && previous.hash !== current!.hash) {
 			changedFiles.push({ filePath, event: 'change' })
 		}
 	}

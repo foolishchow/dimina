@@ -136,11 +136,11 @@ function matchSelector(node: WxmlNode | null | undefined, selector: string): boo
 		if (getTagName(node) !== tag && node.type !== tag) {
 			return false
 		}
-		const eq = attrExpr.match(/^([^=]+)=["']?(.*?)["']?$/)
+		const eq = attrExpr!.match(/^([^=]+)=["']?(.*?)["']?$/)
 		if (eq) {
-			return getAttr(node, eq[1].trim()) === eq[2]
+			return getAttr(node, eq[1]!.trim()) === eq[2]
 		}
-		const raw = getAttr(node, attrExpr.trim())
+		const raw = getAttr(node, attrExpr!.trim())
 		return raw !== undefined
 	}
 	if (node.type === sel) {

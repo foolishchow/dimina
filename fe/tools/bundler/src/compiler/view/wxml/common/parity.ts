@@ -42,7 +42,7 @@ export function compareDocumentsSemantic(a: ComparisonNode, b: ComparisonNode, o
 	if (diffs.length === 0) {
 		return { ok: true, path: '', diffs: [] }
 	}
-	return { ok: false, path: diffs[0].path, reason: diffs[0].reason, diffs }
+	return { ok: false, path: diffs[0]!.path, reason: diffs[0]!.reason, diffs }
 }
 
 function walkCompare(left: ComparisonNode[], right: ComparisonNode[], path: string, diffs: CompareDiffs[], ignoreAttrSpan: boolean): void {
@@ -51,7 +51,7 @@ function walkCompare(left: ComparisonNode[], right: ComparisonNode[], path: stri
 		return
 	}
 	for (let i = 0; i < left.length; i++) {
-		compareNode(left[i], right[i], `${path}[${i}]`, diffs, ignoreAttrSpan)
+		compareNode(left[i]!, right[i]!, `${path}[${i}]`, diffs, ignoreAttrSpan)
 		if (diffs.length > 0) {
 			return
 		}
@@ -113,8 +113,8 @@ function compareNode(a: ComparisonNode, b: ComparisonNode, path: string, diffs: 
 			return
 		}
 		for (let i = 0; i < da.length; i++) {
-			if (da[i].kind !== db[i].kind) {
-				diffs.push({ path: `${path}.directives[${i}].kind`, reason: `${da[i].kind} !== ${db[i].kind}` })
+			if (da[i]!.kind !== db[i]!.kind) {
+				diffs.push({ path: `${path}.directives[${i}].kind`, reason: `${da[i]!.kind} !== ${db[i]!.kind}` })
 				return
 			}
 		}

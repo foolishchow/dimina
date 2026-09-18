@@ -34,12 +34,12 @@ function createWatchRebuildScheduler({ rebuild, onRebuild = () => {}, onError = 
 			dirtyFiles.clear()
 			try {
 				// 保留旧回调 shape（{event,filePath,count}）以兼容 onRebuild/onError/beforeBuild
-				const first = changed[0]
+				const first = changed[0]!
 				onRebuild({ event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
 				await rebuild({ changedFiles: changed, event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
 			}
 			catch (error) {
-				const first = changed[0]
+				const first = changed[0]!
 				onError(error instanceof Error ? error : new Error(String(error)), { event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
 			}
 		}

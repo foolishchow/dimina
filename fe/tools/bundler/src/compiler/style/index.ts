@@ -126,7 +126,7 @@ async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> =
 			? graphDependencies
 			: Object.values(currentModule.usingComponents || {})
 		for (let index = componentPaths.length - 1; index >= 0; index--) {
-			const componentModule = getComponent(componentPaths[index]) as StyleModule | null
+			const componentModule = getComponent(componentPaths[index]!) as StyleModule | null
 			if (componentModule) {
 				pendingModules.push(componentModule as StyleModule)
 			}

@@ -173,10 +173,10 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 								filteredPages: ctx.pages as PagesInfo,
 							})
 							const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
-								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]
+								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]!
 								return createStageTask(
 									stage,
-									STAGE_TITLES[stage],
+									STAGE_TITLES[stage]!,
 									lifecycle,
 									spec.workerOptions,
 									spec.renderer as RendererAdapter | null,

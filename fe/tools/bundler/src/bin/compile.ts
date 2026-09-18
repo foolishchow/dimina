@@ -209,8 +209,8 @@ async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 }
 function getLastCompileTime(data: { apps: Record<string, { appInfo: { appId: string }; lastCompileTime: number }> }, appId: string): number {
 	for (const key in data.apps) {
-		if (data.apps[key].appInfo.appId === appId) {
-			return data.apps[key].lastCompileTime
+		if (data.apps[key]!.appInfo.appId === appId) {
+			return data.apps[key]!.lastCompileTime
 		}
 	}
 	return 0 // 如果找不到对应的 appId

@@ -154,7 +154,7 @@ export function parseMemberExpression(expression: string | null | undefined): { 
 		return { root: null, path: null }
 	}
 
-	const root = rootMatch[1]
+	const root = rootMatch[1]!
 
 	// 如果表达式就是根对象本身，返回
 	if (expression === root) {

@@ -101,7 +101,7 @@ function createSourceContext(source: string): SourceContext {
 	let byteIndex = 0
 	while (byteIndex < buf.length) {
 		byteToChar[byteIndex] = charIndex
-		const lead = buf[byteIndex]
+		const lead = buf[byteIndex]!
 		let byteLen = 1
 		if (lead >= 0xf0) {
 			byteLen = 4
@@ -524,12 +524,12 @@ export function attrsFromOpeningTag(ctx: SourceContext, span: ByteSpan | null): 
 		return null
 	}
 	i += 1
-	while (i < buf.length && isNameByte(buf[i])) {
+	while (i < buf.length && isNameByte(buf[i]!)) {
 		i += 1
 	}
 	const attrs = []
 	while (i < buf.length) {
-		while (i < buf.length && isSpaceByte(buf[i])) {
+		while (i < buf.length && isSpaceByte(buf[i]!)) {
 			i += 1
 		}
 		if (i >= buf.length) {
@@ -542,7 +542,7 @@ export function attrsFromOpeningTag(ctx: SourceContext, span: ByteSpan | null): 
 			break
 		}
 		const nameStart = i
-		while (i < buf.length && isAttrNameByte(buf[i])) {
+		while (i < buf.length && isAttrNameByte(buf[i]!)) {
 			i += 1
 		}
 		if (i === nameStart) {
@@ -550,13 +550,13 @@ export function attrsFromOpeningTag(ctx: SourceContext, span: ByteSpan | null): 
 		}
 		const name = buf.subarray(nameStart, i).toString('utf8')
 		const attrSpanStart = nameStart
-		while (i < buf.length && isSpaceByte(buf[i])) {
+		while (i < buf.length && isSpaceByte(buf[i]!)) {
 			i += 1
 		}
 		let rawValue = ''
 		if (buf[i] === 0x3d /* = */) {
 			i += 1
-			while (i < buf.length && isSpaceByte(buf[i])) {
+			while (i < buf.length && isSpaceByte(buf[i]!)) {
 				i += 1
 			}
 			if (buf[i] === 0x22 /* " */ || buf[i] === 0x27 /* ' */) {
@@ -573,15 +573,15 @@ export function attrsFromOpeningTag(ctx: SourceContext, span: ByteSpan | null): 
 			}
 			else {
 				const valueStart = i
-				while (i < buf.length && !isSpaceByte(buf[i]) && buf[i] !== 0x3e && buf[i] !== 0x2f) {
+				while (i < buf.length && !isSpaceByte(buf[i]!) && buf[i] !== 0x3e && buf[i] !== 0x2f) {
 					i += 1
 				}
 				rawValue = buf.subarray(valueStart, i).toString('utf8')
 			}
 		}
 		attrs.push(makeAttr(name, rawValue, {
-			start: ctx.byteToChar[attrSpanStart],
-			end: ctx.byteToChar[i],
+			start: ctx.byteToChar[attrSpanStart]!,
+			end: ctx.byteToChar[i]!,
 		}))
 	}
 	return attrs as Attr[]

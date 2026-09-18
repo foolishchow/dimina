@@ -20,7 +20,7 @@ export function processIncludeConditionalAttrs(includeNode: WxmlNode | null | un
 
 	for (const attrName in allAttrs) {
 		if (['if', 'elif', 'else'].includes(getTemplateDirectiveName(attrName)!)) {
-			conditionAttrs[attrName] = allAttrs[attrName]
+			conditionAttrs[attrName] = allAttrs[attrName]!
 			hasCondition = true
 		}
 	}

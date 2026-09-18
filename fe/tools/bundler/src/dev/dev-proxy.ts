@@ -150,8 +150,8 @@ export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
 				callback(null, addresses)
 			}
 			else {
-				const [{ address, family }] = addresses
-				callback(null, address, family)
+				const entry = addresses[0]!
+				callback(null, entry.address, entry.family)
 			}
 		})
 	}) as DnsLookup

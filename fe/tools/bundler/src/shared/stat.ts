@@ -39,13 +39,13 @@ function parseHtmlForWxMethods(htmlContent: string): void {
 	let match
 	// eslint-disable-next-line no-cond-assign
 	while ((match = scriptRegex.exec(htmlContent)) !== null) {
-		const scriptContent = match[1]
+		const scriptContent = match[1]!
 		// eslint-disable-next-line regexp/no-unused-capturing-group
 		const methodRegex = /\b(wx\.|dd\.|mpx\.)[\w$]+\b/g
 		let wxMatch
 		// eslint-disable-next-line no-cond-assign
 		while ((wxMatch = methodRegex.exec(scriptContent)) !== null) {
-			const methodName = wxMatch[0]
+			const methodName = wxMatch[0]!
 			wxMethods.add(methodName)
 		}
 	}

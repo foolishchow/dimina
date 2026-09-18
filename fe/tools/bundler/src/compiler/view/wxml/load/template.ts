@@ -58,7 +58,7 @@ export function getSourceLine(newlineOffsets: number[] | null, index: number = 0
 	let hi = newlineOffsets.length
 	while (lo < hi) {
 		const mid = (lo + hi) >>> 1
-		if (newlineOffsets[mid] < target) {
+		if (newlineOffsets[mid]! < target) {
 			lo = mid + 1
 		}
 		else {
