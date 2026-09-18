@@ -542,12 +542,12 @@ function storeComponentConfig(pageJsonContent: PageConfig, pageFilePath: string)
 			}
 		}
 		
-		const cUsing: Record<string, string> = ((cContent as { usingComponents?: Record<string, string> }).usingComponents) || {}
-		const isComponent = (cContent as { component?: boolean }).component || false
+		const cUsing = (cContent.usingComponents ?? {}) as Record<string, string>
+		const isComponent = cContent.component || false
 		const styleIsolation = resolveComponentStyleIsolation(cContent, componentFilePath)
 		const cComponents: Record<string, string> = {}
 		for (const key of Object.keys(cUsing)) {
-			cComponents[key] = getModuleId(cUsing[key] as string, componentFilePath)
+			cComponents[key] = getModuleId(cUsing[key], componentFilePath)
 		}
 		// (replaced reduce)
 		// (old reduce removed)

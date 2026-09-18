@@ -209,6 +209,16 @@ function transformTextInterpolation(text: string): string {
 }
 
 // 页面文件编译内容缓存
+interface ErrorShape {
+	message?: string
+	name?: string
+	stack?: string
+	file?: string
+	line?: number
+	column?: number
+	[key: string]: unknown
+}
+
 const compileResCache = new Map<string, unknown>()
 
 // wxs 模块注册表，用于记录确定的 wxs 模块
@@ -478,13 +488,13 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 	const canUseCache = (skipTemplatePaths as Set<string>).size === 0
 
 	if (canUseCache && !scriptRes.has(module.path) && compileResCache.has(module.path)) {
-		const cacheData = compileResCache.get(module.path) as Record<string, unknown> & { errorShape?: Record<string, unknown>; code?: string; instruction?: { scriptModule?: Array<{ path: string; code: string }> }; map?: string } | undefined
+		const cacheData = compileResCache.get(module.path) as (Record<string, unknown> & { errorShape?: ErrorShape; code?: string; instruction?: { scriptModule?: Array<{ path: string; code: string }> }; map?: string; failed?: boolean }) | undefined
 		// MC1/R-MC3：失败缓存——同模块上次编译失败，直接重抛等价错误（避免同 stage 内重复失败编译）
 		// F1：重建完整字段（含 file/line/column/stage，供上层 stage-channel 错误重建消费）
 		if (cacheData && cacheData.failed) {
-			const err = new Error(cacheData.errorShape?.message as string || 'module compilation failed (cached)') as EnhancedError
-			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name as string
-			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack as string
+			const err = new Error(cacheData.errorShape?.message || 'module compilation failed (cached)') as EnhancedError
+			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name
+			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack
 			if (cacheData.errorShape?.file) err.file = cacheData.errorShape.file
 			if (cacheData.errorShape?.line != null) err.line = cacheData.errorShape.line
 			if (cacheData.errorShape?.column != null) err.column = cacheData.errorShape.column
