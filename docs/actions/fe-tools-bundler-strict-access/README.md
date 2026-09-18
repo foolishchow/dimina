@@ -1,7 +1,7 @@
 # fe-tools-bundler-strict-access
 
 - Action: `fe-tools-bundler-strict-access`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-18
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[`fe-tools-ts-migration`](../_archive/complete/fe-tools-ts-migration/README.md)（深度类型化 274→29 + tsconfig 5 类 strict lint + 35 处存量修复）
@@ -54,3 +54,4 @@ ts-migration 完成后，bundler tsconfig.json 已启用 6 类 strict lint（`st
 
 - 无。63 处错误已全量扫描，分类明确（TS2532 / TS18048 / TS2345 / TS2322 / TS2339），修复策略明确。
 - 零成本选项已探测 0 错。
+- Review R1 pass-with-findings：F1-F3 修正完毕（选项计数一致 + 步骤 7 文件数修正）。

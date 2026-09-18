@@ -21,8 +21,9 @@
 
 ## R-SA3（MUST）lint 回流
 
-- 修正后的 tsconfig.json 保持 8+3=11 类 strict lint 选项
-- 原有 5 类（noUnusedLocals 等）不回退
+- 修正后的 tsconfig.json 保持原有 6 类 strict lint 选项不回退：`strict` / `noUnusedLocals` / `noUnusedParameters` / `noFallthroughCasesInSwitch` / `noImplicitReturns` / `noImplicitOverride`
+- 新增 3 类：`noUncheckedIndexedAccess` / `forceConsistentCasingInFileNames` / `allowUnusedLabels`
+- 合计 9 类
 
 ## Non-requirements
 

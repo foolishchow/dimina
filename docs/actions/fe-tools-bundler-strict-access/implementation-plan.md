@@ -17,7 +17,7 @@
 | 4 | 修复 parity.ts（7 错）— 比较节点数组访问 | tsc 该文件 0 错 |
 | 5 | 修复 watch-plan.ts（6 错）+ view/index.ts（6 错） | tsc 两文件 0 错 |
 | 6 | 修复 compile-cache.ts + tools.ts + document-ops.ts + build-pipeline.ts（14 错） | tsc 四文件 0 错 |
-| 7 | 修复剩余 11 错（7 文件各 1-2） | tsc 全 0 错 |
+| 7 | 修复剩余 11 错（9 文件：dev-proxy(2) + compile(2) + 7 其他各 1） | tsc 全 0 错 |
 | 8 | 全量验证：tsc build + vitest + 4 组 diff | 0 错 + 584/584 + diff=0 |
 
 ## 不做

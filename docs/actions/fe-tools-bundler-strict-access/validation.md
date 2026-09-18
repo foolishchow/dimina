@@ -33,7 +33,9 @@ node pnpm.mjs exec vitest run 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 
 ```bash
 cd fe/tools/bundler
-grep -E "noUnusedLocals|noUnusedParameters|noFallthroughCasesInSwitch|noImplicitReturns|noImplicitOverride" tsconfig.json | wc -l  # 5
+grep -E "noUnusedLocals|noUnusedParameters|noFallthroughCasesInSwitch|noImplicitReturns|noImplicitOverride" tsconfig.json | wc -l  # 5 (strict 单独 grep)
+grep "\"strict\": true" tsconfig.json | wc -l  # 1
+# 合计 6 原有 + 3 新 = 9
 ```
 
 ## 验证映射
@@ -43,4 +45,4 @@ grep -E "noUnusedLocals|noUnusedParameters|noFallthroughCasesInSwitch|noImplicit
 | A-SA0 | V-SA0 | grep tsconfig.json 3 选项 |
 | A-SA1 | V-SA1 | tsc 0 错 |
 | A-SA2 | V-SA2 | diff=0 + 584/584 |
-| A-SA3 | V-SA3 | grep 5 原有选项 |
+| A-SA3 | V-SA3 | grep tsconfig.json 6 原有选项 + 3 新选项 |
