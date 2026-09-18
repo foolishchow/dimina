@@ -167,13 +167,13 @@ function getWxMemberName(node: unknown): string | null {
 		return n!.property.name ?? null
 	}
 
+	const propValue = n!.property?.value
 	if (
 		n!.computed
 		&& (n!.property?.type === 'StringLiteral' || n!.property?.type === 'Literal')
-		&& typeof n!.property?.value === 'string'
+		&& typeof propValue === 'string'
 	) {
-		const value = n!.property!.value
-		return value as string
+		return propValue
 	}
 
 	return null

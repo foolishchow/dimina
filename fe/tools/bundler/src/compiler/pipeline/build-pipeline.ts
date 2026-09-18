@@ -119,9 +119,9 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 					task: async (ctx: Record<string, unknown>) => {
 						(ctx as { buildModel: unknown }).buildModel = new BuildModel()
 						const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
-						(ctx as { storeInfo: unknown }).storeInfo = (_store.load as (w: string, o: unknown) => Record<string, unknown>)(workPath as string, { fileTypes, dependencyGraph });
+						(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, dependencyGraph });
 						(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
-						const allPages = getPages() as { mainPages: unknown[]; subPages: Record<string, { info: unknown[] }> } as { mainPages: unknown[]; subPages: Record<string, { info: unknown[] }> }
+						const allPages = getPages()
 						await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
 							fileTypes: ((ctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),
 							pagesCount: allPages.mainPages.length

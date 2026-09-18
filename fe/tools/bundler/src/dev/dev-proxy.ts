@@ -35,8 +35,8 @@ for (const [address, prefix] of [
 	['203.0.113.0', 24],
 	['224.0.0.0', 4],
 	['240.0.0.0', 4],
-]) {
-	blockedAddresses.addSubnet(address as string, prefix as number, 'ipv4')
+] as [string, number][]) {
+	blockedAddresses.addSubnet(address, prefix, 'ipv4')
 }
 
 for (const [address, prefix] of [
@@ -48,8 +48,8 @@ for (const [address, prefix] of [
 	['fc00::', 7],
 	['fe80::', 10],
 	['ff00::', 8],
-]) {
-	blockedAddresses.addSubnet(address as string, prefix as number, 'ipv6')
+] as [string, number][]) {
+	blockedAddresses.addSubnet(address, prefix, 'ipv6')
 }
 
 const BLOCKED_REQUEST_HEADERS = new Set([
