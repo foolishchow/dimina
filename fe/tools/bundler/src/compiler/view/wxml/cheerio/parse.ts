@@ -58,7 +58,7 @@ export function parseWxml(source: string, options: { sourceFile?: string } = {})
  */
 export function projectDocument($: unknown, { sourceFile }: { sourceFile?: string } = {}): WxmlDocument {
 	const body = projectChildren(($ as { root: () => { contents: () => { toArray: () => unknown[] } } }).root().contents().toArray(), sourceFile)
-	const document = createDocument({ body, sourceFile, span: null }) as unknown as WxmlDocument
+	const document = createDocument({ body, sourceFile, span: null }) as WxmlDocument
 	bindDocument(document)
 	return document
 }
@@ -108,7 +108,7 @@ function projectNode(elem: unknown, sourceFile?: string): WxmlNode | null {
 	})
 }
 function classifyElement({ name, attrs, attrRecord, children, loc, sourceFile, selfClosing }: { name: string | undefined; attrs: ReturnType<typeof attrsFromRecord>; attrRecord: Record<string, string>; children: WxmlNode[]; loc: { start: number; end: number } | null; sourceFile?: string; selfClosing: boolean }): WxmlNode {
-	const common = { attrs, children, loc, span: loc, sourceFile, selfClosing } as unknown as Record<string, unknown>
+	const common = { attrs, children, loc, span: loc, sourceFile, selfClosing } 
 	if (name === 'include') {
 		return createInclude({ ...common, src: attrRecord.src })
 	}

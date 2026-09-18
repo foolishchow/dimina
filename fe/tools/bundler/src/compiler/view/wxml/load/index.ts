@@ -53,7 +53,7 @@ interface LoadCtx {
 }
 function requireTools(tools: LoadTools) {
 	const missing = ['transTagTemplate', 'transTagWxs', 'transAsses', 'resolveTemplateDependencyPath', 'collectIncludedComponentTags', 'processIncludedFileWxsDependencies', 'processIncludeConditionalAttrs', 'checkTemplateCompatibility']
-		.filter(name => typeof (tools as unknown as Record<string, unknown>)?.[name] !== 'function')
+		.filter(name => typeof tools[name as keyof LoadTools] !== 'function')
 	if (missing.length > 0) {
 		throw new TypeError(`[wxml] load: ctx.tools missing ${missing.join(', ')} (transitional injection)`)
 	}
@@ -178,8 +178,8 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				const nodes = tools.processIncludeConditionalAttrs(includeNode, includeDoc)
 				const processedContent = typeof nodes === 'string' ? nodes : serialize({ body: nodes } as WxmlNode)
 				const inserted = typeof nodes === 'string'
-					? replaceNode(includeNode, parseWxml(nodes).body as unknown as WxmlNode)
-					: replaceNode(includeNode, nodes as unknown as WxmlNode)
+					? replaceNode(includeNode, parseWxml(nodes).body)
+					: replaceNode(includeNode, nodes)
 				for (const node of inserted) {
 					markOriginTree(node, WIR_SRC, { source: includeDiagnosticSource, text: processedContent })
 				}
@@ -263,7 +263,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 	attachProjection(document, '_source', originalContent)
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
 
-	const loaded = document as unknown as LoadedGraph
+	const loaded = document as LoadedGraph
 	loaded.templateModule = templateModule
 	loaded.scriptModule = scriptModule
 	loaded.sourceTexts = sourceTexts

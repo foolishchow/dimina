@@ -194,7 +194,7 @@ function resolveServer({ cli, api }: { cli: Record<string, unknown>; api: Record
 		port: 8080,
 		...apiServer,
 		...cliServer,
-	}, SERVER_RESOLVED_KEYS) as unknown as ResolvedServer
+	}, SERVER_RESOLVED_KEYS) as ResolvedServer
 }
 
 // ---------------------------------------------------------------------------
@@ -217,17 +217,17 @@ function firstDefined(...values: unknown[]): unknown {
 	return undefined
 }
 
-function pickKeys(obj: unknown, keys: readonly string[]): Record<string, unknown> {
+function pickKeys<T = Record<string, unknown>>(obj: unknown, keys: readonly string[]): T {
 	const out: Record<string, unknown> = {}
 	if (!obj || typeof obj !== 'object') {
-		return out
+		return out as T
 	}
 	for (const key of keys) {
 		if (Object.hasOwn(obj, key)) {
 			out[key] = (obj as Record<string, unknown>)[key]
 		}
 	}
-	return out
+	return out as T
 }
 
 function pickDefined(obj: Record<string, unknown>): Record<string, unknown> {

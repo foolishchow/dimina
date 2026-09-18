@@ -215,8 +215,8 @@ function createStyleCompileError(stage: string, absolutePath: string, cause: unk
 	error.stage = stage
 	return error
 }
-function normalizePreprocessorMap(inputMap: string | Record<string, unknown>, absolutePath: string, inputCSS: string): Record<string, unknown> {
-	const map = (typeof inputMap === 'string' ? JSON.parse(inputMap) : structuredClone(inputMap)) as Record<string, unknown> & { sources: string[]; sourcesContent?: unknown[] }
+function normalizePreprocessorMap(inputMap: string | RawSourceMap, absolutePath: string, inputCSS: string): RawSourceMap {
+	const map = (typeof inputMap === 'string' ? JSON.parse(inputMap) : structuredClone(inputMap)) as RawSourceMap & { sources: string[]; sourcesContent?: unknown[] }
 	const sourcePaths = map.sources.map((source) => {
 		let resolvedPath = source
 		if (source.startsWith('file:')) {
@@ -233,7 +233,7 @@ function normalizePreprocessorMap(inputMap: string | Record<string, unknown>, ab
 		if (sourcePaths[index] === absolutePath) {
 			return inputCSS
 		}
-		return map.sourcesContent?.[index] ?? null
+		return map.sourcesContent?.[index] ?? ''
 	})
 	return map
 }
@@ -331,7 +331,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 
 	// 预处理器编译
 	let processedCSS = normalizeRootStyleImports(inputCSS)
-	let processedMap: Record<string, unknown> | string | null = options.sourcemap
+	let processedMap: RawSourceMap | string | null = options.sourcemap
 		? createLineSourcemap(processedCSS, getStyleSourcePath(absolutePath), inputCSS)
 		: null
 	const ext = path.extname(absolutePath).toLowerCase()
@@ -365,7 +365,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 			})
 			processedCSS = result.css
 			if (options.sourcemap) {
-				processedMap = normalizePreprocessorMap(result.sourceMap as unknown as string, absolutePath, inputCSS)
+				processedMap = normalizePreprocessorMap(result.sourceMap as RawSourceMap, absolutePath, inputCSS)
 			}
 		}
 	}
@@ -376,7 +376,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	const fixedCSS = ensureImportSemicolons(processedCSS)
 	if (options.sourcemap && fixedCSS !== processedCSS) {
 		const normalizeMap = createLineSourcemap(fixedCSS, absolutePath, processedCSS)
-		processedMap = remapSourcemap(normalizeMap, processedMap) as Record<string, unknown>
+		processedMap = remapSourcemap(normalizeMap, processedMap) as RawSourceMap
 	}
 	const importResults: Promise<StyleCompileResult>[] = []
 	// 把基础转换交给 compileStyle 的同一条 PostCSS 管线，避免作用域处理前重复解析 CSS。
@@ -388,7 +388,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 			filename: getStyleSourcePath(absolutePath),
 			id: moduleId as string,
 			scoped: !!moduleId,
-			inMap: options.sourcemap ? (processedMap as unknown as RawSourceMap) : undefined,
+			inMap: options.sourcemap ? (processedMap as RawSourceMap) : undefined,
 			postcssPlugins: [
 				createStyleTransformPlugin(module, absolutePath, importResults, options),
 			],
@@ -416,7 +416,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 			}
 			finalResult = await postcss(postcssPlugins).process(scopedResult.code, {
 				from: undefined,
-				map: getPostcssMapOptions(true, scopedResult.map as unknown as Record<string, unknown>),
+				map: getPostcssMapOptions(true, scopedResult.map),
 			})
 		}
 		else {

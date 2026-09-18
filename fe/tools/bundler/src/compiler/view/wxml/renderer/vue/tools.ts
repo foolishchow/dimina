@@ -1,5 +1,6 @@
 import * as htmlparser2 from 'htmlparser2'
 import { compileTemplate } from '@vue/compiler-sfc'
+import type { CompilerOptions } from '@vue/compiler-sfc'
 import { getTemplateDirectiveName } from '../../../../core/compatibility.ts'
 import { parseBindings } from '../../../../core/expression-parser.ts'
 import { createLineSourcemap } from '../../../../core/sourcemap.ts'
@@ -35,7 +36,7 @@ import {
 	escapeQuotes,
 	insertWxsToRenderResult,
 } from './live.ts'
-export function getTemplateCompilerOptions(scopeId: string): { prefixIdentifiers: boolean; hoistStatic: boolean; cacheHandlers: boolean; scopeId: string; mode: string; inline: boolean; isCustomElement: (tag: string) => boolean } {
+export function getTemplateCompilerOptions(scopeId: string): CompilerOptions {
 	return {
 		// https://template-explorer.vuejs.org/
 		prefixIdentifiers: true,
@@ -83,7 +84,7 @@ export function compileTemplateModuleRender(tm: { path: string; tpl: string; sou
 		id: `data-v-${moduleId}`,
 		scoped: true,
 		inMap: enableSourcemap && tm.sourceInfo
-			? createLineSourcemap(tm.tpl, tm.sourceInfo.path, tm.sourceInfo.content, tm.sourceInfo.startLine ?? 1) as unknown as Parameters<typeof compileTemplate>[0]['inMap']
+			? createLineSourcemap(tm.tpl, tm.sourceInfo.path, tm.sourceInfo.content, tm.sourceInfo.startLine ?? 1)
 			: undefined,
 		compilerOptions: getTemplateCompilerOptions(`data-v-${moduleId}`) as Parameters<typeof compileTemplate>[0]['compilerOptions'],
 	})

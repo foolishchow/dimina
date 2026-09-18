@@ -207,7 +207,7 @@ function transformTextInterpolation(text: string): string {
 }
 
 // 页面文件编译内容缓存
-const compileResCache = new Map<string, Record<string, unknown>>()
+const compileResCache = new Map<string, unknown>()
 
 // wxs 模块注册表，用于记录确定的 wxs 模块
 const wxsModuleRegistry = new Set()
@@ -508,7 +508,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 
 	if (useCache && cachedCode) {
 		scriptRes.set(module.path, cachedCode)
-		const cachedMap = compileResCache.get(module.path)?.map
+		const cachedMap = (compileResCache.get(module.path) as { map?: string } | undefined)?.map
 		if (enableSourcemap && cachedMap) {
 			(sourceMapRes as Map<string, string>).set(module.path, cachedMap as string)
 		}
@@ -551,9 +551,9 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		inMap: enableSourcemap
 			? (((origins as unknown[]) || []).length
 				? createOriginsSourcemap(origins as Array<{ source: string; line: number }>, sourceContents as Map<string, string>)
-				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)) as unknown as RawSourceMap
+				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content))
 			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as unknown as CompilerOptions,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
 	})
 
 	const templateResults = []
@@ -824,9 +824,9 @@ function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, stri
 		id: `data-v-${module.id}`,
 		scoped: true,
 		inMap: enableSourcemap
-			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content) as unknown as RawSourceMap
+			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)
 			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as unknown as CompilerOptions,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
 	})
 
 	const templateResults = []
@@ -1225,7 +1225,7 @@ function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePath: stri
 				// 使用公共的处理函数
 				wxsContent = processWxsContent(wxsContent, wxsFilePath as string, scriptModule, workPath, filePath, graphOwnerPath)
 
-				compileResCache.set(cacheKey, wxsContent as unknown as Record<string, unknown>)
+				compileResCache.set(cacheKey, wxsContent)
 			}
 			if (wxsContent) {
 				// 注册为 wxs 模块（因为这是从 wxs 节点加载的，一定是 wxs 脚本）

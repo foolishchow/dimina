@@ -7,7 +7,7 @@
 import type { Span, Attr, Value, WxmlNode } from './document.ts'
 
 export interface WxmlDocument extends WxmlNode {
-	body: object[]
+	body: WxmlNode[]
 	sourceFile?: string
 	_source?: string
 }

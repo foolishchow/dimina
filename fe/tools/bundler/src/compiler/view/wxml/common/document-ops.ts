@@ -389,7 +389,7 @@ export function insertBefore(ref: WxmlNode | null | undefined, node: WxmlNode | 
 /**
  * @param {any} childOrContents
  */
-function normalizeInsert(childOrContents: WxmlNode | null | undefined): WxmlNode[] {
+function normalizeInsert(childOrContents: WxmlNode | WxmlNode[] | null | undefined): WxmlNode[] {
 	if (childOrContents == null) {
 		return []
 	}
@@ -451,7 +451,7 @@ export function removeMatching(scope: WxmlNode | null | undefined, predicateOrTa
  * @param {any} oldNode
  * @param {any} next
  */
-export function replaceNode(oldNode: WxmlNode | null | undefined, next: WxmlNode | null | undefined): WxmlNode[] {
+export function replaceNode(oldNode: WxmlNode | null | undefined, next: WxmlNode | WxmlNode[] | null | undefined): WxmlNode[] {
 	const parent = getParent(oldNode)
 	if (!parent) {
 		throw new TypeError('[wxml] replaceNode: old node has no parent')

@@ -59,7 +59,7 @@ export interface SessionState {
 
 export interface WatchOpts {
 	autoListen?: boolean
-	beforeBuild?: (ctx: Record<string, unknown>) => void | Promise<void>
+	beforeBuild?: (ctx: ReloadContext) => void | Promise<void>
 	onRebuild?: (ctx: Record<string, unknown>) => void
 	onError?: (error: Error) => void
 	options?: Record<string, unknown>
@@ -83,9 +83,9 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 		workPath: resolved.workPath,
 		targetPath: resolved.targetPath,
 		useAppIdDir: resolved.useAppIdDir !== false,
-		compile: pickKeys(resolved.compile as unknown as Record<string, unknown>, COMPILE_KEYS),
+		compile: pickKeys(resolved.compile, COMPILE_KEYS),
 		fileTypes: resolved.fileTypes,
-		server: resolved.server ? pickKeys(resolved.server as unknown as Record<string, unknown>, SERVER_KEYS) : undefined,
+		server: resolved.server ? pickKeys(resolved.server, SERVER_KEYS) : undefined,
 		/** Unique per session; A1 bus — hook rail, not the orchestrator itself */
 		lifecycle: (resolved as ResolvedBundlerInput & { lifecycle?: Lifecycle }).lifecycle ?? createLifecycle(),
 		/** @type {null | 'watch' | 'dev'} */
@@ -223,7 +223,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 
 			const watcher = session.watch({
 				autoListen: false,
-				beforeBuild: (ctx) => adapter.setPendingReload(ctx as unknown as ReloadContext),
+				beforeBuild: (ctx) => adapter.setPendingReload(ctx),
 				onError,
 				onRebuild: onRebuild as WatchOpts['onRebuild'],
 				options: {
@@ -294,14 +294,15 @@ function assertResolved(resolved: ResolvedBundlerInput) {
 	}
 }
 
-function pickKeys(obj: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+function pickKeys(obj: unknown, keys: readonly string[]): Record<string, unknown> {
 	const out: Record<string, unknown> = {}
 	if (!obj || typeof obj !== 'object') {
 		return out
 	}
+	const record = obj as Record<string, unknown>
 	for (const key of keys) {
-		if (Object.hasOwn(obj, key)) {
-			out[key] = obj[key]
+		if (Object.hasOwn(record, key)) {
+			out[key] = record[key]
 		}
 	}
 	return out

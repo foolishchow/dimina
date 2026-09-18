@@ -76,7 +76,7 @@ function concatSourcemap(chunks: Array<string | { code: string; map?: unknown }>
  * origins: [{ source, line }]（index 0 = 生成第 1 行）
  * sourceContents: Map<source, content>
  */
-export function createOriginsSourcemap(origins: Array<{ source: string; line: number }>, sourceContents: Map<string, unknown> | undefined): Record<string, unknown> {
+export function createOriginsSourcemap(origins: Array<{ source: string; line: number }>, sourceContents: Map<string, unknown> | undefined): RawSourceMap {
 	const smg = new SourceMapGenerator({ file: origins[0]?.source ?? '' })
 	origins.forEach((o, index) => {
 		smg.addMapping({
@@ -95,7 +95,7 @@ export function createOriginsSourcemap(origins: Array<{ source: string; line: nu
 	return JSON.parse(smg.toString())
 }
 
-function createLineSourcemap(generatedCode: string, source: string, sourceContent: string, startLine: number = 1): Record<string, unknown> {
+function createLineSourcemap(generatedCode: string, source: string, sourceContent: string, startLine: number = 1): RawSourceMap {
 	const smg = new SourceMapGenerator({ file: source })
 	const generatedLineCount = generatedCode.split('\n').length
 	const sourceLineCount = Math.max(1, sourceContent.split('\n').length)

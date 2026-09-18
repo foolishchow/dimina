@@ -34,7 +34,7 @@ export function parseWxml(source: string, options: { sourceFile?: string } = {})
 	if (typeof source !== 'string') {
 		throw new TypeError(`[wxml] parse: source must be a string${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`)
 	}
-	const view = parseWxmlSpanView(source, sourceFile) as unknown as SpanView
+	const view = parseWxmlSpanView(source, sourceFile) as SpanView
 	const ctx = createSourceContext(source)
 	const body = fromNodeList(view.body || [], ctx, sourceFile, 0, ctx.buf.length)
 	const document = createDocument({
@@ -253,7 +253,7 @@ function fromElement(node: SpanViewNode, ctx: SourceContext, sourceFile: string 
 		sourceFile,
 		selfClosing: Boolean(node.selfClosing),
 		directives,
-		slot: slot as unknown as null | string,
+		slot: slot?.name ?? null,
 	})
 }
 
