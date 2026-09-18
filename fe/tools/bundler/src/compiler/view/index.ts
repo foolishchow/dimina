@@ -1225,7 +1225,7 @@ function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePath: stri
 				}
 
 				// 使用公共的处理函数
-				wxsContent = processWxsContent(wxsContent, wxsFilePath as string, scriptModule, workPath, filePath, graphOwnerPath)
+				wxsContent = processWxsContent(wxsContent, wxsFilePath!, scriptModule, workPath, filePath, graphOwnerPath)
 
 				compileResCache.set(cacheKey, wxsContent)
 			}
@@ -1275,7 +1275,7 @@ function collectAllWxsModules(scriptRes: Map<string, string>, collectedPaths = n
 				if (!collectedPaths.has(depPath)) {
 					if (scriptRes.has(depPath)) {
 						// 如果依赖已经在 scriptRes 中，递归处理
-						const depModules = collectAllWxsModules(new Map([[depPath, scriptRes.get(depPath) as string]]), collectedPaths, scriptModule)
+						const depModules = collectAllWxsModules(new Map([[depPath, scriptRes.get(depPath)!]]), collectedPaths, scriptModule)
 						allWxsModules.push(...depModules)
 					} else {
 						// 如果依赖不在 scriptRes 中，尝试从文件系统加载

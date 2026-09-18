@@ -594,7 +594,7 @@ function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minif
 	return {
 		sourcemap: !!msg.sourcemap,
 		minify: msg.compileConfig?.minify !== false,
-		sourcemapTargetPath: (msg.sourcemapTargetPath as string) || getTargetPath(),
+		sourcemapTargetPath: msg.sourcemapTargetPath || getTargetPath(),
 		esTarget: {
 			logic: msg.compileConfig?.esTarget?.logic || 'es2023',
 			view: msg.compileConfig?.esTarget?.view || 'es2020',
