@@ -4,11 +4,16 @@ Status: **冻结 v1（2026-09-19）** — 升 `ready`
 
 ## 1. 与 CompileTarget 的关系
 
+> **术语注**：`filteredPages` 在本设计中有三个用法，按上下文区分：
+> - **旧入参**（被删除）：`deriveStagePlan` 第 3 参数 `{ filteredPages }`
+> - **新返回字段**（被新增）：`StagePlan.filteredPages`，供 pipeline 设 `ctx.pages`
+> - **内部局部变量**：`deriveStagePlan` 内由 `affectedEntries` 经 `filterPagesByEntries` 产出的过滤后 pages
+
 | 层 | 全量（已交付） | 增量（本门） |
 | --- | --- | --- |
 | 静态形态 | `createCompileTarget(runOptions)` | 同；`requestedStages` 可来自增量契约而非全量默认 |
 | 动态绑定 | `readLoadBindings` | 同（collect-config 后） |
-| 派生 | `deriveStagePlan(target, bindings, { cwd, filteredPages })` | `filteredPages` 的**权威输入**改由 `affectedEntries` 在 derive 内显式消费，不再靠 pipeline 私过滤 |
+| 派生 | `deriveStagePlan(target, bindings, { cwd, filteredPages })` | 旧入参 `filteredPages` 的**权威输入**改由 `affectedEntries` 在 derive 内显式消费，不再靠 pipeline 私过滤 |
 
 ## 2. 决策
 
@@ -108,3 +113,4 @@ export interface StagePlan {
 | 2026-09-19 | **冻结 v1**：D-IT-1..4 全拍板（A / 分门 / compile-target 单源 / dev-reload 自动对齐）；source audit 实锚 S1/S2/S3/S4/S9；filterPagesByEntries 搬入 derive + StagePlan 加 filteredPages |
 | 2026-09-19 | Review R1-R3（7 findings 全 low 全修正）：F1 标题漏 S4；F2 baseline 钉死 `0fad4128`；F3 补正向 grep；F4 补目标签名；F5 标注新依赖边；F6 P-IT02 全量/增量语义明确；F7 P-IT05 测文件改 `dev-reload.spec.js` |
 | 2026-09-19 | Review R4-R6（7 findings 全修正）：F8 前置上下文漏 S4；F9 I1 Step 8 加 `compile-target.spec.js` 须改（L199-219 `filteredPages` break）；F10 P-IT02 测文件列表修正（补 build-stages + compile-target，移除 watch-runner 过度陈述）；F11 D-CT-1→D-CT-4；F12 P-IT05 补 preview-adapter；F13 S2 语义升格非收口；F14 结构断言复用既有测例模式 |
+| 2026-09-19 | Review R7-R9（3 findings 全 low 全修正）：F15 P-IT03 补 `affectedEntries` 参数名 grep；F16 I2 标题「cache 路径」→「S4 单源」（implementation-plan + README 同步）；F17 `filteredPages` 术语注（旧入参 / 新返回字段 / 内部局部变量三义标注） |

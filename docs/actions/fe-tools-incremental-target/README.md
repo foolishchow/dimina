@@ -70,7 +70,7 @@ TS-2（deferred）:          模板 IR
 | --- | --- | --- |
 | **I0** 契约冻结 | D-IT-1..4 拍板；technical-design 冻结 v1 | ✅ |
 | **I1** watch 路径 | `filterPagesByEntries` 搬入 derive；pipeline 删私算；`deriveStagePlan` 消费 `affectedEntries` | 行为 0；结构锚定 |
-| **I2** cache 路径 + S4 | `COMPILE_STAGE_ORDER` 单源；compile-stages / invalidation import | 行为 0；grep 单源 |
+| **I2** S4 单源 | `COMPILE_STAGE_ORDER` 单源；compile-stages / invalidation import | 行为 0；grep 单源 |
 
 ## Status / 授权
 
