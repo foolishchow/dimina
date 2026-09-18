@@ -1,6 +1,6 @@
-import { abilityContext } from '../../src/compiler/worker-runtime/context.js'
-import { FileSink } from '../../src/compiler/worker-runtime/sinks.js'
-import { ConsoleLogger } from '../../src/compiler/worker-runtime/loggers.js'
+import { abilityContext } from '../../src/compiler/worker-runtime/context.ts'
+import { FileSink } from '../../src/compiler/worker-runtime/sinks.ts'
+import { ConsoleLogger } from '../../src/compiler/worker-runtime/loggers.ts'
 
 /**
  * P-WR07: 测试直连注入——包 compileML/compileJS/compileSS 调用，
