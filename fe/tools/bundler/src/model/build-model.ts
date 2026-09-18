@@ -55,7 +55,7 @@ export function materialize(model: BuildModel, targetPath: string): void {
 		for (const map of entry.sourcemaps || []) {
 			const dest = path.join(targetPath, map.path)
 			fs.mkdirSync(path.dirname(dest), { recursive: true })
-			fs.writeFileSync(dest, map.map as string)
+			fs.writeFileSync(dest, String(map.map))
 		}
 	}
 }

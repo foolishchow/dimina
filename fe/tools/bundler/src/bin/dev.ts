@@ -40,7 +40,7 @@ export function registerDevCommand(program: Command): void {
 			const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 			// argv 缺省留 bin（M-G1）：dev 缺省 targetPath 用 mkdtempSync（等价今日）
 			const targetPath = options.targetPath
-				? path.resolve(options.targetPath as string)
+				? path.resolve(options.targetPath)
 				: fs.mkdtempSync(path.join(os.tmpdir(), 'dmcc-dev-'))
 
 			const cli = {

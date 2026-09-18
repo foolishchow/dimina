@@ -35,7 +35,7 @@ function appendSourceMap(smg: SourceMapGenerator, map: unknown, lineOffset: numb
 
 	if (mapObject.sourcesContent) {
 		(mapObject.sources || []).forEach((source: string, index: number) => {
-			smg.setSourceContent(source, (mapObject.sourcesContent || [])[index] as string)
+			smg.setSourceContent(source, (mapObject.sourcesContent || [])[index])
 		})
 	}
 }

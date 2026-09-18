@@ -88,7 +88,7 @@ function visitExpressionAst(node: unknown, parent: unknown, dependencies: Set<st
 }
 
 function collectIdentifier(node: { name?: string }, parent: unknown, dependencies: Set<string>): void {
-	const name = node.name as string
+	const name = node.name!
 
 	// 跳过关键字和全局对象
 	if (KEYWORDS.has(name)) {
