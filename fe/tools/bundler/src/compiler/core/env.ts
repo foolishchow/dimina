@@ -732,7 +732,7 @@ function transSubDir(name: string): string {
 /**
  * 获取页面及其配置信息，并生成id（输出的 json 文件没有 id)
  */
-function getPages(): { mainPages: unknown[]; subPages: Record<string, unknown> } {
+function getPages(): { mainPages: Array<{ id: string; path: string; usingComponents?: Record<string, string>; [key: string]: unknown }>; subPages: Record<string, { info: Array<{ path: string; usingComponents?: Record<string, string>; [key: string]: unknown }> }> } {
 	if (isMiniGame()) {
 		return {
 			mainPages: [{
@@ -765,7 +765,7 @@ function getPages(): { mainPages: unknown[]; subPages: Record<string, unknown> }
 		}
 	})
 
-	const subPages: Record<string, unknown> = {}
+	const subPages: Record<string, { independent: boolean; info: Array<{ path: string; usingComponents?: Record<string, string>; [key: string]: unknown }>; [key: string]: unknown }> = {}
 	subPackages?.forEach((subPkg: { root: string; pages: string[]; independent?: boolean }) => {
 		const rootPath = subPkg.root.endsWith('/') ? subPkg.root : `${subPkg.root}/`
 		const independent = subPkg.independent ? subPkg.independent : false
@@ -891,10 +891,10 @@ function createInitialDependencyGraph(): DependencyGraph {
 			graph.addDependency(page.path, dependencyPath, 'component')
 		}
 	}
-	for (const page of pages.mainPages as { path: string; usingComponents?: Record<string, string> }[]) {
+	for (const page of pages.mainPages) {
 		addEntry(page, null)
 	}
-	for (const [packageRoot, subPackage] of Object.entries(pages.subPages as Record<string, { info: { path: string; usingComponents?: Record<string, string> }[] }>)) {
+	for (const [packageRoot, subPackage] of Object.entries(pages.subPages)) {
 		for (const page of subPackage.info) {
 			addEntry(page, packageRoot)
 		}
