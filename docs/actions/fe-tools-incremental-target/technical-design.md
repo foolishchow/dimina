@@ -69,8 +69,10 @@ export interface StagePlan {
 | 文件 | 当前 | 改后 |
 | --- | --- | --- |
 | `compile-target.ts` L25 | `const COMPILE_STAGE_ORDER = [...]` + L178 export | 不变（权威源） |
-| `compile-stages.ts` L1 | `const COMPILE_STAGE_ORDER = [...]` 本地 | 删，`import { COMPILE_STAGE_ORDER } from './compile-target.ts'` |
-| `invalidation.ts` L49 | `allStages = ['view','logic','style']` default | 删 default，`import { COMPILE_STAGE_ORDER }`，默认值用 import |
+| `compile-stages.ts` L1 | `const COMPILE_STAGE_ORDER = [...]` 本地；零 import | 删，`import { COMPILE_STAGE_ORDER } from './compile-target.ts'`（sibling，无循环） |
+| `invalidation.ts` L49 | `allStages = ['view','logic','style']` default；零 import | 删 default，`import { COMPILE_STAGE_ORDER } from '../compiler/pipeline/compile-target.ts'`，default 用 import |
+
+**结构性变更（F5）**：`compile-stages.ts` / `invalidation.ts` 当前零 import。新增 import 后 `invalidation.ts`（`model/`）→ `compile-target.ts`（`compiler/pipeline/`）形成新依赖边。`compile-target.ts` 不反向 import 这两文件，无循环。boundaries 落点表两文件均属 Scheme，Scheme→Scheme 允许。
 
 ## 5. S3 双函数说明（不统一，仅对齐词汇）
 
@@ -104,3 +106,4 @@ export interface StagePlan {
 | --- | --- |
 | 2026-09-14 | 草案：A/B 契约；待定 ①–④ |
 | 2026-09-19 | **冻结 v1**：D-IT-1..4 全拍板（A / 分门 / compile-target 单源 / dev-reload 自动对齐）；source audit 实锚 S1/S2/S3/S4/S9；filterPagesByEntries 搬入 derive + StagePlan 加 filteredPages |
+| 2026-09-19 | Review R1-R3（7 findings 全 low 全修正）：F1 标题漏 S4；F2 baseline 钉死 `0fad4128`；F3 补正向 grep；F4 补目标签名；F5 标注新依赖边；F6 P-IT02 全量/增量语义明确；F7 P-IT05 测文件改 `dev-reload.spec.js` |

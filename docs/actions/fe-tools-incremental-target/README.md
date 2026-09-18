@@ -22,7 +22,7 @@ watch-plan / compile-cache
                                 pipeline 私算 filterPagesByEntries → 传入
 ```
 
-Source audit 实锚（病症清单 **S1/S2/S3/S9**）：
+Source audit 实锚（病症清单 **S1/S2/S3/S4/S9**）：
 
 | # | 病症 | 代码实锚 |
 | --- | --- | --- |
