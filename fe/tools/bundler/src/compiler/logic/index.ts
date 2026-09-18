@@ -4,6 +4,8 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
+import type { Node } from 'oxc-parser'
+type AstNode = Node & { loc?: { start?: { line?: number } } }
 import type { TransformOptions } from 'esbuild'
 import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
@@ -222,7 +224,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 	const dependenciesToProcess: string[] = []
 
 	walk(ast, {
-		enter(node: any, parent: any) {
+		enter(node: AstNode, parent: Node | null) {
 			const wxMemberName = getWxMemberName(node)
 			if (wxMemberName) {
 				warnUnsupportedWxApi(

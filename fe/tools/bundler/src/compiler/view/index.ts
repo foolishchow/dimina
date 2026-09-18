@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseSync } from 'oxc-parser'
+import type { Program } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
@@ -71,27 +72,32 @@ function parseJs(code: string, filename = 'view-compiler.js', sourceType = 'modu
  * @param {*} ast - Oxc Program AST
  * @returns {string} Program code or the source of the single top-level expression.
  */
-function getProgramCode(code: string, ast: any): string {
+function getProgramCode(code: string, ast: Program): string {
 	const statement = ast.body?.[0]
 	if (ast.body?.length === 1 && statement?.type === 'ExpressionStatement') {
-		return code.slice(statement.expression.start, statement.expression.end)
+		const expr = statement.expression!
+		return code.slice(expr.start, expr.end)
 	}
 	return code
 }
-function isStringLiteral(node: any): boolean {
-	return node?.type === 'StringLiteral' || (node?.type === 'Literal' && typeof node.value === 'string')
+function isStringLiteral(node: unknown): boolean {
+	if (!node || typeof node !== 'object') return false
+	const n = node as { type?: string; value?: unknown }
+
+	return n.type === 'StringLiteral' || (n.type === 'Literal' && typeof n.value === 'string')
 }
-function getStringLiteralRawValue(node: any): string {
+function getStringLiteralRawValue(node: unknown): string {
 	if (!isStringLiteral(node)) {
 		return ''
 	}
+	const n = node as { raw?: unknown; value?: unknown }
 
-	if (typeof node.raw === 'string') {
-		return node.raw.slice(1, -1)
+	if (typeof n.raw === 'string') {
+		return n.raw.slice(1, -1)
 	}
-	return String(node.value)
+	return String(n.value)
 }
-function getSource(code: string, node: any): string {
+function getSource(code: string, node: { start: number; end: number }): string {
 	return code.slice(node.start, node.end)
 }
 function applyCodeReplacements(source: string, replacements: Array<{ start: number; end: number; newValue?: string; value?: string; type?: string }>) {
