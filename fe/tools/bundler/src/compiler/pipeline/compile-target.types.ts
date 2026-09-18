@@ -22,12 +22,37 @@ export interface CompileTarget {
 export interface LoadBindings {
 	miniGame: boolean
 	appId: string | undefined
-	pages: any
+	pages: PagesInfo
 	appStyleScopeId?: string | undefined
 }
 
+export interface PageModule {
+	id?: string
+	path: string
+	appStyleScopeId?: string
+	sharedStyleScopeIds?: string[]
+	usingComponents?: Record<string, string>
+	componentPlaceholder?: Record<string, unknown>
+	customTabBar?: unknown
+	[key: string]: unknown
+}
+export interface SubPackage {
+	independent: boolean
+	info: PageModule[]
+}
+export interface PagesInfo {
+	mainPages: PageModule[]
+	subPackages?: Array<{ root: string; pages: string[]; independent?: boolean }>
+	subPages: Record<string, SubPackage>
+	[key: string]: unknown
+}
+export interface StageSpec {
+	workerOptions: Record<string, unknown>
+	renderer: object | null
+}
 export interface StagePlan {
-	stages: object[]
-	workerOptions: object
-	paths?: object
+	stages: string[]
+	stageSpecs: Record<string, StageSpec>
+	sourcemapTargetPath: string
+	stylePages: PagesInfo
 }

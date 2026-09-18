@@ -14,7 +14,7 @@
  *
  * 「形态条件单源于 compile-target」：新增形态轴须经描述 + 派生，不得在闭包内散算。
  */
-import type { CompileTarget, LoadBindings } from './compile-target.types.js'
+import type { CompileTarget, LoadBindings, PagesInfo, StageSpec } from './compile-target.types.ts'
 
 import path from 'node:path'
 import { resolveCompileConfig } from '../../shared/compile-config.ts'
@@ -32,13 +32,8 @@ const STAGE_TITLES = Object.freeze({
 /**
  * 从单次 run 选项构建静态 CompileTarget（fail-fast，消息与改道前逐字一致）。
  */
-export function createCompileTarget(runOptions: any): CompileTarget {
-	const {
-		targetPath,
-		workPath,
-		useAppIdDir = true,
-		stages,
-	} = runOptions
+export function createCompileTarget(runOptions: Record<string, unknown>): CompileTarget {
+	const { targetPath, workPath, useAppIdDir = true, stages } = runOptions as { targetPath: string; workPath: string; useAppIdDir?: boolean; stages?: string[] }
 
 	if (stages !== undefined
 		&& (!Array.isArray(stages) || stages.some(stage => !COMPILE_STAGE_ORDER.includes(stage)))) {
@@ -82,22 +77,18 @@ export function readLoadBindings(): LoadBindings {
 	return {
 		miniGame: isMiniGame(),
 		appId: getAppId(),
-		pages: getPages(),
+		pages: getPages() as PagesInfo,
 		appStyleScopeId: getAppStyleScopeId(),
 	}
 }
 
-function assertLoadBindings(bindings: any): asserts bindings is LoadBindings {
-	// appId 可为 undefined（无 project.config appid 时与改道前 path.resolve 行为一致）
-	if (!bindings
-		|| typeof bindings !== 'object'
-		|| typeof bindings.miniGame !== 'boolean'
-		|| !('appId' in bindings)
-		|| bindings.pages == null
-		|| !('appStyleScopeId' in bindings)) {
-		throw new TypeError(
-			'deriveStagePlan: incomplete load bindings (call readLoadBindings after collect-config)',
-		)
+function assertLoadBindings(bindings: unknown): asserts bindings is LoadBindings {
+	if (!bindings || typeof bindings !== 'object') {
+		throw new TypeError('deriveStagePlan: incomplete load bindings (call readLoadBindings after collect-config)')
+	}
+	const b = bindings as Record<string, unknown>
+	if (typeof b.miniGame !== 'boolean' || !('appId' in b) || b.pages == null || !('appStyleScopeId' in b)) {
+		throw new TypeError('deriveStagePlan: incomplete load bindings (call readLoadBindings after collect-config)')
 	}
 }
 
@@ -106,11 +97,11 @@ function assertLoadBindings(bindings: any): asserts bindings is LoadBindings {
  *
  * `filteredPages` 为组装输入（affectedEntries 过滤结果），非 env；缺省回落 bindings.pages。
  */
-export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBindings, { cwd, filteredPages }: { cwd?: string, filteredPages?: any } = {}): {
+export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBindings, { cwd, filteredPages }: { cwd?: string, filteredPages?: PagesInfo } = {}): {
 	stages: string[]
-	stageSpecs: Record<string, any>
+	stageSpecs: Record<string, StageSpec>
 	sourcemapTargetPath: string
-	stylePages: any
+	stylePages: PagesInfo
 } {
 	assertLoadBindings(bindings)
 	if (typeof cwd !== 'string' || !cwd) {
@@ -143,7 +134,7 @@ export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBind
 	}
 
 	const { sourcemap, compileConfig, renderer } = compileTarget
-	const stageSpecs: Record<string, any> = {}
+	const stageSpecs: Record<string, StageSpec> = {}
 
 	if (stages.includes('view')) {
 		stageSpecs.view = {

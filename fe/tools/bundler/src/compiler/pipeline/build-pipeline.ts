@@ -15,6 +15,7 @@ import { Listr, PRESET_TIMER } from 'listr2'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from '../core/renderers.ts'
 import { createCompileTarget, deriveStagePlan, readLoadBindings, STAGE_TITLES } from './compile-target.ts'
+import type { PagesInfo, LoadBindings } from './compile-target.types.ts'
 import { createDist, publishToDist } from './publish.ts'
 import { artCode, resetAssetCache } from '../../shared/utils.ts'
 import { NpmBuilder } from '../core/npm-builder.ts'
@@ -161,9 +162,9 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 							(ctx as { pages: unknown }).pages = filterPagesByEntries((loadBindings as { pages: { mainPages: { path: string }[]; subPages: Record<string, { info: { path: string }[] }> } | null })?.pages as { mainPages: { path: string }[]; subPages: Record<string, { info: { path: string }[] }> }, affectedEntries);
 							(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings = new Set<string>()
 
-							const plan = deriveStagePlan(compileTarget, loadBindings as never, {
+							const plan = deriveStagePlan(compileTarget, loadBindings as LoadBindings, {
 								cwd: process.cwd(),
-								filteredPages: ctx.pages,
+								filteredPages: ctx.pages as PagesInfo,
 							})
 							const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
 								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]
