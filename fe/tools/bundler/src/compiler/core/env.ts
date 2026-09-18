@@ -360,7 +360,7 @@ function getContentByPath(path: string): string {
 }
 
 function parseContentByPath(path: string): Record<string, unknown> {
-	return JSON.parse(getContentByPath(path)) as Record<string, unknown>
+	return JSON.parse(getContentByPath(path))
 }
 
 /**
@@ -540,7 +540,7 @@ function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFile
 
 		// 只有当配置文件存在时才递归处理
 		if (cContent.usingComponents && Object.keys(cContent.usingComponents as Record<string, string>).length > 0) {
-			storeComponentConfig((configInfo.componentInfo!)[moduleId] as Record<string, unknown>, componentFilePath)
+			storeComponentConfig(configInfo.componentInfo![moduleId], componentFilePath)
 		}
 	}
 }

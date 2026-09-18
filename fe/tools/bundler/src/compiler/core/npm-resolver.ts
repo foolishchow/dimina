@@ -237,7 +237,7 @@ class NpmResolver {
 		}
 
 		try {
-			const packageInfo = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as Record<string, unknown>
+			const packageInfo = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
 			this.packageCache.set(cacheKey, packageInfo)
 			return packageInfo
 		} catch (e) {
