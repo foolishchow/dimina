@@ -41,7 +41,6 @@ import { emitEntry } from '../pipeline/emit.ts'
 
 // TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）
 if (!getWxmlRenderer(VUE_RENDERER_ID)) {
-	// @ts-expect-error P-TM05: type narrowing needed
 	registerWxmlRenderer(vueWxmlRenderer)
 }
 
@@ -1557,18 +1556,18 @@ function insertWxsToRenderResult(code, scriptModule, scriptRes, filename = 'rend
 
 // W1 live bindings — break index ↔ load / vue renderer tools cycles (bodies stay in modules)
 bindVueToolsLive({
-	transformTextInterpolation,
-	isWrappedByBraces,
-	parseBraceExp,
-	parseSafeBraceExp,
-	parseForExp,
-	getForItemName,
-	getForIndexName,
-	parseKeyExpression,
-	parseClassRules,
-	parseTemplateDataExp,
-	escapeQuotes,
-	insertWxsToRenderResult,
+	transformTextInterpolation: transformTextInterpolation as never,
+	isWrappedByBraces: isWrappedByBraces as never,
+	parseBraceExp: parseBraceExp as never,
+	parseSafeBraceExp: parseSafeBraceExp as never,
+	parseForExp: parseForExp as never,
+	getForItemName: getForItemName as never,
+	getForIndexName: getForIndexName as never,
+	parseKeyExpression: parseKeyExpression as never,
+	parseClassRules: parseClassRules as never,
+	parseTemplateDataExp: parseTemplateDataExp as never,
+	escapeQuotes: escapeQuotes as never,
+	insertWxsToRenderResult: insertWxsToRenderResult as never,
 })
 bindTransformOrchestrator({
 	transTagWxs,

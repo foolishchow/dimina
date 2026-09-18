@@ -89,7 +89,7 @@ export function compileTemplateModuleRender(tm: { path: string; tpl: string; sou
 	})
 	const result = {
 		path: tm.path,
-		...insertWxsToRenderResult(compiledTemplate.code, scriptModule, scriptRes, tm.path, compiledTemplate.map),
+		...insertWxsToRenderResult!(compiledTemplate.code, scriptModule, scriptRes, tm.path, compiledTemplate.map),
 	}
 	templateRenderCache.set(cacheKey, result)
 	return result
@@ -214,7 +214,7 @@ export function transHtmlTag(html: string, res: string[], components: Record<str
 				res.push(transTag({ isStart: true, tag, attrs, components, componentPlaceholder }))
 			},
 			ontext(text) {
-				res.push(transformTextInterpolation(text))
+				res.push(transformTextInterpolation!(text))
 			},
 			onclosetag(tag: string) {
 				res.push(transTag({ tag, attrs: attrsList.pop(), components }))
@@ -273,7 +273,7 @@ export function transTag(opts: { isStart?: boolean; tag: string; attrs?: Record<
 	const multipleSlots = attrs?.slot ?? ''
 	if (attrs?.slot) {
 		// 检查是否为动态插槽（slot 属性值被 {{}} 包裹）
-		const isDynamicSlot = isWrappedByBraces(multipleSlots)
+		const isDynamicSlot = isWrappedByBraces!(multipleSlots)
 
 		if (isStart) {
 			// 如果存在 if/else 属性，则需要转移到 template 中
@@ -331,9 +331,9 @@ export function transTag(opts: { isStart?: boolean; tag: string; attrs?: Record<
  * @returns {string} 生成的slot指令
  */
 export function generateSlotDirective(slotValue: string): string {
-	if (isWrappedByBraces(slotValue)) {
+	if (isWrappedByBraces!(slotValue)) {
 		// 动态 slot 值，使用 v-slot 指令
-		const slotExpression = parseBraceExp(slotValue)
+		const slotExpression = parseBraceExp!(slotValue)
 		return `#[${slotExpression}]`
 	} else {
 		// 静态 slot 值，使用命名插槽语法
@@ -378,13 +378,13 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 		if (templateDirective === 'if') {
 			attrsList.push({
 				name: 'v-if',
-				value: parseSafeBraceExp(value),
+				value: parseSafeBraceExp!(value),
 			})
 		}
 		else if (templateDirective === 'elif') {
 			attrsList.push({
 				name: 'v-else-if',
-				value: parseSafeBraceExp(value),
+				value: parseSafeBraceExp!(value),
 			})
 		}
 		else if (templateDirective === 'else') {
@@ -396,21 +396,21 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 		else if (templateDirective === 'for' || templateDirective === 'for-items') {
 			attrsList.push({
 				name: 'v-for',
-				value: parseForExp(value, attrs),
+				value: parseForExp!(value, attrs),
 			})
 		}
 		else if (templateDirective === 'for-item' || templateDirective === 'for-index') {
 			// do noting
 		}
 		else if (templateDirective === 'key') {
-			const tranValue = parseKeyExpression(value, getForItemName(attrs), getForIndexName(attrs))
+			const tranValue = parseKeyExpression!(value, getForItemName!(attrs), getForIndexName!(attrs))
 			attrsList.push({
 				name: ':key',
 				value: tranValue,
 			})
 		}
 		else if (name === 'style') {
-			const parsedStyle = parseSafeBraceExp(value)
+			const parsedStyle = parseSafeBraceExp!(value)
 			// 内联样式
 			attrsList.push({
 				name: 'v-c-style',
@@ -424,16 +424,16 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 					name: ':dimina-wxml-style',
 					value: parsedStyle,
 				})
-				if (isWrappedByBraces(value) && parsedStyle) {
+				if (isWrappedByBraces!(value) && parsedStyle) {
 					propBindings.style = parsedStyle
 				}
 			}
 		}
 		else if (name === 'class') {
-			if (isWrappedByBraces(value)) {
+			if (isWrappedByBraces!(value)) {
 				attrsList.push({
 					name: ':class',
-					value: parseClassRules(value),
+					value: parseClassRules!(value),
 				})
 			}
 			else {
@@ -451,7 +451,7 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 		else if (name === 'is' && tag === 'component') {
 			attrsList.push({
 				name: ':is',
-				value: '\'dd-\'+' + `${parseSafeBraceExp(value)}`,
+				value: '\'dd-\'+' + `${parseSafeBraceExp!(value)}`,
 			})
 		}
 		else if (name === 'animation' && (tag !== 'movable-view' && tagWhiteList.includes(tag))) {
@@ -459,13 +459,13 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 			// 自定义组件的属性有可能是 animation，所以只在普通组件节点生效
 			attrsList.push({
 				name: 'v-c-animation',
-				value: parseSafeBraceExp(value),
+				value: parseSafeBraceExp!(value),
 			})
 		}
 		else if ((name === 'value' && (tag === 'input' || tag === 'textarea'))
 			|| ((name === 'x' || name === 'y') && tag === 'movable-view')
 		) {
-			const parsedValue = parseSafeBraceExp(value)
+			const parsedValue = parseSafeBraceExp!(value)
 			const conditionExp = generateVModelTemplate(parsedValue)
 			if (conditionExp) {
 				// v-model 不支持表达式
@@ -487,7 +487,7 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 			}
 		}
 		else if (name.startsWith('data-')) {
-			if (isWrappedByBraces(value)) {
+			if (isWrappedByBraces!(value)) {
 				attrsList.push({
 					name: 'v-c-data',
 					value: '',
@@ -495,7 +495,7 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 
 				attrsList.push({
 					name: `:${name}`,
-					value: parseSafeBraceExp(value),
+					value: parseSafeBraceExp!(value),
 				})
 			}
 			else {
@@ -505,10 +505,10 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 				})
 			}
 		}
-		else if (isWrappedByBraces(value)) {
+		else if (isWrappedByBraces!(value)) {
 			const pVal = tag === 'template' && name === 'data'
-				? parseTemplateDataExp(value)
-				: parseSafeBraceExp(value)
+				? parseTemplateDataExp!(value)
+				: parseSafeBraceExp!(value)
 
 			// 如果是自定义组件的属性绑定，记录绑定关系
 			if (isCustomComponent) {
@@ -548,7 +548,7 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 		}
 		else {
 			// 统一转义属性值，避免生成的 Vue 模板被值中的引号截断。
-			propsRes.push(`${name}="${escapeQuotes(value)}"`)
+			propsRes.push(`${name}="${escapeQuotes!(value)}"`)
 		}
 	})
 

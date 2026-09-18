@@ -30,20 +30,16 @@ function loadCache() {
 	}
 	return { version: 0, apps: {}, compilerLastModified: 0 }
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function saveCache(cache) {
+function saveCache(cache: Record<string, unknown>) {
 	fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2))
 }
 
-function parseOptions(argv = process.argv.slice(2)) {
+function parseOptions(argv: string[] = process.argv.slice(2)): { force: boolean } {
 	return {
 		force: argv.includes('--force') || argv.includes('-f') || argv.includes('force'),
 	}
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function isModified(dirPath, lastCompileTime) {
+function isModified(dirPath: string, lastCompileTime: number): boolean {
 	const files = fs.readdirSync(dirPath)
 	for (const file of files) {
 		const filePath = path.join(dirPath, file)
@@ -59,14 +55,10 @@ function isModified(dirPath, lastCompileTime) {
 	}
 	return false
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function isCompilerModified(lastCompileTime) {
+function isCompilerModified(lastCompileTime: number): boolean {
 	return isModified(COMPILER_SRC_DIR, lastCompileTime)
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function readAppId(workPath) {
+function readAppId(workPath: string): string | null {
 	const projectConfigPath = path.join(workPath, 'project.config.json')
 	if (!fs.existsSync(projectConfigPath)) {
 		return null
@@ -77,15 +69,12 @@ function readAppId(workPath) {
 		return projectConfig.appid || null
 	}
 	catch (error) {
-		// @ts-expect-error P-TM06: type narrowing needed
-		console.warn(`读取 ${projectConfigPath} 失败:`, error.message)
+		console.warn(`读取 ${projectConfigPath} 失败:`, (error as Error).message)
 		return null
 	}
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function assertUniqueAppIds(exampleRoot, directories) {
-	const appIdMap = new Map()
+function assertUniqueAppIds(exampleRoot: string, directories: string[]): void {
+	const appIdMap = new Map<string, string[]>()
 
 	for (const directory of directories) {
 		const workPath = path.join(exampleRoot, directory)
@@ -110,9 +99,7 @@ function assertUniqueAppIds(exampleRoot, directories) {
 
 	throw new Error(`检测到重复的 appid，批量编译会覆盖产物:\n${detail}`)
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-async function cleanUpOldApps(targetPath, appList) {
+async function cleanUpOldApps(targetPath: string, appList: Array<{ appId: string }>): Promise<void> {
 	try {
 		// 清理目标目录
 		const targetDirs = fs.readdirSync(targetPath, { withFileTypes: true })
@@ -120,7 +107,6 @@ async function cleanUpOldApps(targetPath, appList) {
 			.map(dirent => dirent.name)
 
 		// 从appList中提取所有appId
-		// @ts-expect-error P-TM06: type narrowing needed
 		const validAppIds = appList.map(app => app.appId)
 
 		for (const dir of targetDirs) {
@@ -147,8 +133,7 @@ async function cleanUpOldApps(targetPath, appList) {
 	}
 }
 
-async function buildMiniApp(options = {}) {
-	// @ts-expect-error P-TM06: type narrowing needed
+async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 	const { force = false } = options
 	const cache = loadCache()
 
@@ -165,29 +150,28 @@ async function buildMiniApp(options = {}) {
 
 	assertUniqueAppIds(EXAMPLE_ROOT, directories)
 
-	const appList = []
+	const appList: Array<{ appId: string }> = []
 	for (const fileName of directories) {
 		const workPath = path.join(EXAMPLE_ROOT, fileName)
 
-		const cacheEntry = cache.apps[fileName]
+		const cacheEntry = (cache.apps as Record<string, any>)[fileName]
 		const publishedPath = cacheEntry?.appInfo?.appId
 			? path.join(TARGET_PATH, cacheEntry.appInfo.appId)
 			: null
-		const plan = compilerModified || !publishedPath
+		const plan: { mode: string; options: Record<string, unknown>; fileFingerprints?: unknown } = compilerModified || !publishedPath
 			? { mode: 'full', options: {} }
-			: createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath })
+			: createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }) as { mode: string; options: Record<string, unknown>; fileFingerprints?: unknown }
 
 		if (plan.mode === 'skip') {
-			cacheEntry.fileFingerprints = plan.fileFingerprints
+			cacheEntry.fileFingerprints = plan.fileFingerprints as any
 			appList.push(cacheEntry.appInfo)
 		}
 		else {
-			// @ts-expect-error P-TM06: type narrowing needed
 			const buildResult = await build(TARGET_PATH, workPath, true, plan.options)
-			const nextCacheEntry = createAppCacheEntry(
-				buildResult,
+			const nextCacheEntry: Record<string, any> = createAppCacheEntry(
+				buildResult as Record<string, unknown>,
 				workPath,
-				cacheEntry?.fileFingerprints,
+				(cacheEntry as { fileFingerprints?: Record<string, any> } | undefined)?.fileFingerprints,
 			)
 			cache.apps[fileName] = nextCacheEntry
 			appList.push(nextCacheEntry.appInfo)
@@ -208,7 +192,7 @@ async function buildMiniApp(options = {}) {
 	await cleanUpOldApps(TARGET_PATH, appList)
 
 	// 清理缓存中不存在的应用配置
-	const cacheFileNames = Object.keys(cache.apps)
+	const cacheFileNames = Object.keys(cache.apps as Record<string, unknown>)
 	for (const fileName of cacheFileNames) {
 		if (!directories.includes(fileName)) {
 			delete cache.apps[fileName]
@@ -222,9 +206,7 @@ async function buildMiniApp(options = {}) {
 	// 保存更新后的缓存
 	saveCache(cache)
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function getLastCompileTime(data, appId) {
+function getLastCompileTime(data: { apps: Record<string, { appInfo: { appId: string }; lastCompileTime: number }> }, appId: string): number {
 	for (const key in data.apps) {
 		if (data.apps[key].appInfo.appId === appId) {
 			return data.apps[key].lastCompileTime
@@ -233,7 +215,7 @@ function getLastCompileTime(data, appId) {
 	return 0 // 如果找不到对应的 appId
 }
 
-buildMiniApp(parseOptions()).catch((error) => {
-	console.error(error.stack || error.message)
+buildMiniApp(parseOptions()).catch((error: unknown) => {
+	console.error((error as Error).stack || (error as Error).message)
 	process.exitCode = 1
 })

@@ -19,6 +19,8 @@ import {
 	attrsFromRecord,
 } from '../common/document.ts'
 import { bindDocument } from '../common/document-ops.ts'
+import type { WxmlDocument } from '../common/wxml-ir.types.ts'
+import type { WxmlNode } from '../common/document.ts'
 
 /** 与今日 view-compiler 主解析一致的 cheerio 选项（保真投影） */
 export const PARSE_OPTIONS = Object.freeze({
@@ -36,20 +38,17 @@ export const PARSE_OPTIONS = Object.freeze({
  * @param {{ sourceFile?: string }} [options]
  * @returns {import('../common/wxml-ir.types.ts').WxmlDocument}
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function parseWxml(source, options = {}) {
-	// @ts-expect-error P-TM05: type narrowing needed
+export function parseWxml(source: string, options: { sourceFile?: string } = {}): WxmlDocument {
 	const { sourceFile } = options
 	if (typeof source !== 'string') {
 		throw new TypeError(`[wxml] parse: source must be a string${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`)
 	}
-	let $
+	let $: unknown
 	try {
 		$ = cheerio.load(source, PARSE_OPTIONS)
 	}
 	catch (error) {
-		// @ts-expect-error P-TM05: type narrowing needed
-		throw new Error(`[wxml] parse failed: ${error?.message || error}${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`, { cause: error })
+		throw new Error(`[wxml] parse failed: ${(error as Error)?.message || error}${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`, { cause: error as Error })
 	}
 	return projectDocument($, { sourceFile })
 }
@@ -57,19 +56,15 @@ export function parseWxml(source, options = {}) {
 /**
  * cheerio 实例 → 标准 Document（投影后丢弃 cheerio 句柄）。
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function projectDocument($, { sourceFile } = {}) {
-	const body = projectChildren($.root().contents().toArray(), sourceFile)
-	const document = createDocument({ body, sourceFile, span: null })
+export function projectDocument($: unknown, { sourceFile }: { sourceFile?: string } = {}): WxmlDocument {
+	const body = projectChildren(($ as { root: () => { contents: () => { toArray: () => unknown[] } } }).root().contents().toArray(), sourceFile)
+	const document = createDocument({ body, sourceFile, span: null }) as unknown as WxmlDocument
 	bindDocument(document)
 	return document
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function projectChildren(elems, sourceFile) {
-	const out = []
+function projectChildren(elems: unknown[], sourceFile?: string): WxmlNode[] {
+	const out: WxmlNode[] = []
 	for (const elem of elems) {
-		// @ts-expect-error P-TM05: type narrowing needed
 		const node = projectNode(elem, sourceFile)
 		if (node) {
 			out.push(node)
@@ -77,33 +72,30 @@ function projectChildren(elems, sourceFile) {
 	}
 	return out
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function projectNode(elem, sourceFile) {
-	if (!elem || elem.type === 'root') {
+function projectNode(elem: unknown, sourceFile?: string): WxmlNode | null {
+	if (!elem || (elem as { type?: string }).type === 'root') {
 		return null
 	}
 	const loc = nodeLoc(elem)
-	if (elem.type === 'text') {
-		const value = elem.data ?? ''
+	if ((elem as { type?: string }).type === 'text') {
+		const value = (elem as { data?: string }).data ?? ''
 		if (value === '') {
 			return null
 		}
 		return createTextNode({ value, loc, sourceFile })
 	}
-	if (elem.type === 'comment') {
-		return createCommentNode({ value: elem.data ?? '', loc, sourceFile })
+	if ((elem as { type?: string }).type === 'comment') {
+		return createCommentNode({ value: (elem as { data?: string }).data ?? '', loc, sourceFile })
 	}
-	if (elem.type === 'directive' || elem.type === 'script' || elem.type === 'style') {
-		return createTextNode({ value: elem.data ?? '', loc, sourceFile })
+	if ((elem as { type?: string }).type === 'directive' || (elem as { type?: string }).type === 'script' || (elem as { type?: string }).type === 'style') {
+		return createTextNode({ value: (elem as { data?: string }).data ?? '', loc, sourceFile })
 	}
 
-	const name = elem.tagName ?? elem.name
+	const name = (elem as { tagName?: string; name?: string }).tagName ?? (elem as { name?: string }).name
 	const attrRecord = elementAttrs(elem)
 	const attrs = attrsFromRecord(attrRecord)
-	// @ts-expect-error P-TM05: type narrowing needed
-	const children = projectChildren(elem.children || [], sourceFile)
-	const selfClosing = Boolean(elem.selfClosing)
+	const children = projectChildren((elem as { children?: unknown[] }).children || [], sourceFile)
+	const selfClosing = Boolean((elem as { selfClosing?: boolean }).selfClosing)
 
 	return classifyElement({
 		name,
@@ -115,10 +107,8 @@ function projectNode(elem, sourceFile) {
 		selfClosing,
 	})
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function classifyElement({ name, attrs, attrRecord, children, loc, sourceFile, selfClosing }) {
-	const common = { attrs, children, loc, span: loc, sourceFile, selfClosing }
+function classifyElement({ name, attrs, attrRecord, children, loc, sourceFile, selfClosing }: { name: string | undefined; attrs: ReturnType<typeof attrsFromRecord>; attrRecord: Record<string, string>; children: WxmlNode[]; loc: { start: number; end: number } | null; sourceFile?: string; selfClosing: boolean }): WxmlNode {
+	const common = { attrs, children, loc, span: loc, sourceFile, selfClosing } as unknown as Record<string, unknown>
 	if (name === 'include') {
 		return createInclude({ ...common, src: attrRecord.src })
 	}
@@ -152,13 +142,11 @@ function classifyElement({ name, attrs, attrRecord, children, loc, sourceFile, s
 		slot: null,
 	})
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function elementAttrs(elem) {
-	const attrs = {}
-	if (elem.attribs) {
-		for (const [key, value] of Object.entries(elem.attribs)) {
-			// @ts-expect-error P-TM05: type narrowing needed
+function elementAttrs(elem: unknown): Record<string, string> {
+	const attrs: Record<string, string> = {}
+	const attribs = (elem as { attribs?: Record<string, string> }).attribs
+	if (attribs) {
+		for (const [key, value] of Object.entries(attribs)) {
 			attrs[key] = value
 		}
 	}
@@ -166,10 +154,9 @@ function elementAttrs(elem) {
 }
 
 /** htmlparser2 startIndex/endIndex（闭）→ 半开 loc/span */
-// @ts-expect-error P-TM05: type narrowing needed
-function nodeLoc(elem) {
-	const start = typeof elem.startIndex === 'number' ? elem.startIndex : null
-	const end = typeof elem.endIndex === 'number' ? elem.endIndex + 1 : null
+function nodeLoc(elem: unknown): { start: number; end: number } | null {
+	const start = typeof (elem as { startIndex?: number }).startIndex === 'number' ? (elem as { startIndex?: number }).startIndex! : null
+	const end = typeof (elem as { endIndex?: number }).endIndex === 'number' ? (elem as { endIndex?: number }).endIndex! + 1 : null
 	if (start === null || end === null) {
 		return null
 	}

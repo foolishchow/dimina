@@ -5,40 +5,35 @@
  * 不得经投影工具句柄访问树。
  */
 import { getRootChildren, getSourceOrigin, serialize } from '../../common/document-ops.ts'
+import type { WxmlNode } from '../../common/document.ts'
+import type { LoadedGraph } from '../../common/wxml-ir.types.ts'
 
 export const VUE_RENDERER_ID = 'vue'
 
 /**
  * 展开后 Document → 行源表（html 行 → {source, line}；跨文件归位）。
  */
-// @ts-expect-error P-TM05: type narrowing needed
-function buildLineOrigins(document, { sourceFile, sourceTexts }) {
+function buildLineOrigins(document: WxmlNode, { sourceFile, sourceTexts }: { sourceFile: string | null | undefined; sourceTexts: Map<string, string> | undefined }): Array<{ source: string | null | undefined; line: number }> {
 	const html = serialize(document)
 	const totalLines = html.split('\n').length
-	const origins = new Array(totalLines)
+	const origins: Array<{ source: string | null | undefined; line: number }> = new Array(totalLines)
 	const WIR_SRC = Symbol.for('db.wxml-bridge.source')
-
-	// @ts-expect-error P-TM05: type narrowing needed
-	const originFor = (node) => {
+	const originFor = (node: WxmlNode) => {
 		const { source, line } = getSourceOrigin(node, {
-			sourceFile,
+			sourceFile: sourceFile ?? undefined,
 			sourceTexts,
 			originKey: WIR_SRC,
 		})
 		return { source, line }
 	}
-
-	// @ts-expect-error P-TM05: type narrowing needed
-	const lineOfOffset = (offset) => {
+	const lineOfOffset = (offset: number) => {
 		let line = 1
 		for (let i = 0; i < offset && i < html.length; i++) {
 			if (html.charCodeAt(i) === 10) line++
 		}
 		return line
 	}
-
-	// @ts-expect-error P-TM05: type narrowing needed
-	const walkElems = (elems, searchPos) => {
+	const walkElems = (elems: WxmlNode[], searchPos: number) => {
 		for (const elem of elems) {
 			if (!elem || elem.type === 'text' || elem.type === 'comment') {
 				continue
@@ -75,14 +70,12 @@ function buildLineOrigins(document, { sourceFile, sourceTexts }) {
 	}
 	return origins
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function buildSourceContents(sourceTexts) {
-	const out = new Map()
+function buildSourceContents(sourceTexts: Map<string, string> | undefined): Map<string, string> {
+	const out = new Map<string, string>()
 	if (!sourceTexts) {
 		return out
 	}
-	for (const [src, content] of sourceTexts) {
+	for (const [src, content] of sourceTexts.entries()) {
 		if (typeof content === 'string') {
 			out.set(src, content)
 		}
@@ -94,9 +87,7 @@ function buildSourceContents(sourceTexts) {
  * @param {{ loaded: object }} input LoadedGraph（标准 Document + sourceTexts）
  * @param {object} ctx WxmlRendererContext（components / componentPlaceholder / tools）
  */
-// @ts-expect-error P-TM05: type narrowing needed
-function render({ loaded }, ctx = {}) {
-	// @ts-expect-error P-TM05: type narrowing needed
+function render({ loaded }: { loaded?: LoadedGraph }, ctx: { components?: Record<string, unknown>; componentPlaceholder?: Record<string, unknown>; tools?: { transHtmlTag: (html: string, res: string[], components: Record<string, unknown>, componentPlaceholder?: Record<string, unknown>) => void; normalizeTemplateDom?: (document: WxmlNode, components: Record<string, unknown>) => void } } = {}) {
 	const { components = {}, componentPlaceholder, tools } = ctx
 	if (!loaded || !Array.isArray(loaded.body)) {
 		throw new TypeError('[wxml] vue wxml renderer: LoadedGraph document body is missing — render must consume a LoadedGraph, not raw WXML source')
@@ -106,20 +97,16 @@ function render({ loaded }, ctx = {}) {
 	}
 	const { normalizeTemplateDom } = tools
 	if (typeof normalizeTemplateDom === 'function') {
-		normalizeTemplateDom(loaded, components)
+		normalizeTemplateDom(loaded as unknown as WxmlNode, components)
 	}
 
-	const html = serialize(loaded)
-	const lineOrigins = buildLineOrigins(loaded, {
+	const html = serialize(loaded as unknown as WxmlNode)
+	const lineOrigins = buildLineOrigins(loaded as unknown as WxmlNode, {
 		sourceFile: loaded.sourceFile ?? 'index.wxml',
 		sourceTexts: loaded.sourceTexts,
 	})
-
-	// @ts-expect-error P-TM05: type narrowing needed
-	const res = []
-	// @ts-expect-error P-TM05: type narrowing needed
+	const res: string[] = []
 	tools.transHtmlTag(html, res, components, componentPlaceholder)
-	// @ts-expect-error P-TM05: type narrowing needed
 	const code = res.join('')
 
 	const hasCrossFile = lineOrigins.some(o => o.source !== (loaded.sourceFile ?? 'index.wxml'))
