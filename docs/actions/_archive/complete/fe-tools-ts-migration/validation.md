@@ -1,6 +1,6 @@
 # Validation — fe-tools-ts-migration
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 ## V-TM00 — baseline 记录
 
@@ -159,13 +159,49 @@ node pnpm.mjs run build 2>&1 | tail -1  # tsc strict OK
 node pnpm.mjs exec tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | wc -l  # 0
 ```
 
+## V-TM09 — 深度类型化 + lint（TH-1~9 + tsconfig strict lint）
+
+```bash
+cd fe/tools/bundler
+# 深度类型化：274→29 硬类型（89.4% 消除）
+grep -rn 'as never\|as unknown as\|as string\|as Record<string\|as Error\|as any\|: any\b\|: Function\|@ts-expect-error' src/ --include='*.ts' | grep -v 'Record<string, any>' | grep -v 'was never' | wc -l  # 29
+
+# 分类明细
+# as never: 0 ✓ | as unknown as: 1 | as string: 10
+# as Record: 15 | as Error: 0 ✓ | as any: 0 ✓
+# : any: 0 ✓ | : Function: 0 ✓ | @ts-expect-error: 3
+
+# tsconfig strict lint（5 类选项启用）
+grep -E 'noUnusedLocals|noUnusedParameters|noFallthroughCasesInSwitch|noImplicitReturns|noImplicitOverride' tsconfig.json | wc -l  # 5
+
+# tsc build（含 lint 自动检查）
+node pnpm.mjs exec tsc -p tsconfig.build.json 2>&1 | grep 'error TS' | wc -l  # 0
+
+# tsc --noEmit 含显式 lint 选项
+node pnpm.mjs exec tsc --noEmit --noUnusedLocals --noUnusedParameters --noFallthroughCasesInSwitch --noImplicitReturns --noImplicitOverride -p tsconfig.build.json 2>&1 | grep 'error TS' | wc -l  # 0
+
+# 产物 diff=0 + vitest 584/584
+node --experimental-strip-types /tmp/wr-gen-p06.mjs 2>&1 | tail -1  # 写入编译产物
+for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p06-$name/out && echo "$name ✓"; done  # 4× ✓
+node pnpm.mjs exec vitest run 2>&1 | grep -E 'Test Files|Tests '  # 584/584
+```
+
+### 深度类型化 commit 链
+
+| 阶段 | commit | 内容 |
+| --- | --- | --- |
+| P-TM08 阶段 1-5 | `45a32050→1a594018→56714042→301a34b2→c9c5f47b` | 556→3 @ts-expect-error |
+| TH-1~9 | `e06cebf8` | 274→61 硬类型（as never/Error/any/Function 全清零） |
+| 深度续 | `f53e7f01→22ff486c→2fdc8d05→ddd8552b→1b598c4f→803fe0d7→12416f87` | 61→29（ErrorShape/ComparisonNode/AstNode/typeof 守卫/String() 转换） |
+| lint | `b27ea8a3` | tsconfig 5 类 strict lint + 35 处存量修复 |
+
 ## 验证映射
 
 | A-TM | V-TM | 证据 |
 | --- | --- | --- |
-| A-TM0 | V-TM08 | find 零 .js in src |
-| A-TM1 | V-TM08 | grep 零 .js import in src |
-| A-TM2 | V-TM07 | __tests__ import .ts |
-| A-TM3 | V-TM08 | diff=0 + 584/584 + tsc |
-| A-TM4 | V-TM08 | grep strip-types |
-| A-TM5 | V-TM08 | grep 零 @typedef + 零 any + tsc strict |
+| A-TM0 | V-TM08 | find 零 .js in src ✓ |
+| A-TM1 | V-TM08 | grep 零 .js import in src ✓ |
+| A-TM2 | V-TM07 | __tests__ import .ts ✓ |
+| A-TM3 | V-TM08+V-TM09 | diff=0 ×4 + 584/584 + tsc 0 错 ✓ |
+| A-TM4 | V-TM08 | grep strip-types ✓ |
+| A-TM5 | V-TM08+V-TM09 | 零 @typedef + 零 any + tsc strict + 274→29 硬类型 + lint 0 错 ✓ |

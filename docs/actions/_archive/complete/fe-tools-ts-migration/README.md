@@ -1,10 +1,10 @@
 # fe-tools-ts-migration
 
 - Action: `fe-tools-ts-migration`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-16
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-worker-runtime`](../_archive/complete/fe-tools-worker-runtime/README.md)（worker-runtime 新增 9 .js 文件，触发全仓 TS 迁移动机）；`fe-tools-bundler-tsc-dist`（D-TD-20 .js→.ts 隐式映射限制 + tsc rewrite 配置）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-worker-runtime`](../fe-tools-worker-runtime/README.md)（worker-runtime 新增 9 .js 文件，触发全仓 TS 迁移动机）；`fe-tools-bundler-tsc-dist`（D-TD-20 .js→.ts 隐式映射限制 + tsc rewrite 配置）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md) · [research](research.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -69,6 +69,22 @@ worker-entry × 3 + worker-runtime × 6（worker strip-types 已注入）。
 - V-TM00..08 验证流程完整闭环
 - 类型化难点 9 类全列（F37~F71）
 - 待授权实施（P-TM00 → P-TM08）
+
+## 交付摘要
+
+**72 .js → .ts 全量迁移完成**（src/compiler 41 + shared/model/session/watch/dev/bin/根 31）。import 后缀全链路显式 .ts。行为 0（4 组 diff=0 + 584/584 + tsc 0 错）。
+
+**深度类型化**（TH-1~9 + 续）：274→29 硬类型断言（89.4% 消除）；`as never`/`as Error`/`as any`/`: any`/`: Function` 全清零。剩余 29 处为 TS 语言限制（Proxy key、unknown→Record 无索引签名）或第三方库类型问题。
+
+**lint 增强**：tsconfig 新增 5 类 strict lint 选项（`noUnusedLocals`/`noUnusedParameters`/`noFallthroughCasesInSwitch`/`noImplicitReturns`/`noImplicitOverride`）；35 处存量 lint 问题全修复。tsc build 自动执行 lint 检查，0 错。
+
+**@ts-expect-error**：556→3（99.5% 清理）。剩 3 个在 config-compiler.ts（TS 7.0.2 type narrowing 边缘 case）。
+
+**新增类型/接口**：`ConfigInfo`/`PathInfo`/`PageConfig`/`ComponentConfig`（env.ts）、`RendererAdapter`（build-pipeline.ts）、`EnhancedError`/`StyleCompileError`/`HttpProxyError`/`errorMessage()`/`errorStack()`（shared/utils.ts）、`ErrorShape`（view/index.ts）、`ComparisonNode`（parity.ts）、`AstNode`（logic/index.ts）、`GraphSnapshot`（dependency-graph.ts）、ambient `less.d.ts`。
+
+Close 复验 commit `b124f84c`：tsc 0 错 + 584/584 + 4 组 diff=0。
+
+剩余技术债记录于 TODO「Bundler lint 增强」候选（noUncheckedIndexedAccess 63 错 / ESLint 语义规则 / forceConsistentCasingInFileNames）。
 
 ## 决策状态
 
