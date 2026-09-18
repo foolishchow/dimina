@@ -176,7 +176,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]
 								return createStageTask(
 									stage,
-									(STAGE_TITLES as Record<string, string>)[stage],
+									STAGE_TITLES[stage],
 									lifecycle,
 									spec.workerOptions,
 									spec.renderer as RendererAdapter | null,

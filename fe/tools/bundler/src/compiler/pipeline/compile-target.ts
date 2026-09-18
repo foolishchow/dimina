@@ -23,7 +23,7 @@ import { getAppId, getAppStyleScopeId, getPages, isMiniGame } from '../core/env.
 import { getRenderer, resolveProjectRenderers } from '../core/renderers.ts'
 
 const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
-const STAGE_TITLES = Object.freeze({
+const STAGE_TITLES: Record<string, string> = Object.freeze({
 	view: '编译视图',
 	logic: '编译逻辑',
 	style: '编译样式',

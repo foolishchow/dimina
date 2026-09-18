@@ -154,7 +154,7 @@ async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 	for (const fileName of directories) {
 		const workPath = path.join(EXAMPLE_ROOT, fileName)
 
-		const cacheEntry = (cache.apps as Record<string, any>)[fileName]
+		const cacheEntry = cache.apps[fileName]
 		const publishedPath = cacheEntry?.appInfo?.appId
 			? path.join(TARGET_PATH, cacheEntry.appInfo.appId)
 			: null
@@ -169,7 +169,7 @@ async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 		else {
 			const buildResult = await build(TARGET_PATH, workPath, true, plan.options)
 			const nextCacheEntry: Record<string, any> = createAppCacheEntry(
-				buildResult as Record<string, unknown>,
+				buildResult,
 				workPath,
 				(cacheEntry as { fileFingerprints?: Record<string, any> } | undefined)?.fileFingerprints,
 			)
@@ -192,7 +192,7 @@ async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 	await cleanUpOldApps(TARGET_PATH, appList)
 
 	// 清理缓存中不存在的应用配置
-	const cacheFileNames = Object.keys(cache.apps as Record<string, unknown>)
+	const cacheFileNames = Object.keys(cache.apps)
 	for (const fileName of cacheFileNames) {
 		if (!directories.includes(fileName)) {
 			delete cache.apps[fileName]

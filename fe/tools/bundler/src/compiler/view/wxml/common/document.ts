@@ -372,7 +372,7 @@ export function createSlot(opts: CreateSpecialOpts = {}): WxmlNode {
  */
 function findAttrRaw(attrs: Attr[] | Record<string, unknown> | null | undefined, name: string): string | undefined {
 	if (!Array.isArray(attrs)) {
-		return (attrs as Record<string, unknown>)?.[name] as string | undefined
+		return attrs?.[name] as string | undefined
 	}
 	const found = attrs.find(a => a.name === name)
 	return found ? attrValueRaw(found) : undefined
@@ -503,8 +503,9 @@ export function plainTree(document: Document | null | undefined): Record<string,
 		}
 		/** @type {Record<string, any>} */
 		const out: Record<string, unknown> = {}
-		for (const key of Object.keys(node as Record<string, unknown>)) {
-			const value = (node as Record<string, unknown>)[key]
+		const record = node as Record<string, unknown>
+		for (const key of Object.keys(record)) {
+			const value = record[key]
 			if (Array.isArray(value)) {
 				out[key] = value.map(walk)
 			}

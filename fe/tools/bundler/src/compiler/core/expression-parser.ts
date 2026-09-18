@@ -70,7 +70,7 @@ function visitExpressionAst(node: unknown, parent: unknown, dependencies: Set<st
 		return
 	}
 
-	for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+	for (const [key, value] of Object.entries(node)) {
 		if (key === 'type' || key === 'start' || key === 'end' || key === 'loc') {
 			continue
 		}
@@ -187,7 +187,7 @@ export function parseBindings(bindings: Record<string, unknown> | null | undefin
 
 	const parsed: Record<string, unknown> = {}
 
-	for (const [propName, expression] of Object.entries(bindings as Record<string, unknown>)) {
+	for (const [propName, expression] of Object.entries(bindings)) {
 		parsed[propName] = parseExpression(expression as string)
 	}
 

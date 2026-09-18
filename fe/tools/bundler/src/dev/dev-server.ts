@@ -13,7 +13,7 @@ import { createHostPageHtml, createPageFrameHtml } from './dev-host.ts'
 import { handleProxyRequest, isAllowedBrowserOrigin } from './dev-proxy.ts'
 
 const DEFAULT_WS_PATH = '/ws'
-const MIME_TYPES = Object.freeze({
+const MIME_TYPES: Record<string, string> = Object.freeze({
 	'.css': 'text/css; charset=utf-8',
 	'.gif': 'image/gif',
 	'.html': 'text/html; charset=utf-8',
@@ -76,7 +76,7 @@ export function createDevServer({
 		socket.on('message', (raw: Buffer) => {
 			let message: Record<string, unknown>
 			try {
-				message = JSON.parse(raw.toString()) as Record<string, unknown>
+				message = JSON.parse(raw.toString())
 			}
 			catch {
 				sendJson(socket, { type: 'error', message: 'Invalid WebSocket JSON' })
@@ -163,7 +163,7 @@ export function createDevServer({
 		try {
 			const stats = await fs.promises.stat(filePath)
 			if (!stats.isFile()) throw new Error('Not a file')
-			const contentType = (MIME_TYPES as Record<string, string>)[path.extname(filePath).toLowerCase()]
+			const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()]
 				|| 'application/octet-stream'
 			if (request.method === 'HEAD') {
 				response.writeHead(200, { 'Cache-Control': 'no-cache', 'Content-Type': contentType })
