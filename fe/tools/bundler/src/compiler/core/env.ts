@@ -15,7 +15,7 @@ let defaultCompilerContext: CompilerContext | undefined
 
 type CompilerContext = {
 	pathInfo: Record<string, unknown>
-	configInfo: Record<string, unknown>
+	configInfo: ConfigInfo
 	npmResolver: NpmResolver | null
 	dependencyGraph: DependencyGraph
 	compilerOptions: ReturnType<typeof normalizeFileTypes>
@@ -45,7 +45,16 @@ const pathInfo: Record<string, unknown> = new Proxy({}, {
 		return true
 	},
 })
-const configInfo: Record<string, unknown> = new Proxy({}, {
+interface ConfigInfo {
+	projectInfo?: Record<string, unknown>
+	appInfo?: Record<string, unknown>
+	componentInfo?: Record<string, Record<string, unknown>>
+	pageInfo?: Record<string, Record<string, unknown>>
+	runtimeType?: string
+	[key: string]: unknown
+}
+
+const configInfo: ConfigInfo = new Proxy({}, {
 	get: (_, key) => getCompilerContext().configInfo[key as string],
 	set: (_, key, value) => {
 		getCompilerContext().configInfo[key as string] = value
@@ -157,7 +166,7 @@ function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: str
 }
 
 interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }
-function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
+function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: Record<string, unknown>; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
 	const context = getCompilerContext()
 	// 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
 	context.compilerOptions = normalizeFileTypes(options.fileTypes)
@@ -178,7 +187,7 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	}
 }
 
-function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }): void {
+function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: ConfigInfo; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }): void {
 	const context = getCompilerContext()
 	context.pathInfo = opts.pathInfo
 	context.configInfo = opts.configInfo
@@ -275,7 +284,7 @@ function storeProjectConfig() {
 }
 
 function getProjectConfig(): Record<string, unknown> {
-	return configInfo.projectInfo as Record<string, unknown>
+	return configInfo.projectInfo!
 }
 
 function storeAppConfig() {
@@ -371,7 +380,7 @@ function storePageConfig(): void {
 	// 首先处理 app.json 中的全局 usingComponents
 	if (appInfo.usingComponents) {
 		const appFilePath = `${pathInfo.workPath}/app.json`
-		storeComponentConfig(configInfo.appInfo as Record<string, unknown>, appFilePath)
+		storeComponentConfig(configInfo.appInfo!, appFilePath)
 	}
 
 	collectionPageJson(pages)
@@ -411,7 +420,7 @@ function storeCustomTabBarConfig(): void {
 		},
 	}
 	storeComponentConfig(internalConfig, path.join(pathInfo.workPath as string, 'app.json'))
-	const componentConfig = (configInfo.componentInfo as Record<string, Record<string, unknown>>)[CUSTOM_TAB_BAR_COMPONENT_PATH]
+	const componentConfig = (configInfo.componentInfo!)[CUSTOM_TAB_BAR_COMPONENT_PATH]
 	if (componentConfig) {
 		componentConfig.customTabBar = true
 	}
@@ -423,7 +432,7 @@ function storeCustomTabBarConfig(): void {
 		if (!pagePath || !(configInfo.appInfo as { pages?: string[] } | undefined)?.pages?.includes(pagePath)) {
 			continue
 		}
-		const pageConfig: Record<string, unknown> = ((configInfo.pageInfo as Record<string, Record<string, unknown>>)[pagePath] ||= {})
+		const pageConfig: Record<string, unknown> = ((configInfo.pageInfo!)[pagePath] ||= {})
 		pageConfig.usingComponents = (pageConfig as { usingComponents?: Record<string, string> }).usingComponents ||= {}
 		const declaredComponents = {
 			...((configInfo.appInfo as { usingComponents?: Record<string, string> } | undefined)?.usingComponents || {}),
@@ -462,7 +471,7 @@ function collectionPageJson(pages: string[] | undefined, root?: string): void {
 			if (root) {
 				(pageJsonContent as { root?: string }).root = transSubDir(root)
 			}
-			(configInfo.pageInfo as Record<string, unknown>)[np] = pageJsonContent
+			(configInfo.pageInfo!)[np] = pageJsonContent
 
 			// 递归解析自定义组件
 			storeComponentConfig(pageJsonContent, pageFilePath)
@@ -479,7 +488,7 @@ function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFile
 		const moduleId = getModuleId(componentPath, pageFilePath)
 		;(pageJsonContent.usingComponents as Record<string, string>)[componentName] = moduleId
 
-		if ((configInfo.componentInfo as Record<string, unknown>)[moduleId]) {
+		if ((configInfo.componentInfo!)[moduleId]) {
 			continue
 		}
 
@@ -520,7 +529,7 @@ function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFile
 		// (replaced reduce)
 		// (old reduce removed)
 
-		(configInfo.componentInfo as Record<string, unknown>)[moduleId] = {
+		(configInfo.componentInfo!)[moduleId] = {
 			id: uuid(moduleId),
 			path: moduleId,
 			component: isComponent,
@@ -531,7 +540,7 @@ function storeComponentConfig(pageJsonContent: Record<string, unknown>, pageFile
 
 		// 只有当配置文件存在时才递归处理
 		if (cContent.usingComponents && Object.keys(cContent.usingComponents as Record<string, string>).length > 0) {
-			storeComponentConfig((configInfo.componentInfo as Record<string, unknown>)[moduleId] as Record<string, unknown>, componentFilePath)
+			storeComponentConfig((configInfo.componentInfo!)[moduleId] as Record<string, unknown>, componentFilePath)
 		}
 	}
 }
@@ -662,15 +671,15 @@ function getTargetPath(): string {
 }
 
 function getComponent(src: string): unknown {
-	return (configInfo.componentInfo as Record<string, unknown>)[src]
+	return (configInfo.componentInfo!)[src]
 }
 
 function getPageConfigInfo(): Record<string, unknown> {
-	return configInfo.pageInfo as Record<string, unknown>
+	return configInfo.pageInfo!
 }
 
 function getAppConfigInfo(): Record<string, unknown> {
-	return configInfo.appInfo as Record<string, unknown>
+	return configInfo.appInfo!
 }
 
 function getWorkPath(): string {
