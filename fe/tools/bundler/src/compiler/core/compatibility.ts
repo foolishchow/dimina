@@ -1,4 +1,5 @@
 import { Parser } from 'htmlparser2'
+import type { ParserOptions } from 'htmlparser2'
 import { isHTMLTag } from '@vue/shared'
 import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.ts'
 import { supportedBuiltinComponents, supportedWxApis } from './compatibility-reference.ts'
@@ -250,7 +251,7 @@ function checkTemplateCompatibility(content: string, filePath: string, component
 			lowerCaseTags: false,
 			lowerCaseAttributeNames: false,
 			withStartIndices: true,
-		} as never,
+		} as ParserOptions,
 	)
 
 	parser.write(content)

@@ -2,10 +2,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { compileStyle } from '@vue/compiler-sfc'
+import type { RawSourceMap } from 'source-map-js'
 import autoprefixer from 'autoprefixer'
 import { transform } from 'esbuild'
 import postcss from 'postcss'
-import type { Attribute as SelectorAttribute } from 'postcss-selector-parser'
+import type { Attribute as SelectorAttribute, AttributeOptions } from 'postcss-selector-parser'
 import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.ts'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.ts'
@@ -157,7 +158,7 @@ function createExternalClassPlugin(moduleId: string): { postcssPlugin: string; R
 				operator: '~=',
 				quoteMark: '"',
 				value: scopeAttribute,
-			} as never) as never)
+			} as AttributeOptions))
 			selectors.append(boostedSelector)
 		}
 	})
@@ -387,7 +388,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 			filename: getStyleSourcePath(absolutePath),
 			id: moduleId as string,
 			scoped: !!moduleId,
-			inMap: options.sourcemap ? (processedMap as never) : undefined,
+			inMap: options.sourcemap ? (processedMap as unknown as RawSourceMap) : undefined,
 			postcssPlugins: [
 				createStyleTransformPlugin(module, absolutePath, importResults, options),
 			],
@@ -406,12 +407,12 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	// external-class 与 autoprefixer/cssnano 共享一次 PostCSS 解析。
 	let finalResult
 	try {
-		const postcssPlugins: postcss.Plugin[] = [createExternalClassPlugin(moduleId as string), autoprefixerPlugin] as never
+		const postcssPlugins = [createExternalClassPlugin(moduleId as string), autoprefixerPlugin] as postcss.Plugin[]
 		const shouldMinify = options.minify !== false
 		if (options.sourcemap) {
 			if (shouldMinify) {
 				const cssnano = await loadCssnano()
-				postcssPlugins.push(cssnano() as never)
+				postcssPlugins.push(cssnano() as unknown as postcss.Plugin)
 			}
 			finalResult = await postcss(postcssPlugins).process(scopedResult.code, {
 				from: undefined,

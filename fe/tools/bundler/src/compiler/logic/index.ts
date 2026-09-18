@@ -4,6 +4,7 @@ import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { transform } from 'esbuild'
+import type { TransformOptions } from 'esbuild'
 import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
@@ -377,7 +378,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 	// 使用 esbuild 进行最终的 CommonJS 转换和压缩
 	try {
-		const esbuildOpts: Record<string, unknown> = {
+		const esbuildOpts: TransformOptions = {
 			format: 'cjs',
 			// CF-3：与 bundle minify 同读 esTarget.logic（消除同车道硬编码漂移）
 			target: activeCompileConfig.esTarget.logic,
@@ -395,7 +396,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 			esbuildOpts.sourcefile = compileInfo.sourceFile
 			esbuildOpts.sourcesContent = true
 		}
-		const esbuildResult = await transform(modifiedCode, esbuildOpts as never)
+		const esbuildResult = await transform(modifiedCode, esbuildOpts)
 
 		if (enableSourcemap && esbuildResult.map) {
 			compileInfo.map = (preEsbuildMap

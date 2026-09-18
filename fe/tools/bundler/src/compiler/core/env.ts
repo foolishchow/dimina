@@ -156,8 +156,8 @@ function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: str
 	}
 }
 
-interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: unknown }
-function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: unknown } {
+interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }
+function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
 	const context = getCompilerContext()
 	// 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
 	context.compilerOptions = normalizeFileTypes(options.fileTypes)
@@ -166,7 +166,9 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	storeAppConfig()
 	storePageConfig()
 	context.dependencyGraph = createInitialDependencyGraph()
-	context.dependencyGraph.merge(options.dependencyGraph as never)
+	if (options.dependencyGraph) {
+		context.dependencyGraph.merge(options.dependencyGraph)
+	}
 
 	return {
 		pathInfo: context.pathInfo,
@@ -176,13 +178,13 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	}
 }
 
-function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: unknown }): void {
+function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: Record<string, unknown>; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }): void {
 	const context = getCompilerContext()
 	context.pathInfo = opts.pathInfo
 	context.configInfo = opts.configInfo
 	// Worker 恢复上下文时使用主线程生成的自定义文件类型配置，缺省时回退到内置配置。
 	context.compilerOptions = opts.compilerOptions || normalizeFileTypes()
-	context.dependencyGraph = new DependencyGraph(opts.dependencyGraph as never)
+	context.dependencyGraph = new DependencyGraph(opts.dependencyGraph)
 
 	// 重新初始化 npm 解析器
 	if (pathInfo.workPath) {

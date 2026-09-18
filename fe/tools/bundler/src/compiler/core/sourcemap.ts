@@ -1,4 +1,5 @@
 import { SourceMapConsumer, SourceMapGenerator } from 'source-map-js'
+import type { RawSourceMap } from 'source-map-js'
 
 // 统一将模块包装为 modDefine 格式
 function wrapModDefine(module: { code: string; path: string; extraInfoCode?: string; map?: unknown }): { header: string; code: string; footer: string } {
@@ -10,8 +11,8 @@ function wrapModDefine(module: { code: string; path: string; extraInfoCode?: str
 }
 
 function appendSourceMap(smg: SourceMapGenerator, map: unknown, lineOffset: number, columnOffset: number): void {
-	const mapObject = typeof map === 'string' ? JSON.parse(map) as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] } : map as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] }
-	const consumer = new SourceMapConsumer(mapObject as never)
+	const mapObject = (typeof map === 'string' ? JSON.parse(map) : map) as RawSourceMap
+	const consumer = new SourceMapConsumer(mapObject)
 
 	consumer.eachMapping((mapping) => {
 		if (mapping.source == null || mapping.originalLine == null || mapping.originalColumn == null) {
@@ -135,11 +136,11 @@ function remapSourcemap(nextMap: unknown, prevMap: unknown): string | Record<str
 		return nextMap
 	}
 
-	const nextMapObj = typeof nextMap === 'string' ? JSON.parse(nextMap) as Record<string, unknown> & { file?: string; sources?: string[]; sourcesContent?: unknown[] } : nextMap as Record<string, unknown> & { file?: string; sources?: string[]; sourcesContent?: unknown[] }
-	const prevMapObj = typeof prevMap === 'string' ? JSON.parse(prevMap) as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] } : prevMap as Record<string, unknown> & { sources?: string[]; sourcesContent?: unknown[] }
-	const smg = new SourceMapGenerator({ file: (nextMapObj.file as string) || (prevMapObj.file as string) || '' })
-	const prevSmc = new SourceMapConsumer(prevMapObj as never)
-	const nextSmc = new SourceMapConsumer(nextMapObj as never)
+	const nextMapObj = (typeof nextMap === 'string' ? JSON.parse(nextMap) : nextMap) as RawSourceMap
+	const prevMapObj = (typeof prevMap === 'string' ? JSON.parse(prevMap) : prevMap) as RawSourceMap
+	const smg = new SourceMapGenerator({ file: nextMapObj.file || prevMapObj.file || '' })
+	const prevSmc = new SourceMapConsumer(prevMapObj)
+	const nextSmc = new SourceMapConsumer(nextMapObj)
 
 	nextSmc.eachMapping((mapping) => {
 		if (mapping.source == null || mapping.originalLine == null || mapping.originalColumn == null) {
@@ -170,7 +171,7 @@ function remapSourcemap(nextMap: unknown, prevMap: unknown): string | Record<str
 
 	if (prevMapObj.sourcesContent) {
 		(prevMapObj.sources || []).forEach((src: string, i: number) => {
-			smg.setSourceContent(src, (prevMapObj.sourcesContent || [])[i] as string)
+			smg.setSourceContent(src, (prevMapObj.sourcesContent || [])[i])
 		})
 	}
 

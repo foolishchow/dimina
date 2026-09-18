@@ -17,8 +17,8 @@ export interface WxmlDocument extends WxmlNode {
  * （非 `{ document }` 包装。）
  */
 export interface LoadedGraph extends WxmlDocument {
-	templateModule?: object[]
-	scriptModule?: object[]
+	templateModule?: unknown[]
+	scriptModule?: unknown[]
 	sourceTexts?: Map<string, string>
 }
 

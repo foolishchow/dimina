@@ -127,13 +127,13 @@ export async function assertSafeTarget(rawUrl: unknown, lookup: typeof dns.promi
 
 type DnsLookup = typeof dns.lookup
 export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
-	return ((hostname: string, options: number | dns.LookupOptions | undefined, callback: (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family?: number) => void) => {
+	return ((hostname: string, options: number | dns.LookupOptions | undefined, callback: (err: NodeJS.ErrnoException | null, address?: string | dns.LookupAddress[], family?: number) => void) => {
 		const normalizedOptions = typeof options === 'number'
 			? { family: options }
 			: { ...(options ?? {}) }
 		lookup(hostname, { ...normalizedOptions, all: true, verbatim: true } as dns.LookupOptions, (error: NodeJS.ErrnoException | null, ...results: unknown[]) => {
 			if (error) {
-				callback(error, undefined as never, undefined as never)
+				callback(error)
 				return
 			}
 			const addresses = results[0] as dns.LookupAddress[]
@@ -141,12 +141,12 @@ export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
 				assertPublicAddresses(addresses)
 			}
 			catch (validationError) {
-				callback(validationError as NodeJS.ErrnoException, undefined as never, undefined as never)
+				callback(validationError as NodeJS.ErrnoException)
 				return
 			}
 
 			if (normalizedOptions.all) {
-				callback(null, addresses as never, undefined as never)
+				callback(null, addresses)
 			}
 			else {
 				const [{ address, family }] = addresses

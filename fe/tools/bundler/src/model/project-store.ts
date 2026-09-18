@@ -16,6 +16,7 @@
  */
 
 import { getDependencyGraph, storeInfo } from '../compiler/core/env.ts'
+import type { GraphSnapshot } from '../model/dependency-graph.ts'
 
 /**
  * @param {object} [options]
@@ -44,8 +45,8 @@ export function createProjectStore(options: Record<string, unknown> = {}) {
 		},
 
 		/** 合并依赖图增量 */
-		merge(delta: { nodes?: unknown; fileEdges?: unknown; [key: string]: unknown }) {
-			getDependencyGraph().merge(delta as never)
+		merge(delta: GraphSnapshot) {
+			getDependencyGraph().merge(delta)
 		},
 
 		/** 快照 */

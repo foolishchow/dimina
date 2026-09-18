@@ -10,7 +10,7 @@ function normalizeKinds(kinds: string | string[] | null | undefined): Set<string
 }
 
 interface GraphNode { id: string; type: string; entry: boolean; packageRoot: string | null; files: Set<string> }
-interface GraphSnapshot { nodes?: Array<GraphNode & { files?: string[] }>; edges?: Array<{ from: string; to: string; kinds?: string[] }>; fileEdges?: Array<{ file: string; owner: string; kinds?: string[] }> }
+export interface GraphSnapshot { nodes?: Array<GraphNode & { files?: string[] }>; edges?: Array<{ from: string; to: string; kinds?: string[] }>; fileEdges?: Array<{ file: string; owner: string; kinds?: string[] }> }
 
 class DependencyGraph {
 	nodes: Map<string, GraphNode>

@@ -264,8 +264,8 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
 
 	const loaded = document as unknown as LoadedGraph
-	loaded.templateModule = templateModule as never
-	loaded.scriptModule = scriptModule as never
+	loaded.templateModule = templateModule
+	loaded.scriptModule = scriptModule
 	loaded.sourceTexts = sourceTexts
 	return loaded
 }
