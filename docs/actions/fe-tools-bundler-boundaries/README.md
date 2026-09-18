@@ -1,7 +1,7 @@
 # FE Tools Bundler Boundaries
 
 - Action: `fe-tools-bundler-boundaries`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-18
 - Status authority: [Action Status](../STATUS.md)
 - 术语权威：[architecture-notes](../fe-tools-sidecar/architecture-notes.md)「架构术语：Packer / Scheme」
@@ -59,8 +59,8 @@
 
 ## Status / 授权
 
-- 当前 **`draft`**。D-BD-1..6 已拍板。落点表已填完。升 `ready` / `in_progress` 需另授。
-- 未授权改产品代码。本门剩余工作：回流 architecture-notes 指针 + 验收零 diff。
+- 当前 **`ready`**。D-BD-1..6 已拍板。落点表已填完。Readiness 门两轮 review pass，F1–F3 修正完毕。
+- 未授权改产品代码。本门剩余工作：回流 architecture-notes 指针 + 验收零 diff。升 `in_progress` 需另授。
 
 ## 闭合条件
 
@@ -79,3 +79,4 @@
 | 2026-09-18 | Readiness：`logic/**` 改为焊点；落点全集封口；去掉「Packer 客户」第四格。D-BD-5 仍待定 |
 | 2026-09-18 | **D-BD-5** = 焊点；**D-BD-6** = 落点粒度只到目录或文件，不下到方法。待定清空 |
 | 2026-09-18 | Readiness 修文：钉死零 diff baseline = 授权 `in_progress` 的 HEAD；补全 `env.ts` 焊点两侧用途 |
+| 2026-09-18 | Review R2 pass：F1（步骤标注区分）+ F3（baseline 区分）修正完毕；升 `ready` |
