@@ -76,7 +76,7 @@ async function compileSS(pages: StyleModule[], root: string | null, progress: Pr
 		}
 		if (options.sourcemap) {
 			const mapFileName = `${filename}.css.map`
-			const map = JSON.parse(result.map as string)
+			const map = JSON.parse(result.map!)
 			map.file = `${filename}.css`
 			code += `\n/*# sourceMappingURL=${mapFileName} */\n`
 			const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
@@ -287,7 +287,7 @@ function createStyleTransformPlugin(module: StyleModule, absolutePath: string, i
 			}
 
 			if (rule.selector.includes(':host')) {
-				rule.selector = processHostSelector(rule.selector, module.id as string)
+				rule.selector = processHostSelector(rule.selector, module.id!)
 			}
 
 			try {
@@ -353,7 +353,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 			})
 			processedCSS = result.css
 			if (options.sourcemap) {
-				processedMap = normalizePreprocessorMap(result.map as string, absolutePath, inputCSS)
+				processedMap = normalizePreprocessorMap(result.map!, absolutePath, inputCSS)
 			}
 		}
 		else if (ext === '.scss' || ext === '.sass') {
@@ -388,7 +388,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		scopedResult = compileStyle({
 			source: fixedCSS,
 			filename: getStyleSourcePath(absolutePath),
-			id: moduleId as string,
+			id: moduleId!,
 			scoped: !!moduleId,
 			inMap: options.sourcemap ? (processedMap as RawSourceMap) : undefined,
 			postcssPlugins: [
@@ -409,7 +409,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	// external-class 与 autoprefixer/cssnano 共享一次 PostCSS 解析。
 	let finalResult
 	try {
-		const postcssPlugins = [createExternalClassPlugin(moduleId as string), autoprefixerPlugin] as postcss.Plugin[]
+		const postcssPlugins = [createExternalClassPlugin(moduleId!), autoprefixerPlugin] as postcss.Plugin[]
 		const shouldMinify = options.minify !== false
 		if (options.sourcemap) {
 			if (shouldMinify) {

@@ -259,7 +259,7 @@ function fromElement(node: SpanViewNode, ctx: SourceContext, sourceFile: string 
 
 function fromInclude(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
 	const span = node.span ?? null
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField((node.src ?? '') as string, 'src', ctx)
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField((node.src ?? '') , 'src', ctx)
 	const src = pathFieldValue(node.src ?? '') ?? findAttrRaw(attrs as Attr[], 'src')
 	return createInclude({
 		attrs,
@@ -273,7 +273,7 @@ function fromInclude(node: SpanViewNode, ctx: SourceContext, sourceFile: string 
 
 function fromImport(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
 	const span = node.span ?? null
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField((node.src ?? '') as string, 'src', ctx)
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromPathField((node.src ?? '') , 'src', ctx)
 	const src = pathFieldValue(node.src ?? '') ?? findAttrRaw(attrs as Attr[], 'src')
 	return createImport({
 		attrs,
@@ -288,8 +288,8 @@ function fromImport(node: SpanViewNode, ctx: SourceContext, sourceFile: string |
 function fromWxs(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
 	const span = node.span ?? null
 	const attrs = attrsFromOpeningTag(ctx, span) ?? [
-		...attrsFromNamedField((node.module ?? '') as string, 'module', ctx),
-		...attrsFromPathField((node.src ?? '') as string, 'src', ctx),
+		...attrsFromNamedField((node.module ?? '') , 'module', ctx),
+		...attrsFromPathField((node.src ?? '') , 'src', ctx),
 	]
 	const children = []
 	if ((node.content as { raw?: string | null } | null)?.raw) {
@@ -313,7 +313,7 @@ function fromWxs(node: SpanViewNode, ctx: SourceContext, sourceFile: string | nu
 
 function fromTemplateDef(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
 	const span = node.span ?? null
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField((node.name ?? '') as string, 'name', ctx)
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField((node.name ?? '') , 'name', ctx)
 	const childRangeStart = openingTagEndByte(ctx, span) ?? (span?.start ?? 0)
 	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? (span?.end ?? 0)
 	const children = fromNodeList(node.body || node.children || [], ctx, sourceFile, childRangeStart, childRangeEnd)
@@ -331,7 +331,7 @@ function fromTemplateDef(node: SpanViewNode, ctx: SourceContext, sourceFile: str
 function fromTemplateRef(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
 	const span = node.span ?? null
 	const attrs = attrsFromOpeningTag(ctx, span) ?? [
-		...attrsFromValueField((node.target ?? '') as string, 'is', ctx),
+		...attrsFromValueField((node.target ?? '') , 'is', ctx),
 		...(node.data ? [makeAttr('data', dataAttrRaw(node.data), toCharSpan(ctx, (node.data as { span?: ByteSpan | null } | null)?.span))] : []),
 	]
 	const is = valueFieldRaw(node.target) ?? findAttrRaw(attrs as Attr[], 'is') ?? ''
@@ -347,7 +347,7 @@ function fromTemplateRef(node: SpanViewNode, ctx: SourceContext, sourceFile: str
 
 function fromSlot(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
 	const span = node.span ?? null
-	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField((node.name ?? '') as string, 'name', ctx)
+	const attrs = attrsFromOpeningTag(ctx, span) ?? attrsFromNamedField((node.name ?? '') , 'name', ctx)
 	const childRangeStart = openingTagEndByte(ctx, span) ?? (span?.start ?? 0)
 	const childRangeEnd = closingTagStartByte(ctx, span, node.selfClosing) ?? (span?.end ?? 0)
 	const children = fromNodeList(node.children || [], ctx, sourceFile, childRangeStart, childRangeEnd)

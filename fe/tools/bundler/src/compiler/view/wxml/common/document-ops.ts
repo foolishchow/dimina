@@ -222,10 +222,10 @@ export function getAttr(node: WxmlNode | null | undefined, name: string): string
 		return undefined
 	}
 	if (name === 'src' && (node.type === 'include' || node.type === 'import' || node.type === 'wxs') && Object.prototype.hasOwnProperty.call(node, 'src')) {
-		return node.src == null ? undefined : node.src as string
+		return node.src == null ? undefined : node.src
 	}
 	if (name === 'module' && node.type === 'wxs' && Object.prototype.hasOwnProperty.call(node, 'module')) {
-		return node.module == null ? undefined : node.module as string
+		return node.module == null ? undefined : node.module
 	}
 	if (name === 'name' && node.type === 'template-def') {
 		return node.name ?? undefined

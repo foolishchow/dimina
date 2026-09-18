@@ -94,7 +94,7 @@ class DependencyGraph {
 		const owners = this.fileOwners.get(normalizeFilePath(filePath)) || new Set()
 		const pending = [...owners]
 		const visited = new Set()
-		const entries = new Set()
+		const entries = new Set<string>()
 		while (pending.length > 0) {
 			const id = pending.pop()!
 			if (visited.has(id)) continue
@@ -105,7 +105,7 @@ class DependencyGraph {
 				pending.push(dependent)
 			}
 		}
-		return [...entries].sort() as string[]
+		return [...entries].sort()
 	}
 
 	hasFile(filePath: string): boolean {

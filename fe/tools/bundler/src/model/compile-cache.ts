@@ -160,12 +160,13 @@ function createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }: { cac
 	if (!Array.isArray((cacheEntry?.dependencyGraph as { fileEdges?: unknown })?.fileEdges)) {
 		return createFullBuildPlan('untyped-dependency-graph')
 	}
-	if (!Array.isArray(cacheEntry?.projectFiles)) {
+	const cachedFiles = cacheEntry?.projectFiles
+	if (!Array.isArray(cachedFiles)) {
 		return createFullBuildPlan('missing-project-manifest')
 	}
 	const projectFiles = getProjectFileManifest(workPath)
-	if (projectFiles.length !== (cacheEntry?.projectFiles as string[]).length
-		|| projectFiles.some((filePath, index) => filePath !== (cacheEntry?.projectFiles as string[])[index])) {
+	if (projectFiles.length !== cachedFiles.length
+		|| projectFiles.some((filePath, index) => filePath !== cachedFiles[index])) {
 		return createFullBuildPlan('file-structure-changed')
 	}
 

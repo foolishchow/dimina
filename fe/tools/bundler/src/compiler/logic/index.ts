@@ -231,16 +231,16 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 					node.loc?.start?.line || getLineByIndex(sourceCode, node.start),
 				)
 			}
-			if ((node.type === 'Literal' && typeof node.value === 'string') && isLocalAssetString(node.value as string)) {
+			if ((node.type === 'Literal' && typeof node.value === 'string') && isLocalAssetString(node.value)) {
 				getDependencyGraph().addFile(
 					currentPath,
-					resolveAssetSourcePath(getWorkPath(), modulePath, node.value as string),
+					resolveAssetSourcePath(getWorkPath(), modulePath, node.value),
 					'logic',
 				)
 				pathReplacements.push({
 					start: node.start,
 					end: node.end,
-					newValue: collectAssets(getWorkPath(), modulePath, node.value as string, getTargetPath(), getAppId()!),
+					newValue: collectAssets(getWorkPath(), modulePath, node.value, getTargetPath(), getAppId()!),
 				})
 			}
 
@@ -401,7 +401,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 		if (enableSourcemap && esbuildResult.map) {
 			compileInfo.map = (preEsbuildMap
-				? remapSourcemap(esbuildResult.map as string, preEsbuildMap)
+				? remapSourcemap(esbuildResult.map!, preEsbuildMap)
 				: (esbuildResult as { map?: string }).map) as string | undefined
 		}
 		compileInfo.code = esbuildResult.code

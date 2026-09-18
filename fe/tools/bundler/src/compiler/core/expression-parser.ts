@@ -45,7 +45,7 @@ export function extractDependencies(expression: string | null | undefined): stri
 		return []
 	}
 
-	return Array.from(dependencies) as string[]
+	return Array.from(dependencies)
 }
 
 function visitExpressionAst(node: unknown, parent: unknown, dependencies: Set<string>): void {
