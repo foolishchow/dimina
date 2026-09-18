@@ -8,7 +8,6 @@
 import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
-// @ts-expect-error P-TM06: type narrowing needed
 import { WebSocketServer, WebSocket } from 'ws'
 import { createHostPageHtml, createPageFrameHtml } from './dev-host.ts'
 import { handleProxyRequest, isAllowedBrowserOrigin } from './dev-proxy.ts'
@@ -44,16 +43,21 @@ const MIME_TYPES = Object.freeze({
  *   getPendingReload/getAcks 供诊断与契约测试断言。
  */
 export function createDevServer({
-	// @ts-expect-error P-TM06: type narrowing needed
 	serveRoot,
-	// @ts-expect-error P-TM06: type narrowing needed
 	sdkRoot,
-	// @ts-expect-error P-TM06: type narrowing needed
 	appId,
 	wsPath = DEFAULT_WS_PATH,
 	hostHtml = createHostPageHtml({ appId, wsPath }),
 	pageFrameHtml = createPageFrameHtml(),
 	allowedOrigins = '',
+}: {
+	serveRoot: string
+	sdkRoot: string
+	appId: string
+	wsPath?: string
+	hostHtml?: string
+	pageFrameHtml?: string
+	allowedOrigins?: string
 }) {
 	if (!serveRoot || !sdkRoot || !appId) {
 		throw new TypeError('createDevServer requires serveRoot, sdkRoot, and appId')
@@ -61,24 +65,18 @@ export function createDevServer({
 	if (!wsPath.startsWith('/')) {
 		throw new TypeError('createDevServer: wsPath must start with "/"')
 	}
-
-	// @ts-expect-error P-TM06: type narrowing needed
-	let pendingReload = null
-	const subscribedClients = new Set()
-	// @ts-expect-error P-TM06: type narrowing needed
-	const acknowledgements = []
+	let pendingReload: Record<string, unknown> | null = null
+	const subscribedClients = new Set<WebSocket>()
+	const acknowledgements: Array<Record<string, unknown>> = []
 	const server = http.createServer((request, response) => {
 		void handleHttpRequest(request, response)
 	})
 	const wsServer = new WebSocketServer({ server, path: wsPath })
-
-	// @ts-expect-error P-TM06: type narrowing needed
-	wsServer.on('connection', (socket) => {
-		// @ts-expect-error P-TM06: type narrowing needed
-		socket.on('message', (raw) => {
-			let message
+	wsServer.on('connection', (socket: WebSocket) => {
+		socket.on('message', (raw: Buffer) => {
+			let message: Record<string, unknown>
 			try {
-				message = JSON.parse(raw.toString())
+				message = JSON.parse(raw.toString()) as Record<string, unknown>
 			}
 			catch {
 				sendJson(socket, { type: 'error', message: 'Invalid WebSocket JSON' })
@@ -106,9 +104,7 @@ export function createDevServer({
 		})
 		socket.on('close', () => subscribedClients.delete(socket))
 	})
-
-	// @ts-expect-error P-TM06: type narrowing needed
-	async function handleHttpRequest(request, response) {
+	async function handleHttpRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
 		const origin = request.headers.origin
 		if (!isAllowedBrowserOrigin(origin, allowedOrigins)) {
 			writeJson(response, 403, { error: 'Browser origin is not allowed' })
@@ -167,8 +163,7 @@ export function createDevServer({
 		try {
 			const stats = await fs.promises.stat(filePath)
 			if (!stats.isFile()) throw new Error('Not a file')
-			// @ts-expect-error P-TM06: type narrowing needed
-			const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()]
+			const contentType = (MIME_TYPES as Record<string, string>)[path.extname(filePath).toLowerCase()]
 				|| 'application/octet-stream'
 			if (request.method === 'HEAD') {
 				response.writeHead(200, { 'Cache-Control': 'no-cache', 'Content-Type': contentType })
@@ -182,45 +177,35 @@ export function createDevServer({
 			writeJson(response, 404, { error: 'Not Found' })
 		}
 	}
-
-	// @ts-expect-error P-TM06: type narrowing needed
-	function setPendingReload(payload) {
+	function setPendingReload(payload: Record<string, unknown> | null) {
 		pendingReload = payload ? { ...payload } : null
 	}
 
-	function notifyBuildPublished() {
-		// @ts-expect-error P-TM06: type narrowing needed
+	function notifyBuildPublished(): void {
 		if (!pendingReload) return
 		broadcast({ type: 'reload', ...pendingReload })
 		pendingReload = null
 	}
-
-	// @ts-expect-error P-TM06: type narrowing needed
-	function notifyBuildError(message) {
+	function notifyBuildError(message: string): void {
 		pendingReload = null
 		broadcast({ type: 'build:error', message: String(message) })
 	}
-
-	// @ts-expect-error P-TM06: type narrowing needed
-	function broadcast(message) {
+	function broadcast(message: Record<string, unknown>): void {
 		const data = JSON.stringify(message)
 		for (const socket of subscribedClients) {
-			// @ts-expect-error P-TM06: type narrowing needed
 			if (socket.readyState === WebSocket.OPEN) socket.send(data)
 		}
 	}
 
-	function listen(port = 8080, host = '127.0.0.1') {
+	function listen(port = 8080, host = '127.0.0.1'): Promise<{ port: number; host: string }> {
 		return new Promise((resolve, reject) => {
-			// @ts-expect-error P-TM06: type narrowing needed
-			const onError = (error) => {
+			const onError = (error: Error) => {
 				server.off('listening', onListening)
 				reject(error)
 			}
 			const onListening = () => {
 				server.off('error', onError)
-				// @ts-expect-error P-TM06: type narrowing needed
-				resolve({ host, port: server.address().port })
+				resolve({ host, port: (server.address() as { port: number }).port })
 			}
 			server.once('error', onError)
 			server.once('listening', onListening)
@@ -228,23 +213,19 @@ export function createDevServer({
 		})
 	}
 
-	function close() {
-		// @ts-expect-error P-TM06: type narrowing needed
+	function close(): Promise<void> {
 		for (const socket of subscribedClients) socket.close()
 		subscribedClients.clear()
-		return new Promise((resolve, reject) => {
-			// @ts-expect-error P-TM06: type narrowing needed
+		return new Promise<void>((resolve, reject) => {
 			wsServer.close((wsError) => {
 				if (wsError) {
 					reject(wsError)
 					return
 				}
 				if (!server.listening) {
-					// @ts-expect-error P-TM06: type narrowing needed
 					resolve()
 					return
 				}
-				// @ts-expect-error P-TM06: type narrowing needed
 				server.close(error => error ? reject(error) : resolve())
 			})
 		})
@@ -258,14 +239,12 @@ export function createDevServer({
 		setPendingReload,
 		notifyBuildPublished,
 		notifyBuildError,
-		// @ts-expect-error P-TM06: type narrowing needed
 		getPendingReload: () => pendingReload ? { ...pendingReload } : null,
-		// @ts-expect-error P-TM06: type narrowing needed
 		getAcks: () => acknowledgements.map(ack => ({ ...ack })),
 	}
 }
 
-function getPathname(requestUrl = '/') {
+function getPathname(requestUrl: string | undefined = '/'): string {
 	try {
 		return decodeURIComponent(new URL(requestUrl, 'http://localhost').pathname)
 	}
@@ -273,9 +252,7 @@ function getPathname(requestUrl = '/') {
 		throw new Error('Invalid URL')
 	}
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function resolveContainedPath(root, relativePath) {
+function resolveContainedPath(root: string, relativePath: string): string {
 	const absoluteRoot = path.resolve(root)
 	const candidate = path.resolve(absoluteRoot, relativePath)
 	const relative = path.relative(absoluteRoot, candidate)
@@ -284,24 +261,18 @@ function resolveContainedPath(root, relativePath) {
 	}
 	return candidate
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function writeStatic(response, body, contentType, headOnly) {
+function writeStatic(response: http.ServerResponse, body: string | Buffer, contentType: string, headOnly: boolean): void {
 	response.writeHead(200, { 'Cache-Control': 'no-cache', 'Content-Type': contentType })
 	if (!headOnly) response.write(body)
 	response.end()
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function writeJson(response, statusCode, body) {
+function writeJson(response: http.ServerResponse, statusCode: number, body: Record<string, unknown>): void {
 	response.writeHead(statusCode, {
 		'Cache-Control': 'no-cache',
 		'Content-Type': 'application/json; charset=utf-8',
 	})
 	response.end(JSON.stringify(body))
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function sendJson(socket, message) {
+function sendJson(socket: WebSocket, message: Record<string, unknown>): void {
 	if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message))
 }

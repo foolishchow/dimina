@@ -419,7 +419,7 @@ function buildCompileView(module, isComponent = false, scriptRes, activePaths = 
 	}
 	const childInheritedTemplatePaths = new Set(inheritedTemplatePaths)
 	for (const tm of currentInstruction?.templateModule || []) {
-		childInheritedTemplatePaths.add(tm.path)
+		childInheritedTemplatePaths.add((tm as { path: string }).path)
 	}
 
 	if (module.usingComponents) {
@@ -546,7 +546,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 
 		// 即使使用缓存，也需要确保返回的 instruction 包含最新的 wxs 模块信息
 		// 收集所有在 scriptRes 中的 wxs 模块（包括依赖模块）
-		const allWxsModules = collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule || [])
+		const allWxsModules = collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as never[] || [])
 
 		// 将收集到的 wxs 模块添加到 instruction 中
 		if (allWxsModules.length > 0) {
@@ -556,7 +556,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 
 			for (const wxsModule of allWxsModules) {
 				// 避免重复添加相同的模块
-				if (!mergedModules.find(existing => existing.path === wxsModule.path)) {
+				if (!mergedModules.find(existing => (existing as { path: string }).path === wxsModule.path)) {
 					mergedModules.push(wxsModule)
 				}
 			}
@@ -593,7 +593,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 
 	const templateResults = []
 	for (const tm of compileInstruction.templateModule) {
-		templateResults.push(compileTemplateModuleRender(tm, module.id, compileInstruction.scriptModule, scriptRes))
+		templateResults.push(compileTemplateModuleRender(tm as never, module.id, compileInstruction.scriptModule as never, scriptRes))
 	}
 
 	// @ts-expect-error P-TM05: type narrowing needed
@@ -620,7 +620,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 	const { code, sourcemap: moduleMap } = concatSourcemap(moduleChunks, module.path)
 
 	// 收集所有在 scriptRes 中的 wxs 模块（包括依赖模块）
-	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), compileInstruction.scriptModule || [])
+	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), compileInstruction.scriptModule as never[] || [])
 
 	// 将收集到的 wxs 模块添加到 instruction 中
 	if (allWxsModules.length > 0) {
@@ -630,7 +630,7 @@ function compileModule(module, isComponent, scriptRes, options = {}) {
 
 		for (const wxsModule of allWxsModules) {
 			// 避免重复添加相同的模块
-			if (!mergedModules.find(existing => existing.path === wxsModule.path)) {
+			if (!mergedModules.find(existing => (existing as { path: string }).path === wxsModule.path)) {
 				mergedModules.push(wxsModule)
 			}
 		}
@@ -882,8 +882,8 @@ function compileModuleWithAllWxs(module, scriptRes, allScriptModules, sourceMapR
 	})
 
 	const templateResults = []
-	for (const tm of mergedInstruction.templateModule) {
-		templateResults.push(compileTemplateModuleRender(tm, module.id, allScriptModules, scriptRes))
+	for (const tm of mergedInstruction.templateModule || []) {
+		templateResults.push(compileTemplateModuleRender(tm as never, module.id, allScriptModules as never, scriptRes))
 	}
 
 	// @ts-expect-error P-TM05: type narrowing needed

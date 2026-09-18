@@ -17,12 +17,41 @@ import {
 	wrapRootIfMulti,
 } from '../common/document-ops.ts'
 import { parseWxml } from '../parse.ts'
+import type { WxmlNode } from '../common/document.ts'
+import type { WxmlDocument, LoadedGraph } from '../common/wxml-ir.types.ts'
 
-/**
- * @param {any} tools
- */
-// @ts-expect-error P-TM05: type narrowing needed
-function requireTools(tools) {
+/** Load-tools 注入句柄（transitional — view/index 提供） */
+interface LoadTools {
+	transTagTemplate: Function
+	transTagWxs: Function
+	transAsses: Function
+	resolveTemplateDependencyPath: Function
+	collectIncludedComponentTags: Function
+	processIncludedFileWxsDependencies: Function
+	processIncludeConditionalAttrs: Function
+	checkTemplateCompatibility: Function
+	[key: string]: unknown
+}
+interface LoadEnv {
+	getContentByPath: (path: string) => string
+	getDependencyGraph: () => { addFile: (entry: string, file: string, kind: string) => void }
+	getViewScriptTags: () => string[]
+	[key: string]: unknown
+}
+interface LoadCtx {
+	isComponent?: boolean
+	modulePath: string
+	sourcePath: string
+	components?: Record<string, unknown>
+	componentPlaceholder?: Record<string, unknown>
+	processedPaths?: Set<string>
+	hasOriginalContent?: boolean
+	workPath: string
+	stripTemplateExtsRegex: RegExp
+	tools: LoadTools
+	env: LoadEnv
+}
+function requireTools(tools: LoadTools) {
 	const missing = ['transTagTemplate', 'transTagWxs', 'transAsses', 'resolveTemplateDependencyPath', 'collectIncludedComponentTags', 'processIncludedFileWxsDependencies', 'processIncludeConditionalAttrs', 'checkTemplateCompatibility']
 		.filter(name => typeof tools?.[name] !== 'function')
 	if (missing.length > 0) {
@@ -30,23 +59,15 @@ function requireTools(tools) {
 	}
 }
 
-/**
- * @param {any} node
- */
-// @ts-expect-error P-TM05: type narrowing needed
-function nodeLocSuffix(node) {
-	const loc = node?.loc || node?.span
+function nodeLocSuffix(node: unknown): string {
+	const loc = (node as { loc?: { start?: number; end?: number }; span?: { start?: number; end?: number } } | null)?.loc || (node as { loc?: { start?: number; end?: number }; span?: { start?: number; end?: number } } | null)?.span
 	if (loc && typeof loc.start === 'number' && typeof loc.end === 'number') {
 		return ` loc=[${loc.start},${loc.end})`
 	}
 	return ''
 }
 
-/**
- * @param {any} env
- */
-// @ts-expect-error P-TM05: type narrowing needed
-function requireEnv(env) {
+function requireEnv(env: LoadEnv) {
 	const missing = ['getContentByPath', 'getDependencyGraph', 'getViewScriptTags']
 		.filter(name => typeof env?.[name] !== 'function')
 	if (missing.length > 0) {
@@ -59,8 +80,7 @@ function requireEnv(env) {
  * @param {import('../common/wxml-ir.types.ts').LoadTemplatesCtx} ctx
  * @returns {import('../common/wxml-ir.types.ts').LoadedGraph} LoadedGraph：展开后 Document + templateModule + scriptModule + sourceTexts
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function loadTemplates(document, ctx) {
+export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph {
 	const {
 		isComponent = false,
 		modulePath,
@@ -95,12 +115,8 @@ export function loadTemplates(document, ctx) {
 		sourceTexts.set(sourceFile, originalContent)
 	}
 
-	/** @type {any[]} */
-	// @ts-expect-error P-TM05: type narrowing needed
-	const templateModule = []
-	/** @type {any[]} */
-	// @ts-expect-error P-TM05: type narrowing needed
-	const scriptModule = []
+	const templateModule: unknown[] = []
+	const scriptModule: unknown[] = []
 	const WIR_SRC = Symbol.for('db.wxml-bridge.source')
 
 	// —— 多根包装（页） ——
@@ -109,9 +125,9 @@ export function loadTemplates(document, ctx) {
 	}
 
 	// —— include 展开 ——
-	const includeNodes = queryAll(document, 'include')
+	const includeNodes = queryAll(document as unknown as WxmlNode, 'include')
 	for (const includeNode of includeNodes) {
-		const src = getAttr(includeNode, 'src') ?? includeNode.src
+		const src = getAttr(includeNode, 'src') ?? (includeNode as { src?: string }).src
 		if (src) {
 			const includeFullPath = tools.resolveTemplateDependencyPath(workPath, sourcePath, src)
 			env.getDependencyGraph().addFile(modulePath, includeFullPath, 'view')
@@ -129,19 +145,16 @@ export function loadTemplates(document, ctx) {
 				includeContent = env.getContentByPath(includeFullPath)
 			}
 			catch (error) {
-				const err = /** @type {any} */ (error)
-				// @ts-expect-error P-TM05: type narrowing needed
-				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${err?.message || error})`, { cause: error })
+				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${(error as Error)?.message || error})`, { cause: error as Error })
 			}
 			if (includeContent.trim()) {
 				sourceTexts.set(includeDiagnosticSource, includeContent)
 				tools.checkTemplateCompatibility(includeContent, includeDiagnosticSource, components)
 				const includeDoc = parseWxml(includeContent, { sourceFile: includeDiagnosticSource })
-				const componentTags = tools.collectIncludedComponentTags(includeDoc, components)
+				const componentTags = tools.collectIncludedComponentTags(includeDoc as unknown as WxmlNode, components)
 
 				tools.transTagTemplate(
-					includeDoc,
-					// @ts-expect-error P-TM05: type narrowing needed
+					includeDoc as unknown as WxmlNode,
 					templateModule,
 					includePath,
 					components,
@@ -151,32 +164,22 @@ export function loadTemplates(document, ctx) {
 				)
 
 				tools.transTagWxs(
-					includeDoc,
-					// @ts-expect-error P-TM05: type narrowing needed
+					includeDoc as unknown as WxmlNode,
 					scriptModule,
 					includePath,
 					modulePath,
 				)
-
-				// @ts-expect-error P-TM05: type narrowing needed
 				tools.processIncludedFileWxsDependencies(componentTags, includePath, scriptModule, components, processedPaths)
+				removeMatching(includeDoc as unknown as WxmlNode, 'template-def')
+				removeMatching(includeDoc as unknown as WxmlNode, 'template-ref')
+				removeMatching(includeDoc as unknown as WxmlNode, 'template')
+				removeMatching(includeDoc as unknown as WxmlNode, env.getViewScriptTags().join(','))
 
-				// @ts-expect-error P-TM05: type narrowing needed
-				removeMatching(includeDoc, 'template-def')
-				// @ts-expect-error P-TM05: type narrowing needed
-				removeMatching(includeDoc, 'template-ref')
-				// @ts-expect-error P-TM05: type narrowing needed
-				removeMatching(includeDoc, 'template')
-				// @ts-expect-error P-TM05: type narrowing needed
-				removeMatching(includeDoc, env.getViewScriptTags().join(','))
-
-				const nodes = tools.processIncludeConditionalAttrs(includeNode, includeDoc)
-				// @ts-expect-error P-TM05: type narrowing needed
-				const processedContent = typeof nodes === 'string' ? nodes : serialize({ body: nodes })
+				const nodes = tools.processIncludeConditionalAttrs(includeNode, includeDoc as unknown as WxmlNode)
+				const processedContent = typeof nodes === 'string' ? nodes : serialize({ body: nodes } as unknown as WxmlNode)
 				const inserted = typeof nodes === 'string'
-					// @ts-expect-error P-TM05: type narrowing needed
-					? replaceNode(includeNode, parseWxml(nodes).body)
-					: replaceNode(includeNode, nodes)
+					? replaceNode(includeNode, parseWxml(nodes).body as unknown as WxmlNode)
+					: replaceNode(includeNode, nodes as unknown as WxmlNode)
 				for (const node of inserted) {
 					markOriginTree(node, WIR_SRC, { source: includeDiagnosticSource, text: processedContent })
 				}
@@ -192,8 +195,7 @@ export function loadTemplates(document, ctx) {
 
 	// —— 主文档 template 收集 ——
 	tools.transTagTemplate(
-		document,
-		// @ts-expect-error P-TM05: type narrowing needed
+		document as unknown as WxmlNode,
 		templateModule,
 		sourcePath,
 		components,
@@ -203,13 +205,12 @@ export function loadTemplates(document, ctx) {
 	)
 
 	// —— 主文档 wxs 收集 ——
-	// @ts-expect-error P-TM05: type narrowing needed
-	tools.transTagWxs(document, scriptModule, sourcePath, modulePath)
+	tools.transTagWxs(document as unknown as WxmlNode, scriptModule, sourcePath, modulePath)
 
 	// —— import 展开：只收集 template/wxs ——
-	const importNodes = queryAll(document, 'import')
+	const importNodes = queryAll(document as unknown as WxmlNode, 'import')
 	for (const importNode of importNodes) {
-		const src = getAttr(importNode, 'src') ?? importNode.src
+		const src = getAttr(importNode, 'src') ?? (importNode as { src?: string }).src
 		if (src) {
 			const importFullPath = tools.resolveTemplateDependencyPath(workPath, sourcePath, src)
 			env.getDependencyGraph().addFile(modulePath, importFullPath, 'view')
@@ -227,18 +228,15 @@ export function loadTemplates(document, ctx) {
 				importContent = env.getContentByPath(importFullPath)
 			}
 			catch (error) {
-				const err = /** @type {any} */ (error)
-				// @ts-expect-error P-TM05: type narrowing needed
-				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${err?.message || error})`, { cause: error })
+				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${(error as Error)?.message || error})`, { cause: error as Error })
 			}
 			if (importContent.trim()) {
 				sourceTexts.set(importDiagnosticSource, importContent)
 				tools.checkTemplateCompatibility(importContent, importDiagnosticSource, components)
 				const importDoc = parseWxml(importContent, { sourceFile: importDiagnosticSource })
-				const componentTags = tools.collectIncludedComponentTags(importDoc, components)
+				const componentTags = tools.collectIncludedComponentTags(importDoc as unknown as WxmlNode, components)
 				tools.transTagTemplate(
-					importDoc,
-					// @ts-expect-error P-TM05: type narrowing needed
+					importDoc as unknown as WxmlNode,
 					templateModule,
 					importPath,
 					components,
@@ -248,14 +246,11 @@ export function loadTemplates(document, ctx) {
 				)
 
 				tools.transTagWxs(
-					importDoc,
-					// @ts-expect-error P-TM05: type narrowing needed
+					importDoc as unknown as WxmlNode,
 					scriptModule,
 					importPath,
 					modulePath,
 				)
-
-				// @ts-expect-error P-TM05: type narrowing needed
 				tools.processIncludedFileWxsDependencies(componentTags, importPath, scriptModule, components, processedPaths)
 			}
 		}
@@ -263,31 +258,23 @@ export function loadTemplates(document, ctx) {
 	}
 
 	// —— 图片 assets ——
-	tools.transAsses(document, queryAll(document, 'image'), sourcePath, modulePath)
+	tools.transAsses(document as unknown as WxmlNode, queryAll(document as unknown as WxmlNode, 'image'), sourcePath, modulePath)
 
 	attachProjection(document, '_source', originalContent)
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
 
-	const loaded = /** @type {import('../common/wxml-ir.types.ts').LoadedGraph} */ (document)
-	// @ts-expect-error P-TM05: type narrowing needed
-	loaded.templateModule = templateModule
-	// @ts-expect-error P-TM05: type narrowing needed
-	loaded.scriptModule = scriptModule
+	const loaded = document as unknown as LoadedGraph
+	loaded.templateModule = templateModule as never
+	loaded.scriptModule = scriptModule as never
 	loaded.sourceTexts = sourceTexts
 	return loaded
 }
 
-/**
- * @param {any} node
- * @param {any} key
- * @param {any} entry
- */
-// @ts-expect-error P-TM05: type narrowing needed
-function markOriginTree(node, key, entry) {
+function markOriginTree(node: WxmlNode | null | undefined, key: string | symbol, entry: unknown) {
 	if (!node || typeof node !== 'object') {
 		return
 	}
-	node[key] = entry
+	(node as Record<string | symbol, unknown>)[key] = entry
 	const kids = node.children
 	if (Array.isArray(kids)) {
 		for (const child of kids) {

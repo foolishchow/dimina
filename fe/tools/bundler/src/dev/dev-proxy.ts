@@ -35,8 +35,7 @@ for (const [address, prefix] of [
 	['224.0.0.0', 4],
 	['240.0.0.0', 4],
 ]) {
-	// @ts-expect-error P-TM06: type narrowing needed
-	blockedAddresses.addSubnet(address, prefix, 'ipv4')
+	blockedAddresses.addSubnet(address as string, prefix as number, 'ipv4')
 }
 
 for (const [address, prefix] of [
@@ -49,8 +48,7 @@ for (const [address, prefix] of [
 	['fe80::', 10],
 	['ff00::', 8],
 ]) {
-	// @ts-expect-error P-TM06: type narrowing needed
-	blockedAddresses.addSubnet(address, prefix, 'ipv6')
+	blockedAddresses.addSubnet(address as string, prefix as number, 'ipv6')
 }
 
 const BLOCKED_REQUEST_HEADERS = new Set([
@@ -68,25 +66,18 @@ const BLOCKED_REQUEST_HEADERS = new Set([
 	'upgrade',
 	'via',
 ])
-
-// @ts-expect-error P-TM06: type narrowing needed
-function unsafeTargetError(message) {
+function unsafeTargetError(message: string) {
 	const error = new Error(message)
-	// @ts-expect-error P-TM06: type narrowing needed
-	error.code = 'DIMINA_UNSAFE_TARGET'
+	;(error as Error & { code: string }).code = 'DIMINA_UNSAFE_TARGET'
 	return error
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function normalizeHostname(hostname) {
+function normalizeHostname(hostname: string): string {
 	const withoutBrackets = hostname.startsWith('[') && hostname.endsWith(']')
 		? hostname.slice(1, -1)
 		: hostname
 	return withoutBrackets.replace(/\.$/, '').toLowerCase()
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-export function isPublicAddress(address) {
+export function isPublicAddress(address: string): boolean {
 	// Reject IPv4-mapped IPv6 literals instead of letting their alternate
 	// representation bypass the IPv4 ranges above.
 	if (address.toLowerCase().startsWith('::ffff:')) return false
@@ -94,9 +85,7 @@ export function isPublicAddress(address) {
 	if (family === 0) return false
 	return !blockedAddresses.check(address, family === 4 ? 'ipv4' : 'ipv6')
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function assertPublicAddresses(addresses) {
+function assertPublicAddresses(addresses: Array<{ address: string; family?: number }>) {
 	if (!Array.isArray(addresses) || addresses.length === 0) {
 		throw unsafeTargetError('Target hostname did not resolve')
 	}
@@ -106,9 +95,7 @@ function assertPublicAddresses(addresses) {
 		}
 	}
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-export async function assertSafeTarget(rawUrl, lookup = dns.promises.lookup) {
+export async function assertSafeTarget(rawUrl: unknown, lookup: typeof dns.promises.lookup = dns.promises.lookup): Promise<URL> {
 	if (typeof rawUrl !== 'string' || rawUrl.trim() === '') {
 		throw unsafeTargetError('URL is required')
 	}
@@ -138,39 +125,37 @@ export async function assertSafeTarget(rawUrl, lookup = dns.promises.lookup) {
 	return target
 }
 
-export function createSafeLookup(lookup = dns.lookup) {
-	// @ts-expect-error P-TM06: type narrowing needed
-	return (hostname, options, callback) => {
+type DnsLookup = typeof dns.lookup
+export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
+	return ((hostname: string, options: number | dns.LookupOptions | undefined, callback: (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family?: number) => void) => {
 		const normalizedOptions = typeof options === 'number'
 			? { family: options }
 			: { ...(options ?? {}) }
-		lookup(hostname, { ...normalizedOptions, all: true, verbatim: true }, (error, addresses) => {
+		lookup(hostname, { ...normalizedOptions, all: true, verbatim: true } as dns.LookupOptions, (error: NodeJS.ErrnoException | null, ...results: any[]) => {
 			if (error) {
-				callback(error)
+				callback(error, undefined as any)
 				return
 			}
+			const addresses = results[0] as dns.LookupAddress[]
 			try {
 				assertPublicAddresses(addresses)
 			}
 			catch (validationError) {
-				callback(validationError)
+				callback(validationError as NodeJS.ErrnoException, undefined as any)
 				return
 			}
 
 			if (normalizedOptions.all) {
-				callback(null, addresses)
+				callback(null, addresses as any)
 			}
 			else {
-				// @ts-expect-error P-TM06: type narrowing needed
 				const [{ address, family }] = addresses
 				callback(null, address, family)
 			}
 		})
-	}
+	}) as DnsLookup
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-export function isAllowedBrowserOrigin(origin, configuredOrigins = '') {
+export function isAllowedBrowserOrigin(origin: string | undefined, configuredOrigins = ''): boolean {
 	if (!origin) return true
 
 	const explicitOrigins = new Set(String(configuredOrigins)
@@ -192,9 +177,7 @@ export function isAllowedBrowserOrigin(origin, configuredOrigins = '') {
 		return false
 	}
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-export function sanitizeRequestHeaders(headers) {
+export function sanitizeRequestHeaders(headers: unknown): Record<string, string> {
 	if (!headers || typeof headers !== 'object' || Array.isArray(headers)) return {}
 
 	return Object.fromEntries(Object.entries(headers).filter(([name]) => {
@@ -209,14 +192,11 @@ const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
 const ALLOWED_RESPONSE_TYPES = new Set(['json', 'text', 'arraybuffer'])
 const MAX_REQUEST_BODY_BYTES = 1024 * 1024
 const MAX_RESPONSE_BODY_BYTES = 10 * 1024 * 1024
-
-// @ts-expect-error P-TM06: type narrowing needed
-function readJsonBody(req) {
+function readJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {
 	return new Promise((resolve, reject) => {
 		let body = ''
 		let size = 0
-		// @ts-expect-error P-TM06: type narrowing needed
-		req.on('data', (chunk) => {
+		req.on('data', (chunk: Buffer) => {
 			size += chunk.length
 			if (size > MAX_REQUEST_BODY_BYTES) {
 				reject(Object.assign(new Error('Request body too large'), { statusCode: 413 }))
@@ -236,9 +216,7 @@ function readJsonBody(req) {
 		req.on('error', reject)
 	})
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function forwardRequest(target, { method, data, header, timeout }) {
+function forwardRequest(target: URL, { method, data, header, timeout }: { method: string; data?: unknown; header?: Record<string, string>; timeout?: number }): Promise<{ status: number | undefined; headers: http.IncomingHttpHeaders; body: Buffer }> {
 	return new Promise((resolve, reject) => {
 		const lib = target.protocol === 'https:' ? https : http
 		const safeLookup = createSafeLookup()
@@ -267,10 +245,9 @@ function forwardRequest(target, { method, data, header, timeout }) {
 					: new http.Agent({ lookup: safeLookup }),
 			},
 			(response) => {
-				// @ts-expect-error P-TM06: type narrowing needed
-				const chunks = []
+				const chunks: Buffer[] = []
 				let received = 0
-				response.on('data', (chunk) => {
+				response.on('data', (chunk: Buffer) => {
 					received += chunk.length
 					if (received > MAX_RESPONSE_BODY_BYTES) {
 						request.destroy()
@@ -281,9 +258,8 @@ function forwardRequest(target, { method, data, header, timeout }) {
 				})
 				response.on('end', () => {
 					resolve({
-						status: response.statusCode,
+						status: response.statusCode as number,
 						headers: response.headers,
-						// @ts-expect-error P-TM06: type narrowing needed
 						body: Buffer.concat(chunks),
 					})
 				})
@@ -308,29 +284,20 @@ function forwardRequest(target, { method, data, header, timeout }) {
  * @param {import('node:http').ServerResponse} res
  * @param {{ assertSafeTarget?: typeof assertSafeTarget, forwardRequest?: typeof forwardRequest }} [deps]
  */
-// @ts-expect-error P-TM06: type narrowing needed
-export async function handleProxyRequest(req, res, deps = {}) {
+export async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerResponse, deps: { assertSafeTarget?: typeof assertSafeTarget; forwardRequest?: typeof forwardRequest } = {}): Promise<void> {
 	const {
-		// @ts-expect-error P-TM06: type narrowing needed
 		assertSafeTarget: resolveTarget = assertSafeTarget,
-		// @ts-expect-error P-TM06: type narrowing needed
 		forwardRequest: doForward = forwardRequest,
-	} = deps
+	} = deps as { assertSafeTarget: typeof assertSafeTarget; forwardRequest: typeof forwardRequest }
 	try {
 		const {
-			// @ts-expect-error P-TM06: type narrowing needed
 			url,
-			// @ts-expect-error P-TM06: type narrowing needed
 			data,
-			// @ts-expect-error P-TM06: type narrowing needed
 			header = {},
-			// @ts-expect-error P-TM06: type narrowing needed
 			timeout = 30000,
-			// @ts-expect-error P-TM06: type narrowing needed
 			method = 'GET',
-			// @ts-expect-error P-TM06: type narrowing needed
 			responseType = 'json',
-		} = await readJsonBody(req)
+		} = (await readJsonBody(req)) as { url: string; data?: unknown; header?: Record<string, string>; timeout?: number; method?: string; responseType?: string }
 
 		const normalizedMethod = String(method).toUpperCase()
 		if (!ALLOWED_METHODS.has(normalizedMethod)) {
@@ -345,8 +312,8 @@ export async function handleProxyRequest(req, res, deps = {}) {
 		}
 
 		const target = await resolveTarget(url)
-		const parsedTimeout = Number.parseInt(timeout, 10)
-		const boundedTimeout = Number.isFinite(parsedTimeout)
+		const parsedTimeout = Number.parseInt(String(timeout), 10)
+		const boundedTimeout: number = Number.isFinite(parsedTimeout)
 			? Math.min(Math.max(parsedTimeout, 1), 30000)
 			: 30000
 
@@ -354,7 +321,7 @@ export async function handleProxyRequest(req, res, deps = {}) {
 			method: normalizedMethod,
 			data,
 			header,
-			timeout: boundedTimeout,
+			timeout: boundedTimeout as number,
 		})
 
 		let contentType
@@ -371,26 +338,22 @@ export async function handleProxyRequest(req, res, deps = {}) {
 			contentType = 'application/json'
 			body = JSON.stringify(parseResponseJson(response.body))
 		}
-		res.writeHead(response.status, { 'Content-Type': contentType })
+		res.writeHead(response.status as number, { 'Content-Type': contentType })
 		res.end(body)
 	}
 	catch (error) {
-		// @ts-expect-error P-TM06: type narrowing needed
-		const statusCode = error.statusCode
-			// @ts-expect-error P-TM06: type narrowing needed
-			|| (error.code === 'DIMINA_UNSAFE_TARGET' ? 403 : 500)
+		const err = error as Error & { statusCode?: number; code?: string }
+		const statusCode = err.statusCode
+			|| (err.code === 'DIMINA_UNSAFE_TARGET' ? 403 : 500)
 		res.writeHead(statusCode, { 'Content-Type': 'application/json' })
 		res.end(JSON.stringify({
-			// @ts-expect-error P-TM06: type narrowing needed
-			error: error.message || 'Internal Server Error',
+			error: err.message || 'Internal Server Error',
 			status: statusCode,
 			timestamp: new Date().toISOString(),
 		}))
 	}
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function parseResponseJson(buffer) {
+function parseResponseJson(buffer: Buffer): unknown {
 	try {
 		return JSON.parse(buffer.toString('utf8'))
 	}
