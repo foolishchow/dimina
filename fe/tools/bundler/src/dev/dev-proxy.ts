@@ -14,6 +14,7 @@ import dns from 'node:dns'
 import http from 'node:http'
 import https from 'node:https'
 import net from 'node:net'
+import type { HttpProxyError } from '../shared/utils.ts'
 
 // ---------- 迁移自 fe/packages/server/security.js ----------
 
@@ -68,7 +69,7 @@ const BLOCKED_REQUEST_HEADERS = new Set([
 ])
 function unsafeTargetError(message: string) {
 	const error = new Error(message)
-	;(error as Error & { code: string }).code = 'DIMINA_UNSAFE_TARGET'
+	;Object.assign(error, { code: 'DIMINA_UNSAFE_TARGET' })
 	return error
 }
 function normalizeHostname(hostname: string): string {
@@ -342,7 +343,7 @@ export async function handleProxyRequest(req: http.IncomingMessage, res: http.Se
 		res.end(body)
 	}
 	catch (error) {
-		const err = error as Error & { statusCode?: number; code?: string }
+		const err = error as HttpProxyError
 		const statusCode = err.statusCode
 			|| (err.code === 'DIMINA_UNSAFE_TARGET' ? 403 : 500)
 		res.writeHead(statusCode, { 'Content-Type': 'application/json' })

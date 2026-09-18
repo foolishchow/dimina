@@ -275,6 +275,32 @@ const miniProgramBuiltinTags = new Set([
 	'xr-frame',
 ])
 
+/** catch 块安全提取 .message（TS strict catch 变量为 unknown） */
+export interface EnhancedError extends Error {
+	[key: string]: unknown
+}
+
+export interface StyleCompileError extends Error {
+	file?: string
+	line?: number
+	column?: number
+	stage?: string
+}
+
+export interface HttpProxyError extends Error {
+	statusCode?: number
+	code?: string
+}
+
+export function errorMessage(e: unknown): string {
+	return e instanceof Error ? e.message : String(e)
+}
+
+/** catch 块安全提取 .stack（TS strict catch 变量为 unknown） */
+export function errorStack(e: unknown): string | undefined {
+	return e instanceof Error ? e.stack : undefined
+}
+
 export {
 	artCode,
 	collectAssets,

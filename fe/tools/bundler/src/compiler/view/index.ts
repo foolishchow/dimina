@@ -42,6 +42,8 @@ import {
 import { bindVueToolsLive } from './wxml/renderer/vue/live.ts'
 import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.ts'
 import { emitEntry } from '../pipeline/emit.ts'
+import { errorMessage, errorStack } from '../../shared/utils.ts'
+import type { EnhancedError } from '../../shared/utils.ts'
 
 // TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）
 if (!getWxmlRenderer(VUE_RENDERER_ID)) {
@@ -380,7 +382,7 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
 		})
 	}
 	catch (error) {
-		const err = error as Error & Record<string, unknown>
+		const err = error as EnhancedError
 		compileResCache.set(module.path, {
 			failed: true,
 			errorShape: {
@@ -480,8 +482,8 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		// MC1/R-MC3：失败缓存——同模块上次编译失败，直接重抛等价错误（避免同 stage 内重复失败编译）
 		// F1：重建完整字段（含 file/line/column/stage，供上层 stage-channel 错误重建消费）
 		if (cacheData && cacheData.failed) {
-			const err = new Error(cacheData.errorShape?.message as string || 'module compilation failed (cached)') as Error & Record<string, unknown>
-			if (cacheData.errorShape?.name) (err as Error & Record<string, unknown>).name = cacheData.errorShape.name as string
+			const err = new Error(cacheData.errorShape?.message as string || 'module compilation failed (cached)') as EnhancedError
+			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name as string
 			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack as string
 			if (cacheData.errorShape?.file) err.file = cacheData.errorShape.file
 			if (cacheData.errorShape?.line != null) err.line = cacheData.errorShape.line
@@ -638,7 +640,7 @@ function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule
 	try {
 		wxsAst = parseJs(wxsContent, wxsFilePath || 'inline.wxs', 'script')
 	} catch (error) {
-		console.error(`[view] 解析 wxs 文件失败: ${wxsFilePath}`, (error as Error).message)
+		console.error(`[view] 解析 wxs 文件失败: ${wxsFilePath}`, errorMessage(error))
 		return wxsContent // 返回原始内容
 	}
 	const replacements: Array<{ start: number; end: number; value: string }> = []
@@ -1331,7 +1333,7 @@ function loadWxsModule(modulePath: string, workPath: string, scriptModule: unkno
 			code: processedContent
 		}
 	} catch (error) {
-		console.warn(`[view] 加载 wxs 模块失败: ${modulePath}`, (error as Error).message)
+		console.warn(`[view] 加载 wxs 模块失败: ${modulePath}`, errorMessage(error))
 		return null
 	}
 }

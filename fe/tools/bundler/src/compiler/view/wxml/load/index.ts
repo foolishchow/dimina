@@ -20,6 +20,7 @@ import { parseWxml } from '../parse.ts'
 import type { WxmlNode } from '../common/document.ts'
 import type { WxmlDocument, LoadedGraph } from '../common/wxml-ir.types.ts'
 import type { TemplateModuleEntry } from './template.ts'
+import { errorMessage, errorStack } from '../../../../shared/utils.ts'
 
 /** Load-tools 注入句柄（transitional — view/index 提供） */
 interface LoadTools {
@@ -145,7 +146,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				includeContent = env.getContentByPath(includeFullPath)
 			}
 			catch (error) {
-				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${(error as Error)?.message || error})`, { cause: error as Error })
+				throw new Error(`[wxml] load: include read failed src=${src} sourceFile=${includeDiagnosticSource}${nodeLocSuffix(includeNode)} (${errorMessage(error)})`, { cause: error })
 			}
 			if (includeContent.trim()) {
 				sourceTexts.set(includeDiagnosticSource, includeContent)
@@ -228,7 +229,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				importContent = env.getContentByPath(importFullPath)
 			}
 			catch (error) {
-				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${(error as Error)?.message || error})`, { cause: error as Error })
+				throw new Error(`[wxml] load: import read failed src=${src} sourceFile=${importDiagnosticSource}${nodeLocSuffix(importNode)} (${errorMessage(error)})`, { cause: error })
 			}
 			if (importContent.trim()) {
 				sourceTexts.set(importDiagnosticSource, importContent)

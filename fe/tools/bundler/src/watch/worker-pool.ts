@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import os from 'node:os'
+import { errorMessage, errorStack } from '../shared/utils.ts'
 
 function getCGroupCPUCount() {
 	try {
@@ -26,7 +27,7 @@ function getCGroupCPUCount() {
 	}
 	catch (e) {
 		// 如果读取失败，回退到os.cpus()
-		console.warn('Failed to read CPU limits from cgroup:', (e as Error).message)
+		console.warn('Failed to read CPU limits from cgroup:', errorMessage(e))
 	}
 
 	return typeof os.availableParallelism === 'function' ? os.availableParallelism() : os.cpus().length
@@ -57,7 +58,7 @@ function getCGroupMemoryLimit() {
 	}
 	catch (e) {
 		// 如果读取失败，回退到os.totalmem()
-		console.warn('Failed to read memory limits from cgroup:', (e as Error).message)
+		console.warn('Failed to read memory limits from cgroup:', errorMessage(e))
 	}
 
 	return os.totalmem()

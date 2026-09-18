@@ -14,6 +14,8 @@ import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
+import { errorMessage, errorStack } from '../../shared/utils.ts'
+import type { EnhancedError, StyleCompileError } from '../../shared/utils.ts'
 const compileRes = new Map<string, { code: string; map: string | null }>()
 const builtInTagNames = new Set(tagWhiteList)
 const autoprefixerPlugin = autoprefixer({ overrideBrowserslist: ['cover 99.5%'] })
@@ -174,7 +176,7 @@ function createExternalClassPlugin(moduleId: string): { postcssPlugin: string; R
 				rule.selector = selectorProcessor.processSync(rule.selector)
 			}
 			catch (error) {
-				throw rule.error((error as Error).message, { plugin: 'dimina-external-class' })
+				throw rule.error(errorMessage(error), { plugin: 'dimina-external-class' })
 			}
 		},
 	}
@@ -196,7 +198,7 @@ function getStyleSourcePath(absolutePath: string): string {
 }
 function createStyleCompileError(stage: string, absolutePath: string, cause: unknown): Error & { file?: string; line?: number; column?: number; stage?: string } {
 	if ((cause as { name?: string })?.name === 'StyleCompileError') {
-		return cause as Error & { file?: string; line?: number; column?: number; stage?: string }
+		return cause as StyleCompileError
 	}
 
 	const causeObj = cause as { line?: number; span?: { start?: { line?: number; column?: number } }; column?: number; reason?: string; sassMessage?: string; message?: string }
@@ -207,7 +209,7 @@ function createStyleCompileError(stage: string, absolutePath: string, cause: unk
 		? file
 		: `${file}:${line}${column == null ? '' : `:${column}`}`
 	const reason = causeObj.reason || causeObj.sassMessage || causeObj.message || String(cause)
-	const error = new Error(`[style:${stage}] ${location} ${reason}`, { cause }) as Error & { file?: string; line?: number; column?: number; stage?: string }
+	const error = new Error(`[style:${stage}] ${location} ${reason}`, { cause }) as StyleCompileError
 	error.name = 'StyleCompileError'
 	error.file = file
 	error.line = line
@@ -292,7 +294,7 @@ function createStyleTransformPlugin(module: StyleModule, absolutePath: string, i
 				rule.selector = selectorProcessor.processSync(rule.selector)
 			}
 			catch (error) {
-				throw rule.error((error as Error).message, { plugin: 'dimina-style-transform' })
+				throw rule.error(errorMessage(error), { plugin: 'dimina-style-transform' })
 			}
 		},
 		Comment(comment) {
@@ -559,7 +561,7 @@ async function styleCompile({ msg, progress, config }: CompileOptions): Promise<
 	compileRes.clear()
 }
 function styleNormalizeError(e: Error): Record<string, unknown> {
-	const err = e as Error & Record<string, unknown>
+	const err = e as EnhancedError
 	return { message: err.message, stack: err.stack, name: err.name, file: err.file, line: err.line, column: err.column, stage: err.stage }
 }
 

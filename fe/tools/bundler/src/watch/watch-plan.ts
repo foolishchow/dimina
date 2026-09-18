@@ -41,7 +41,7 @@ function createWatchRebuildScheduler({ rebuild, onRebuild = () => {}, onError = 
 			}
 			catch (error) {
 				const first = changed[0]
-				onError(error as Error, { event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
+				onError(error instanceof Error ? error : new Error(String(error)), { event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
 			}
 		}
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getStyleExts, getTemplateExts, getViewScriptExts } from '../core/env.ts'
+import { errorMessage, errorStack } from '../../shared/utils.ts'
 
 /**
  * npm 构建工具
@@ -202,7 +203,7 @@ class NpmBuilder {
 				}
 			}
 		} catch (e) {
-			console.warn(`[npm-builder] 解析 package.json 失败: ${packageJsonPath}`, (e as Error).message)
+			console.warn(`[npm-builder] 解析 package.json 失败: ${packageJsonPath}`, errorMessage(e))
 		}
 	}
 
@@ -233,7 +234,7 @@ class NpmBuilder {
 				return false
 			}
 		} catch (e) {
-			console.warn(`[npm-builder] 包 ${packageName} 的 package.json 解析失败:`, (e as Error).message)
+			console.warn(`[npm-builder] 包 ${packageName} 的 package.json 解析失败:`, errorMessage(e))
 			return false
 		}
 

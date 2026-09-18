@@ -3,6 +3,7 @@
 import path from 'node:path'
 import process from 'node:process'
 import { program } from 'commander'
+import { errorMessage, errorStack } from '../shared/utils.ts'
 import pack from '../../package.json' with { type: 'json' }
 import { createBundler } from '../session/index.ts'
 import { resolveBundlerConfig } from '../session/resolve.ts'
@@ -42,7 +43,7 @@ program
 				await createBundler(resolved).build()
 			}
 			catch (error) {
-				throw new Error(`${workPath} 编译出错: ${(error as Error).message}`, { cause: error as Error })
+				throw new Error(`${workPath} 编译出错: ${errorMessage(error)}`, { cause: error })
 			}
 			return
 		}
@@ -65,7 +66,7 @@ program
 			await watcher.start()
 		}
 		catch (error) {
-			throw new Error(`${workPath} 编译出错: ${(error as Error).message}`, { cause: error as Error })
+			throw new Error(`${workPath} 编译出错: ${errorMessage(error)}`, { cause: error })
 		}
 	})
 
@@ -76,6 +77,6 @@ program
 	.version(pack.version)
 
 program.parseAsync(process.argv).catch((error: unknown) => {
-	console.error((error as Error).stack || (error as Error).message)
+	console.error(errorStack(error) || errorMessage(error))
 	process.exitCode = 1
 })

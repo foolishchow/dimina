@@ -3,6 +3,7 @@
  */
 
 import { parseSync } from 'oxc-parser'
+import { errorMessage, errorStack } from '../../shared/utils.ts'
 
 // JavaScript 关键字和全局对象，不应该被识别为数据依赖
 const KEYWORDS = new Set([
@@ -40,7 +41,7 @@ export function extractDependencies(expression: string | null | undefined): stri
 		visitExpressionAst(ast as unknown, null, dependencies)
 	} catch (error) {
 		// AST 解析失败时回退到空数组
-		console.warn('[expression-parser] AST 解析失败，表达式:', expression, '错误:', (error as Error).message)
+		console.warn('[expression-parser] AST 解析失败，表达式:', expression, '错误:', errorMessage(error))
 		return []
 	}
 

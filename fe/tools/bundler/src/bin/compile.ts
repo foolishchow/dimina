@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import build from '../index.ts'
+import { errorMessage, errorStack } from '../shared/utils.ts'
 import {
 	COMPILE_CACHE_VERSION,
 	createAppCacheEntry,
@@ -69,7 +70,7 @@ function readAppId(workPath: string): string | null {
 		return projectConfig.appid || null
 	}
 	catch (error) {
-		console.warn(`读取 ${projectConfigPath} 失败:`, (error as Error).message)
+		console.warn(`读取 ${projectConfigPath} 失败:`, errorMessage(error))
 		return null
 	}
 }
@@ -216,6 +217,6 @@ function getLastCompileTime(data: { apps: Record<string, { appInfo: { appId: str
 }
 
 buildMiniApp(parseOptions()).catch((error: unknown) => {
-	console.error((error as Error).stack || (error as Error).message)
+	console.error(errorStack(error) || errorMessage(error))
 	process.exitCode = 1
 })

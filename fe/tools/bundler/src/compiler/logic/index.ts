@@ -13,6 +13,7 @@ import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSou
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.ts'
 import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { emitEntry } from '../pipeline/emit.ts'
+import { errorMessage, errorStack } from '../../shared/utils.ts'
 
 // 用于缓存已处理的模块
 const processedModules = new Set()
@@ -405,7 +406,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		}
 		compileInfo.code = esbuildResult.code
 	} catch (error) {
-		console.error(`[logic] esbuild 转换失败 ${modulePath}:`, (error as Error).message)
+		console.error(`[logic] esbuild 转换失败 ${modulePath}:`, errorMessage(error))
 		// 如果 esbuild 转换失败，使用路径改写后的源码
 		compileInfo.code = modifiedCode
 	}
@@ -567,7 +568,7 @@ function resolveModuleIdToExistingPath(moduleId: string): string | null {
 			}
 		}
 		catch (error) {
-			console.warn('[logic]', `解析 package.json 失败: ${packageJsonPath}`, (error as Error).message)
+			console.warn('[logic]', `解析 package.json 失败: ${packageJsonPath}`, errorMessage(error))
 		}
 	}
 

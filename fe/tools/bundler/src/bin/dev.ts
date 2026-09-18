@@ -5,6 +5,7 @@ import process from 'node:process'
 import { createBundler } from '../session/index.ts'
 import { resolveBundlerConfig } from '../session/resolve.ts'
 import type { Command } from 'commander'
+import { errorMessage, errorStack } from '../shared/utils.ts'
 
 // M-F3 兼容：resolveSdkRoot 已迁 common/sdk-root.js；此处 re-export 保持向后兼容
 export { resolveSdkRoot } from '../dev/sdk-root.ts'
@@ -70,7 +71,7 @@ export function registerDevCommand(program: Command): void {
 				})
 			}
 			catch (error) {
-				throw new Error(`${workPath} 编译出错: ${(error as Error).message}`, { cause: error as Error })
+				throw new Error(`${workPath} 编译出错: ${errorMessage(error)}`, { cause: error })
 			}
 
 			// 文案留 bin：preview URL / LAN 提示 / watching（数据来自 devHandle）

@@ -22,6 +22,7 @@ import {
 import { parseWxml } from '../../parse.ts'
 import type { WxmlNode, Attr } from '../../common/document.ts'
 import { enableSourcemap, templateRenderCache } from './state.ts'
+import { errorMessage, errorStack } from '../../../../../shared/utils.ts'
 import {
 	transformTextInterpolation,
 	isWrappedByBraces,
@@ -574,7 +575,7 @@ export function getProps(attrs: Record<string, string>, tag: string, components:
 			propsRes.push(`v-c-prop-bindings="${escapedJson}"`)
 		}
 		} catch (error) {
-			console.warn('[compiler] 序列化 propBindings 失败:', (error as Error).message, '标签:', tag, '绑定数据:', propBindings)
+			console.warn('[compiler] 序列化 propBindings 失败:', errorMessage(error), '标签:', tag, '绑定数据:', propBindings)
 		}
 	}
 

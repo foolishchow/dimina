@@ -21,6 +21,7 @@ import {
 import { bindDocument } from '../common/document-ops.ts'
 import type { WxmlDocument } from '../common/wxml-ir.types.ts'
 import type { WxmlNode } from '../common/document.ts'
+import { errorMessage, errorStack } from '../../../../shared/utils.ts'
 
 /** 与今日 view-compiler 主解析一致的 cheerio 选项（保真投影） */
 export const PARSE_OPTIONS = Object.freeze({
@@ -48,7 +49,7 @@ export function parseWxml(source: string, options: { sourceFile?: string } = {})
 		$ = cheerio.load(source, PARSE_OPTIONS)
 	}
 	catch (error) {
-		throw new Error(`[wxml] parse failed: ${(error as Error)?.message || error}${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`, { cause: error as Error })
+		throw new Error(`[wxml] parse failed: ${errorMessage(error)}${sourceFile ? ` (sourceFile=${sourceFile})` : ''}`, { cause: error })
 	}
 	return projectDocument($, { sourceFile })
 }

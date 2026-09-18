@@ -9,6 +9,7 @@ import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path
 import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.ts'
 import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from '../../model/dependency-graph.ts'
+import { errorMessage, errorStack } from '../../shared/utils.ts'
 
 const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
 let defaultCompilerContext: CompilerContext | undefined
@@ -265,7 +266,7 @@ function storeProjectConfig() {
 			defaultConfig = parseContentByPath(defaultConfigPath)
 		}
 		catch (e) {
-			console.warn('Failed to parse project.config.json:', (e as Error).message)
+			console.warn('Failed to parse project.config.json:', errorMessage(e))
 		}
 	}
 
@@ -275,7 +276,7 @@ function storeProjectConfig() {
 			privateConfig = parseContentByPath(privateConfigPath)
 		}
 		catch (e) {
-			console.warn('Failed to parse project.private.config.json:', (e as Error).message)
+			console.warn('Failed to parse project.private.config.json:', errorMessage(e))
 		}
 	}
 
@@ -618,7 +619,7 @@ function resolveComponentStyleIsolation(componentConfig: Record<string, unknown>
 		}
 	}
 	catch (error) {
-		console.warn(`[env] 无法解析组件样式隔离配置 ${scriptPath}: ${(error as Error).message}`)
+		console.warn(`[env] 无法解析组件样式隔离配置 ${scriptPath}: ${errorMessage(error)}`)
 	}
 
 	return 'isolated'

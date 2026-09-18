@@ -33,7 +33,7 @@ export function runWorker(engine: Engine): void {
 			}
 			catch (error) {
 				engine.cleanup()
-				parentPort!.postMessage({ success: false, error: engine.normalizeError(error as Error) })
+				parentPort!.postMessage({ success: false, error: engine.normalizeError(error instanceof Error ? error : new Error(String(error))) })
 			}
 		})
 	})
