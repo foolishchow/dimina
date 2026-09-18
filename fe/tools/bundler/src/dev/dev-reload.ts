@@ -34,8 +34,7 @@ const RELOAD_LEVELS = Object.freeze({
  *             affectedPages: string[], buildId: number } | null)} 合成后的 ws 推送载荷；
  *   plan.skip 时为 null（不推送）。
  */
-// @ts-expect-error P-TM06: type narrowing needed
-function synthesizeReloadLevel(input) {
+function synthesizeReloadLevel(input: { event: string, filePath: string, count: number, plan: { skip: boolean, incremental: boolean, options: { stages?: string[], affectedEntries?: string[] } }, appId: string, buildId: number }) {
 	const { plan, appId, buildId } = input
 	if (!plan || plan.skip) {
 		return null

@@ -1,7 +1,25 @@
 import { getDependencyGraph } from '../core/env.ts'  // F26：successPayload 默认读 dependencyGraph（业务状态）
 
-interface EngineOverrides { name: string; [key: string]: unknown }
-export function defineEngine(overrides: EngineOverrides): { name: string; buildConfig: (msg: Record<string, unknown>) => Record<string, unknown>; cleanup: () => void; successPayload: (ctx: { logger: { warn: (msg: string) => void; flush: () => string[] } }) => Record<string, unknown>; normalizeError: (e: Error) => Record<string, unknown>; [key: string]: unknown } {
+// 共享引擎类型：worker-entry → runWorker、defineEngine → executor 选 thin entry 均引用
+export interface EngineBuildConfig {
+	(msg: Record<string, unknown>): Record<string, unknown>
+}
+// compile 入参：worker runtime 构造 { msg, progress, config } 传入
+export interface CompileOptions {
+	msg: unknown
+	progress: unknown
+	config: unknown
+}
+export interface Engine {
+	name: string
+	buildConfig: (msg: Record<string, unknown>) => Record<string, unknown>
+	compile: (opts: CompileOptions) => Promise<void>
+	cleanup: () => void
+	successPayload: (ctx: { logger: { warn: (msg: string) => void; flush: () => string[] } }) => Record<string, unknown>
+	normalizeError: (e: Error) => Record<string, unknown>
+}
+interface EngineOverrides extends Partial<Engine> { name: string; [key: string]: unknown }
+export function defineEngine(overrides: EngineOverrides): Engine {
 	if (!(overrides as { name?: string }).name) throw new Error('defineEngine: name 必填')  // F38：engine 标识（executor 选 thin entry）
 	return {
 		// name will be overwritten by ...overrides below
@@ -10,5 +28,5 @@ export function defineEngine(overrides: EngineOverrides): { name: string; buildC
 		successPayload: ({ logger }) => ({ dependencyGraph: getDependencyGraph().toJSON() }),  // F24/F27：收 ctx，默认含 dependencyGraph（不用 logger）
 		normalizeError: (e: Error) => ({ message: e.message, stack: e.stack, name: e.name }),
 		...(overrides as EngineOverrides),  // 覆盖=替换；view/logic 覆盖 successPayload 时显式含 dependencyGraph + compatibilityWarnings
-	}
+	} as Engine
 }

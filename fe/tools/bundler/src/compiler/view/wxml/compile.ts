@@ -28,8 +28,7 @@ import { transTagTemplate } from './load/template.ts'
 /**
  * 转换成底层框架模板 —— parse → load → vue.render
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function toCompileTemplate(isComponent, path, components, componentPlaceholder, processedPaths = new Set()) {
+export function toCompileTemplate(isComponent: boolean, path: string, components: Record<string, unknown> | undefined, componentPlaceholder: Record<string, unknown> | undefined, processedPaths: Set<string> = new Set()) {
 	const workPath = getWorkPath()
 	const fullPath = getViewPath(workPath, path)
 	if (!fullPath) {

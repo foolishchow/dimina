@@ -35,20 +35,19 @@ function computeFileHash(filePath: string): string {
  * @returns {{ mtimeMs: number, size: number, hash: string } | null} 新指纹（文件不存在返回 null）
  */
 export interface FileFP { missing?: boolean; mtimeMs?: number; ctimeMs?: number; size?: number; hash?: string }
-function fingerprintFile(filePath: string, prev?: FileFP): FileFP {
+function fingerprintFile(filePath: string, prev?: FileFP): FileFP | null {
 	let stat
 	try {
 		stat = fs.statSync(filePath)
 	}
 	catch {
-	// @ts-expect-error null return type
 		return null
 	}
 	const mtimeMs = Math.floor(stat.mtimeMs)
 	const size = stat.size
 
 	// 预筛：mtime 和 size 均未变 → 沿用旧 hash（跳过读取）
-	if (prev && prev!.mtimeMs === mtimeMs && prev.size === size) {
+	if (prev && prev.mtimeMs === mtimeMs && prev.size === size) {
 		return prev
 	}
 
@@ -64,19 +63,17 @@ function fingerprintFile(filePath: string, prev?: FileFP): FileFP {
  * @param {string} workPath 项目根（绝对路径）
  * @returns {{ changed: string[], added: string[], removed: string[], fingerprints: Map<string, object> }}
  */
-export function scanFingerprints(oldFP: Record<string, FileFP>, allFiles: string[], workPath: string): Record<string, FileFP> {
-	const changed = []
-	const added = []
-	const removed = []
-	const fingerprints = new Map()
+export function scanFingerprints(oldFP: Map<string, FileFP>, allFiles: string[], workPath: string): { changed: string[]; added: string[]; removed: string[]; fingerprints: Map<string, FileFP> } {
+	const changed: string[] = []
+	const added: string[] = []
+	const removed: string[] = []
+	const fingerprints = new Map<string, FileFP>()
 
 	const currentSet = new Set(allFiles)
-		// @ts-expect-error callable expression type issue
 	const oldSet = new Set(oldFP.keys())
 
 	for (const relPath of allFiles) {
 		const absPath = `${workPath}/${relPath}`
-		// @ts-expect-error callable expression type issue
 		const prev = oldFP.get(relPath)
 		const fp = fingerprintFile(absPath, prev)
 		if (fp === null) {
@@ -95,13 +92,10 @@ export function scanFingerprints(oldFP: Record<string, FileFP>, allFiles: string
 
 	// 旧有现无 → removed
 	for (const relPath of oldSet) {
-	// @ts-expect-error string arg type
 		if (!currentSet.has(relPath)) {
 			removed.push(relPath)
 		}
 	}
-
-	// @ts-expect-error FileFP type mismatch
 	return { changed, added, removed, fingerprints }
 }
 
@@ -115,14 +109,13 @@ export function scanFingerprints(oldFP: Record<string, FileFP>, allFiles: string
  * @param {string} params.toolStamp 编译器版本指纹
  * @returns {string} inputHash
  */
-export function computeEntryInputHash({ inputFiles, fingerprints, contextFingerprint, toolStamp }: { inputFiles: string[]; fingerprints: Record<string, Record<string, unknown>>; contextFingerprint: unknown; toolStamp: string }): string {
+export function computeEntryInputHash({ inputFiles, fingerprints, contextFingerprint, toolStamp }: { inputFiles: string[]; fingerprints: Map<string, FileFP>; contextFingerprint: unknown; toolStamp: string }): string {
 	const sortedEntries = inputFiles
 		.slice()
 		.sort()
-		.map((relPath) => {
-	// @ts-expect-error callable expression type issue
+		.map((relPath: string) => {
 			const fp = fingerprints.get(relPath)
-			return `${relPath}:${fp ? fp.hash : 'MISSING'}`
+			return `${relPath}:${fp && fp.hash ? fp.hash : 'MISSING'}`
 		})
 
 	const parts = [

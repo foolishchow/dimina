@@ -35,22 +35,19 @@ export function createBuildWatcher({
 	targetPath: string
 	workPath: string
 	useAppIdDir: boolean
-	store: unknown
+	store: ReturnType<typeof createProjectStore> | undefined
 	options: Record<string, unknown>
 	autoListen?: boolean
-	onRebuild?: () => void
-	beforeBuild?: () => void | Promise<void>
-	onError?: (e: Error) => void
+	onRebuild?: (change: { event: string; filePath: string; count: number }) => void
+	beforeBuild?: (ctx: Record<string, unknown>) => void | Promise<void>
+	onError?: (e: Error, change: { event: string; filePath: string; count: number }) => void
 }) {
-	// @ts-expect-error P-TM04: type narrowing needed
-	let buildResult
-	// @ts-expect-error P-TM04: type narrowing needed
-	let scheduler
-	// @ts-expect-error P-TM04: type narrowing needed
-	let fsWatcher
+	let buildResult: { appId: string; [key: string]: unknown } | undefined
+	let scheduler: ReturnType<typeof createWatchRebuildScheduler> | undefined
+	let fsWatcher: { on: (ev: string, cb: (event: string, filePath: string) => void) => void; close: () => Promise<void> } | undefined
 	let started = false
 	let listening = false
-	const ignoredOutputPaths = new Set()
+	const ignoredOutputPaths = new Set<string>()
 
 	const publishedPathFor = (appId: string) => getPublishedOutputPath(targetPath, useAppIdDir, appId)
 
@@ -69,13 +66,11 @@ export function createBuildWatcher({
 		fsWatcher = chokidar.watch(workPath, {
 			persistent: true,
 			ignoreInitial: true,
-			// @ts-expect-error P-TM04: type narrowing needed
-			ignored: createIgnoredPathMatcher(ignoredOutputPaths),
+			ignored: createIgnoredPathMatcher([...ignoredOutputPaths]),
 		})
 		fsWatcher.on('all', (event, filePath) => {
 			// M2：事件只做触发器，不推导
-			// @ts-expect-error P-TM04: type narrowing needed
-			scheduler.schedule(event, filePath)
+			scheduler!.schedule(event, filePath)
 		})
 		listening = true
 	}
@@ -88,21 +83,17 @@ export function createBuildWatcher({
 		// PS2：活图唯一权威为 ProjectStore——无注入时临时 create 并持有（W2），
 		// 不再维护闭包 dependencyGraph 镜像（W3 删除）。
 		const activeStore = store ?? createProjectStore()
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore })
-		// @ts-expect-error P-TM04: type narrowing needed
-		ignoredOutputPaths.add(publishedPathFor(buildResult.appId))
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore }) as { appId: string; [key: string]: unknown }
+		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId))
 
 		scheduler = createWatchRebuildScheduler({
 			onRebuild,
 			onError,
-			// @ts-expect-error P-TM04: type narrowing needed
 			rebuild: async (change) => {
-				// @ts-expect-error P-TM04: type narrowing needed
-				const publishedPath = publishedPathFor(buildResult.appId)
+				const publishedPath = publishedPathFor(buildResult!.appId)
 				// PS2：plan 从 Store 活图读取（同一引用，M-A），不再读闭包镜像
 				const plan = createWatchBuildPlan({
 					changedFiles: change.changedFiles,
-					// @ts-expect-error P-TM04: type narrowing needed
 					dependencyGraph: activeStore.getDependencyGraph(),
 					workPath,
 					publishedPath,
@@ -111,12 +102,10 @@ export function createBuildWatcher({
 					return
 				}
 				if (beforeBuild) {
-					// @ts-expect-error P-TM04: type narrowing needed
 					await beforeBuild({
 						...change,
 						plan,
-						// @ts-expect-error P-TM04: type narrowing needed
-						appId: buildResult.appId,
+						appId: buildResult!.appId,
 					})
 				}
 				const result = await build(targetPath, workPath, useAppIdDir, {
@@ -124,9 +113,8 @@ export function createBuildWatcher({
 					store: activeStore,
 					...plan.options,
 				})
-				buildResult = result
-				// @ts-expect-error P-TM04: type narrowing needed
-				ignoredOutputPaths.add(publishedPathFor(result.appId))
+				buildResult = result as { appId: string; [key: string]: unknown }
+				ignoredOutputPaths.add(publishedPathFor((result as { appId: string }).appId))
 			},
 		})
 
@@ -138,13 +126,11 @@ export function createBuildWatcher({
 	}
 
 	async function stop() {
-		// @ts-expect-error P-TM04: type narrowing needed
 		if (fsWatcher) {
 			await fsWatcher.close()
 			fsWatcher = undefined
 		}
 		listening = false
-		// @ts-expect-error P-TM04: type narrowing needed
 		if (scheduler) {
 			await scheduler.waitForIdle()
 		}
@@ -156,7 +142,6 @@ export function createBuildWatcher({
 		stop,
 		/** @internal 测试用 */
 		waitForIdle() {
-			// @ts-expect-error P-TM04: type narrowing needed
 			return scheduler?.waitForIdle() ?? Promise.resolve()
 		},
 	}

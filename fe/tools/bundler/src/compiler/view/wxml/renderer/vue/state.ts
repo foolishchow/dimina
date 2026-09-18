@@ -5,8 +5,6 @@ export const templateRenderCache = new Map()
 
 /** @type {boolean} */
 export let enableSourcemap = false
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function setEnableSourcemap(value) {
+export function setEnableSourcemap(value: unknown) {
 	enableSourcemap = !!value
 }

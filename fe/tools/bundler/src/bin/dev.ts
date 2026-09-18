@@ -4,6 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { createBundler } from '../session/index.ts'
 import { resolveBundlerConfig } from '../session/resolve.ts'
+import type { Command } from 'commander'
 
 // M-F3 兼容：resolveSdkRoot 已迁 common/sdk-root.js；此处 re-export 保持向后兼容
 export { resolveSdkRoot } from '../dev/sdk-root.ts'
@@ -23,8 +24,7 @@ const EVENT_LABELS = {
  * SIGINT 行为与今日一致：bin 无 signal handler，Ctrl+C 默认终止
  * （graceful shutdown 非本门交付；编程关闭走 devHandle.close()）。
  */
-// @ts-expect-error P-TM06: type narrowing needed
-export function registerDevCommand(program) {
+export function registerDevCommand(program: Command): void {
 	program
 		.command('dev')
 		.description('启动 dev server：编译 + 静态服务 + 内置宿主页 + ws 热更新 + 代理')
@@ -35,12 +35,11 @@ export function registerDevCommand(program) {
 		.option('--no-app-id-dir', '产物根目录不包含appId')
 		.option('--sourcemap', '生成 sourcemap 文件用于调试')
 		.option('--minify', '压缩产物（覆盖 mode=dev 缺省；可用 --no-minify 关闭）')
-		// @ts-expect-error P-TM06: type narrowing needed
-		.action(async (options) => {
-			const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
+		.action(async (options: Record<string, unknown>) => {
+			const workPath = options.workPath ? path.resolve(options.workPath as string) : process.cwd()
 			// argv 缺省留 bin（M-G1）：dev 缺省 targetPath 用 mkdtempSync（等价今日）
 			const targetPath = options.targetPath
-				? path.resolve(options.targetPath)
+				? path.resolve(options.targetPath as string)
 				: fs.mkdtempSync(path.join(os.tmpdir(), 'dmcc-dev-'))
 
 			const cli = {
@@ -49,22 +48,21 @@ export function registerDevCommand(program) {
 				useAppIdDir: options.appIdDir !== false,
 				sourcemap: !!options.sourcemap,
 				...(typeof options.minify === 'boolean' ? { minify: options.minify } : {}),
-				...(options.port ? { port: Number.parseInt(options.port, 10) } : {}),
+				...(options.port ? { port: Number.parseInt(options.port as string, 10) } : {}),
 				...(typeof options.host === 'string' && options.host ? { host: options.host } : {}),
 			}
 
 			const resolved = resolveBundlerConfig({ command: 'dev', cli })
 			let handle
 			try {
-				// @ts-expect-error P-TM06: type narrowing needed
 				handle = await createBundler(resolved).dev({
-					// @ts-expect-error P-TM06: type narrowing needed
 					onRebuild: ({ event, filePath, count }) => {
-						const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
-						// @ts-expect-error P-TM06: type narrowing needed
-						console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)
+					const ev = event as 'add' | 'change' | 'unlink'
+					const fp = filePath as string
+					const cnt = count as number
+						const merged = cnt > 1 ? `（合并 ${cnt} 个文件事件）` : ''
+						console.log(`${fp} ${EVENT_LABELS[ev]}，重新编译${merged}`)
 					},
-					// @ts-expect-error P-TM06: type narrowing needed
 					onError: (error) => {
 						// build:error 已由 lifecycle 监听推送；此处仅记录诊断（R-006：服务不退出）
 						console.error(`${workPath} 编译出错: ${error.message}`)
@@ -72,8 +70,7 @@ export function registerDevCommand(program) {
 				})
 			}
 			catch (error) {
-				// @ts-expect-error P-TM06: type narrowing needed
-				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
+				throw new Error(`${workPath} 编译出错: ${(error as Error).message}`, { cause: error as Error })
 			}
 
 			// 文案留 bin：preview URL / LAN 提示 / watching（数据来自 devHandle）
@@ -85,5 +82,4 @@ export function registerDevCommand(program) {
 			}
 			console.log(`[dmcc-dev] watching ${workPath}`)
 		})
-	return program
 }

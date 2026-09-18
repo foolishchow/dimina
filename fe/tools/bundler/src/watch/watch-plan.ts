@@ -18,15 +18,16 @@ function isNpmPackageFile(filePath: string) {
 	return path.normalize(filePath).split(path.sep).includes('miniprogram_npm')
 }
 
-function createWatchRebuildScheduler({ rebuild, onRebuild = () => {}, onError = () => {} }: { rebuild: () => void | Promise<void>; onRebuild?: () => void; onError?: (e: Error) => void }) {
+interface RebuildChange { changedFiles: string[]; event: string; filePath: string; count: number }
+interface RebuildNotify { event: string; filePath: string; count: number }
+function createWatchRebuildScheduler({ rebuild, onRebuild = () => {}, onError = () => {} }: { rebuild: (change: RebuildChange) => void | Promise<void>; onRebuild?: (change: RebuildNotify) => void; onError?: (e: Error, change: RebuildNotify) => void }) {
 	/** 脏文件集（事件降级为触发器：只标记，不推导） */
-	const dirtyFiles = new Set()
+	const dirtyFiles = new Set<string>()
 	/** 每个脏文件的最近事件类型（drain 回调保留原始 event shape） */
-	const lastEvent = new Map()
+	const lastEvent = new Map<string, string>()
 	let running = false
 	let idlePromise = Promise.resolve()
-	// @ts-expect-error P-TM04: type narrowing needed
-	let resolveIdle
+	let resolveIdle: (() => void) | undefined
 
 	const drain = async () => {
 		while (dirtyFiles.size > 0) {
@@ -35,27 +36,22 @@ function createWatchRebuildScheduler({ rebuild, onRebuild = () => {}, onError = 
 			try {
 				// 保留旧回调 shape（{event,filePath,count}）以兼容 onRebuild/onError/beforeBuild
 				const first = changed[0]
-				// @ts-expect-error P-TM04: type narrowing needed
 				onRebuild({ event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
-				// @ts-expect-error P-TM04: type narrowing needed
 				await rebuild({ changedFiles: changed, event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
 			}
 			catch (error) {
 				const first = changed[0]
-				// @ts-expect-error P-TM04: type narrowing needed
-				onError(error, { event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
+				onError(error as Error, { event: lastEvent.get(first) || 'change', filePath: first, count: changed.length })
 			}
 		}
 
 		running = false
-		// @ts-expect-error P-TM04: type narrowing needed
 		resolveIdle?.()
 		resolveIdle = undefined
 	}
 
 	return {
-		// @ts-expect-error P-TM04: type narrowing needed
-		schedule(event, filePath) {
+		schedule(event: string, filePath: string): boolean {
 			if (!WATCH_FILE_EVENTS.has(event)) {
 				return false
 			}
@@ -97,7 +93,7 @@ function getPublishedOutputPath(targetPath: string, useAppIdDir: boolean, appId:
  * @param {Map<string, {mtime,size,hash}>} params.prevFingerprints 上次指纹表（可选）
  * @returns {{ skip: boolean, incremental: boolean, options: object, fingerprints: Map }}
  */
-function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: unknown; workPath: string; publishedPath: string }) {
+function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string }) {
 	if (!changedFiles || changedFiles.length === 0) {
 		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
 	}
@@ -108,9 +104,7 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publish
 	}
 
 	// 被图追踪的文件 → 增量；未被追踪 → 全量（新文件/未知文件不应 skip）
-	// @ts-expect-error P-TM04: type narrowing needed
 	const tracked = changedFiles.filter((abs) => dependencyGraph.hasFile(abs))
-	// @ts-expect-error P-TM04: type narrowing needed
 	const untracked = changedFiles.filter((abs) => !dependencyGraph.hasFile(abs))
 	if (untracked.length > 0) {
 		// add 事件（新文件）或未知文件 → 全量 rebuild
@@ -121,7 +115,6 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publish
 	}
 
 	// closure：变更文件 → 受影响 entry 集
-	// @ts-expect-error P-TM04: type narrowing needed
 	const affectedSet = computeAffectedEntries(dependencyGraph, tracked)
 	const affectedEntries = [...affectedSet]
 	if (affectedEntries.length === 0) {
@@ -141,7 +134,6 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publish
 			affectedEntries,
 			stages: [...stages],
 			seedPath: publishedPath,
-			// @ts-expect-error P-TM04: type narrowing needed
 			dependencyGraph: dependencyGraph.toJSON(),
 			prepareConfig: false,
 			prepareNpm: changedFiles.some((abs) => isNpmPackageFile(abs)),
@@ -157,8 +149,7 @@ function isSameOrDescendantPath(candidatePath: string, directoryPath: string) {
 }
 
 function createIgnoredPathMatcher(ignoredPaths: string[]) {
-	// @ts-expect-error P-TM04: type narrowing needed
-	return (watchedPath) => {
+	return (watchedPath: string) => {
 		const absolutePath = path.resolve(watchedPath)
 		for (const ignoredPath of ignoredPaths) {
 			if (isSameOrDescendantPath(absolutePath, ignoredPath)) {

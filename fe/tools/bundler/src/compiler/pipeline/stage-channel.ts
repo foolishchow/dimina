@@ -34,17 +34,15 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 	const pages = (options.pages || ctx.pages) as { mainPages: Record<string, unknown>[]; subPages: Record<string, { info: unknown[] }> }
 	const totalTasks = Object.keys(pages.mainPages).length
 		+ Object.values(pages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0)
-
-		// @ts-expect-error executeTask type inference issue
-	const result: { dependencyGraph: unknown; compatibilityWarnings?: string[] } = await (executeTask as never)({
-		engine: ENGINES[script as 'view' | 'logic' | 'style'] as never,
+	const result = await executeTask({
+		engine: ENGINES[script as 'view' | 'logic' | 'style'],
 		input: {
 			pages,
 			storeInfo: ctx.storeInfo,
 			sourcemap: !!options.sourcemap,
 			sourcemapTargetPath: options.sourcemapTargetPath,
 			compileConfig: options.compileConfig,
-			stageTimeoutMs: options.stageTimeoutMs,
+			stageTimeoutMs: options.stageTimeoutMs as number | undefined,
 			collectOutput: typeof onOutput === 'function',  // 兼容字段（worker onMessage 旧版解构，runtime 不用）
 		},
 		onOutput,

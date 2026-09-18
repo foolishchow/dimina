@@ -24,8 +24,7 @@ export const SDK_ASSET_PATHS = Object.freeze({
  *   在同端口提供，前端用 location.host 拼接 ws:// 地址）
  * @returns {string} 完整 HTML 文档
  */
-// @ts-expect-error P-TM06: type narrowing needed
-export function createHostPageHtml({ appId, wsPath }) {
+export function createHostPageHtml({ appId, wsPath }: { appId: string, wsPath: string }) {
 	if (typeof appId !== 'string' || appId.length === 0) {
 		throw new TypeError('createHostPageHtml: appId must be a non-empty string')
 	}
@@ -184,9 +183,7 @@ export function createPageFrameHtml() {
 </html>
 `
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-function escapeHtml(value) {
+function escapeHtml(value: unknown) {
 	return String(value).replace(/[&<>"']/g, (char) => {
 		switch (char) {
 			case '&': return '&amp;'

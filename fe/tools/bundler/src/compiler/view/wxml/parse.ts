@@ -24,8 +24,7 @@ export function resolveWxmlParserEngine(env = process.env) {
  * @param {string} source
  * @param {{ sourceFile?: string }} [options]
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function parseWxml(source, options = {}) {
+export function parseWxml(source: string, options: { sourceFile?: string } = {}) {
 	const engine = resolveWxmlParserEngine()
 	if (engine === 'cheerio') {
 		return parseWxmlCheerio(source, options)

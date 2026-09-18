@@ -605,7 +605,7 @@ export { boostExternalClassSelectors, compileSS, ensureImportSemicolons, normali
 
 // P-WR02: engine export（不动调度，F47）
 // @ts-expect-error P-TM05: type narrowing needed
-async function styleCompile({ msg, progress, config }) {
+async function styleCompile({ msg, progress, config }: CompileOptions) {
 	resetStoreInfo(msg.storeInfo)
 
 	const styleOptions = { sourcemap: msg.sourcemap, minify: config.minify }

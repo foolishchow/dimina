@@ -33,8 +33,7 @@ export function createProjectStore(options: Record<string, unknown> = {}) {
 		 * @param {object} [opts] { fileTypes, dependencyGraph }
 		 * @returns {object} storeInfo 返回值
 		 */
-		// @ts-expect-error P-TM04: type narrowing needed
-		load(workPath, opts = {}) {
+		load(workPath: string, opts: Record<string, unknown> = {}) {
 			snapshot = storeInfo(workPath, opts)
 			return snapshot
 		},
@@ -45,9 +44,8 @@ export function createProjectStore(options: Record<string, unknown> = {}) {
 		},
 
 		/** 合并依赖图增量 */
-		// @ts-expect-error P-TM04: type narrowing needed
-		merge(delta) {
-			getDependencyGraph().merge(delta)
+		merge(delta: { nodes?: unknown; fileEdges?: unknown; [key: string]: unknown }) {
+			getDependencyGraph().merge(delta as never)
 		},
 
 		/** 快照 */

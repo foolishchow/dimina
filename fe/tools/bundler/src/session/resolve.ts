@@ -33,13 +33,35 @@ const COMPILE_KEYS = Object.freeze(['mode', 'platform', 'minify', 'sourcemap', '
 /** Resolved server surface — host/port only (D-R3) */
 const SERVER_RESOLVED_KEYS = Object.freeze(['host', 'port'])
 
+export interface ResolvedCompileProfile {
+	mode: string
+	platform: 'native' | 'web'
+	sourcemapStrategy: string
+	minify: boolean
+	sourcemap: boolean
+	esTarget: { logic: string; view: string }
+}
+export interface ResolvedServer { host: string; port: number }
+export interface ResolvedBundlerInput {
+	workPath: string
+	targetPath: string
+	useAppIdDir: boolean
+	compile: ResolvedCompileProfile
+	fileTypes?: Record<string, unknown>
+	server?: ResolvedServer
+	command: 'build' | 'dev'
+}
+
+export interface ResolveBundlerConfigInput {
+	command: 'build' | 'dev'
+	cli?: Record<string, unknown>
+	api?: Record<string, unknown>
+}
+
 /**
  * Load + merge → ResolvedBundlerInput for createBundler(resolved).
- *
- * @param {{ command: 'build' | 'dev', cli?: object, api?: object }} input
- * @returns {object} ResolvedBundlerInput
  */
-export function resolveBundlerConfig(input: Record<string, unknown>) {
+export function resolveBundlerConfig(input: ResolveBundlerConfigInput): ResolvedBundlerInput {
 	const command = input.command
 	if (command !== 'build' && command !== 'dev') {
 		throw new TypeError(`command must be 'build' | 'dev', got ${JSON.stringify(command)}`)
@@ -49,22 +71,18 @@ export function resolveBundlerConfig(input: Record<string, unknown>) {
 	const api = input.api || {}
 
 	// Paths — CLI prefers workPath/targetPath
-	// @ts-expect-error P-TM04: type narrowing needed
-	const root = firstDefined(cli.workPath, api.workPath, api.root, '.')
-	// @ts-expect-error P-TM04: type narrowing needed
+	const root = firstDefined(cli.workPath, api.workPath, api.root, '.') as string
 	const workPath = path.resolve(root)
 
-	// @ts-expect-error P-TM04: type narrowing needed
-	const useAppIdDir = firstDefined(cli.useAppIdDir, api.useAppIdDir, true)
+	const useAppIdDir = (firstDefined(cli.useAppIdDir, api.useAppIdDir, true) as boolean) !== false
 
-	// @ts-expect-error P-TM04: type narrowing needed
 	const targetPath = resolveTargetPath({ command, cli, api, workPath })
 
 	// D-R2: command seeds mode+platform as the LOWEST compile layer
 	// (input.mode / input.platform of resolveCompileConfig). cli/api may still
 	// write the same values (or other C1 keys); on dev, post-merge drift from
 	// mode:'dev' / platform:'web' hard-fails below (strategy C).
-	const seeds = command === 'dev'
+	const seeds: { mode: 'build' | 'dev'; platform: 'native' | 'web' } = command === 'dev'
 		? { mode: 'dev', platform: 'web' }
 		: { mode: 'build', platform: 'native' }
 
@@ -72,32 +90,25 @@ export function resolveBundlerConfig(input: Record<string, unknown>) {
 	// Its result carries a derived `sourcemapStrategy` — harmless: session.build
 	// passes only C1 keys onward and runBuild re-resolves (idempotent).
 	const compile = resolveCompileConfig({
-		// @ts-expect-error P-TM04: type narrowing needed
 		cli: pickKeys(cli, COMPILE_KEYS),
-		// @ts-expect-error P-TM04: type narrowing needed
 		apiOptions: pickCompileFromApi(api),
-		// @ts-expect-error P-TM04: type narrowing needed
 		mode: seeds.mode,
 		platform: seeds.platform,
 	})
-	// @ts-expect-error P-TM04: type narrowing needed
 	assertDevCompileCompatible(command, compile)
-	// @ts-expect-error P-TM04: type narrowing needed
 	assertBuildCompileCompatible(command, compile)
 
-	// @ts-expect-error P-TM04: type narrowing needed
-	const fileTypes = firstDefined(api.fileTypes, undefined)
+	const fileTypes = firstDefined(api.fileTypes, undefined) as Record<string, unknown> | undefined
 
 	let server
 	if (command === 'dev') {
-		// @ts-expect-error P-TM04: type narrowing needed
 		server = resolveServer({ cli, api })
 	}
 
 	return {
 		workPath,
 		targetPath,
-		useAppIdDir: useAppIdDir !== false,
+		useAppIdDir,
 		compile,
 		...(fileTypes !== undefined ? { fileTypes } : {}),
 		...(server ? { server } : {}),
@@ -114,20 +125,17 @@ export function resolveBundlerConfig(input: Record<string, unknown>) {
  * dev:   cli.targetPath | api.targetPath | mkdtemp (fallback)
  *        *** api.outDir does NOT participate on dev (D-R4) — use api.targetPath ***
  */
-function resolveTargetPath({ command, cli, api, workPath }: { command: string; cli: Record<string, unknown>; api: string; workPath: string }) {
+function resolveTargetPath({ command, cli, api, workPath }: { command: 'build' | 'dev'; cli: Record<string, unknown>; api: Record<string, unknown>; workPath: string }): string {
 	let explicit
 	if (command === 'dev') {
-		// @ts-expect-error P-TM04: type narrowing needed
 		explicit = firstDefined(cli.targetPath, api.targetPath)
 	}
 	else {
-		// @ts-expect-error P-TM04: type narrowing needed
 		explicit = firstDefined(cli.targetPath, api.targetPath, api.outDir)
 	}
 
 	if (explicit !== undefined && explicit !== null && explicit !== '') {
-		// @ts-expect-error P-TM04: type narrowing needed
-		return path.resolve(workPath, explicit)
+		return path.resolve(workPath, explicit as string)
 	}
 
 	// PURE-API fallbacks only (M-G1). dev uses a per-run unique dir — matching
@@ -140,21 +148,17 @@ function resolveTargetPath({ command, cli, api, workPath }: { command: string; c
 }
 
 /** D-R2 strategy C: command:'dev' forbids Resolved mode/platform drift. */
-function assertDevCompileCompatible(command: string, compile: () => void | Promise<void>) {
+function assertDevCompileCompatible(command: 'build' | 'dev', compile: ResolvedCompileProfile) {
 	if (command !== 'dev') {
 		return
 	}
-	// @ts-expect-error P-TM04: type narrowing needed
 	if (compile.mode !== 'dev') {
 		throw new TypeError(
-			// @ts-expect-error P-TM04: type narrowing needed
 			`D-R2/C: command:'dev' requires compile.mode:'dev', got ${JSON.stringify(compile.mode)}`,
 		)
 	}
-	// @ts-expect-error P-TM04: type narrowing needed
 	if (compile.platform !== 'web') {
 		throw new TypeError(
-			// @ts-expect-error P-TM04: type narrowing needed
 			`D-R2/C: command:'dev' requires compile.platform:'web', got ${JSON.stringify(compile.platform)}`,
 		)
 	}
@@ -166,22 +170,19 @@ function assertDevCompileCompatible(command: string, compile: () => void | Promi
  * native 字节等价），入口收严为结构化报错；compile-config 层自由度保留
  * （直调 build({platform:'web'}) 不经 resolve，仍可编译）。
  */
-function assertBuildCompileCompatible(command: string, compile: () => void | Promise<void>) {
+function assertBuildCompileCompatible(command: 'build' | 'dev', compile: ResolvedCompileProfile) {
 	if (command !== 'build') {
 		return
 	}
-	// @ts-expect-error P-TM04: type narrowing needed
 	if (compile.platform !== 'native') {
 		throw new TypeError(
-			// @ts-expect-error P-TM04: type narrowing needed
 			`D-R2/C: command:'build' requires compile.platform:'native', got ${JSON.stringify(compile.platform)}`,
 		)
 	}
 }
 
 /** D-R3: host/port only on Resolved.server */
-function resolveServer({ cli, api }: { cli: Record<string, unknown>; api: string }) {
-	// @ts-expect-error P-TM04: type narrowing needed
+function resolveServer({ cli, api }: { cli: Record<string, unknown>; api: Record<string, unknown> }): ResolvedServer {
 	const apiServer = pickKeys(api.server, SERVER_RESOLVED_KEYS)
 	const cliServer = pickDefined({
 		host: cli.host,
@@ -193,8 +194,7 @@ function resolveServer({ cli, api }: { cli: Record<string, unknown>; api: string
 		port: 8080,
 		...apiServer,
 		...cliServer,
-	// @ts-expect-error P-TM04: type narrowing needed
-	}, SERVER_RESOLVED_KEYS)
+	}, SERVER_RESOLVED_KEYS) as unknown as ResolvedServer
 }
 
 // ---------------------------------------------------------------------------
@@ -202,15 +202,13 @@ function resolveServer({ cli, api }: { cli: Record<string, unknown>; api: string
 // ---------------------------------------------------------------------------
 
 /** api compile layer: nested `api.compile` ⊕ flat `api.<C1>` (flat wins) */
-function pickCompileFromApi(api: string) {
-	// @ts-expect-error P-TM04: type narrowing needed
+function pickCompileFromApi(api: Record<string, unknown>): Record<string, unknown> {
 	const fromNested = pickKeys(api.compile, COMPILE_KEYS)
-	// @ts-expect-error P-TM04: type narrowing needed
 	const fromFlat = pickKeys(api, COMPILE_KEYS)
 	return { ...fromNested, ...fromFlat }
 }
 
-function firstDefined(...values: unknown[]) {
+function firstDefined(...values: unknown[]): unknown {
 	for (const v of values) {
 		if (v !== undefined && v !== null) {
 			return v
@@ -219,25 +217,23 @@ function firstDefined(...values: unknown[]) {
 	return undefined
 }
 
-function pickKeys(obj: Record<string, unknown>, keys: string[]) {
-	const out = {}
+function pickKeys(obj: unknown, keys: readonly string[]): Record<string, unknown> {
+	const out: Record<string, unknown> = {}
 	if (!obj || typeof obj !== 'object') {
 		return out
 	}
 	for (const key of keys) {
 		if (Object.hasOwn(obj, key)) {
-			// @ts-expect-error P-TM04: type narrowing needed
-			out[key] = obj[key]
+			out[key] = (obj as Record<string, unknown>)[key]
 		}
 	}
 	return out
 }
 
-function pickDefined(obj: Record<string, unknown>) {
-	const out = {}
+function pickDefined(obj: Record<string, unknown>): Record<string, unknown> {
+	const out: Record<string, unknown> = {}
 	for (const [k, v] of Object.entries(obj || {})) {
 		if (v !== undefined) {
-			// @ts-expect-error P-TM04: type narrowing needed
 			out[k] = v
 		}
 	}

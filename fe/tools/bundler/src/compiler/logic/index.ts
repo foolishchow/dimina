@@ -640,7 +640,7 @@ function logicBuildConfig(msg) {
 }
 
 // @ts-expect-error P-TM05: type narrowing needed
-async function logicCompile({ msg, progress, config }) {
+async function logicCompile({ msg, progress, config }: CompileOptions) {
 	resetStoreInfo(msg.storeInfo)
 	enableSourcemap = !!msg.sourcemap
 	sourcemapTargetPath = config.sourcemapTargetPath

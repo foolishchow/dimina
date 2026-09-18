@@ -34,42 +34,67 @@ import { createLifecycle } from '../shared/lifecycle.ts'
 import { createWebPreviewAdapter } from './preview-adapter.ts'
 import { createProjectStore } from '../model/project-store.ts'
 import { createSessionRunner, COMPILE_KEYS } from './runner.ts'
+import type { ResolvedBundlerInput } from './resolve.ts'
+import type { ReloadContext } from './preview-adapter.ts'
 
 /** server on Resolved / session — host/port only (D-R3) */
 const SERVER_KEYS = Object.freeze(['host', 'port'])
 
 export { resolveBundlerConfig } from './resolve.ts'
 
+type Lifecycle = ReturnType<typeof createLifecycle>
+type ProjectStore = ReturnType<typeof createProjectStore>
+
+export interface SessionState {
+	workPath: string
+	targetPath: string
+	useAppIdDir: boolean
+	compile: Record<string, unknown>
+	fileTypes?: Record<string, unknown>
+	server?: Record<string, unknown>
+	lifecycle: Lifecycle
+	activeLoop: null | 'watch' | 'dev'
+	store: ProjectStore
+}
+
+export interface WatchOpts {
+	autoListen?: boolean
+	beforeBuild?: (ctx: Record<string, unknown>) => void | Promise<void>
+	onRebuild?: (ctx: Record<string, unknown>) => void
+	onError?: (error: Error) => void
+	options?: Record<string, unknown>
+	lifecycle?: unknown
+}
+
+export interface DevOpts {
+	previewAdapter?: ReturnType<typeof createWebPreviewAdapter>
+	onError?: (error: Error) => void
+	onRebuild?: (ctx: Record<string, unknown>) => void
+}
+
 /**
  * @param {object} resolved ResolvedBundlerInput (from resolveBundlerConfig)
  * @returns {object} BundlerSession
  */
-export function createBundler(resolved: string) {
+export function createBundler(resolved: ResolvedBundlerInput) {
 	assertResolved(resolved)
 
-	const state = {
-		// @ts-expect-error P-TM04: type narrowing needed
+	const state: SessionState = {
 		workPath: resolved.workPath,
-		// @ts-expect-error P-TM04: type narrowing needed
 		targetPath: resolved.targetPath,
-		// @ts-expect-error P-TM04: type narrowing needed
 		useAppIdDir: resolved.useAppIdDir !== false,
-		// @ts-expect-error P-TM04: type narrowing needed
-		compile: pickKeys(resolved.compile, COMPILE_KEYS),
-		// @ts-expect-error P-TM04: type narrowing needed
+		compile: pickKeys(resolved.compile as unknown as Record<string, unknown>, COMPILE_KEYS),
 		fileTypes: resolved.fileTypes,
-		// @ts-expect-error P-TM04: type narrowing needed
-		server: resolved.server ? pickKeys(resolved.server, SERVER_KEYS) : undefined,
+		server: resolved.server ? pickKeys(resolved.server as unknown as Record<string, unknown>, SERVER_KEYS) : undefined,
 		/** Unique per session; A1 bus — hook rail, not the orchestrator itself */
-		// @ts-expect-error P-TM04: type narrowing needed
-		lifecycle: resolved.lifecycle ?? createLifecycle(),
+		lifecycle: (resolved as ResolvedBundlerInput & { lifecycle?: Lifecycle }).lifecycle ?? createLifecycle(),
 		/** @type {null | 'watch' | 'dev'} */
 		activeLoop: null,
 		/** PS1/RR5：session 创建即持有 ProjectStore（非可选；load 按需） */
 		store: createProjectStore(),
 	}
 
-		const runner = createSessionRunner(state)
+	const runner = createSessionRunner(state)
 
 	const session = {
 		/**
@@ -88,7 +113,7 @@ export function createBundler(resolved: string) {
 		 * @param {object} [overrides] C1 keys + pipeline keys (whitelist);
 		 *   unknown keys throw.
 		 */
-		async build(overrides = {}) {
+		async build(overrides: Record<string, unknown> = {}) {
 			return runner.runOnce(overrides)
 		},
 
@@ -103,22 +128,16 @@ export function createBundler(resolved: string) {
 		 *   onRebuild / onError / options (C1 + pipeline keys); unknown keys
 		 *   throw; watchOpts.lifecycle is ignored (session forces its own).
 		 */
-		watch(watchOpts = {}) {
+		watch(watchOpts: WatchOpts = {}) {
 			// R3 check first (message/text order preserved — R-SU4); occupyLoop
 			// below re-asserts, a no-op in the sync flow after creation succeeds.
 			runner.assertLoopFree('watch')
 			const {
-				// @ts-expect-error P-TM04: type narrowing needed
 				autoListen,
-				// @ts-expect-error P-TM04: type narrowing needed
 				beforeBuild,
-				// @ts-expect-error P-TM04: type narrowing needed
 				onRebuild,
-				// @ts-expect-error P-TM04: type narrowing needed
 				onError,
-				// @ts-expect-error P-TM04: type narrowing needed
 				options: watchBuildOptions,
-				// @ts-expect-error P-TM04: type narrowing needed
 				lifecycle: _ignoredLifecycle,
 				...rest
 			} = watchOpts
@@ -140,8 +159,8 @@ export function createBundler(resolved: string) {
 				// PS2：watch 与 build 共用同一 Store（state.store）——活图唯一权威
 				store: state.store,
 				autoListen,
-				beforeBuild,
-				onRebuild,
+				beforeBuild: beforeBuild as (() => void | Promise<void>) | undefined,
+				onRebuild: onRebuild as (() => void) | undefined,
 				onError,
 				options: baseOptions,
 			})
@@ -153,14 +172,10 @@ export function createBundler(resolved: string) {
 			// waitForIdle is @internal (test-only via direct createBuildWatcher) —
 			// deliberately NOT forwarded on this handle.
 			return {
-				// @ts-expect-error P-TM04: type narrowing needed
-				start: (...args) => inner.start(...args),
-				// @ts-expect-error P-TM04: type narrowing needed
-				listen: (...args) => inner.listen(...args),
-				// @ts-expect-error P-TM04: type narrowing needed
-				async stop(...args) {
+				start: (...args: Parameters<typeof inner.start>) => inner.start(...args),
+				listen: (...args: Parameters<typeof inner.listen>) => inner.listen(...args),
+				async stop(...args: Parameters<typeof inner.stop>) {
 					try {
-						// @ts-expect-error P-TM04: type narrowing needed
 						await inner.stop(...args)
 					}
 					finally {
@@ -189,16 +204,13 @@ export function createBundler(resolved: string) {
 		 *   onRebuild; unknown keys throw.
 		 * @returns {Promise<{ appId: string, server: { host: string, port: number }, close(): Promise<void> }>}
 		 */
-		async dev(devOpts = {}) {
+		async dev(devOpts: DevOpts = {}) {
 			// R3 check with the dev flavor (message preserved — R-SU4); the actual
 			// occupy happens via session.watch below with label 'watch' (D-SU-4).
 			runner.assertLoopFree('dev')
 			const {
-				// @ts-expect-error P-TM04: type narrowing needed
 				previewAdapter,
-				// @ts-expect-error P-TM04: type narrowing needed
 				onError,
-				// @ts-expect-error P-TM04: type narrowing needed
 				onRebuild,
 				...unknown
 			} = devOpts
@@ -211,10 +223,9 @@ export function createBundler(resolved: string) {
 
 			const watcher = session.watch({
 				autoListen: false,
-				// @ts-expect-error P-TM04: type narrowing needed
-				beforeBuild: (ctx) => adapter.setPendingReload(ctx),
+				beforeBuild: (ctx) => adapter.setPendingReload(ctx as unknown as ReloadContext),
 				onError,
-				onRebuild,
+				onRebuild: onRebuild as WatchOpts['onRebuild'],
 				options: {
 					fileTypes: state.fileTypes,
 				},
@@ -227,27 +238,24 @@ export function createBundler(resolved: string) {
 
 				await adapter.createServer({
 					serveRoot: state.targetPath,
-					appId: buildResult.appId,
+					appId: (buildResult as { appId: string }).appId,
 				})
 
 				// KNOWN LIMITATION (A1 v1, no off()): these stay mounted after
 				// rollback/close — accumulate, but harmless (see above).
 				state.lifecycle.on('bundle:published', () => adapter.notifyBuildPublished())
-				// @ts-expect-error P-TM04: type narrowing needed
-				state.lifecycle.on('build:error', ({ error }) => {
+				state.lifecycle.on('build:error', (({ error }: { error?: { message?: string } }) => {
 					adapter.notifyBuildError(error?.message || 'build failed')
-				})
+				}) as (payload: unknown) => void)
 
 				const { port, host } = await adapter.listen(
-					// @ts-expect-error P-TM04: type narrowing needed
-					state.server?.port ?? 8080,
-					// @ts-expect-error P-TM04: type narrowing needed
-					state.server?.host ?? '127.0.0.1',
+					(state.server?.port as number) ?? 8080,
+					(state.server?.host as string) ?? '127.0.0.1',
 				)
 				await watcher.listen()
 
 				return {
-					appId: buildResult.appId,
+					appId: (buildResult as { appId: string }).appId,
 					server: { host, port },
 					async close() {
 						try {
@@ -277,24 +285,22 @@ export function createBundler(resolved: string) {
 	return session
 }
 
-function assertResolved(resolved: string) {
+function assertResolved(resolved: ResolvedBundlerInput) {
 	if (!resolved || typeof resolved !== 'object') {
 		throw new TypeError('createBundler requires a ResolvedBundlerInput object')
 	}
-	// @ts-expect-error P-TM04: type narrowing needed
 	if (typeof resolved.workPath !== 'string' || typeof resolved.targetPath !== 'string') {
 		throw new TypeError('ResolvedBundlerInput.workPath / targetPath must be strings')
 	}
 }
 
-function pickKeys(obj: Record<string, unknown>, keys: string[]) {
-	const out = {}
+function pickKeys(obj: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+	const out: Record<string, unknown> = {}
 	if (!obj || typeof obj !== 'object') {
 		return out
 	}
 	for (const key of keys) {
 		if (Object.hasOwn(obj, key)) {
-			// @ts-expect-error P-TM04: type narrowing needed
 			out[key] = obj[key]
 		}
 	}

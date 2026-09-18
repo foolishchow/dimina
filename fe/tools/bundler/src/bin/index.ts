@@ -23,10 +23,10 @@ program
 	.option('--sourcemap', '生成 sourcemap 文件用于调试')
 	.option('--minify', '压缩产物（覆盖 mode 缺省；可用 --no-minify 关闭）')
 	.option('--platform <name>', '运行时宿主平台：native（build 仅支持 native；web 由 dev 提供）')
-	.action(async (options) => {
-		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
+	.action(async (options: Record<string, unknown>) => {
+		const workPath = options.workPath ? path.resolve(options.workPath as string) : process.cwd()
 		// argv defaults stay in bin (M-G1): resolve receives explicit values only
-		const targetPath = options.targetPath ? path.resolve(options.targetPath) : process.cwd()
+		const targetPath = options.targetPath ? path.resolve(options.targetPath as string) : process.cwd()
 		const cli = {
 			workPath,
 			targetPath,
@@ -39,27 +39,24 @@ program
 
 		if (!options.watch) {
 			try {
-				// @ts-expect-error P-TM06: type narrowing needed
 				await createBundler(resolved).build()
 			}
 			catch (error) {
-				// @ts-expect-error P-TM06: type narrowing needed
-				throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
+				throw new Error(`${workPath} 编译出错: ${(error as Error).message}`, { cause: error as Error })
 			}
 			return
 		}
 
 		// -w ⊆ session（R-BC2）：经 session.watch 编排，bin 不再直接引用底层 watcher
-		// @ts-expect-error P-TM06: type narrowing needed
 		const watcher = createBundler(resolved).watch({
-			// @ts-expect-error P-TM06: type narrowing needed
 			onRebuild: ({ event, filePath, count }) => {
-				const merged = count > 1 ? `（合并 ${count} 个文件事件）` : ''
-				// @ts-expect-error P-TM06: type narrowing needed
-				console.log(`${filePath} ${EVENT_LABELS[event]}，重新编译${merged}`)
+				const ev = event as 'add' | 'change' | 'unlink'
+				const fp = filePath as string
+				const cnt = count as number
+				const merged = cnt > 1 ? `（合并 ${cnt} 个文件事件）` : ''
+				console.log(`${fp} ${EVENT_LABELS[ev]}，重新编译${merged}`)
 			},
-			// @ts-expect-error P-TM06: type narrowing needed
-			onError: (error) => {
+			onError: (error: Error) => {
 				console.error(`${workPath} 编译出错: ${error.message}`)
 			},
 		})
@@ -68,8 +65,7 @@ program
 			await watcher.start()
 		}
 		catch (error) {
-			// @ts-expect-error P-TM06: type narrowing needed
-			throw new Error(`${workPath} 编译出错: ${error.message}`, { cause: error })
+			throw new Error(`${workPath} 编译出错: ${(error as Error).message}`, { cause: error as Error })
 		}
 	})
 
@@ -79,7 +75,7 @@ program
 	.name('dimina-cli')
 	.version(pack.version)
 
-program.parseAsync(process.argv).catch((error) => {
-	console.error(error.stack || error.message)
+program.parseAsync(process.argv).catch((error: unknown) => {
+	console.error((error as Error).stack || (error as Error).message)
 	process.exitCode = 1
 })

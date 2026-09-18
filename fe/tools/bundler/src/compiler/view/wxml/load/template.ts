@@ -8,9 +8,10 @@ import {
 } from '../common/document-ops.ts'
 import { transAsses } from './orchestrator-live.ts'
 import { normalizeTemplateDom, transHtmlTag } from '../renderer/vue/tools.ts'
+import type { WxmlNode } from '../common/document.ts'
 
-// @ts-expect-error P-TM05: type narrowing needed
-export function transTagTemplate(document, templateModule, path, components, componentPlaceholder, sourceInfo, graphOwnerPath = path) {
+export interface TemplateModuleEntry { path: string; tpl: string; sourceInfo: { path: string; content: string; startLine?: number } | null }
+export function transTagTemplate(document: WxmlNode, templateModule: TemplateModuleEntry[], path: string, components: Record<string, unknown> | null | undefined, componentPlaceholder: Record<string, unknown> | null | undefined, sourceInfo: { path: string; content: string } | null, graphOwnerPath: string = path) {
 	const templateNodes = queryAll(document, 'template-def')
 	const newlineOffsets = sourceInfo ? collectNewlineOffsets(sourceInfo.content) : null
 	for (const elem of templateNodes.slice()) {
@@ -18,12 +19,9 @@ export function transTagTemplate(document, templateModule, path, components, com
 		removeMatching(elem, 'import')
 		removeMatching(elem, 'include')
 		removeMatching(elem, getViewScriptTags().join(','))
-		transAsses(document, queryAll(elem, 'image'), path, graphOwnerPath)
-		// @ts-expect-error P-TM05: type narrowing needed
-		const res = []
-		// @ts-expect-error P-TM05: type narrowing needed
+		transAsses!(document, queryAll(elem, 'image'), path, graphOwnerPath)
+		const res: string[] = []
 		normalizeTemplateDom(elem, components)
-		// @ts-expect-error P-TM05: type narrowing needed
 		transHtmlTag(serializeChildren(elem), res, components, componentPlaceholder)
 
 		const firstChild = (elem.children || []).find(Boolean)
@@ -31,7 +29,6 @@ export function transTagTemplate(document, templateModule, path, components, com
 
 		templateModule.push({
 			path: `tpl-${name}`,
-			// @ts-expect-error P-TM05: type narrowing needed
 			tpl: res.join(''),
 			sourceInfo: sourceInfo
 				? {
@@ -43,10 +40,8 @@ export function transTagTemplate(document, templateModule, path, components, com
 		removeNode(elem)
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function collectNewlineOffsets(content) {
-	const offsets = []
+export function collectNewlineOffsets(content: string): number[] {
+	const offsets: number[] = []
 	for (let i = 0; i < content.length; i++) {
 		if (content.charCodeAt(i) === 10) {
 			offsets.push(i)
@@ -54,9 +49,7 @@ export function collectNewlineOffsets(content) {
 	}
 	return offsets
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function getSourceLine(newlineOffsets, index = 0) {
+export function getSourceLine(newlineOffsets: number[] | null, index: number = 0): number {
 	if (!newlineOffsets) {
 		return 1
 	}

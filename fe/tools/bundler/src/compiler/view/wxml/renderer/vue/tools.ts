@@ -19,6 +19,7 @@ import {
 	setAttr,
 } from '../../common/document-ops.ts'
 import { parseWxml } from '../../parse.ts'
+import type { WxmlNode, Attr } from '../../common/document.ts'
 import { enableSourcemap, templateRenderCache } from './state.ts'
 import {
 	transformTextInterpolation,
@@ -34,9 +35,7 @@ import {
 	escapeQuotes,
 	insertWxsToRenderResult,
 } from './live.ts'
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function getTemplateCompilerOptions(scopeId) {
+export function getTemplateCompilerOptions(scopeId: string): { prefixIdentifiers: boolean; hoistStatic: boolean; cacheHandlers: boolean; scopeId: string; mode: string; inline: boolean; isCustomElement: (tag: string) => boolean } {
 	return {
 		// https://template-explorer.vuejs.org/
 		prefixIdentifiers: true,
@@ -49,8 +48,7 @@ export function getTemplateCompilerOptions(scopeId) {
 		// components to the reserved dd-* namespace. Every remaining unknown WXML
 		// tag follows glass-easel's unused-native-node fallback instead of Vue's
 		// component resolution.
-		// @ts-expect-error P-TM05: type narrowing needed
-		isCustomElement: tag => !tag.startsWith('dd-'),
+		isCustomElement: (tag: string) => !tag.startsWith('dd-'),
 	}
 }
 
@@ -60,9 +58,7 @@ export function getTemplateCompilerOptions(scopeId) {
  * compileTemplate codegen 与 insertWxsToRenderResult 结果，只需计算一次。
  * moduleId 不入 key：function 模式下 scopeId 不进入产物（见 templateRenderCache 处说明）。
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function compileTemplateModuleRender(tm, moduleId, scriptModule, scriptRes) {
-	// @ts-expect-error P-TM05: type narrowing needed
+export function compileTemplateModuleRender(tm: { path: string; tpl: string; sourceInfo?: { path: string; content: string; startLine?: number } | null }, moduleId: string, scriptModule: Array<{ path: string; code: string; originalName?: string }>, scriptRes: Map<string, string>) {
 	const scriptSig = scriptModule.map(sm => `${sm.path}\u0000${sm.originalName ?? ''}`).join('\u0001')
 	// sourceInfo.content 是 sourceInfo.path 对应文件的原文，在同一个 worker 任务内该文件
 	// 不会被改写（与 compileResCache 直接按 module.path 做键的既有假设一致），path 已经
@@ -86,12 +82,10 @@ export function compileTemplateModuleRender(tm, moduleId, scriptModule, scriptRe
 		filename: tm.path,
 		id: `data-v-${moduleId}`,
 		scoped: true,
-		// @ts-expect-error P-TM05: type narrowing needed
 		inMap: enableSourcemap && tm.sourceInfo
-			? createLineSourcemap(tm.tpl, tm.sourceInfo.path, tm.sourceInfo.content, tm.sourceInfo.startLine)
+			? createLineSourcemap(tm.tpl, tm.sourceInfo.path, tm.sourceInfo.content, tm.sourceInfo.startLine ?? 1) as unknown as Parameters<typeof compileTemplate>[0]['inMap']
 			: undefined,
-		// @ts-expect-error P-TM05: type narrowing needed
-		compilerOptions: getTemplateCompilerOptions(`data-v-${moduleId}`),
+		compilerOptions: getTemplateCompilerOptions(`data-v-${moduleId}`) as Parameters<typeof compileTemplate>[0]['compilerOptions'],
 	})
 	const result = {
 		path: tm.path,
@@ -103,28 +97,21 @@ export function compileTemplateModuleRender(tm, moduleId, scriptModule, scriptRe
 
 const DIMINA_SLOT_GROUP_TAG = 'dimina-slot-group'
 const DIMINA_FOR_SCOPE_TAG = 'dimina-for-scope'
-
-// @ts-expect-error P-TM05: type narrowing needed
-function asAttrsRecord(attrs) {
+function asAttrsRecord(attrs: unknown): Record<string, string> {
 	if (!attrs) {
 		return {}
 	}
 	if (Array.isArray(attrs)) {
-		return attrsToRecord(attrs)
+		return attrsToRecord(attrs as Attr[])
 	}
-	return attrs
+	return attrs as Record<string, string>
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function getDirectiveAttributeNames(attrs, suffixes) {
+export function getDirectiveAttributeNames(attrs: unknown, suffixes: string[]): string[] {
 	const record = asAttrsRecord(attrs)
-	// @ts-expect-error P-TM05: type narrowing needed
-	const directiveNames = new Set(suffixes.map(suffix => suffix.replace(/^:/, '')))
-	return Object.keys(record || {}).filter(name => directiveNames.has(getTemplateDirectiveName(name)))
+	const directiveNames = new Set(suffixes.map((suffix: string) => suffix.replace(/^:/, '')))
+	return Object.keys(record || {}).filter(name => directiveNames.has(getTemplateDirectiveName(name)!))
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function hasForAndIf(attrs) {
+export function hasForAndIf(attrs: unknown) {
 	return getDirectiveAttributeNames(attrs, [':for', ':for-items']).length > 0
 		&& getDirectiveAttributeNames(attrs, [':if']).length > 0
 }
@@ -133,12 +120,10 @@ export function hasForAndIf(attrs) {
  * @param {object} document 标准 Document 或子树根
  * @param {object} [components]
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function groupDuplicateNamedSlots(document, components) {
+export function groupDuplicateNamedSlots(document: Parameters<typeof queryAll>[0], components: Record<string, unknown> | null | undefined) {
 	const slotHosts = queryAll(document, '*').filter((element) => {
 		const tag = getTagName(element)
-		// @ts-expect-error P-TM05: type narrowing needed
-		return tag === 'component' || Boolean(components?.[tag])
+		return tag === 'component' || (tag !== null && Boolean(components?.[tag]))
 	})
 
 	for (const host of slotHosts) {
@@ -167,9 +152,7 @@ export function groupDuplicateNamedSlots(document, components) {
 		}
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function wrapForIfScopes(document) {
+export function wrapForIfScopes(document: Parameters<typeof queryAll>[0]) {
 	const nodes = queryAll(document, '*')
 	for (const node of nodes) {
 		const tag = getTagName(node)
@@ -199,9 +182,8 @@ export function wrapForIfScopes(document) {
  * 就地改写标准 Document（§4.5）。
  * 签名：(document, components)；兼容误传旧 root 时忽略第二参中的节点。
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function normalizeTemplateDom(document, rootOrComponents, maybeComponents) {
-	let components = {}
+export function normalizeTemplateDom(document: Parameters<typeof queryAll>[0], rootOrComponents: WxmlNode | Record<string, unknown> | null | undefined, maybeComponents?: Record<string, unknown> | null | undefined) {
+	let components: Record<string, unknown> = {}
 	if (maybeComponents !== undefined) {
 		components = maybeComponents || {}
 	}
@@ -218,33 +200,26 @@ export function normalizeTemplateDom(document, rootOrComponents, maybeComponents
 }
 
 /** 过渡薄封装：string → Document normalize → string；正式编译路径不依赖 */
-// @ts-expect-error P-TM05: type narrowing needed
-export function normalizeTemplateSyntax(html, components) {
+	export function normalizeTemplateSyntax(html: string, components?: Record<string, unknown> | null | undefined): string {
 	const document = parseWxml(html)
-	// @ts-expect-error P-TM05: type narrowing needed
-	normalizeTemplateDom(document, components)
-	// @ts-expect-error P-TM05: type narrowing needed
-	return serialize(document)
+	normalizeTemplateDom(document as unknown as WxmlNode, components)
+	return serialize(document as unknown as WxmlNode)
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function transHtmlTag(html, res, components, componentPlaceholder) {
-	// @ts-expect-error P-TM05: type narrowing needed
-	const attrsList = []
+export function transHtmlTag(html: string, res: string[], components: Record<string, unknown> | null | undefined, componentPlaceholder: Record<string, unknown> | null | undefined) {
+	const attrsList: Array<Record<string, string>> = []
 	const parser = new htmlparser2.Parser(
 		{
-			onopentag(tag, attrs) {
+			onopentag(tag: string, attrs: Record<string, string>) {
 				attrsList.push(attrs)
 				res.push(transTag({ isStart: true, tag, attrs, components, componentPlaceholder }))
 			},
 			ontext(text) {
 				res.push(transformTextInterpolation(text))
 			},
-			onclosetag(tag) {
-				// @ts-expect-error P-TM05: type narrowing needed
+			onclosetag(tag: string) {
 				res.push(transTag({ tag, attrs: attrsList.pop(), components }))
 			},
-			onerror(error) {
+			onerror(error: unknown) {
 				console.error(error)
 			},
 		},
@@ -259,13 +234,12 @@ export function transHtmlTag(html, res, components, componentPlaceholder) {
  * 处理组件标签
  * @param {*} opts
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function transTag(opts) {
+export function transTag(opts: { isStart?: boolean; tag: string; attrs?: Record<string, string> | null; components?: Record<string, unknown> | null; componentPlaceholder?: Record<string, unknown> | null }) {
 	const { isStart, tag, attrs, components } = opts
 	let res
 	if (tag === DIMINA_SLOT_GROUP_TAG) {
 		if (isStart) {
-			return `<template ${generateSlotDirective(attrs.name)}>`
+			return `<template ${generateSlotDirective((attrs?.name as string) ?? '')}>`
 		}
 		return '</template>'
 	}
@@ -294,9 +268,9 @@ export function transTag(opts) {
 	}
 
 	let tagRes
-	const propsAry = isStart ? getProps(attrs, tag, components) : []
+	const propsAry = isStart ? getProps(attrs ?? {}, tag, components) : []
 	// 多 slot 支持，目前在组件定义时的选项中 multipleSlots 未生效
-	const multipleSlots = attrs?.slot
+	const multipleSlots = attrs?.slot ?? ''
 	if (attrs?.slot) {
 		// 检查是否为动态插槽（slot 属性值被 {{}} 包裹）
 		const isDynamicSlot = isWrappedByBraces(multipleSlots)
@@ -356,8 +330,7 @@ export function transTag(opts) {
  * @param {string} slotValue - slot属性值
  * @returns {string} 生成的slot指令
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function generateSlotDirective(slotValue) {
+export function generateSlotDirective(slotValue: string): string {
 	if (isWrappedByBraces(slotValue)) {
 		// 动态 slot 值，使用 v-slot 指令
 		const slotExpression = parseBraceExp(slotValue)
@@ -374,12 +347,11 @@ export function generateSlotDirective(slotValue) {
  * @param {*} tag
  * @param {*} components - 组件映射，用于判断是否为自定义组件
  */
-// @ts-expect-error P-TM05: type narrowing needed
-export function getProps(attrs, tag, components) {
-	const attrsList = []
+export function getProps(attrs: Record<string, string>, tag: string, components: Record<string, unknown> | null | undefined): string[] {
+	const attrsList: Array<{ name: string; value: string }> = []
 	const isCustomComponent = Boolean(components && components[tag])
 	// 用于记录属性绑定关系：{ 子组件属性名: 父组件数据路径 }
-	const propBindings = {}
+	const propBindings: Record<string, string> = {}
 	const hasEventBindings = Object.keys(attrs).some(name => /^(?:capture-)?(?:bind|catch)(?::)?.+/.test(name))
 
 	// New packages use vw as the rpx transport unit. Keep that contract on the
@@ -453,7 +425,6 @@ export function getProps(attrs, tag, components) {
 					value: parsedStyle,
 				})
 				if (isWrappedByBraces(value) && parsedStyle) {
-					// @ts-expect-error P-TM05: type narrowing needed
 					propBindings.style = parsedStyle
 				}
 			}
@@ -547,7 +518,6 @@ export function getProps(attrs, tag, components) {
 				//       total="{{count + defaultValue}}" => propBindings['total'] = 'count + defaultValue'
 				// 确保 pVal 是有效的字符串值
 				if (pVal && typeof pVal === 'string') {
-					// @ts-expect-error P-TM05: type narrowing needed
 					propBindings[name] = pVal
 				}
 			}
@@ -587,10 +557,9 @@ export function getProps(attrs, tag, components) {
 		// 解析绑定表达式，提取依赖信息
 		try {
 			// 过滤掉无效值，确保所有值都是可序列化的字符串
-			const validBindings = {}
+			const validBindings: Record<string, string> = {}
 			for (const [key, value] of Object.entries(propBindings)) {
 				if (value !== undefined && value !== null && typeof value === 'string') {
-					// @ts-expect-error P-TM05: type narrowing needed
 					validBindings[key] = value
 				}
 			}
@@ -604,35 +573,29 @@ export function getProps(attrs, tag, components) {
 			propsRes.push(`v-c-prop-bindings="${escapedJson}"`)
 		}
 		} catch (error) {
-			// @ts-expect-error P-TM05: type narrowing needed
-			console.warn('[compiler] 序列化 propBindings 失败:', error.message, '标签:', tag, '绑定数据:', propBindings)
+			console.warn('[compiler] 序列化 propBindings 失败:', (error as Error).message, '标签:', tag, '绑定数据:', propBindings)
 		}
 	}
 
 	return propsRes
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-export function generateVModelTemplate(expression) {
+export function generateVModelTemplate(expression: string): string | false {
 	let var1, var2, updateExpression
 
 	if (expression.includes('&&')) {
 		// 处理 "x && y"
-		// @ts-expect-error P-TM05: type narrowing needed
 		[var1, var2] = expression.split('&&').map(v => v.trim())
 		// 对于 x && y，x 为真时更新 y，x 为假时更新 x
 		updateExpression = `${var1} ? (${var2} = $event) : (${var1} = $event)`
 	}
 	else if (expression.includes('||')) {
 		// 处理 "x || y"
-		// @ts-expect-error P-TM05: type narrowing needed
 		[var1, var2] = expression.split('||').map(v => v.trim())
 		// 对于 x || y，x 为真时更新 x，x 为假时更新 y
 		updateExpression = `${var1} ? (${var1} = $event) : (${var2} = $event)`
 	}
 	else if (expression.includes('?')) {
 		// 处理 "x ? x : y"
-		// @ts-expect-error P-TM05: type narrowing needed
 		const parts = expression.split(/[?:]/).map(v => v.trim())
 		var1 = parts[0]
 		var2 = parts[2]

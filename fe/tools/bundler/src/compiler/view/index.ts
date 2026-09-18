@@ -1594,7 +1594,7 @@ export {
 
 // P-WR02: engine export（不动调度，F47；onMessage 旧版保留，compile 函数声明供 export）
 // @ts-expect-error P-TM05: type narrowing needed
-async function viewCompile({ msg, progress, config }) {
+async function viewCompile({ msg, progress, config }: CompileOptions) {
 	resetStoreInfo(msg.storeInfo)
 	setEnableSourcemap(!!msg.sourcemap)
 	activeCompileConfig = config

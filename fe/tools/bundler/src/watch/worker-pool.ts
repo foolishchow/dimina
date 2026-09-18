@@ -26,8 +26,7 @@ function getCGroupCPUCount() {
 	}
 	catch (e) {
 		// 如果读取失败，回退到os.cpus()
-		// @ts-expect-error P-TM04: type narrowing needed
-		console.warn('Failed to read CPU limits from cgroup:', e.message)
+		console.warn('Failed to read CPU limits from cgroup:', (e as Error).message)
 	}
 
 	return typeof os.availableParallelism === 'function' ? os.availableParallelism() : os.cpus().length
@@ -51,24 +50,21 @@ function getCGroupMemoryLimit() {
 
 		if (fs.existsSync(memLimitPath)) {
 			const memLimit = Number.parseInt(fs.readFileSync(memLimitPath, 'utf8'))
-			// @ts-expect-error P-TM04: type narrowing needed
-			if (memLimit < Number.Infinity && memLimit > 0) {
+			if (memLimit < (Number as { Infinity?: number }).Infinity! && memLimit > 0) {
 				return memLimit
 			}
 		}
 	}
 	catch (e) {
 		// 如果读取失败，回退到os.totalmem()
-		// @ts-expect-error P-TM04: type narrowing needed
-		console.warn('Failed to read memory limits from cgroup:', e.message)
+		console.warn('Failed to read memory limits from cgroup:', (e as Error).message)
 	}
 
 	return os.totalmem()
 }
 
 function readPositiveInteger(name: string) {
-	// @ts-expect-error P-TM04: type narrowing needed
-	const value = Number.parseInt(process.env[name], 10)
+	const value = Number.parseInt(process.env[name]!, 10)
 	return Number.isInteger(value) && value > 0 ? value : null
 }
 
@@ -79,41 +75,35 @@ export const MAX_WORKERS = readPositiveInteger('DIMINA_COMPILER_MAX_WORKERS')
 
 // 工作线程池
 class WorkerPool {
+	maxWorkers: number
+	activeWorkers: number
+	queue: Array<() => void>
+	memoryLimit: number
+
 	constructor(maxWorkers = MAX_WORKERS) {
-		// @ts-expect-error P-TM04: type narrowing needed
 		this.maxWorkers = maxWorkers
-		// @ts-expect-error P-TM04: type narrowing needed
 		this.activeWorkers = 0
-		// @ts-expect-error P-TM04: type narrowing needed
 		this.queue = []
 		// 使用更保守的内存分配策略：60% 总内存，并为每个 worker 预留更多空间
-		// @ts-expect-error P-TM04: type narrowing needed
 		this.memoryLimit = Math.floor(getCGroupMemoryLimit() * 0.6 / maxWorkers)
 	}
 
-	// @ts-expect-error P-TM04: type narrowing needed
-	async runWorker(workerCreator) {
-		// @ts-expect-error P-TM04: type narrowing needed
+	async runWorker<T>(workerCreator: () => Promise<T>): Promise<T> {
 		if (this.activeWorkers >= this.maxWorkers) {
 			// 如果活跃工作线程达到上限，加入队列等待
-			// @ts-expect-error P-TM04: type narrowing needed
-			await new Promise(resolve => this.queue.push(resolve))
+			await new Promise<void>(resolve => this.queue.push(resolve))
 		}
 
-		// @ts-expect-error P-TM04: type narrowing needed
 		this.activeWorkers++
 		try {
 			return await workerCreator()
 		}
 		finally {
-			// @ts-expect-error P-TM04: type narrowing needed
 			this.activeWorkers--
-			// @ts-expect-error P-TM04: type narrowing needed
 			if (this.queue.length > 0) {
 				// 当前工作线程完成，从队列中释放一个等待的任务
-				// @ts-expect-error P-TM04: type narrowing needed
 				const next = this.queue.shift()
-				next()
+				next!()
 			}
 		}
 	}
@@ -121,7 +111,6 @@ class WorkerPool {
 	getWorkerOptions() {
 		const configuredMemoryMb = readPositiveInteger('DIMINA_COMPILER_WORKER_MEMORY_MB')
 		const memoryMb = configuredMemoryMb
-			// @ts-expect-error P-TM04: type narrowing needed
 			?? Math.min(2048, Math.floor(this.memoryLimit / (1024 * 1024)))
 		return {
 			resourceLimits: {

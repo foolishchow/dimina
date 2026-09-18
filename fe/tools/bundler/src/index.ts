@@ -7,18 +7,12 @@
  */
 import { createProjectStore } from './model/project-store.ts'
 import { createBuildPipeline } from './compiler/pipeline/build-pipeline.ts'
-
-// @ts-expect-error P-TM06: type narrowing needed
-export default function build(targetPath, workPath, useAppIdDir = true, options = {}) {
+export default function build(targetPath: string, workPath: string, useAppIdDir = true, options: Record<string, unknown> = {}) {
 	return runBuild(targetPath, workPath, useAppIdDir, options)
 }
-
-// @ts-expect-error P-TM06: type narrowing needed
-async function runBuild(targetPath, workPath, useAppIdDir = true, options = {}) {
-	// @ts-expect-error P-TM06: type narrowing needed
+async function runBuild(targetPath: string, workPath: string, useAppIdDir = true, options: Record<string, unknown> = {}) {
 	const store = options.store ?? createProjectStore()
-	// @ts-expect-error P-TM06: type narrowing needed
 	const { store: _s, ...pipelineOptions } = options
-	const pipeline = createBuildPipeline({ store })
+	const pipeline = createBuildPipeline({ store: store as ReturnType<typeof createProjectStore> })
 	return pipeline.run({ targetPath, workPath, useAppIdDir, ...pipelineOptions })
 }
