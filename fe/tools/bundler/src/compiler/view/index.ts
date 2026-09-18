@@ -888,7 +888,7 @@ function processIncludedFileWxsDependencies(componentTags: unknown, includePath:
 
 	// 对每个组件，直接处理其 wxs 依赖（避免递归调用 buildCompileView）
 	for (const tagName of componentTags as Iterable<string>) {
-		const componentPath = components[tagName as string] as string
+		const componentPath = String(components[tagName!])
 		const componentModule = getComponent(componentPath)
 		if (componentModule) {
 			// 检查组件路径是否已经处理过，避免循环引用

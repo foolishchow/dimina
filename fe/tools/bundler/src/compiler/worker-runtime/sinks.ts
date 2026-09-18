@@ -25,7 +25,7 @@ export class FileSink {
 		if (entry.sourcemaps) for (const sm of entry.sourcemaps) {
 			const dest = path.join(this.writeDir, sm.path)
 			fs.mkdirSync(path.dirname(dest), { recursive: true })
-			fs.writeFileSync(dest, sm.map as string)
+			fs.writeFileSync(dest, String(sm.map))
 		}
 		this.#count++
 	}

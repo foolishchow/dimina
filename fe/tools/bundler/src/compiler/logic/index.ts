@@ -559,7 +559,7 @@ function resolveModuleIdToExistingPath(moduleId: string): string | null {
 			const packageInfo = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
 			for (const entryField of ['miniprogram', 'main']) {
 				if (typeof packageInfo[entryField] === 'string' && packageInfo[entryField]) {
-					const entryModuleId = normalizeModuleId(resolve(normalizedModuleId, packageInfo[entryField] as string))
+					const entryModuleId = normalizeModuleId(resolve(normalizedModuleId, String(packageInfo[entryField])))
 					const resolvedEntry = resolveModuleIdToExistingPath(entryModuleId)
 					if (resolvedEntry) {
 						return resolvedEntry
