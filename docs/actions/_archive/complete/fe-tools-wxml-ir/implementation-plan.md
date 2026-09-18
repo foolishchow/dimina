@@ -27,7 +27,7 @@ fe/tools/bundler/__tests__/…                    # parse/load/backend 测例
 
 ## 依赖
 
-- 与 [`fe-tools-incremental-target`](../../../fe-tools-incremental-target/README.md) 互不阻塞；同改 `view-compiler.js` 时分 PR、禁混范围（Experience §8：注意工作区未提交重叠）
+- 与 [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md) 互不阻塞；同改 `view-compiler.js` 时分 PR、禁混范围（Experience §8：注意工作区未提交重叠）
 - 实施前确认分支/`git status`；消融用隔离副本（Experience §6）
 - 错误日志约定：`[wxml]` + sourceFile/loc（Experience §7；R-WIR9）
 

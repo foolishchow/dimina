@@ -29,7 +29,7 @@ WXML 字符串 → cheerio 预处理（include/import 当场展开）→ Vue com
 ## Non-goals
 
 - 不重写整份 `view-compiler` 算法细节（先切缝，再迁语义）
-- 不做 E7 增量形态（[`fe-tools-incremental-target`](../../../fe-tools-incremental-target/README.md)）
+- 不做 E7 增量形态（[`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)）
 - 不剥 Listr / BP2；不改 PS3；不向 didi 推送
 - 不把 `platform: native|web` 写进 parser / Document
 - 不在本 Action 引入第二种实现语言或跨语言绑定

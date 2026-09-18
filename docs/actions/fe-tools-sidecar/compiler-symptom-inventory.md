@@ -58,7 +58,7 @@ session PIPELINE_OPTION_KEYS ─┘              │
 
 目标是**梳理逻辑**；模板 IR 路径额外以「能换 Backend」为硬验收（见 fe-tools-wxml-ir）：
 
-- **优先 / 并列**：E7 簇（S1/S2/S3/S9）— [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（`draft`）；TS-2（S13）— [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**；S14 非目标；style 侧书面剩余）
+- **优先 / 并列**：E7 簇（S1/S2/S3/S9）— [`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（`draft`）；TS-2（S13）— [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**；S14 非目标；style 侧书面剩余）
 - **其次**：Listr 与阶段语义拆缝（S5/S6）— 可测性
 - **勿单独做**：为 platform/renderer 造空 adapter；S10 说明 platform 轴还没有真消费者
 
@@ -66,7 +66,7 @@ session PIPELINE_OPTION_KEYS ─┘              │
 
 | 项 | 值 |
 | --- | --- |
-| 选定（增量） | **E7** — [`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（`draft`） |
+| 选定（增量） | **E7** — [`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（`draft`） |
 | 并列（模板） | **TS-2 / S13** — [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**：view 缝交付；style 剩余另议） |
 | 另立 | Listr/BP2（S5/S6） |
 

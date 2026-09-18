@@ -1,6 +1,6 @@
 # Validation — fe-tools-incremental-target
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 Status: **ready（2026-09-19）**
 

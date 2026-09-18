@@ -161,7 +161,7 @@ fe/tools/
 
 **已冻（本伞记录）**：实现语言 **JS**；管线 `parse → Document → load → Backend`；Vue = backend₀；硬验收「第二 Backend 可注册」。形状指南见 `docs/wxml`（字段级分期）。**ready，未授权实施**。
 
-**近端并列**：[`fe-tools-incremental-target`](../fe-tools-incremental-target/README.md)（**draft**：E7）；已归档 project-store / build-pipeline / session-unify / compiler-target；病症地图 [compiler-symptom-inventory.md](./compiler-symptom-inventory.md)。
+**近端并列**：[`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（**draft**：E7）；已归档 project-store / build-pipeline / session-unify / compiler-target；病症地图 [compiler-symptom-inventory.md](./compiler-symptom-inventory.md)。
 
 ### PS3 deferred（2026-09-12）
 

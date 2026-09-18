@@ -72,7 +72,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**，待 Close）；[`fe-tools-bundler-tsc-dist`](fe-tools-bundler-tsc-dist/README.md)（**`ready`**，待实施授权）；[`fe-tools-incremental-target`](fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
+| 下一步 | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**，待 Close）；[`fe-tools-bundler-tsc-dist`](fe-tools-bundler-tsc-dist/README.md)（**`ready`**，待实施授权）；[`fe-tools-incremental-target`](_archive/complete/fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
 | 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |

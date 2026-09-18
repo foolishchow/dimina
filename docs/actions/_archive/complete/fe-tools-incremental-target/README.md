@@ -1,10 +1,10 @@
 # FE Tools Incremental Target
 
 - Action: `fe-tools-incremental-target`
-- Status: `in_progress`
-- Updated: 2026-09-19
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md)（T0+T1+T2 已归档；E7 为 Non-goal 另立）；[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)；病症地图：[compiler-symptom-inventory.md](../fe-tools-sidecar/compiler-symptom-inventory.md)（S1/S2/S3/S4/S9）
+- Status: `complete`
+- Updated: 2026-09-20
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-compiler-target`](../fe-tools-compiler-target/README.md)（T0+T1+T2 已归档；E7 为 Non-goal 另立）；[`fe-tools-session-unify`](../fe-tools-session-unify/README.md)；病症地图：[compiler-symptom-inventory.md](../../../fe-tools-sidecar/compiler-symptom-inventory.md)（S1/S2/S3/S4/S9）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -74,7 +74,7 @@ TS-2（deferred）:          模板 IR
 
 ## Status / 授权
 
-- **`ready`**（2026-09-19）：D-IT-1..4 全拍板；source audit 实锚；五件套完备；待授权 `in_progress`。
+- **`complete`**（2026-09-20）：I0-I2 交付；tsc 0 错 + 585/585 + 4 组 diff=0；结构锚定全 pass（P-IT03）；待归档。
 
 ## 闭合条件
 
@@ -88,4 +88,5 @@ TS-2（deferred）:          模板 IR
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-14 | 初稿 `draft`：自 compiler-symptom-inventory 选定 E7 簇 formalize |
-| 2026-09-19 | source audit 实锚 S1/S2/S3/S4/S9；D-IT-1..4 全拍板；五件套完备；升 `ready` |
+| 2026-09-19 | Review R1-R13（22 findings 全修正）；五轮 review 收敛（7→7→3→2→3→0） |
+| 2026-09-20 | **实施完成**：I1+I2 全步通过（commit `7b3b44c9`）；tsc 0 错 + 585/585 + 4 组 diff=0；P-IT03 结构锚定全 pass |
