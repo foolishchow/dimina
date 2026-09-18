@@ -15,7 +15,7 @@ const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
 let defaultCompilerContext: CompilerContext | undefined
 
 type CompilerContext = {
-	pathInfo: Record<string, unknown>
+	pathInfo: PathInfo
 	configInfo: ConfigInfo
 	npmResolver: NpmResolver | null
 	dependencyGraph: DependencyGraph
@@ -39,7 +39,14 @@ function getCompilerContext(): CompilerContext {
 
 // 将现有属性访问路由到当前异步构建上下文。直接调用 storeInfo() 的测试和
 // 独立 Worker 没有 AsyncLocalStorage store 时，仍使用各自进程内的默认上下文。
-const pathInfo: Record<string, unknown> = new Proxy({}, {
+interface PathInfo {
+	workPath?: string
+	targetPath?: string
+	temporaryTargetPath?: boolean
+	[key: string]: unknown
+}
+
+const pathInfo: PathInfo = new Proxy({}, {
 	get: (_, key) => getCompilerContext().pathInfo[key as string],
 	set: (_, key, value) => {
 		getCompilerContext().pathInfo[key as string] = value
@@ -167,7 +174,7 @@ function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: str
 }
 
 interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }
-function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: Record<string, unknown>; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
+function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: PathInfo; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
 	const context = getCompilerContext()
 	// 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
 	context.compilerOptions = normalizeFileTypes(options.fileTypes)
@@ -188,7 +195,7 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	}
 }
 
-function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: ConfigInfo; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }): void {
+function resetStoreInfo(opts: { pathInfo: PathInfo; configInfo: ConfigInfo; compilerOptions?: ReturnType<typeof normalizeFileTypes>; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }): void {
 	const context = getCompilerContext()
 	context.pathInfo = opts.pathInfo
 	context.configInfo = opts.configInfo
@@ -198,7 +205,7 @@ function resetStoreInfo(opts: { pathInfo: Record<string, unknown>; configInfo: C
 
 	// 重新初始化 npm 解析器
 	if (pathInfo.workPath) {
-		context.npmResolver = new NpmResolver(pathInfo.workPath as string)
+		context.npmResolver = new NpmResolver(pathInfo.workPath!)
 	}
 }
 
@@ -331,10 +338,10 @@ function storeAppConfig() {
 
 function detectRuntimeType(): string {
 	const compileType = (configInfo.projectInfo as { compileType?: string } | undefined)?.compileType
-	const hasMiniProgramConfig = fs.existsSync(path.join(pathInfo.workPath as string, 'app.json'))
-	const hasMiniGameConfig = fs.existsSync(path.join(pathInfo.workPath as string, 'game.json'))
+	const hasMiniProgramConfig = fs.existsSync(path.join(pathInfo.workPath!, 'app.json'))
+	const hasMiniGameConfig = fs.existsSync(path.join(pathInfo.workPath!, 'game.json'))
 	const hasMiniGameEntry = ['game.js', 'game.ts']
-		.some(fileName => fs.existsSync(path.join(pathInfo.workPath as string, fileName)))
+		.some(fileName => fs.existsSync(path.join(pathInfo.workPath!, fileName)))
 
 	if (compileType === 'game') {
 		return MINI_GAME_RUNTIME_TYPE
@@ -349,7 +356,7 @@ function detectRuntimeType(): string {
 }
 
 function getRuntimeType(): string {
-	return (configInfo.runtimeType as string) || MINI_PROGRAM_RUNTIME_TYPE
+	return configInfo.runtimeType || MINI_PROGRAM_RUNTIME_TYPE
 }
 
 function isMiniGame(): boolean {
@@ -408,7 +415,7 @@ function storeCustomTabBarConfig(): void {
 		return
 	}
 
-	const componentJsonPath = path.join(pathInfo.workPath as string, 'custom-tab-bar/index.json')
+	const componentJsonPath = path.join(pathInfo.workPath!, 'custom-tab-bar/index.json')
 	if (!fs.existsSync(componentJsonPath)) {
 		console.warn('[env] tabBar.custom 已启用，但找不到 custom-tab-bar/index.json')
 		return
@@ -420,7 +427,7 @@ function storeCustomTabBarConfig(): void {
 			[dependencyName]: CUSTOM_TAB_BAR_COMPONENT_PATH,
 		},
 	}
-	storeComponentConfig(internalConfig, path.join(pathInfo.workPath as string, 'app.json'))
+	storeComponentConfig(internalConfig, path.join(pathInfo.workPath!, 'app.json'))
 	const componentConfig = (configInfo.componentInfo!)[CUSTOM_TAB_BAR_COMPONENT_PATH]
 	if (componentConfig) {
 		componentConfig.customTabBar = true
@@ -668,7 +675,7 @@ function resolveAppAlias(src: string): string | null {
 }
 
 function getTargetPath(): string {
-	return pathInfo.targetPath as string
+	return pathInfo.targetPath!
 }
 
 function getComponent(src: string): unknown {
@@ -684,7 +691,7 @@ function getAppConfigInfo(): Record<string, unknown> {
 }
 
 function getWorkPath(): string {
-	return pathInfo.workPath as string
+	return pathInfo.workPath!
 }
 
 function getNpmResolver(): NpmResolver | null {

@@ -256,7 +256,7 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 
 	for (const page of pages) {
 		const scriptRes = new Map()
-		const sourceMapRes = new Map()
+		const sourceMapRes = new Map<string, string>()
 		buildCompileView(page, false, scriptRes, new Set(), new Set(), sourceMapRes)
 		const filename = `${page.path.replace(/\//g, '_')}`
 		// 相对发布根的物化路径前缀（D-P2）：主包 → main/，分包 → {root}/
@@ -460,7 +460,7 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
  */
 function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: Record<string, unknown> = {}): Record<string, unknown> | null {
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
-	const sourceMapRes = options.sourceMapRes || new Map()
+	const sourceMapRes = options.sourceMapRes as Map<string, string> || new Map<string, string>()
 	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
 	if (!tpl) {
 		return null
@@ -512,7 +512,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		scriptRes.set(module.path, cachedCode)
 		const cachedMap = (compileResCache.get(module.path) as { map?: string } | undefined)?.map
 		if (enableSourcemap && cachedMap) {
-			(sourceMapRes as Map<string, string>).set(module.path, cachedMap as string)
+			sourceMapRes.set(module.path, cachedMap!)
 		}
 
 		// 即使使用缓存，也需要确保返回的 instruction 包含最新的 wxs 模块信息
@@ -614,7 +614,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 	}
 	scriptRes.set(module.path, code)
 	if (enableSourcemap) {
-		(sourceMapRes as Map<string, string>).set(module.path, moduleMap as string)
+		sourceMapRes.set(module.path, moduleMap as string)
 	}
 
 	return {
@@ -863,7 +863,7 @@ function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, stri
 	compileResCache.set(module.path, cacheData)
 	scriptRes.set(module.path, code)
 	if (enableSourcemap) {
-		(sourceMapRes as Map<string, string>).set(module.path, moduleMap as string)
+		sourceMapRes.set(module.path, moduleMap as string)
 	}
 	return mergedInstruction
 }
