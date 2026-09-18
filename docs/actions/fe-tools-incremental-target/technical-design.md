@@ -19,7 +19,7 @@ Status: **冻结 v1（2026-09-19）** — 升 `ready`
 
 | ID | 决策 | 依据 |
 | --- | --- | --- |
-| **D-IT-1** | 契约 = **方案 A** — 仍走 `build(options)`，字段名不变（`stages` / `affectedEntries` / `seedPath` / `prepareConfig` / `prepareNpm`）；成文为 CompileTarget 输入的权威增量补丁 | 行为 0 友好；改动面小；dev-reload 自动兼容 |
+| **D-IT-1** | 契约 = **方案 A** — 仍走 `build(options)`，全 7 键字段名不变（`fileTypes` / `stages` / `affectedEntries` / `seedPath` / `dependencyGraph` / `prepareConfig` / `prepareNpm`）；成文为 CompileTarget 输入的权威增量补丁 | 行为 0 友好；改动面小；dev-reload 自动兼容 |
 | **D-IT-2** | compile-cache 与 watch 分门（I1 / I2），可分 PR 禁混 | 降低 review 面；I2 不阻塞 I1 |
 | **D-IT-3** | `COMPILE_STAGE_ORDER` 单源在 `compile-target.ts`（已导出 L178）；`compile-stages.ts` / `invalidation.ts` 删本地拷贝改 import | D-CT-4 形态单源不变量；三份拷贝→一份 |
 | **D-IT-4** | dev-reload 随 I1 自动对齐 — `dev-reload.ts` L48-49 读 `plan.options.stages` / `plan.options.affectedEntries` 字段名读，方案 A 下字段名不变 | 专测锁定 |
@@ -114,3 +114,4 @@ export interface StagePlan {
 | 2026-09-19 | Review R1-R3（7 findings 全 low 全修正）：F1 标题漏 S4；F2 baseline 钉死 `0fad4128`；F3 补正向 grep；F4 补目标签名；F5 标注新依赖边；F6 P-IT02 全量/增量语义明确；F7 P-IT05 测文件改 `dev-reload.spec.js` |
 | 2026-09-19 | Review R4-R6（7 findings 全修正）：F8 前置上下文漏 S4；F9 I1 Step 8 加 `compile-target.spec.js` 须改（L199-219 `filteredPages` break）；F10 P-IT02 测文件列表修正（补 build-stages + compile-target，移除 watch-runner 过度陈述）；F11 D-CT-1→D-CT-4；F12 P-IT05 补 preview-adapter；F13 S2 语义升格非收口；F14 结构断言复用既有测例模式 |
 | 2026-09-19 | Review R7-R9（3 findings 全 low 全修正）：F15 P-IT03 补 `affectedEntries` 参数名 grep；F16 I2 标题「cache 路径」→「S4 单源」（implementation-plan + README 同步）；F17 `filteredPages` 术语注（旧入参 / 新返回字段 / 内部局部变量三义标注） |
+| 2026-09-19 | Review R10-R11（2 findings 全 low 全修正）：F18 D-IT-1 补全 7 键（`fileTypes`/`dependencyGraph` 漏列）；F19 P-IT02 计数修正（`affectedEntries`/`stages` 8 处 → 补 `incremental` 标 12 处）；R11 终检 pass 无新发现 |
