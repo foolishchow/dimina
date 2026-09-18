@@ -12,6 +12,7 @@
 import path from 'node:path'
 import process from 'node:process'
 import { Listr, PRESET_TIMER } from 'listr2'
+import type { ListrTask, ListrBaseClassOptions } from 'listr2'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from '../core/renderers.ts'
 import { createCompileTarget, deriveStagePlan, readLoadBindings, STAGE_TITLES } from './compile-target.ts'
@@ -25,6 +26,11 @@ import { runCompileStage } from './stage-channel.ts'
 import { BuildModel, materialize } from '../../model/build-model.ts'
 import { createProjectStore } from '../../model/project-store.ts'
 
+interface RendererAdapter {
+	runViewStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
+	runStyleStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
+}
+
 let isPrinted = false
 const previousCompatibilityWarnings = new Map<string, Set<string>>()
 const MAX_WARNING_PROJECTS = 32
@@ -35,9 +41,9 @@ const MAX_WARNING_PROJECTS = 32
 const webviewRenderer = {
 	name: 'webview',
 	runViewStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle: lifecycle as never, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
+		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
 	runStyleStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle: lifecycle as never, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
+		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
 }
 if (!getRenderer('webview')) {
 	registerRenderer(webviewRenderer)
@@ -111,7 +117,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 				{
 					title: '收集配置信息',
 					task: async (ctx: Record<string, unknown>) => {
-						(ctx as { buildModel: unknown }).buildModel = new BuildModel() as never
+						(ctx as { buildModel: unknown }).buildModel = new BuildModel()
 						const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
 						(ctx as { storeInfo: unknown }).storeInfo = (_store.load as (w: string, o: unknown) => Record<string, unknown>)(workPath as string, { fileTypes, dependencyGraph });
 						(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
@@ -173,7 +179,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 									(STAGE_TITLES as Record<string, string>)[stage],
 									lifecycle,
 									spec.workerOptions,
-									spec.renderer as never,
+									spec.renderer as RendererAdapter | null,
 								)
 							})
 
@@ -190,7 +196,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 							await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
 						},
 					},
-				] as never[]),
+				] as ListrTask<Record<string, unknown>>[]),
 				{
 					concurrent: false,
 					rendererOptions: {
@@ -199,7 +205,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 						timer: PRESET_TIMER,
 					},
 					fallbackRendererOptions: { timer: PRESET_TIMER },
-				} as never,
+				} as ListrBaseClassOptions,
 			)
 
 			const context = await tasks.run()
@@ -227,7 +233,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 
 // --- 以下为 pipeline 内部 helper（从 index.js 搬入） ---
 
-function createStageTask(stage: string, title: string, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }, workerOptions: Record<string, unknown> = {}, rendererAdapter: { runViewStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>; runStyleStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void> } | null = null) {
+function createStageTask(stage: string, title: string, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }, workerOptions: Record<string, unknown> = {}, rendererAdapter: RendererAdapter | null = null) {
 	return {
 		title,
 		rendererOptions: { outputBar: true, persistentOutput: false },
@@ -246,10 +252,10 @@ function createStageTask(stage: string, title: string, lifecycle: { emit: (e: st
 				: null
 			try {
 				if (runStage) {
-					await runStage(ctx as never, task, workerOptions, lifecycle)
+					await runStage(ctx, task, workerOptions, lifecycle)
 				}
 				else {
-					await runCompileStage({ script: stage, ctx: ctx as never, task: task as never, options: workerOptions, lifecycle: lifecycle as never, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) })
+					await runCompileStage({ script: stage, ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) })
 				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,

@@ -27,7 +27,7 @@ function loadCssnano() {
 }
 
 function loadLess() {
-	lessLoader ||= import('less' as never).then((module: Record<string, unknown>) => module.default)
+	lessLoader ||= import('less').then((module: Record<string, unknown>) => module.default)
 	return lessLoader
 }
 
