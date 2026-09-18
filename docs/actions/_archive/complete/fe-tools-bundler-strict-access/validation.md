@@ -1,6 +1,6 @@
 # Validation — fe-tools-bundler-strict-access
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../Experience-Review.md)
 
 ## V-SA0 — tsconfig 选项
 

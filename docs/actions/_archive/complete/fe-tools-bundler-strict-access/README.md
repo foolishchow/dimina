@@ -1,10 +1,10 @@
 # fe-tools-bundler-strict-access
 
 - Action: `fe-tools-bundler-strict-access`
-- Status: `ready`
-- Updated: 2026-09-18
-- Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-ts-migration`](../_archive/complete/fe-tools-ts-migration/README.md)（深度类型化 274→29 + tsconfig 5 类 strict lint + 35 处存量修复）
+- Status: `complete`
+- Updated: 2026-09-19
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置上下文：[`fe-tools-ts-migration`](../fe-tools-ts-migration/README.md)（深度类型化 274→29 + tsconfig 5 类 strict lint + 35 处存量修复）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
