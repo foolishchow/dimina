@@ -178,7 +178,7 @@ function fromNodeList(nodes: SpanViewNode[] | null | undefined, ctx: SourceConte
 
 function fromSpanNode(node: SpanViewNode | null | undefined, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode | null {
 	if (!node || typeof node !== 'object') {
-		return null as unknown as WxmlNode
+		return null
 	}
 	switch (node.type) {
 		case 'text':
@@ -210,11 +210,11 @@ function fromSpanNode(node: SpanViewNode | null | undefined, ctx: SourceContext,
 	}
 }
 
-function fromText(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode {
+function fromText(node: SpanViewNode, ctx: SourceContext, sourceFile: string | null | undefined): WxmlNode | null {
 	const span = node.span ?? null
 	const value = textContent(node, ctx)
 	if (value === '') {
-		return null as unknown as WxmlNode
+		return null
 	}
 	return createTextNode({ value, loc: toCharSpan(ctx, span), sourceFile })
 }

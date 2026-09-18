@@ -241,7 +241,7 @@ function createStageTask(stage: string, title: string, lifecycle: { emit: (e: st
 			const startedAt = Date.now()
 			// T1：renderer 对象已由 createCompileTarget 校验；此处不再字符串反查
 			const runStage = stage === 'view' || stage === 'style'
-				? (rendererAdapter as { runViewStage?: Function; runStyleStage?: Function })?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
+				? (rendererAdapter as { runViewStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void>; runStyleStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void> })?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
 				: null
 			try {
 				if (runStage) {

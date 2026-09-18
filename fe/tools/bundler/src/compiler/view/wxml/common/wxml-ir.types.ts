@@ -4,10 +4,9 @@
  * 仅 `export type` / `interface`；无运行时导出值。白名单内权威类型源——
  * 不以 vue/index.js 为准（D-TD-16：emit 产空 .js 可接受）。
  */
-import type { Span, Attr, Value } from './document.ts'
+import type { Span, Attr, Value, WxmlNode } from './document.ts'
 
-export interface WxmlDocument {
-	span?: null | Span
+export interface WxmlDocument extends WxmlNode {
 	body: object[]
 	sourceFile?: string
 	_source?: string

@@ -32,7 +32,7 @@ export interface Attr {
 }
 
 export type WxmlNode = {
-	type: string
+	type?: string
 	span?: null | Span
 	loc?: null | Span
 	name?: null | string
@@ -401,7 +401,7 @@ export function isElementLike(node: unknown): node is WxmlNode {
 		return false
 	}
 	const wxmlNode = node as WxmlNode
-	if (wxmlNode.type === 'element' || SPECIAL_NODE_TYPES.includes(wxmlNode.type)) {
+	if (wxmlNode.type === 'element' || (wxmlNode.type !== undefined && SPECIAL_NODE_TYPES.includes(wxmlNode.type))) {
 		return true
 	}
 	return false
@@ -415,7 +415,7 @@ export function isSpecialNode(node: WxmlNode | null | undefined): boolean {
 	if (!node) {
 		return false
 	}
-	if (SPECIAL_NODE_TYPES.includes(node.type)) {
+	if (node.type !== undefined && SPECIAL_NODE_TYPES.includes(node.type)) {
 		return true
 	}
 	return node.type === 'element' && node.name != null && SPECIAL_NODE_NAMES.includes(node.name)

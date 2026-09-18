@@ -906,10 +906,10 @@ function processIncludedFileWxsDependencies(componentTags: unknown, includePath:
 		}
 	}
 }
-function transAsses(document: unknown, imageNodes: unknown[], path: string, graphOwnerPath = path): void {
-	const nodes = Array.isArray(imageNodes) ? imageNodes as unknown[] : queryAll(document as unknown as WxmlNode, 'image')
+function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: string, graphOwnerPath = path): void {
+	const nodes = Array.isArray(imageNodes) ? imageNodes : queryAll(document, 'image')
 	for (const elem of nodes) {
-		const srcRaw = getAttr(elem as unknown as WxmlNode, 'src')
+		const srcRaw = getAttr(elem, 'src')
 		if (srcRaw == null) {
 			continue
 		}
@@ -924,7 +924,7 @@ function transAsses(document: unknown, imageNodes: unknown[], path: string, grap
 					'view',
 				)
 			}
-			setAttr(elem as unknown as WxmlNode, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId() as string))
+			setAttr(elem, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId() as string))
 		}
 	}
 }
@@ -1042,14 +1042,14 @@ function splitWithBraces(str: string): string[] {
 
 	return result
 }
-function parseClassRules(cssRule: string): string | undefined {
+function parseClassRules(cssRule: string): string {
 	let list = splitWithBraces(cssRule)
 	list = list.map((item) => {
 		return parseSafeBraceExp(item)
 	})
 
 	if (list.length === 1) {
-		return list.pop()
+		return list[0]!
 	}
 	return `[${list.join(',')}]`
 }
@@ -1156,9 +1156,9 @@ function parseTemplateDataExp(exp: string): string {
 	}
 	return `{${parseSafeBraceExp(exp)}}`
 }
-function transTagWxs(document: unknown, scriptModule: unknown[], filePath: string, graphOwnerPath = filePath): void {
+function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePath: string, graphOwnerPath = filePath): void {
 	// 同时处理所有视图脚本标签（wxs、dds 及自定义标签），避免同一文件混用多种标签时漏编译。
-	const wxsNodes = queryAll(document as unknown as WxmlNode, getViewScriptTags().join(','))
+	const wxsNodes = queryAll(document, getViewScriptTags().join(','))
 
 	for (const elem of wxsNodes.slice()) {
 		const smName = getAttr(elem, 'module')
@@ -1458,23 +1458,23 @@ function insertWxsToRenderResult(code: string, scriptModule: unknown[], scriptRe
 
 // W1 live bindings — break index ↔ load / vue renderer tools cycles (bodies stay in modules)
 bindVueToolsLive({
-	transformTextInterpolation: transformTextInterpolation as never,
-	isWrappedByBraces: isWrappedByBraces as never,
-	parseBraceExp: parseBraceExp as never,
-	parseSafeBraceExp: parseSafeBraceExp as never,
-	parseForExp: parseForExp as never,
-	getForItemName: getForItemName as never,
-	getForIndexName: getForIndexName as never,
-	parseKeyExpression: parseKeyExpression as never,
-	parseClassRules: parseClassRules as never,
-	parseTemplateDataExp: parseTemplateDataExp as never,
-	escapeQuotes: escapeQuotes as never,
-	insertWxsToRenderResult: insertWxsToRenderResult as never,
+	transformTextInterpolation,
+	isWrappedByBraces,
+	parseBraceExp,
+	parseSafeBraceExp,
+	parseForExp,
+	getForItemName,
+	getForIndexName,
+	parseKeyExpression,
+	parseClassRules,
+	parseTemplateDataExp,
+	escapeQuotes,
+	insertWxsToRenderResult,
 })
 bindTransformOrchestrator({
-	transTagWxs: transTagWxs as never,
-	transAsses: transAsses as never,
-	processIncludedFileWxsDependencies: processIncludedFileWxsDependencies as never,
+	transTagWxs,
+	transAsses,
+	processIncludedFileWxsDependencies,
 })
 
 export {

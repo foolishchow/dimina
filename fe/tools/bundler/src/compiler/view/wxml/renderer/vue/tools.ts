@@ -202,8 +202,8 @@ export function normalizeTemplateDom(document: Parameters<typeof queryAll>[0], r
 /** 过渡薄封装：string → Document normalize → string；正式编译路径不依赖 */
 	export function normalizeTemplateSyntax(html: string, components?: Record<string, unknown> | null | undefined): string {
 	const document = parseWxml(html)
-	normalizeTemplateDom(document as unknown as WxmlNode, components)
-	return serialize(document as unknown as WxmlNode)
+	normalizeTemplateDom(document, components)
+	return serialize(document)
 }
 export function transHtmlTag(html: string, res: string[], components: Record<string, unknown> | null | undefined, componentPlaceholder: Record<string, unknown> | null | undefined) {
 	const attrsList: Array<Record<string, string>> = []

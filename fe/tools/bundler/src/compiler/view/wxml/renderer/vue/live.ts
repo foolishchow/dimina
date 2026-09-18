@@ -13,7 +13,7 @@ export let parseKeyExpression: ((exp: string, itemName?: string, indexName?: str
 export let parseClassRules: ((cssRule: string) => string) | undefined
 export let parseTemplateDataExp: ((exp: string) => string) | undefined
 export let escapeQuotes: ((input: string) => string) | undefined
-export let insertWxsToRenderResult: ((code: string, scriptModule: unknown, scriptRes: Map<string, string>, filename?: string, inputMap?: unknown) => { code: string; map?: unknown }) | undefined
+export let insertWxsToRenderResult: ((code: string, scriptModule: unknown[], scriptRes: Map<string, string>, filename?: string, inputMap?: unknown) => { code: string; map: unknown }) | undefined
 export function bindVueToolsLive(deps: {
 	transformTextInterpolation: NonNullable<typeof transformTextInterpolation>
 	isWrappedByBraces: NonNullable<typeof isWrappedByBraces>

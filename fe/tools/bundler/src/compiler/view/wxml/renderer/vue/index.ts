@@ -97,11 +97,11 @@ function render({ loaded }: { loaded?: LoadedGraph }, ctx: { components?: Record
 	}
 	const { normalizeTemplateDom } = tools
 	if (typeof normalizeTemplateDom === 'function') {
-		normalizeTemplateDom(loaded as unknown as WxmlNode, components)
+		normalizeTemplateDom(loaded, components)
 	}
 
-	const html = serialize(loaded as unknown as WxmlNode)
-	const lineOrigins = buildLineOrigins(loaded as unknown as WxmlNode, {
+	const html = serialize(loaded)
+	const lineOrigins = buildLineOrigins(loaded, {
 		sourceFile: loaded.sourceFile ?? 'index.wxml',
 		sourceTexts: loaded.sourceTexts,
 	})

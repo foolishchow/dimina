@@ -19,18 +19,18 @@ import {
 import { parseWxml } from '../parse.ts'
 import type { WxmlNode } from '../common/document.ts'
 import type { WxmlDocument, LoadedGraph } from '../common/wxml-ir.types.ts'
+import type { TemplateModuleEntry } from './template.ts'
 
 /** Load-tools 注入句柄（transitional — view/index 提供） */
 interface LoadTools {
-	transTagTemplate: Function
-	transTagWxs: Function
-	transAsses: Function
-	resolveTemplateDependencyPath: Function
-	collectIncludedComponentTags: Function
-	processIncludedFileWxsDependencies: Function
-	processIncludeConditionalAttrs: Function
-	checkTemplateCompatibility: Function
-	[key: string]: unknown
+	transTagTemplate: (document: WxmlNode, templateModule: TemplateModuleEntry[], path: string, components: Record<string, unknown> | null | undefined, componentPlaceholder: Record<string, unknown> | null | undefined, sourceInfo: { path: string; content: string } | null, graphOwnerPath?: string) => void
+	transTagWxs: (document: WxmlNode, scriptModule: unknown[], filePath: string, graphOwnerPath?: string) => void
+	transAsses: (document: WxmlNode, imageNodes: WxmlNode[], path: string, graphOwnerPath?: string) => void
+	resolveTemplateDependencyPath: (workPath: string, ownerPath: string, src: string) => string
+	collectIncludedComponentTags: (document: WxmlNode | null | undefined, components: Record<string, unknown> | null | undefined) => Set<unknown>
+	processIncludedFileWxsDependencies: (componentTags: unknown, includePath: string, scriptModule: unknown[], components: Record<string, unknown>, processedPaths?: Set<string>) => void
+	processIncludeConditionalAttrs: (includeNode: WxmlNode | null | undefined, includeContentOrDoc: WxmlNode | string | null | undefined) => WxmlNode[] | string | WxmlNode
+	checkTemplateCompatibility: (content: string, filePath: string, components: Record<string, unknown>) => void
 }
 interface LoadEnv {
 	getContentByPath: (path: string) => string
@@ -53,7 +53,7 @@ interface LoadCtx {
 }
 function requireTools(tools: LoadTools) {
 	const missing = ['transTagTemplate', 'transTagWxs', 'transAsses', 'resolveTemplateDependencyPath', 'collectIncludedComponentTags', 'processIncludedFileWxsDependencies', 'processIncludeConditionalAttrs', 'checkTemplateCompatibility']
-		.filter(name => typeof tools?.[name] !== 'function')
+		.filter(name => typeof (tools as unknown as Record<string, unknown>)?.[name] !== 'function')
 	if (missing.length > 0) {
 		throw new TypeError(`[wxml] load: ctx.tools missing ${missing.join(', ')} (transitional injection)`)
 	}
@@ -115,7 +115,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 		sourceTexts.set(sourceFile, originalContent)
 	}
 
-	const templateModule: unknown[] = []
+	const templateModule: TemplateModuleEntry[] = []
 	const scriptModule: unknown[] = []
 	const WIR_SRC = Symbol.for('db.wxml-bridge.source')
 
@@ -125,7 +125,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 	}
 
 	// —— include 展开 ——
-	const includeNodes = queryAll(document as unknown as WxmlNode, 'include')
+	const includeNodes = queryAll(document, 'include')
 	for (const includeNode of includeNodes) {
 		const src = getAttr(includeNode, 'src') ?? (includeNode as { src?: string }).src
 		if (src) {
@@ -151,10 +151,10 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				sourceTexts.set(includeDiagnosticSource, includeContent)
 				tools.checkTemplateCompatibility(includeContent, includeDiagnosticSource, components)
 				const includeDoc = parseWxml(includeContent, { sourceFile: includeDiagnosticSource })
-				const componentTags = tools.collectIncludedComponentTags(includeDoc as unknown as WxmlNode, components)
+				const componentTags = tools.collectIncludedComponentTags(includeDoc, components)
 
 				tools.transTagTemplate(
-					includeDoc as unknown as WxmlNode,
+					includeDoc,
 					templateModule,
 					includePath,
 					components,
@@ -164,19 +164,19 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				)
 
 				tools.transTagWxs(
-					includeDoc as unknown as WxmlNode,
+					includeDoc,
 					scriptModule,
 					includePath,
 					modulePath,
 				)
 				tools.processIncludedFileWxsDependencies(componentTags, includePath, scriptModule, components, processedPaths)
-				removeMatching(includeDoc as unknown as WxmlNode, 'template-def')
-				removeMatching(includeDoc as unknown as WxmlNode, 'template-ref')
-				removeMatching(includeDoc as unknown as WxmlNode, 'template')
-				removeMatching(includeDoc as unknown as WxmlNode, env.getViewScriptTags().join(','))
+				removeMatching(includeDoc, 'template-def')
+				removeMatching(includeDoc, 'template-ref')
+				removeMatching(includeDoc, 'template')
+				removeMatching(includeDoc, env.getViewScriptTags().join(','))
 
-				const nodes = tools.processIncludeConditionalAttrs(includeNode, includeDoc as unknown as WxmlNode)
-				const processedContent = typeof nodes === 'string' ? nodes : serialize({ body: nodes } as unknown as WxmlNode)
+				const nodes = tools.processIncludeConditionalAttrs(includeNode, includeDoc)
+				const processedContent = typeof nodes === 'string' ? nodes : serialize({ body: nodes } as WxmlNode)
 				const inserted = typeof nodes === 'string'
 					? replaceNode(includeNode, parseWxml(nodes).body as unknown as WxmlNode)
 					: replaceNode(includeNode, nodes as unknown as WxmlNode)
@@ -195,7 +195,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 
 	// —— 主文档 template 收集 ——
 	tools.transTagTemplate(
-		document as unknown as WxmlNode,
+		document,
 		templateModule,
 		sourcePath,
 		components,
@@ -205,10 +205,10 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 	)
 
 	// —— 主文档 wxs 收集 ——
-	tools.transTagWxs(document as unknown as WxmlNode, scriptModule, sourcePath, modulePath)
+	tools.transTagWxs(document, scriptModule, sourcePath, modulePath)
 
 	// —— import 展开：只收集 template/wxs ——
-	const importNodes = queryAll(document as unknown as WxmlNode, 'import')
+	const importNodes = queryAll(document, 'import')
 	for (const importNode of importNodes) {
 		const src = getAttr(importNode, 'src') ?? (importNode as { src?: string }).src
 		if (src) {
@@ -234,9 +234,9 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				sourceTexts.set(importDiagnosticSource, importContent)
 				tools.checkTemplateCompatibility(importContent, importDiagnosticSource, components)
 				const importDoc = parseWxml(importContent, { sourceFile: importDiagnosticSource })
-				const componentTags = tools.collectIncludedComponentTags(importDoc as unknown as WxmlNode, components)
+				const componentTags = tools.collectIncludedComponentTags(importDoc, components)
 				tools.transTagTemplate(
-					importDoc as unknown as WxmlNode,
+					importDoc,
 					templateModule,
 					importPath,
 					components,
@@ -246,7 +246,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 				)
 
 				tools.transTagWxs(
-					importDoc as unknown as WxmlNode,
+					importDoc,
 					scriptModule,
 					importPath,
 					modulePath,
@@ -258,7 +258,7 @@ export function loadTemplates(document: WxmlDocument, ctx: LoadCtx): LoadedGraph
 	}
 
 	// —— 图片 assets ——
-	tools.transAsses(document as unknown as WxmlNode, queryAll(document as unknown as WxmlNode, 'image'), sourcePath, modulePath)
+	tools.transAsses(document, queryAll(document, 'image'), sourcePath, modulePath)
 
 	attachProjection(document, '_source', originalContent)
 	attachProjection(document, '_WIR_SRC', WIR_SRC)
