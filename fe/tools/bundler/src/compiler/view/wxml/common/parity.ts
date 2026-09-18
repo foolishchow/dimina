@@ -5,15 +5,34 @@
  * cheerio 属性 span 为 null 不构成不等价（D-WR-5）。
  */
 import { attrValueRaw } from './document.ts'
+import type { Attr } from './document.ts'
 
 interface CompareDiffs {
 	path: string
 	reason: string
 }
 
-export function compareDocumentsSemantic(a: any, b: any, opts: { ignoreAttrSpan?: boolean } = {}): { ok: boolean, path: string, reason?: string, diffs?: object[] } {
+interface ComparisonNode {
+	type?: string
+	name?: string
+	value?: unknown
+	src?: string
+	module?: string
+	is?: string
+	attrs?: Attr[]
+	directives?: Array<{ kind: string }>
+	children?: ComparisonNode[]
+	body?: ComparisonNode[]
+	span?: { start: number; end: number }
+	loc?: { start: number; end: number }
+	sourceFile?: string
+	[key: string]: unknown
+}
+
+
+export function compareDocumentsSemantic(a: ComparisonNode, b: ComparisonNode, opts: { ignoreAttrSpan?: boolean } = {}): { ok: boolean, path: string, reason?: string, diffs?: object[] } {
 	const ignoreAttrSpan = opts.ignoreAttrSpan !== false
-	const diffs: any[] = []
+	const diffs: CompareDiffs[] = []
 	walkCompare(a?.body || [], b?.body || [], 'body', diffs, ignoreAttrSpan)
 	if (a?.sourceFile !== undefined || b?.sourceFile !== undefined) {
 		if (a?.sourceFile !== b?.sourceFile) {
@@ -26,7 +45,7 @@ export function compareDocumentsSemantic(a: any, b: any, opts: { ignoreAttrSpan?
 	return { ok: false, path: diffs[0].path, reason: diffs[0].reason, diffs }
 }
 
-function walkCompare(left: any[], right: any[], path: any, diffs: any[], ignoreAttrSpan: any): void {
+function walkCompare(left: ComparisonNode[], right: ComparisonNode[], path: string, diffs: CompareDiffs[], ignoreAttrSpan: boolean): void {
 	if (left.length !== right.length) {
 		diffs.push({ path, reason: `length ${left.length} !== ${right.length}` })
 		return
@@ -39,7 +58,7 @@ function walkCompare(left: any[], right: any[], path: any, diffs: any[], ignoreA
 	}
 }
 
-function compareNode(a: any, b: any, path: any, diffs: any[], ignoreAttrSpan: any): void {
+function compareNode(a: ComparisonNode, b: ComparisonNode, path: string, diffs: CompareDiffs[], ignoreAttrSpan: boolean): void {
 	if (!a || !b) {
 		diffs.push({ path, reason: `missing node a=${!!a} b=${!!b}` })
 		return
@@ -102,12 +121,12 @@ function compareNode(a: any, b: any, path: any, diffs: any[], ignoreAttrSpan: an
 	}
 
 	compareSpanOptional(a.span || a.loc, b.span || b.loc, `${path}.span`, diffs)
-	const kidsA = a.children || a.body || []
-	const kidsB = b.children || b.body || []
+	const kidsA = (a.children || a.body || []) as ComparisonNode[]
+	const kidsB = (b.children || b.body || []) as ComparisonNode[]
 	walkCompare(kidsA, kidsB, `${path}.children`, diffs, ignoreAttrSpan)
 }
 
-function semanticName(node: any): string | null {
+function semanticName(node: ComparisonNode): string | null {
 	if (!node) {
 		return null
 	}
@@ -126,7 +145,7 @@ function semanticName(node: any): string | null {
 	return node.name ?? null
 }
 
-function compareAttrs(a: any, b: any, path: any, diffs: any[], ignoreAttrSpan: any): void {
+function compareAttrs(a: Attr[] | undefined, b: Attr[] | undefined, path: string, diffs: CompareDiffs[], ignoreAttrSpan: boolean): void {
 	const mapA = attrMap(a)
 	const mapB = attrMap(b)
 	const keys = new Set([...Object.keys(mapA), ...Object.keys(mapB)])
@@ -155,8 +174,8 @@ function compareAttrs(a: any, b: any, path: any, diffs: any[], ignoreAttrSpan: a
 	}
 }
 
-function attrMap(attrs: any): Record<string, any> {
-	const out: Record<string, any> = {}
+function attrMap(attrs: Attr[] | undefined): Record<string, { raw: string; kind: string; span: { start: number; end: number } | null }> {
+	const out: Record<string, { raw: string; kind: string; span: { start: number; end: number } | null }> = {}
 	for (const attr of attrs || []) {
 		if (!attr?.name) {
 			continue
@@ -170,7 +189,7 @@ function attrMap(attrs: any): Record<string, any> {
 	return out
 }
 
-function compareSpanOptional(a: any, b: any, path: any, diffs: CompareDiffs[]): void {
+function compareSpanOptional(a: { start: number; end: number } | null | undefined, b: { start: number; end: number } | null | undefined, path: string, diffs: CompareDiffs[]): void {
 	if (!a || !b) {
 		return
 	}

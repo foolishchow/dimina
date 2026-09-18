@@ -1136,7 +1136,7 @@ function encodeReservedTemplateContextIdentifier(expression: string): string {
  * 解析 {{}} 表达式的值
  * @param {*} exp
  */
-function parseBraceExp(exp: string): any {
+function parseBraceExp(exp: string): string {
 	// 定义两个数组，分别存放两个分组的匹配结果
 	// 使用exec方法，循环执行正则表达式，直到返回null为止
 	let result
