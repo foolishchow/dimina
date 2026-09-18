@@ -4,7 +4,7 @@
 - Status: `ready`
 - Updated: 2026-09-19
 - Status authority: [Action Status](../STATUS.md)
-- 前置上下文：[`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md)（T0+T1+T2 已归档；E7 为 Non-goal 另立）；[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)；病症地图：[compiler-symptom-inventory.md](../fe-tools-sidecar/compiler-symptom-inventory.md)（S1/S2/S3/S9）
+- 前置上下文：[`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md)（T0+T1+T2 已归档；E7 为 Non-goal 另立）；[`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md)；病症地图：[compiler-symptom-inventory.md](../fe-tools-sidecar/compiler-symptom-inventory.md)（S1/S2/S3/S4/S9）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -79,7 +79,7 @@ TS-2（deferred）:          模板 IR
 ## 闭合条件
 
 - I0–I2 交付；A-\* 全 pass；消融证明结构锚定；
-- 病症清单 S1/S2/S3/S4/S9 标为已收口；
+- 病症清单 S1/S3/S4/S9 标为已收口；S2 语义升格（白名单字段名不变，文档化为权威增量补丁）；
 - 回流 architecture-notes（增量路径亦经形态单源 + `COMPILE_STAGE_ORDER` 单源）；
 - STATUS / 归档一致变更。
 

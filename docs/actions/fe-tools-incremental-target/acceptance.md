@@ -9,7 +9,7 @@ Status: **ready（2026-09-19）** — D-IT-1..4 全拍板
 | A-IT2 | R-IT2 | `COMPILE_STAGE_ORDER` 单源（仅 `compile-target.ts` 定义）；`compile-stages.ts` / `invalidation.ts` import；无双套词汇 | P-IT03 grep | pending |
 | A-IT3 | R-IT3 | 结构锚定：pipeline 无 `filterPagesByEntries` 函数定义；`deriveStagePlan` 返回 `filteredPages`；pipeline `ctx.pages = plan.filteredPages` | P-IT03 + 消融 | pending |
 | A-IT4 | R-IT4 | diff 不含 Listr 剥离 / TS-2 / 真 web / renderer 扩展 / PS3 | P-IT04 | pending |
-| A-IT5 | D-IT-4 | dev-reload 不改代码；专测锁定 `plan.options.stages` / `plan.options.affectedEntries` 字段名读不变 | P-IT05 | pending |
+| A-IT5 | D-IT-4 | dev-reload / preview-adapter 不改代码；专测锁定 `plan.options.stages` / `plan.options.affectedEntries` 字段名读不变 | P-IT05 | pending |
 
 ## Notes
 

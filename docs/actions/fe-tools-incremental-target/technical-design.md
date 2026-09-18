@@ -16,7 +16,7 @@ Status: **冻结 v1（2026-09-19）** — 升 `ready`
 | --- | --- | --- |
 | **D-IT-1** | 契约 = **方案 A** — 仍走 `build(options)`，字段名不变（`stages` / `affectedEntries` / `seedPath` / `prepareConfig` / `prepareNpm`）；成文为 CompileTarget 输入的权威增量补丁 | 行为 0 友好；改动面小；dev-reload 自动兼容 |
 | **D-IT-2** | compile-cache 与 watch 分门（I1 / I2），可分 PR 禁混 | 降低 review 面；I2 不阻塞 I1 |
-| **D-IT-3** | `COMPILE_STAGE_ORDER` 单源在 `compile-target.ts`（已导出 L178）；`compile-stages.ts` / `invalidation.ts` 删本地拷贝改 import | D-CT-1 形态单源不变量；三份拷贝→一份 |
+| **D-IT-3** | `COMPILE_STAGE_ORDER` 单源在 `compile-target.ts`（已导出 L178）；`compile-stages.ts` / `invalidation.ts` 删本地拷贝改 import | D-CT-4 形态单源不变量；三份拷贝→一份 |
 | **D-IT-4** | dev-reload 随 I1 自动对齐 — `dev-reload.ts` L48-49 读 `plan.options.stages` / `plan.options.affectedEntries` 字段名读，方案 A 下字段名不变 | 专测锁定 |
 
 ## 3. S9 改道：filterPagesByEntries 从 pipeline 搬入 derive
@@ -107,3 +107,4 @@ export interface StagePlan {
 | 2026-09-14 | 草案：A/B 契约；待定 ①–④ |
 | 2026-09-19 | **冻结 v1**：D-IT-1..4 全拍板（A / 分门 / compile-target 单源 / dev-reload 自动对齐）；source audit 实锚 S1/S2/S3/S4/S9；filterPagesByEntries 搬入 derive + StagePlan 加 filteredPages |
 | 2026-09-19 | Review R1-R3（7 findings 全 low 全修正）：F1 标题漏 S4；F2 baseline 钉死 `0fad4128`；F3 补正向 grep；F4 补目标签名；F5 标注新依赖边；F6 P-IT02 全量/增量语义明确；F7 P-IT05 测文件改 `dev-reload.spec.js` |
+| 2026-09-19 | Review R4-R6（7 findings 全修正）：F8 前置上下文漏 S4；F9 I1 Step 8 加 `compile-target.spec.js` 须改（L199-219 `filteredPages` break）；F10 P-IT02 测文件列表修正（补 build-stages + compile-target，移除 watch-runner 过度陈述）；F11 D-CT-1→D-CT-4；F12 P-IT05 补 preview-adapter；F13 S2 语义升格非收口；F14 结构断言复用既有测例模式 |

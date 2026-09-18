@@ -19,7 +19,7 @@ Status: **ready（2026-09-19）** — D-IT-1..4 全拍板
 | 5 | watch-plan.ts / watch-runner.ts | 不改（方案 A 字段名不变） | N/A |
 | 6 | session/runner.ts | 不改（白名单字段名不变） | N/A |
 | 7 | dev-reload.ts | 不改（字段名读不变；D-IT-4）；专测锁定 | N/A |
-| 8 | 测例 | `__tests__/` 现有增量测例全绿；新增结构断言测例（derive 返回 filteredPages；pipeline 无 filterPagesByEntries 私算） | — |
+| 8 | `compile-target.spec.js` | **须改**：L199-219 直接用 `filteredPages` 参数调 `deriveStagePlan`——签名改后 break；改为 `affectedEntries: ['pages/index/index']`（`makeBindings` pages 含该路径），让 derive 内部过滤；在既有结构断言（L285-310）中补 `expect(pipelineSrc).not.toContain('filterPagesByEntries')` 反向断言 | 搬迁不改逻辑 ✓ |
 
 **I1 行为 0 基线**：`0fad4128`（授权 `in_progress` 时 HEAD）。4 组 diff=0 + 584/584。
 
