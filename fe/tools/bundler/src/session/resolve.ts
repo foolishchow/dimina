@@ -135,7 +135,7 @@ function resolveTargetPath({ command, cli, api, workPath }: { command: 'build' |
 	}
 
 	if (explicit !== undefined && explicit !== null && explicit !== '') {
-		return path.resolve(workPath, explicit as string)
+		return path.resolve(workPath, String(explicit))
 	}
 
 	// PURE-API fallbacks only (M-G1). dev uses a per-run unique dir — matching

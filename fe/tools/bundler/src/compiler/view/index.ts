@@ -1077,7 +1077,8 @@ function parseClassRules(cssRule: string): string {
 function getForItemName(attrs: Record<string, unknown>): string {
 	for (const key in attrs) {
 		if (getTemplateDirectiveName(key) === 'for-item') {
-			return attrs[key] as string
+			const value = attrs[key]
+			if (typeof value === 'string') return value
 		}
 	}
 	return 'item'
@@ -1090,7 +1091,8 @@ function getForItemName(attrs: Record<string, unknown>): string {
 function getForIndexName(attrs: Record<string, unknown>): string {
 	for (const key in attrs) {
 		if (getTemplateDirectiveName(key) === 'for-index') {
-			return attrs[key] as string
+			const value = attrs[key]
+			if (typeof value === 'string') return value
 		}
 	}
 	return 'index'

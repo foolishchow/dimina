@@ -189,7 +189,7 @@ export function parseBindings(bindings: Record<string, unknown> | null | undefin
 	const parsed: Record<string, unknown> = {}
 
 	for (const [propName, expression] of Object.entries(bindings)) {
-		parsed[propName] = parseExpression(expression as string)
+		parsed[propName] = parseExpression(String(expression))
 	}
 
 	return parsed
