@@ -78,7 +78,7 @@ export function readPageRenderers(workPath: string): Map<string, string | undefi
 	const appConfig = readJsonFile(path.join(workPath, APP_CONFIG_FILE))
 	if (!appConfig) return pageRenderers
 
-	const pagePaths = Array.isArray(appConfig.pages) ? [...(appConfig.pages as string[])] : []
+	const pagePaths = Array.isArray(appConfig.pages) ? [...appConfig.pages] : []
 	for (const subPackage of (appConfig.subPackages as { pages?: string[]; root?: string }[] | undefined) || []) {
 		if (!Array.isArray(subPackage.pages)) continue
 		for (const page of subPackage.pages) {

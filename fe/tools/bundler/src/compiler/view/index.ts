@@ -614,7 +614,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 	}
 	scriptRes.set(module.path, code)
 	if (enableSourcemap) {
-		sourceMapRes.set(module.path, moduleMap as string)
+		sourceMapRes.set(module.path, moduleMap!)
 	}
 
 	return {
@@ -863,7 +863,7 @@ function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, stri
 	compileResCache.set(module.path, cacheData)
 	scriptRes.set(module.path, code)
 	if (enableSourcemap) {
-		sourceMapRes.set(module.path, moduleMap as string)
+		sourceMapRes.set(module.path, moduleMap!)
 	}
 	return mergedInstruction
 }
