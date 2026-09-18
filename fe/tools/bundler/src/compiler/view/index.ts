@@ -367,7 +367,7 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
 	activePaths.add(currentPath)
 
 	// 收集所有 wxs 模块（包括组件的）
-	const allScriptModules = []
+	const allScriptModules: Array<{ path: string; code: string; [key: string]: unknown }> = []
 
 	// 首先编译当前模块（MC1/R-MC3：失败也缓存，同 stage 内同模块不再重复失败编译）
 	// F2：write 无条件（组件+页面都记）；read 端仅 canUseCache=true（页面）触发——组件场景 read 不到，
@@ -396,7 +396,7 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
 		throw error
 	}
 	if (currentInstruction && currentInstruction.scriptModule) {
-		allScriptModules.push(...(currentInstruction.scriptModule as unknown[]))
+		allScriptModules.push(...(currentInstruction.scriptModule as Array<{ path: string; code: string }>))
 	}
 	const childInheritedTemplatePaths = new Set(inheritedTemplatePaths)
 	for (const tm of (currentInstruction?.templateModule as unknown[]) || []) {
@@ -424,8 +424,8 @@ function buildCompileView(module: ViewModule, isComponent = false, scriptRes: Ma
 				// 将组件的 wxs 模块添加到当前模块的 wxs 模块列表中
 				for (const sm of (componentInstruction.scriptModule as unknown[])) {
 					// 避免重复添加相同的模块
-					if (!allScriptModules.find((existing: any) => existing.path === (sm as { path: string }).path)) {
-						allScriptModules.push(sm)
+					if (!allScriptModules.find(existing => existing.path === (sm as { path: string }).path)) {
+						allScriptModules.push(sm as { path: string; code: string })
 					}
 				}
 			}
@@ -464,7 +464,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		return null
 	}
 	const templateModule = instruction.templateModule || []
-	const templateModuleForCompile = templateModule.filter((tm: any) => !(skipTemplatePaths as Set<string>).has(tm.path))
+	const templateModuleForCompile = (templateModule as Array<{ path: string }>).filter(tm => !(skipTemplatePaths as Set<string>).has(tm.path))
 	const compileInstruction = {
 		...instruction,
 		templateModule: templateModuleForCompile,
@@ -777,7 +777,7 @@ function processWxsDependency(wxsFilePath: string, moduleName: string, scriptMod
 	}
 
 	// 检查是否已经处理过这个模块
-	if (scriptModule.find((sm: any) => sm.path === moduleName)) {
+	if ((scriptModule as Array<{ path: string }>).find(sm => sm.path === moduleName)) {
 		return
 	}
 
@@ -901,7 +901,7 @@ function processIncludedFileWxsDependencies(componentTags: unknown, includePath:
 				// 将组件的 wxs 模块添加到当前的 scriptModule 中
 				for (const sm of componentTemplate.instruction.scriptModule) {
 					// 避免重复添加相同的模块
-					if (!scriptModule.find((existing: any) => existing.path === (sm as { path: string }).path)) {
+					if (!(scriptModule as Array<{ path: string }>).find(existing => existing.path === (sm as { path: string }).path)) {
 						scriptModule.push(sm)
 					}
 				}
