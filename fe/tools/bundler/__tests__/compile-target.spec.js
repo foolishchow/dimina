@@ -196,18 +196,14 @@ describe('deriveStagePlan (T2)', () => {
 		expect(plan.sourcemapTargetPath).toBe(path.resolve('/cwd', '/out', ''))
 	})
 
-	it('uses filteredPages for style synthesis when provided', () => {
-		const filteredPages = {
-			mainPages: [{ path: 'pages/only/only', id: 'only' }],
-			subPages: {},
-		}
+	it('uses affectedEntries for style synthesis when provided', () => {
 		const plan = deriveStagePlan(makeTarget(), makeBindings(), {
 			cwd: '/cwd',
-			filteredPages,
+			affectedEntries: ['pages/index/index'],
 		})
 		expect(plan.stageSpecs.style.workerOptions.pages.mainPages).toEqual([
 			{ path: 'app', id: 'scope-app' },
-			{ path: 'pages/only/only', id: 'only' },
+			{ path: 'pages/index/index', id: 'p1' },
 		])
 		// logic still uses full bindings.pages
 		expect(plan.stageSpecs.logic.workerOptions.pages.mainPages[0].path).toBe('pages/index/index')
@@ -307,5 +303,10 @@ describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
 		// 阶段组装侧不再直接 getAppId / getAppStyleScopeId
 		expect(pipelineSrc).not.toContain('getAppId')
 		expect(pipelineSrc).not.toContain('getAppStyleScopeId')
+	})
+
+	it('moves filterPagesByEntries from pipeline to compile-target (S9 改道)', () => {
+		expect(pipelineSrc).not.toContain('filterPagesByEntries')
+		expect(targetSrc).toContain('filterPagesByEntries')
 	})
 })

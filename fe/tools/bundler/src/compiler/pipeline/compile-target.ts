@@ -14,7 +14,7 @@
  *
  * 「形态条件单源于 compile-target」：新增形态轴须经描述 + 派生，不得在闭包内散算。
  */
-import type { CompileTarget, LoadBindings, PagesInfo, StageSpec } from './compile-target.types.ts'
+import type { CompileTarget, LoadBindings, PagesInfo, StageSpec, SubPackage } from './compile-target.types.ts'
 
 import path from 'node:path'
 import { resolveCompileConfig } from '../../shared/compile-config.ts'
@@ -92,23 +92,49 @@ function assertLoadBindings(bindings: unknown): asserts bindings is LoadBindings
 	}
 }
 
+
+/**
+ * 过滤受影响页面（S9 改道：从 build-pipeline.ts 搬入 derive）。
+ * affectedEntries 为 undefined 时返回原 pages（全量路径）。
+ */
+function filterPagesByEntries(pages: PagesInfo, affectedEntries: string[] | undefined): PagesInfo {
+	if (!Array.isArray(affectedEntries)) {
+		return pages
+	}
+	const selected = new Set(affectedEntries)
+	return {
+		...pages,
+		mainPages: pages.mainPages.filter(page => selected.has(page.path)),
+		subPages: Object.fromEntries(
+			(Object.entries(pages.subPages) as [string, SubPackage][])
+				.map(([root, subPackage]) => [root, {
+					...subPackage,
+					info: subPackage.info.filter(page => selected.has(page.path)),
+				}] as [string, SubPackage])
+				.filter(([, subPackage]) => subPackage.info.length > 0),
+		),
+	}
+}
+
 /**
  * 纯函数：由静态 CompileTarget + 动态 bindings 派生阶段计划（返回新对象，无突变）。
  *
- * `filteredPages` 为组装输入（affectedEntries 过滤结果），非 env；缺省回落 bindings.pages。
+ * `affectedEntries` 为增量契约输入；derive 内部经 `filterPagesByEntries` 产出 filteredPages。
  */
-export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBindings, { cwd, filteredPages }: { cwd?: string, filteredPages?: PagesInfo } = {}): {
+export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBindings, { cwd, affectedEntries }: { cwd?: string, affectedEntries?: string[] } = {}): {
 	stages: string[]
 	stageSpecs: Record<string, StageSpec>
 	sourcemapTargetPath: string
 	stylePages: PagesInfo
+	filteredPages: PagesInfo
 } {
 	assertLoadBindings(bindings)
 	if (typeof cwd !== 'string' || !cwd) {
 		throw new TypeError('deriveStagePlan: cwd must be a non-empty string')
 	}
 
-	const pagesForStyle = filteredPages ?? bindings.pages
+	const filteredPages = filterPagesByEntries(bindings.pages, affectedEntries)
+	const pagesForStyle = filteredPages
 	const stages = COMPILE_STAGE_ORDER.filter((stage) => {
 		if (!compileTarget.requestedStages.has(stage)) {
 			return false
@@ -172,6 +198,7 @@ export function deriveStagePlan(compileTarget: CompileTarget, bindings: LoadBind
 		stageSpecs,
 		sourcemapTargetPath,
 		stylePages,
+		filteredPages,
 	}
 }
 

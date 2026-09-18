@@ -45,7 +45,9 @@ export function entryNeedsRebuild(entryId: string, affectedEntries: Set<string>)
  * @param {string[]} allStages 可用 stages 列表（默认 ['view','logic','style']）
  * @returns {Set<string>} 需要跑的 stage 集合（空 = 全部需要，表示全量）
  */
-export function computeStagesForFiles(graph: { getFileKinds: (f: string) => string[] }, changedFiles: string[], allStages: string[] = ['view', 'logic', 'style']): Set<string> {
+import { COMPILE_STAGE_ORDER } from '../compiler/pipeline/compile-target.ts'
+
+export function computeStagesForFiles(graph: { getFileKinds: (f: string) => string[] }, changedFiles: string[], allStages: string[] = COMPILE_STAGE_ORDER): Set<string> {
 	const stages = new Set<string>()
 	for (const filePath of changedFiles) {
 		const kinds = graph.getFileKinds(filePath)

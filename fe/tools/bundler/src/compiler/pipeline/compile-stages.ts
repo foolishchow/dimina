@@ -1,4 +1,5 @@
-const COMPILE_STAGE_ORDER = ['view', 'logic', 'style']
+import { COMPILE_STAGE_ORDER } from './compile-target.ts'
+
 const COMPILE_STAGE_SET = new Set(COMPILE_STAGE_ORDER)
 
 function getCompileStagesForFiles(dependencyGraph: { getFileKinds: (f: string) => string[]; getAffectedEntries: (f: string) => string[] }, filePaths: string[]): { stages: string[]; unknownKinds: string[] } {

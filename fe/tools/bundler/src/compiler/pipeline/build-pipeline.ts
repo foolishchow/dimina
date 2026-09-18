@@ -165,13 +165,13 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 							// T2：阶段组装侧唯一读取 + 纯派生；闭包内不再散算形态条件
 							loadBindings = readLoadBindings() as { pages: unknown; appId: string } | null
 							(ctx as { allPages: unknown }).allPages = (loadBindings as { pages?: unknown } | null)?.pages as unknown
-							(ctx as { pages: unknown }).pages = filterPagesByEntries((loadBindings as { pages: { mainPages: { path: string }[]; subPages: Record<string, { info: { path: string }[] }> } | null })?.pages as { mainPages: { path: string }[]; subPages: Record<string, { info: { path: string }[] }> }, affectedEntries);
 							(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings = new Set<string>()
 
 							const plan = deriveStagePlan(compileTarget, loadBindings as LoadBindings, {
 								cwd: process.cwd(),
-								filteredPages: ctx.pages as PagesInfo,
+								affectedEntries,
 							})
+							;(ctx as { pages: unknown }).pages = (plan as { filteredPages: PagesInfo }).filteredPages
 							const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
 								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]!
 								return createStageTask(
@@ -270,23 +270,6 @@ function createStageTask(stage: string, title: string, lifecycle: { emit: (e: st
 				throw error
 			}
 		},
-	}
-}
-
-function filterPagesByEntries(pages: { mainPages: { path: string }[]; subPages: Record<string, { info: { path: string }[] }> }, affectedEntries: string[] | undefined): { mainPages: unknown[]; subPages: Record<string, unknown> } {
-	if (!Array.isArray(affectedEntries)) {
-		return pages as { mainPages: unknown[]; subPages: Record<string, unknown> }
-	}
-	const selected = new Set(affectedEntries)
-	return {
-		mainPages: pages.mainPages.filter(page => selected.has(page.path)),
-		subPages: Object.fromEntries(
-			Object.entries(pages.subPages)
-				.map(([root, subPackage]) => [root, {
-					...subPackage,
-					info: ((subPackage as { info: { path: string }[] }).info.filter(page => selected.has(page.path))),
-				}]).filter(([, subPackage]) => ((subPackage as { info: unknown[] }).info.length > 0)),
-		),
 	}
 }
 

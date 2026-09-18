@@ -55,4 +55,5 @@ export interface StagePlan {
 	stageSpecs: Record<string, StageSpec>
 	sourcemapTargetPath: string
 	stylePages: PagesInfo
+	filteredPages: PagesInfo
 }
