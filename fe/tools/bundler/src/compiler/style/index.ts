@@ -5,18 +5,20 @@ import { compileStyle } from '@vue/compiler-sfc'
 import autoprefixer from 'autoprefixer'
 import { transform } from 'esbuild'
 import postcss from 'postcss'
+import type { Attribute as SelectorAttribute } from 'postcss-selector-parser'
 import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.ts'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath, resetStoreInfo } from '../core/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
+import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
-const compileRes = new Map()
+const compileRes = new Map<string, { code: string; map: string | null }>()
 const builtInTagNames = new Set(tagWhiteList)
 const autoprefixerPlugin = autoprefixer({ overrideBrowserslist: ['cover 99.5%'] })
-let cssnanoLoader
-let lessLoader
-let sassLoader
+let cssnanoLoader: Promise<typeof import('cssnano')['default']> | undefined
+let lessLoader: Promise<any> | undefined
+let sassLoader: Promise<typeof import('sass')> | undefined
 
 function loadCssnano() {
 	cssnanoLoader ||= import('cssnano').then(module => module.default)
@@ -24,8 +26,7 @@ function loadCssnano() {
 }
 
 function loadLess() {
-	// @ts-expect-error P-TM05: type narrowing needed
-	lessLoader ||= import('less').then(module => module.default)
+	lessLoader ||= import('less' as any).then((module: any) => module.default)
 	return lessLoader
 }
 
@@ -38,8 +39,25 @@ function loadSass() {
 /**
  *  编译样式文件
  */
-// @ts-expect-error P-TM05: type narrowing needed
-async function compileSS(pages, root, progress, options = {}) {
+interface StyleModule {
+	path: string
+	absolutePath?: string
+	id?: string
+	ownerPath?: string
+	usingComponents?: Record<string, string>
+}
+interface StyleOptions {
+	sourcemap?: boolean
+	minify?: boolean
+}
+interface StyleCompileResult {
+	code: string
+	map: string | null
+}
+interface Progress {
+	completedTasks: number
+}
+async function compileSS(pages: StyleModule[], root: string | null, progress: Progress, options: StyleOptions = {}): Promise<void> {
 	// page 样式
 	for (const page of pages) {
 		const result = await buildCompileCss(page, new Set(), options)
@@ -53,16 +71,12 @@ async function compileSS(pages, root, progress, options = {}) {
 		if (!fs.existsSync(outputDir)) {
 			fs.mkdirSync(outputDir, { recursive: true })
 		}
-
-		// @ts-expect-error P-TM05: type narrowing needed
 		if (options.sourcemap) {
 			const mapFileName = `${filename}.css.map`
-			// @ts-expect-error P-TM05: type narrowing needed
-			const map = JSON.parse(result.map)
+			const map = JSON.parse(result.map as string)
 			map.file = `${filename}.css`
 			code += `\n/*# sourceMappingURL=${mapFileName} */\n`
-			// @ts-expect-error P-TM05: type narrowing needed
-			const { sink } = abilityContext.getStore()
+			const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
 			sink.write({
 				entryId: page.path,
 				kind: 'style',
@@ -71,8 +85,7 @@ async function compileSS(pages, root, progress, options = {}) {
 			})
 		}
 		else {
-			// @ts-expect-error P-TM05: type narrowing needed
-			const { sink } = abilityContext.getStore()
+			const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
 			sink.write({
 				entryId: page.path,
 				kind: 'style',
@@ -83,15 +96,13 @@ async function compileSS(pages, root, progress, options = {}) {
 		progress.completedTasks++
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-async function buildCompileCss(module, compiledPaths = new Set(), options = {}) {
-	const chunks = []
+async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> = new Set(), options: StyleOptions = {}): Promise<StyleCompileResult> {
+	const chunks: StyleCompileResult[] = []
 	const pendingModules = [module]
 
 	while (pendingModules.length > 0) {
-		const currentModule = pendingModules.pop()
-		const currentPath = currentModule.path || currentModule.absolutePath
+		const currentModule = pendingModules.pop()!
+		const currentPath = currentModule.path || currentModule.absolutePath || ''
 
 		// A component stylesheet only needs to be emitted once per page traversal.
 		// Mark it before visiting children so self and mutual references close
@@ -108,61 +119,50 @@ async function buildCompileCss(module, compiledPaths = new Set(), options = {}) 
 		// Preserve the original depth-first, declaration-order traversal while
 		// using an explicit stack instead of the JavaScript call stack.
 		const graphDependencies = getDependencyGraph().getDirectDependencies(currentPath, 'component')
-		const componentPaths = graphDependencies.length > 0
+		const componentPaths: string[] = graphDependencies.length > 0
 			? graphDependencies
 			: Object.values(currentModule.usingComponents || {})
 		for (let index = componentPaths.length - 1; index >= 0; index--) {
-			// @ts-expect-error P-TM05: type narrowing needed
-			const componentModule = getComponent(componentPaths[index])
+			const componentModule = getComponent(componentPaths[index]) as StyleModule | null
 			if (componentModule) {
-				pendingModules.push(componentModule)
+				pendingModules.push(componentModule as StyleModule)
 			}
 		}
 	}
-
-	// @ts-expect-error P-TM05: type narrowing needed
 	if (options.sourcemap) {
 		const { code, sourcemap: map } = concatSourcemap(chunks)
 		return { code, map }
 	}
 	return { code: chunks.map(chunk => chunk.code).join(''), map: null }
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function createExternalClassPlugin(moduleId) {
+function createExternalClassPlugin(moduleId: string): { postcssPlugin: string; Rule: (rule: postcss.Rule) => void } {
 	const scopeAttribute = `data-v-${moduleId}`
 	const externalScopeAttribute = 'data-dd-external-class-scope'
 	const processedRules = new WeakSet()
 	const selectorProcessor = selectorParser((selectors) => {
 		for (const selector of [...selectors.nodes]) {
 			const boostedSelector = selector.clone()
-			// @ts-expect-error P-TM05: type narrowing needed
-			const scopeNodes = []
+			const scopeNodes: SelectorAttribute[] = []
 			boostedSelector.walkAttributes((attribute) => {
 				if (attribute.attribute === scopeAttribute) {
 					scopeNodes.push(attribute)
 				}
 			})
-
-			// @ts-expect-error P-TM05: type narrowing needed
 			const targetScope = scopeNodes.at(-1)
 			if (!targetScope) {
 				continue
 			}
-
-			// @ts-expect-error P-TM05: type narrowing needed
-			targetScope.parent.insertAfter(targetScope, selectorParser.attribute({
+			targetScope.parent!.insertAfter(targetScope, selectorParser.attribute({
 				attribute: externalScopeAttribute,
 				operator: '~=',
 				quoteMark: '"',
 				value: scopeAttribute,
-			}))
+			} as never) as never)
 			selectors.append(boostedSelector)
 		}
 	})
 	return {
 		postcssPlugin: 'dimina-external-class',
-		// @ts-expect-error P-TM05: type narrowing needed
 		Rule(rule) {
 			if (processedRules.has(rule) || !moduleId || !rule.selector.includes(`[${scopeAttribute}]`)) {
 				return
@@ -173,15 +173,12 @@ function createExternalClassPlugin(moduleId) {
 				rule.selector = selectorProcessor.processSync(rule.selector)
 			}
 			catch (error) {
-				// @ts-expect-error P-TM05: type narrowing needed
-				throw rule.error(error.message, { plugin: 'dimina-external-class' })
+				throw rule.error((error as Error).message, { plugin: 'dimina-external-class' })
 			}
 		},
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function boostExternalClassSelectors(cssCode, moduleId) {
+function boostExternalClassSelectors(cssCode: string, moduleId: string): string {
 	if (!moduleId || !cssCode) {
 		return cssCode
 	}
@@ -189,46 +186,36 @@ function boostExternalClassSelectors(cssCode, moduleId) {
 	return postcss([createExternalClassPlugin(moduleId)])
 		.process(cssCode, { from: undefined }).css
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function getStyleSourcePath(absolutePath) {
+function getStyleSourcePath(absolutePath: string): string {
 	const workPath = getWorkPath()
 	if (absolutePath === workPath || absolutePath.startsWith(`${workPath}${path.sep}`)) {
 		return `/${path.relative(workPath, absolutePath).split(path.sep).join('/')}`
 	}
 	return absolutePath.split(path.sep).join('/')
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function createStyleCompileError(stage, absolutePath, cause) {
-	if (cause?.name === 'StyleCompileError') {
-		return cause
+function createStyleCompileError(stage: string, absolutePath: string, cause: unknown): Error & { file?: string; line?: number; column?: number; stage?: string } {
+	if ((cause as { name?: string })?.name === 'StyleCompileError') {
+		return cause as Error & { file?: string; line?: number; column?: number; stage?: string }
 	}
 
-	const line = cause?.line ?? (Number.isInteger(cause?.span?.start?.line) ? cause.span.start.line + 1 : undefined)
-	const column = cause?.column ?? (Number.isInteger(cause?.span?.start?.column) ? cause.span.start.column + 1 : undefined)
+	const causeObj = cause as { line?: number; span?: { start?: { line?: number; column?: number } }; column?: number; reason?: string; sassMessage?: string; message?: string }
+	const line = causeObj.line ?? (Number.isInteger(causeObj.span?.start?.line) ? (causeObj.span!.start!.line! + 1) : undefined)
+	const column = causeObj.column ?? (Number.isInteger(causeObj.span?.start?.column) ? (causeObj.span!.start!.column! + 1) : undefined)
 	const file = getStyleSourcePath(absolutePath)
 	const location = line == null
 		? file
 		: `${file}:${line}${column == null ? '' : `:${column}`}`
-	const reason = cause?.reason || cause?.sassMessage || cause?.message || String(cause)
-	const error = new Error(`[style:${stage}] ${location} ${reason}`, { cause })
+	const reason = causeObj.reason || causeObj.sassMessage || causeObj.message || String(cause)
+	const error = new Error(`[style:${stage}] ${location} ${reason}`, { cause }) as Error & { file?: string; line?: number; column?: number; stage?: string }
 	error.name = 'StyleCompileError'
-	// @ts-expect-error P-TM05: type narrowing needed
 	error.file = file
-	// @ts-expect-error P-TM05: type narrowing needed
 	error.line = line
-	// @ts-expect-error P-TM05: type narrowing needed
 	error.column = column
-	// @ts-expect-error P-TM05: type narrowing needed
 	error.stage = stage
 	return error
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function normalizePreprocessorMap(inputMap, absolutePath, inputCSS) {
-	const map = typeof inputMap === 'string' ? JSON.parse(inputMap) : structuredClone(inputMap)
-	// @ts-expect-error P-TM05: type narrowing needed
+function normalizePreprocessorMap(inputMap: string | Record<string, unknown>, absolutePath: string, inputCSS: string): Record<string, unknown> {
+	const map = (typeof inputMap === 'string' ? JSON.parse(inputMap) : structuredClone(inputMap)) as Record<string, unknown> & { sources: string[]; sourcesContent?: unknown[] }
 	const sourcePaths = map.sources.map((source) => {
 		let resolvedPath = source
 		if (source.startsWith('file:')) {
@@ -241,7 +228,6 @@ function normalizePreprocessorMap(inputMap, absolutePath, inputCSS) {
 	})
 
 	map.sources = sourcePaths.map(getStyleSourcePath)
-	// @ts-expect-error P-TM05: type narrowing needed
 	map.sourcesContent = map.sources.map((_, index) => {
 		if (sourcePaths[index] === absolutePath) {
 			return inputCSS
@@ -250,9 +236,7 @@ function normalizePreprocessorMap(inputMap, absolutePath, inputCSS) {
 	})
 	return map
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function getPostcssMapOptions(sourcemap, prev) {
+function getPostcssMapOptions(sourcemap: boolean, prev: unknown): boolean | Record<string, unknown> {
 	if (!sourcemap) {
 		return false
 	}
@@ -263,9 +247,7 @@ function getPostcssMapOptions(sourcemap, prev) {
 		prev,
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function createStyleTransformPlugin(module, absolutePath, importResults, options) {
+function createStyleTransformPlugin(module: StyleModule, absolutePath: string, importResults: Promise<StyleCompileResult>[], options: StyleOptions): { postcssPlugin: string; AtRule: (node: postcss.AtRule) => void; Rule: (rule: postcss.Rule) => void; Comment: (comment: postcss.Comment) => void; Declaration: (declaration: postcss.Declaration) => void } {
 	const processedRules = new WeakSet()
 	const selectorProcessor = selectorParser((selectors) => {
 		selectors.walkTags((tag) => {
@@ -276,7 +258,6 @@ function createStyleTransformPlugin(module, absolutePath, importResults, options
 	})
 	return {
 		postcssPlugin: 'dimina-style-transform',
-		// @ts-expect-error P-TM05: type narrowing needed
 		AtRule(node) {
 			if (node.name !== 'import') {
 				return
@@ -286,12 +267,12 @@ function createStyleTransformPlugin(module, absolutePath, importResults, options
 			const importFullPath = resolveStyleImportPath(absolutePath, importPath)
 			node.remove()
 			importResults.push(buildCompileCss({
+				path: '',
 				absolutePath: importFullPath,
 				id: module.id,
 				ownerPath: module.ownerPath || module.path,
 			}, new Set(), options))
 		},
-		// @ts-expect-error P-TM05: type narrowing needed
 		Rule(rule) {
 			if (processedRules.has(rule)) {
 				return
@@ -303,22 +284,19 @@ function createStyleTransformPlugin(module, absolutePath, importResults, options
 			}
 
 			if (rule.selector.includes(':host')) {
-				rule.selector = processHostSelector(rule.selector, module.id)
+				rule.selector = processHostSelector(rule.selector, module.id as string)
 			}
 
 			try {
 				rule.selector = selectorProcessor.processSync(rule.selector)
 			}
 			catch (error) {
-				// @ts-expect-error P-TM05: type narrowing needed
-				throw rule.error(error.message, { plugin: 'dimina-style-transform' })
+				throw rule.error((error as Error).message, { plugin: 'dimina-style-transform' })
 			}
 		},
-		// @ts-expect-error P-TM05: type narrowing needed
 		Comment(comment) {
 			comment.remove()
 		},
-		// @ts-expect-error P-TM05: type narrowing needed
 		Declaration(declaration) {
 			declaration.value = normalizeCssUrlValue(
 				declaration.value,
@@ -329,9 +307,7 @@ function createStyleTransformPlugin(module, absolutePath, importResults, options
 		},
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-async function enhanceCSS(module, options = {}) {
+async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Promise<StyleCompileResult> {
 	const absolutePath = module.absolutePath ? module.absolutePath : getAbsolutePath(module.path)
 	if (!absolutePath) {
 		// 样式文件不存在
@@ -341,7 +317,6 @@ async function enhanceCSS(module, options = {}) {
 	if (graphOwnerPath) {
 		getDependencyGraph().addFile(graphOwnerPath, absolutePath, 'style')
 	}
-	// @ts-expect-error P-TM05: type narrowing needed
 	const cacheKey = `${absolutePath}::${module.id || ''}::${options.sourcemap ? 'map' : 'plain'}::minify:${options.minify !== false}`
 
 	const inputCSS = getContentByPath(absolutePath)
@@ -350,13 +325,12 @@ async function enhanceCSS(module, options = {}) {
 	}
 
 	if (compileRes.has(cacheKey)) {
-		return compileRes.get(cacheKey)
+		return compileRes.get(cacheKey) as StyleCompileResult
 	}
 
 	// 预处理器编译
 	let processedCSS = normalizeRootStyleImports(inputCSS)
-	// @ts-expect-error P-TM05: type narrowing needed
-	let processedMap = options.sourcemap
+	let processedMap: Record<string, unknown> | string | null = options.sourcemap
 		? createLineSourcemap(processedCSS, getStyleSourcePath(absolutePath), inputCSS)
 		: null
 	const ext = path.extname(absolutePath).toLowerCase()
@@ -367,7 +341,6 @@ async function enhanceCSS(module, options = {}) {
 			const result = await less.render(processedCSS, {
 				filename: absolutePath,
 				paths: [path.dirname(absolutePath), getWorkPath()],
-				// @ts-expect-error P-TM05: type narrowing needed
 				sourceMap: options.sourcemap
 					? {
 						outputSourceFiles: true,
@@ -376,9 +349,8 @@ async function enhanceCSS(module, options = {}) {
 					: undefined,
 			})
 			processedCSS = result.css
-			// @ts-expect-error P-TM05: type narrowing needed
 			if (options.sourcemap) {
-				processedMap = normalizePreprocessorMap(result.map, absolutePath, inputCSS)
+				processedMap = normalizePreprocessorMap(result.map as string, absolutePath, inputCSS)
 			}
 		}
 		else if (ext === '.scss' || ext === '.sass') {
@@ -386,17 +358,13 @@ async function enhanceCSS(module, options = {}) {
 			const result = sass.compileString(processedCSS, {
 				loadPaths: [path.dirname(absolutePath), getWorkPath()],
 				syntax: ext === '.sass' ? 'indented' : 'scss',
-				// @ts-expect-error P-TM05: type narrowing needed
 				url: options.sourcemap ? pathToFileURL(absolutePath) : undefined,
-				// @ts-expect-error P-TM05: type narrowing needed
 				sourceMap: !!options.sourcemap,
-				// @ts-expect-error P-TM05: type narrowing needed
 				sourceMapIncludeSources: !!options.sourcemap,
 			})
 			processedCSS = result.css
-			// @ts-expect-error P-TM05: type narrowing needed
 			if (options.sourcemap) {
-				processedMap = normalizePreprocessorMap(result.sourceMap, absolutePath, inputCSS)
+				processedMap = normalizePreprocessorMap(result.sourceMap as unknown as string, absolutePath, inputCSS)
 			}
 		}
 	}
@@ -405,15 +373,11 @@ async function enhanceCSS(module, options = {}) {
 	}
 
 	const fixedCSS = ensureImportSemicolons(processedCSS)
-	// @ts-expect-error P-TM05: type narrowing needed
 	if (options.sourcemap && fixedCSS !== processedCSS) {
 		const normalizeMap = createLineSourcemap(fixedCSS, absolutePath, processedCSS)
-		// @ts-expect-error P-TM05: type narrowing needed
-		processedMap = remapSourcemap(normalizeMap, processedMap)
+		processedMap = remapSourcemap(normalizeMap, processedMap) as Record<string, unknown>
 	}
-
-	// @ts-expect-error P-TM05: type narrowing needed
-	const importResults = []
+	const importResults: Promise<StyleCompileResult>[] = []
 	// 把基础转换交给 compileStyle 的同一条 PostCSS 管线，避免作用域处理前重复解析 CSS。
 	const moduleId = module.id
 	let scopedResult
@@ -421,12 +385,10 @@ async function enhanceCSS(module, options = {}) {
 		scopedResult = compileStyle({
 			source: fixedCSS,
 			filename: getStyleSourcePath(absolutePath),
-			id: moduleId,
+			id: moduleId as string,
 			scoped: !!moduleId,
-			// @ts-expect-error P-TM05: type narrowing needed
-			inMap: options.sourcemap ? processedMap : undefined,
+			inMap: options.sourcemap ? (processedMap as never) : undefined,
 			postcssPlugins: [
-				// @ts-expect-error P-TM05: type narrowing needed
 				createStyleTransformPlugin(module, absolutePath, importResults, options),
 			],
 		})
@@ -435,8 +397,7 @@ async function enhanceCSS(module, options = {}) {
 		}
 	}
 	catch (error) {
-		// @ts-expect-error P-TM05: type narrowing needed
-		const stage = error?.plugin === 'vue-sfc-vars' || error?.plugin === 'vue-sfc-scoped'
+		const stage = (error as { plugin?: string })?.plugin === 'vue-sfc-vars' || (error as { plugin?: string })?.plugin === 'vue-sfc-scoped'
 			? 'scope'
 			: 'transform'
 		throw createStyleCompileError(stage, absolutePath, error)
@@ -445,18 +406,16 @@ async function enhanceCSS(module, options = {}) {
 	// external-class 与 autoprefixer/cssnano 共享一次 PostCSS 解析。
 	let finalResult
 	try {
-		const postcssPlugins = [createExternalClassPlugin(moduleId), autoprefixerPlugin]
-		// @ts-expect-error P-TM05: type narrowing needed
+		const postcssPlugins: postcss.Plugin[] = [createExternalClassPlugin(moduleId as string), autoprefixerPlugin] as never
 		const shouldMinify = options.minify !== false
-		// @ts-expect-error P-TM05: type narrowing needed
 		if (options.sourcemap) {
 			if (shouldMinify) {
 				const cssnano = await loadCssnano()
-				postcssPlugins.push(cssnano())
+				postcssPlugins.push(cssnano() as never)
 			}
 			finalResult = await postcss(postcssPlugins).process(scopedResult.code, {
 				from: undefined,
-				map: getPostcssMapOptions(true, scopedResult.map),
+				map: getPostcssMapOptions(true, scopedResult.map as unknown as Record<string, unknown>),
 			})
 		}
 		else {
@@ -474,21 +433,17 @@ async function enhanceCSS(module, options = {}) {
 		}
 	}
 	catch (error) {
-		// @ts-expect-error P-TM05: type narrowing needed
-		const stage = error?.plugin === 'dimina-external-class' ? 'external-class' : 'postprocess'
+		const stage = (error as { plugin?: string })?.plugin === 'dimina-external-class' ? 'external-class' : 'postprocess'
 		throw createStyleCompileError(stage, absolutePath, error)
 	}
 
 	// 处理导入的样式
-	// @ts-expect-error P-TM05: type narrowing needed
 	const importedChunks = (await Promise.all(importResults)).filter(result => result.code)
 	let result
-	// @ts-expect-error P-TM05: type narrowing needed
 	if (options.sourcemap) {
 		const { code, sourcemap: map } = concatSourcemap([
 			...importedChunks,
-			// @ts-expect-error P-TM05: type narrowing needed
-			{ code: finalResult.css, map: finalResult.map.toString() },
+			{ code: finalResult.css, map: (finalResult.map as { toString: () => string }).toString() },
 		])
 		result = { code, map }
 	}
@@ -503,10 +458,7 @@ async function enhanceCSS(module, options = {}) {
 
 	return result
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function normalizeCssUrlValue(value, absolutePath, graphOwnerPath) {
-	// @ts-expect-error P-TM05: type narrowing needed
+function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPath: string | undefined): string {
 	return value.replace(/url\(([^)]+)\)/g, (fullMatch, rawUrl) => {
 		const cleanedUrl = rawUrl.trim().replace(/^['"]|['"]$/g, '')
 
@@ -529,14 +481,11 @@ function normalizeCssUrlValue(value, absolutePath, graphOwnerPath) {
 				'style',
 			)
 		}
-		// @ts-expect-error P-TM05: type narrowing needed
-		const realSrc = collectAssets(getWorkPath(), absolutePath, cleanedUrl, getTargetPath(), getAppId())
+		const realSrc = collectAssets(getWorkPath(), absolutePath, cleanedUrl, getTargetPath(), getAppId() as string)
 		return `url(${realSrc})`
 	})
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function getAbsolutePath(modulePath) {
+function getAbsolutePath(modulePath: string): string | undefined {
 	const workPath = getWorkPath()
 	const src = modulePath.startsWith('/') ? modulePath : `/${modulePath}`
 
@@ -552,18 +501,13 @@ function getAbsolutePath(modulePath) {
 		}
 	}
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function resolveStyleImportPath(absolutePath, importPath, workPath = getWorkPath()) {
+function resolveStyleImportPath(absolutePath: string, importPath: string, workPath: string = getWorkPath()): string {
 	if (importPath.startsWith('/')) {
 		return path.join(workPath, importPath)
 	}
 	return path.resolve(path.dirname(absolutePath), importPath)
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function normalizeRootStyleImports(source, workPath = getWorkPath()) {
-	// @ts-expect-error P-TM05: type narrowing needed
+function normalizeRootStyleImports(source: string, workPath: string = getWorkPath()): string {
 	return source.replace(/(@import\s+(?:\(.*?\)\s*)?(?:url\()?['"])(\/[^'")]+)(['"]\)?)/g, (_, prefix, importPath, suffix) => {
 		return `${prefix}${path.join(workPath, importPath)}${suffix}`
 	})
@@ -574,10 +518,8 @@ function normalizeRootStyleImports(source, workPath = getWorkPath()) {
  * @param {string} css - The CSS content to process
  * @returns {string} - The processed CSS with semicolons added to @import statements as needed
  */
-// @ts-expect-error P-TM05: type narrowing needed
-function ensureImportSemicolons(css) {
+function ensureImportSemicolons(css: string): string {
 	// 查找所有未以分号结尾的@import语句，并在它们后面添加分号
-	// @ts-expect-error P-TM05: type narrowing needed
 	return css.replace(/@import[^;\n]*$/gm, (match) => {
 		// Check if the match already ends with a semicolon
 		return match.endsWith(';') ? match : `${match};`
@@ -590,8 +532,7 @@ function ensureImportSemicolons(css) {
  * @param {string} moduleId - 组件的模块ID
  * @returns {string} - 转换后的选择器
  */
-// @ts-expect-error P-TM05: type narrowing needed
-function processHostSelector(selector, moduleId) {
+function processHostSelector(selector: string, moduleId: string): string {
 	const hostSelector = `[data-dd-style-host~="${moduleId}"]`
 
 	return selector
@@ -604,23 +545,21 @@ function processHostSelector(selector, moduleId) {
 export { boostExternalClassSelectors, compileSS, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath }
 
 // P-WR02: engine export（不动调度，F47）
-// @ts-expect-error P-TM05: type narrowing needed
-async function styleCompile({ msg, progress, config }: CompileOptions) {
-	resetStoreInfo(msg.storeInfo)
+async function styleCompile({ msg, progress, config }: CompileOptions): Promise<void> {
+	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: StyleModule[]; subPages: Record<string, { info: StyleModule[]; independent: boolean }> } }
+	resetStoreInfo(m.storeInfo)
 
-	const styleOptions = { sourcemap: msg.sourcemap, minify: config.minify }
-	await compileSS(msg.pages.mainPages, null, progress, styleOptions)
-	for (const [root, subPages] of Object.entries(msg.pages.subPages)) {
-		// @ts-expect-error P-TM05: type narrowing needed
-		await compileSS(subPages.info, root, progress, styleOptions)
+	const styleOptions: StyleOptions = { sourcemap: m.sourcemap, minify: (config as { minify?: boolean }).minify }
+	await compileSS(m.pages.mainPages, null, progress as Progress, styleOptions)
+	for (const [root, subPages] of Object.entries(m.pages.subPages)) {
+		await compileSS(subPages.info, root, progress as Progress, styleOptions)
 	}
 
 	compileRes.clear()
 }
-
-// @ts-expect-error P-TM05: type narrowing needed
-function styleNormalizeError(e) {
-	return { message: e.message, stack: e.stack, name: e.name, file: e.file, line: e.line, column: e.column, stage: e.stage }
+function styleNormalizeError(e: Error): Record<string, unknown> {
+	const err = e as Error & Record<string, unknown>
+	return { message: err.message, stack: err.stack, name: err.name, file: err.file, line: err.line, column: err.column, stage: err.stage }
 }
 
 export const styleEngine = defineEngine({
