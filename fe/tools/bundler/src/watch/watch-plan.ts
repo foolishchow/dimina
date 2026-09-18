@@ -10,7 +10,6 @@
 
 import path from 'node:path'
 import { computeAffectedEntries, computeStagesForFiles } from '../model/invalidation.ts'
-import { scanFingerprints } from '../model/fingerprint.ts'
 
 const WATCH_FILE_EVENTS = new Set(['add', 'change', 'unlink'])
 
@@ -93,7 +92,7 @@ function getPublishedOutputPath(targetPath: string, useAppIdDir: boolean, appId:
  * @param {Map<string, {mtime,size,hash}>} params.prevFingerprints 上次指纹表（可选）
  * @returns {{ skip: boolean, incremental: boolean, options: object, fingerprints: Map }}
  */
-function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string }) {
+function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string }) {
 	if (!changedFiles || changedFiles.length === 0) {
 		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
 	}

@@ -14,7 +14,7 @@ import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
-import { errorMessage, errorStack } from '../../shared/utils.ts'
+import { errorMessage } from '../../shared/utils.ts'
 import type { EnhancedError, StyleCompileError } from '../../shared/utils.ts'
 const compileRes = new Map<string, { code: string; map: string | null }>()
 const builtInTagNames = new Set(tagWhiteList)
@@ -503,6 +503,7 @@ function getAbsolutePath(modulePath: string): string | undefined {
 			return indexSsFullPath
 		}
 	}
+	return undefined
 }
 function resolveStyleImportPath(absolutePath: string, importPath: string, workPath: string = getWorkPath()): string {
 	if (importPath.startsWith('/')) {

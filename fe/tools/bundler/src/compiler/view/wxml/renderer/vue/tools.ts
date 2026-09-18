@@ -22,7 +22,7 @@ import {
 import { parseWxml } from '../../parse.ts'
 import type { WxmlNode, Attr } from '../../common/document.ts'
 import { enableSourcemap, templateRenderCache } from './state.ts'
-import { errorMessage, errorStack } from '../../../../../shared/utils.ts'
+import { errorMessage } from '../../../../../shared/utils.ts'
 import {
 	transformTextInterpolation,
 	isWrappedByBraces,

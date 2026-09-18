@@ -171,6 +171,7 @@ function filterFilesByRegex(directoryPath: string, regex: RegExp): string[] | un
 	}
 	catch (err) {
 		console.error('无法读取文件夹:', err)
+		return undefined
 	}
 }
 
@@ -182,10 +183,6 @@ function isObjectEmpty(objectName: Record<string, unknown> | null | undefined): 
 		Object.keys(objectName).length === 0
 		&& objectName.constructor === Object
 	)
-}
-
-function isString(o: unknown): boolean {
-	return Object.prototype.toString.call(o) === '[object String]'
 }
 
 function transformRpx(styleText: unknown): string {

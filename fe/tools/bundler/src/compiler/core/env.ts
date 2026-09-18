@@ -9,7 +9,7 @@ import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path
 import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.ts'
 import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from '../../model/dependency-graph.ts'
-import { errorMessage, errorStack } from '../../shared/utils.ts'
+import { errorMessage } from '../../shared/utils.ts'
 
 const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
 let defaultCompilerContext: CompilerContext | undefined

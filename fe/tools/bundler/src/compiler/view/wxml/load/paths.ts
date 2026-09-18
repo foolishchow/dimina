@@ -37,6 +37,7 @@ export function getViewPath(workPath: string, src: string): string | undefined {
 			return indexMlFullPath
 		}
 	}
+	return undefined
 }
 
 /**

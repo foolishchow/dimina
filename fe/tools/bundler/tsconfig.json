@@ -7,6 +7,11 @@
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
     "skipLibCheck": true,
     "maxNodeModuleJsDepth": 0,
     "allowImportingTsExtensions": true

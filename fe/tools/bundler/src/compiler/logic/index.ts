@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { relative, resolve, sep } from 'node:path'
+import { resolve, sep } from 'node:path'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
@@ -10,12 +10,11 @@ import type { TransformOptions } from 'esbuild'
 import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
-import { effectiveJsMinify } from '../../shared/compile-config.ts'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.ts'
-import { mergeSourcemap, remapSourcemap } from '../core/sourcemap.ts'
+import { remapSourcemap } from '../core/sourcemap.ts'
 import { emitEntry } from '../pipeline/emit.ts'
-import { errorMessage, errorStack } from '../../shared/utils.ts'
+import { errorMessage } from '../../shared/utils.ts'
 
 // 用于缓存已处理的模块
 const processedModules = new Set()
@@ -43,9 +42,6 @@ interface CompileInfo {
 	usingComponents?: Record<string, string>
 }
 async function writeCompileRes(compileRes: CompileInfo[], root: string | null) {
-	const outputDir = root
-		? `${getTargetPath()}/${root}`
-		: `${getTargetPath()}/main`
 	// 相对发布根的物化路径前缀（D-P2）
 	const relPrefix = root ? `${root}` : 'main'
 
@@ -224,7 +220,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 	const dependenciesToProcess: string[] = []
 
 	walk(ast, {
-		enter(node: AstNode, parent: Node | null) {
+		enter(node: AstNode, _parent: Node | null) {
 			const wxMemberName = getWxMemberName(node)
 			if (wxMemberName) {
 				warnUnsupportedWxApi(

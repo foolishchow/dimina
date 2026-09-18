@@ -5,18 +5,13 @@ import type { Program } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
-import type { RawSourceMap } from 'source-map-js'
-import type { CompilerOptions } from '@vue/compiler-sfc'
-import { transform } from 'esbuild'
-import { checkTemplateCompatibility, getTemplateDirectiveName } from '../core/compatibility.ts'
-import { effectiveJsMinify } from '../../shared/compile-config.ts'
-import { toMiniProgramModuleId } from '../../shared/path-utils.ts'
+import { getTemplateDirectiveName } from '../core/compatibility.ts'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
-import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getTemplateExts, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../core/env.ts'
+import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getViewScriptExts, getViewScriptTags, getWorkPath, resetStoreInfo } from '../core/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import type { WxmlNode } from './wxml/common/document.ts'
-import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, mergeSourcemap, remapSourcemap } from '../core/sourcemap.ts'
+import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'
 import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.ts'
 import {
@@ -26,10 +21,7 @@ import {
 	serializeChildren,
 	setAttr,
 } from './wxml/common/document-ops.ts'
-import {
-	buildExtStripRegex,
-	stripViewScriptExt,
-} from './wxml/load/paths.ts'
+import { stripViewScriptExt } from './wxml/load/paths.ts'
 import { toCompileTemplate } from './wxml/compile.ts'
 import { processIncludeConditionalAttrs } from './wxml/load/include.ts'
 import { bindTransformOrchestrator } from './wxml/load/orchestrator-live.ts'
@@ -43,7 +35,7 @@ import {
 import { bindVueToolsLive } from './wxml/renderer/vue/live.ts'
 import { enableSourcemap, setEnableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.ts'
 import { emitEntry } from '../pipeline/emit.ts'
-import { errorMessage, errorStack } from '../../shared/utils.ts'
+import { errorMessage } from '../../shared/utils.ts'
 import type { EnhancedError } from '../../shared/utils.ts'
 
 // TS-2（fe-tools-wxml-ir）：wxml renderer₀ 注册（registry 同 id 抛错；测例可先 unregister）

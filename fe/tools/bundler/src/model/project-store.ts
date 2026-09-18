@@ -19,10 +19,10 @@ import { getDependencyGraph, storeInfo } from '../compiler/core/env.ts'
 import type { GraphSnapshot } from '../model/dependency-graph.ts'
 
 /**
- * @param {object} [options]
+ * @param {object} [_options]
  * @returns {object} ProjectStore
  */
-export function createProjectStore(options: Record<string, unknown> = {}) {
+export function createProjectStore(_options: Record<string, unknown> = {}) {
 	/** @type {object | null} storeInfo 返回值 */
 	let snapshot = null
 

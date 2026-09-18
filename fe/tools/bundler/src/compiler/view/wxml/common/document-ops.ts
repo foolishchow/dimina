@@ -18,7 +18,7 @@ import {
 	isElementLike,
 	makeAttr,
 } from './document.ts'
-import type { WxmlNode, Attr, Document, Span } from './document.ts'
+import type { WxmlNode, Attr, Document } from './document.ts'
 
 const PARENT = new WeakMap<object, WxmlNode | null>()
 

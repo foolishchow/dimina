@@ -3,7 +3,7 @@
  */
 
 import { parseSync } from 'oxc-parser'
-import { errorMessage, errorStack } from '../../shared/utils.ts'
+import { errorMessage } from '../../shared/utils.ts'
 
 // JavaScript 关键字和全局对象，不应该被识别为数据依赖
 const KEYWORDS = new Set([

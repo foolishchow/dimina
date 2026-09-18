@@ -20,7 +20,7 @@ import { parseWxml } from '../parse.ts'
 import type { WxmlNode } from '../common/document.ts'
 import type { WxmlDocument, LoadedGraph } from '../common/wxml-ir.types.ts'
 import type { TemplateModuleEntry } from './template.ts'
-import { errorMessage, errorStack } from '../../../../shared/utils.ts'
+import { errorMessage } from '../../../../shared/utils.ts'
 
 /** Load-tools 注入句柄（transitional — view/index 提供） */
 interface LoadTools {

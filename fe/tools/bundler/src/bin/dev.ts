@@ -5,7 +5,7 @@ import process from 'node:process'
 import { createBundler } from '../session/index.ts'
 import { resolveBundlerConfig } from '../session/resolve.ts'
 import type { Command } from 'commander'
-import { errorMessage, errorStack } from '../shared/utils.ts'
+import { errorMessage } from '../shared/utils.ts'
 
 // M-F3 兼容：resolveSdkRoot 已迁 common/sdk-root.js；此处 re-export 保持向后兼容
 export { resolveSdkRoot } from '../dev/sdk-root.ts'

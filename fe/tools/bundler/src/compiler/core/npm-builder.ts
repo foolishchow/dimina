@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getStyleExts, getTemplateExts, getViewScriptExts } from '../core/env.ts'
-import { errorMessage, errorStack } from '../../shared/utils.ts'
+import { errorMessage } from '../../shared/utils.ts'
 
 /**
  * npm 构建工具

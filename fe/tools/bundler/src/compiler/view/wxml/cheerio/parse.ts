@@ -21,7 +21,7 @@ import {
 import { bindDocument } from '../common/document-ops.ts'
 import type { WxmlDocument } from '../common/wxml-ir.types.ts'
 import type { WxmlNode } from '../common/document.ts'
-import { errorMessage, errorStack } from '../../../../shared/utils.ts'
+import { errorMessage } from '../../../../shared/utils.ts'
 
 /** 与今日 view-compiler 主解析一致的 cheerio 选项（保真投影） */
 export const PARSE_OPTIONS = Object.freeze({

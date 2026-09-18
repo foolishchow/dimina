@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import os from 'node:os'
-import { errorMessage, errorStack } from '../shared/utils.ts'
+import { errorMessage } from '../shared/utils.ts'
 
 function getCGroupCPUCount() {
 	try {

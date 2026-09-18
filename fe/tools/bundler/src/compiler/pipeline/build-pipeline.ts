@@ -186,6 +186,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 							if (compileTasks.length > 0) {
 								return ((task as { newListr: (p: unknown[], o: unknown) => unknown }).newListr)(compileTasks, { concurrent: true })
 							}
+							return undefined
 						},
 					},
 					{
