@@ -44,15 +44,15 @@
 
 | 文件 | 错误数 |
 |------|--------|
-| `view/wxml/napi/parse.ts` | 11 |
+| `compiler/view/wxml/napi/parse.ts` | 11 |
 | `compiler/logic/index.ts` | 8 |
-| `view/wxml/common/parity.ts` | 7 |
+| `compiler/view/wxml/common/parity.ts` | 7 |
 | `watch/watch-plan.ts` | 6 |
-| `view/index.ts` | 6 |
+| `compiler/view/index.ts` | 6 |
 | `model/compile-cache.ts` | 4 |
-| `view/wxml/renderer/vue/tools.ts` | 4 |
-| `view/wxml/common/document-ops.ts` | 3 |
-| `pipeline/build-pipeline.ts` | 3 |
+| `compiler/view/wxml/renderer/vue/tools.ts` | 4 |
+| `compiler/view/wxml/common/document-ops.ts` | 3 |
+| `compiler/pipeline/build-pipeline.ts` | 3 |
 | `dev/dev-proxy.ts` | 2 |
 | `bin/compile.ts` | 2 |
 | 其他 7 文件各 1 | 7 |

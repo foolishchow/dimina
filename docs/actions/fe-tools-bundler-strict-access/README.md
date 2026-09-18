@@ -34,7 +34,7 @@ ts-migration 完成后，bundler tsconfig.json 已启用 6 类 strict lint（`st
 - 不开 `exactOptionalPropertyTypes`（49 错，第三方库摩擦大）
 - 不开 `noPropertyAccessFromIndexSignature`（175 错，纯噪音）
 - 不引入 ESLint 工具链（另立 Action）
-- 不改 `__tests__/` 逻辑（仅可能改 import 后缀已完成的 tsconfig include）
+- 不改 `__tests__/` 逻辑（tsconfig include 已含 `__tests__/`，ts-migration P-TM07；本门不改）
 
 ## 范围
 
@@ -55,3 +55,4 @@ ts-migration 完成后，bundler tsconfig.json 已启用 6 类 strict lint（`st
 - 无。63 处错误已全量扫描，分类明确（TS2532 / TS18048 / TS2345 / TS2322 / TS2339），修复策略明确。
 - 零成本选项已探测 0 错。
 - Review R1 pass-with-findings：F1-F3 修正完毕（选项计数一致 + 步骤 7 文件数修正）。
+- Review R2 pass：F4-F6 修正完毕（路径基统一为 src/ + 括注语义清晰化 + 外部脚本来源注记）。

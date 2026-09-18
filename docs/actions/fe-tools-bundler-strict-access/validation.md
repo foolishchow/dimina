@@ -24,7 +24,7 @@ node pnpm.mjs exec tsc --noEmit --noUnusedLocals --noUnusedParameters --noFallth
 ```bash
 cd fe/tools/bundler
 node pnpm.mjs run build 2>&1 | tail -1  # tsc build OK
-node --experimental-strip-types /tmp/wr-gen-p06.mjs 2>&1 | tail -1  # 写入编译产物
+node --experimental-strip-types /tmp/wr-gen-p06.mjs 2>&1 | tail -1  # 写入编译产物（脚本来源：ts-migration V-TM06）
 for name in nomap min-nomap sm sm-min; do diff -rq /tmp/wr-baseline-$name/out /tmp/wr-p06-$name/out && echo "$name ✓"; done  # 4× ✓
 node pnpm.mjs exec vitest run 2>&1 | grep -E 'Test Files|Tests '  # 584/584
 ```
