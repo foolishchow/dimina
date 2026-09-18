@@ -197,6 +197,19 @@ wxml/
 | runBuild 编译承载面 | **BuildPipeline**（runBuild 可作门面） |
 | 产品会话 | **session** / `createBundler`（已有） |
 
+## 架构术语：Packer / Scheme（2026-09-18）
+
+讨论「抽出通用打包工具」和「Dimina 怎么打包」时，只用下面两个词。不要用 bundler / logic 指这两层。
+
+| 术语 | 是什么 | 不是什么 |
+| --- | --- | --- |
+| **Packer** | 通用模块打包器（同类：Rollup / webpack）。只负责模块标识、模块图、transform、模块产出。不知道小程序、页面、WXML。 | 不是包名 `@dimina/bundler`，也不是现在的 `src/` 整树 |
+| **Scheme** | Dimina 的打包方案：编什么、分几条车道、产物长什么样、何时调用 Packer | 不是目录 `compiler/logic`。该目录整段是焊点，不是这个词，也不是已经抽出的 Packer |
+
+今天的 `@dimina/bundler` 把 Packer 和 Scheme 焊在一起。`compiler/logic/**` 整目录是焊点：对外是 Scheme 调用的 JS 车道，对内的模块图与 transform 是未来 Packer 的胚。本术语节不拆该目录。
+
+后续架构文档沿用这对术语。包名、目录名 `compiler/logic` 保持不变，直到另有 Action 改名。
+
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
 | ID | 结论 |
@@ -241,3 +254,5 @@ wxml/
 | 2026-09-15 | **回流 fe-tools-wxml-refactor（complete `13c9c902`）**：标准 Document + Document 操作面；`WXML_PARSER` 默认 napi；零 cheerio 泄漏不变量入档；已归档 |
 | 2026-09-15 | **回流 fe-tools-bundler-typecheck（complete `eb3b2bc4`）**：类型门禁不变量入档（CI `tsc --noEmit` 必过；白名单 `@ts-check`；集中 typedef 不以 vue/index 为类型源） |
 | 2026-09-15 | **回流 fe-tools-bundler-tsc-dist（complete）**：**B2 build 模型**——dist 唯一生产者 = `tsc -p tsconfig.build.json`（`rootDir:src`/`outDir:dist`）；整树 sync-dist 已删除；postbuild（copy-sdk-assets + check-exports）保留。**绿场规则**：`src/` 新文件允许 `.ts`。**后缀约定（D-TD-20）**：运行时消费方写显式 `.ts` 后缀 + `rewriteRelativeImportExtensions`（emit 重写回 `.js`）；`.js`→`.ts` 隐式映射只存在于 tsc program——vitest/worker 直跑 src 不解析，显式 `.ts` 是唯一可运行写法。**worker 注记**：src 链 spawn 需 `--experimental-strip-types`（stage-channel 已按 `/src/` 探测注入）。**迁徙边界**：view/index.js、renderer/vue/tools.js、vue/index.js 禁迁；第 2 刀（document/document-ops/load）另立 |
+| 2026-09-18 | **术语**：架构讨论用 **Packer**（通用模块打包器）/ **Scheme**（Dimina 打包方案）。禁止用 bundler / logic 指这两层。包名与 `compiler/logic` 目录不因此改名 |
+| 2026-09-18 | **术语对齐**：Packer 用词改为模块标识、模块图、transform、模块产出。`compiler/logic/**` 整目录是焊点，不是 Scheme 车道 |
