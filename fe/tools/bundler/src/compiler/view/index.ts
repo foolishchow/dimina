@@ -228,7 +228,7 @@ let activeCompileConfig = {
  */
 interface ViewModule {
 	path: string
-	id?: string
+	id: string
 	component?: boolean
 	componentPlaceholder?: Record<string, unknown>
 	usingComponents?: Record<string, string>
@@ -544,19 +544,19 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 	const tplCode = compileTemplate({
 		source: processedTpl,
 		filename: module.path, // 用于错误提示
-		id: `data-v-${module.id as string}`,
+		id: `data-v-${module.id}`,
 		scoped: true,
 		inMap: enableSourcemap
 			? (((origins as unknown[]) || []).length
 				? createOriginsSourcemap(origins as never, sourceContents as Map<string, string>)
 				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content)) as never
 			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id as string}`) as never,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as never,
 	})
 
 	const templateResults = []
 	for (const tm of compileInstruction.templateModule) {
-		templateResults.push(compileTemplateModuleRender(tm as never, module.id as string, compileInstruction.scriptModule as never, scriptRes))
+		templateResults.push(compileTemplateModuleRender(tm as never, module.id, compileInstruction.scriptModule as never, scriptRes))
 	}
 	const renderResult = insertWxsToRenderResult(tplCode.code, compileInstruction.scriptModule as unknown[], scriptRes, module.path, tplCode.map)
 
@@ -819,17 +819,17 @@ function compileModuleWithAllWxs(module: ViewModule, scriptRes: Map<string, stri
 	const tplCode = compileTemplate({
 		source: processedTpl,
 		filename: module.path,
-		id: `data-v-${module.id as string}`,
+		id: `data-v-${module.id}`,
 		scoped: true,
 		inMap: enableSourcemap
 			? createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content) as never
 			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id as string}`) as never,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`) as never,
 	})
 
 	const templateResults = []
 	for (const tm of mergedInstruction.templateModule || []) {
-		templateResults.push(compileTemplateModuleRender(tm as never, module.id as string, allScriptModules as never, scriptRes))
+		templateResults.push(compileTemplateModuleRender(tm as never, module.id, allScriptModules as never, scriptRes))
 	}
 	const renderResult = insertWxsToRenderResult(tplCode.code, allScriptModules, scriptRes, module.path, tplCode.map)
 
@@ -925,7 +925,7 @@ function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: string, gr
 					'view',
 				)
 			}
-			setAttr(elem, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId() as string))
+			setAttr(elem, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId()!))
 		}
 	}
 }

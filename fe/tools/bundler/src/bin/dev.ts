@@ -35,8 +35,8 @@ export function registerDevCommand(program: Command): void {
 		.option('--no-app-id-dir', '产物根目录不包含appId')
 		.option('--sourcemap', '生成 sourcemap 文件用于调试')
 		.option('--minify', '压缩产物（覆盖 mode=dev 缺省；可用 --no-minify 关闭）')
-		.action(async (options: Record<string, unknown>) => {
-			const workPath = options.workPath ? path.resolve(options.workPath as string) : process.cwd()
+		.action(async (options: { workPath?: string; targetPath?: string; port?: string | number; force?: boolean; appId?: string; [key: string]: unknown }) => {
+			const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 			// argv 缺省留 bin（M-G1）：dev 缺省 targetPath 用 mkdtempSync（等价今日）
 			const targetPath = options.targetPath
 				? path.resolve(options.targetPath as string)
@@ -48,7 +48,7 @@ export function registerDevCommand(program: Command): void {
 				useAppIdDir: options.appIdDir !== false,
 				sourcemap: !!options.sourcemap,
 				...(typeof options.minify === 'boolean' ? { minify: options.minify } : {}),
-				...(options.port ? { port: Number.parseInt(options.port as string, 10) } : {}),
+				...(options.port ? { port: Number.parseInt(String(options.port), 10) } : {}),
 				...(typeof options.host === 'string' && options.host ? { host: options.host } : {}),
 			}
 
@@ -58,7 +58,7 @@ export function registerDevCommand(program: Command): void {
 				handle = await createBundler(resolved).dev({
 					onRebuild: ({ event, filePath, count }) => {
 					const ev = event as 'add' | 'change' | 'unlink'
-					const fp = filePath as string
+					const fp = filePath
 					const cnt = count as number
 						const merged = cnt > 1 ? `（合并 ${cnt} 个文件事件）` : ''
 						console.log(`${fp} ${EVENT_LABELS[ev]}，重新编译${merged}`)

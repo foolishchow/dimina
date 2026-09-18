@@ -23,10 +23,10 @@ program
 	.option('--sourcemap', '生成 sourcemap 文件用于调试')
 	.option('--minify', '压缩产物（覆盖 mode 缺省；可用 --no-minify 关闭）')
 	.option('--platform <name>', '运行时宿主平台：native（build 仅支持 native；web 由 dev 提供）')
-	.action(async (options: Record<string, unknown>) => {
-		const workPath = options.workPath ? path.resolve(options.workPath as string) : process.cwd()
+	.action(async (options: { workPath?: string; targetPath?: string; port?: string | number; force?: boolean; appId?: string; [key: string]: unknown }) => {
+		const workPath = options.workPath ? path.resolve(options.workPath) : process.cwd()
 		// argv defaults stay in bin (M-G1): resolve receives explicit values only
-		const targetPath = options.targetPath ? path.resolve(options.targetPath as string) : process.cwd()
+		const targetPath = options.targetPath ? path.resolve(options.targetPath) : process.cwd()
 		const cli = {
 			workPath,
 			targetPath,
@@ -51,7 +51,7 @@ program
 		const watcher = createBundler(resolved).watch({
 			onRebuild: ({ event, filePath, count }) => {
 				const ev = event as 'add' | 'change' | 'unlink'
-				const fp = filePath as string
+				const fp = filePath
 				const cnt = count as number
 				const merged = cnt > 1 ? `（合并 ${cnt} 个文件事件）` : ''
 				console.log(`${fp} ${EVENT_LABELS[ev]}，重新编译${merged}`)

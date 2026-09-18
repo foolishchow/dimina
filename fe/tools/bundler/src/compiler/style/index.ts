@@ -481,7 +481,7 @@ function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPat
 				'style',
 			)
 		}
-		const realSrc = collectAssets(getWorkPath(), absolutePath, cleanedUrl, getTargetPath(), getAppId() as string)
+		const realSrc = collectAssets(getWorkPath(), absolutePath, cleanedUrl, getTargetPath(), getAppId()!)
 		return `url(${realSrc})`
 	})
 }

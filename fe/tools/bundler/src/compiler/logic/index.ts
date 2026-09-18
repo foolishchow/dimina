@@ -238,7 +238,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 				pathReplacements.push({
 					start: node.start,
 					end: node.end,
-					newValue: collectAssets(getWorkPath(), modulePath, node.value as string, getTargetPath(), getAppId() as string),
+					newValue: collectAssets(getWorkPath(), modulePath, node.value as string, getTargetPath(), getAppId()!),
 				})
 			}
 
