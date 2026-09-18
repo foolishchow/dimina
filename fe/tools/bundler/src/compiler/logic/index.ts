@@ -165,7 +165,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 			? new Set(graphDependencies)
 			: null
 
-		for (const [name, path] of Object.entries(module.usingComponents as Record<string, string>)) {
+		for (const [name, path] of Object.entries(module.usingComponents)) {
 			if (componentDependencies && !componentDependencies.has(path)) {
 				continue
 			}
@@ -402,7 +402,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		if (enableSourcemap && esbuildResult.map) {
 			compileInfo.map = (preEsbuildMap
 				? remapSourcemap(esbuildResult.map!, preEsbuildMap)
-				: (esbuildResult as { map?: string }).map) as string | undefined
+				: esbuildResult.map)
 		}
 		compileInfo.code = esbuildResult.code
 	} catch (error) {

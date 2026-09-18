@@ -441,7 +441,7 @@ export function removeAll(nodes: WxmlNode[] | WxmlNode | null | undefined): void
 export function removeMatching(scope: WxmlNode | null | undefined, predicateOrTags: string | ((node: WxmlNode) => boolean)): void {
 	const nodes = typeof predicateOrTags === 'function'
 		? queryAll(scope, '*').filter(predicateOrTags as (node: WxmlNode) => boolean)
-		: queryAll(scope, predicateOrTags as string)
+		: queryAll(scope, predicateOrTags)
 	for (const node of nodes.slice()) {
 		removeNode(node)
 	}

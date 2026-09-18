@@ -378,7 +378,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	const fixedCSS = ensureImportSemicolons(processedCSS)
 	if (options.sourcemap && fixedCSS !== processedCSS) {
 		const normalizeMap = createLineSourcemap(fixedCSS, absolutePath, processedCSS)
-		processedMap = remapSourcemap(normalizeMap, processedMap) as RawSourceMap
+		processedMap = remapSourcemap(normalizeMap, processedMap)
 	}
 	const importResults: Promise<StyleCompileResult>[] = []
 	// 把基础转换交给 compileStyle 的同一条 PostCSS 管线，避免作用域处理前重复解析 CSS。

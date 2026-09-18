@@ -128,12 +128,12 @@ function mergeSourcemap(compileRes: Array<{ code: string; path: string; extraInf
 }
 
 // 将两步 sourcemap 串联，nextMap 的 original 会继续映射回 prevMap 的 original
-function remapSourcemap(nextMap: unknown, prevMap: unknown): string | Record<string, unknown> | unknown {
+function remapSourcemap(nextMap: unknown, prevMap: unknown): string {
 	if (!nextMap) {
-		return prevMap
+		return String(prevMap)
 	}
 	if (!prevMap) {
-		return nextMap
+		return String(nextMap)
 	}
 
 	const nextMapObj = (typeof nextMap === 'string' ? JSON.parse(nextMap) : nextMap) as RawSourceMap
@@ -175,7 +175,7 @@ function remapSourcemap(nextMap: unknown, prevMap: unknown): string | Record<str
 		})
 	}
 
-	return smg.toString() as unknown
+	return smg.toString()
 }
 
 export { concatSourcemap, createLineSourcemap, mergeSourcemap, remapSourcemap }

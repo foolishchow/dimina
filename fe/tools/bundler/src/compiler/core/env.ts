@@ -673,7 +673,7 @@ function resolveAppAlias(src: string): string | null {
 		return null
 	}
 
-	for (const [alias, target] of Object.entries(resolveAlias as Record<string, string>)) {
+	for (const [alias, target] of Object.entries(resolveAlias)) {
 		if (alias.endsWith('/*') && target.endsWith('/*')) {
 			const aliasPrefix = alias.slice(0, -1)
 			const targetPrefix = target.slice(0, -1)
@@ -697,7 +697,7 @@ function getComponent(src: string): unknown {
 	return (configInfo.componentInfo!)[src]
 }
 
-function getPageConfigInfo(): Record<string, unknown> {
+function getPageConfigInfo(): Record<string, PageConfig> {
 	return configInfo.pageInfo!
 }
 
@@ -747,7 +747,7 @@ function getPages(): { mainPages: unknown[]; subPages: Record<string, unknown> }
 	// 获取所有页面路径
 	const appConfig = getAppConfigInfo() as { pages: string[]; subPackages?: { root: string; pages: string[]; independent?: boolean }[]; usingComponents?: Record<string, string> }
 	const { pages, subPackages = [], usingComponents: globalComponents = {} } = appConfig
-	const pageInfo = getPageConfigInfo() as Record<string, { usingComponents?: Record<string, string>; componentPlaceholder?: Record<string, unknown>; customTabBar?: unknown }>
+	const pageInfo = getPageConfigInfo()
 	
 	const mainPages = pages.map(path => {
 		const pageComponents = pageInfo[path]?.usingComponents || {}

@@ -172,7 +172,8 @@ function getWxMemberName(node: unknown): string | null {
 		&& (n!.property?.type === 'StringLiteral' || n!.property?.type === 'Literal')
 		&& typeof n!.property?.value === 'string'
 	) {
-		return n!.property.value as string
+		const value = n!.property!.value
+		return value as string
 	}
 
 	return null
