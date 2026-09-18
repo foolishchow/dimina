@@ -2,7 +2,7 @@
 
 Status: **草案（随 Action `draft`）** — 实施后回填 Actual。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 本门是文档门。行为 0 = 产品源码零 diff，不要求重跑编译产物对拍。
 

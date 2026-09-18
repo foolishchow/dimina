@@ -210,7 +210,7 @@ wxml/
 
 后续架构文档沿用这对术语。包名、目录名 `compiler/logic` 保持不变，直到另有 Action 改名。
 
-**落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
+**落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../_archive/complete/fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
