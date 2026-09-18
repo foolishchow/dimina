@@ -133,7 +133,7 @@ export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
 			: { ...(options ?? {}) }
 		lookup(hostname, { ...normalizedOptions, all: true, verbatim: true } as dns.LookupOptions, (error: NodeJS.ErrnoException | null, ...results: any[]) => {
 			if (error) {
-				callback(error, undefined as any)
+				callback(error, undefined as never, undefined as never)
 				return
 			}
 			const addresses = results[0] as dns.LookupAddress[]
@@ -141,12 +141,12 @@ export function createSafeLookup(lookup: DnsLookup = dns.lookup): DnsLookup {
 				assertPublicAddresses(addresses)
 			}
 			catch (validationError) {
-				callback(validationError as NodeJS.ErrnoException, undefined as any)
+				callback(validationError as NodeJS.ErrnoException, undefined as never, undefined as never)
 				return
 			}
 
 			if (normalizedOptions.all) {
-				callback(null, addresses as any)
+				callback(null, addresses as never, undefined as never)
 			}
 			else {
 				const [{ address, family }] = addresses

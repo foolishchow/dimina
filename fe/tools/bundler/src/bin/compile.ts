@@ -163,7 +163,7 @@ async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 			: createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }) as { mode: string; options: Record<string, unknown>; fileFingerprints?: unknown }
 
 		if (plan.mode === 'skip') {
-			cacheEntry.fileFingerprints = plan.fileFingerprints as any
+			cacheEntry.fileFingerprints = plan.fileFingerprints as Record<string, unknown>
 			appList.push(cacheEntry.appInfo)
 		}
 		else {
