@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio'
 import { miniProgramBuiltinTags } from './utils.ts'
 
 // 用来存储所有遇到的HTML标签
-const tags = new Set()
+const tags = new Set<string>()
 
 // 递归读取指定文件夹下的所有.html文件
 function readDirRecursive(dir: string, ext: string): void {
@@ -55,9 +55,9 @@ function parseHtmlForWxMethods(htmlContent: string): void {
 const directory = '' // 替换为你的文件夹路径
 readDirRecursive(directory, '.mpx')
 
-const intersection = new Set()
+const intersection = new Set<string>()
 for (const tag of tags) {
-	if (miniProgramBuiltinTags.has(tag as string)) {
+	if (miniProgramBuiltinTags.has(tag)) {
 		intersection.add(tag)
 	}
 }
