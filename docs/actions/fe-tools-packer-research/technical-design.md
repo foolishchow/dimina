@@ -76,7 +76,9 @@ interface CompiledModule {
 - hooks 粒度是否足够（11 种 Scheme 调用）
 - `graphWriter` 是否需要读能力（`getDirectDependencies`）还是只写
 - `componentResolver` 语义（logic 用 `getComponent` 做什么）
-- `stateManager`（storeInfo / resetStoreInfo）是否 Packer 侧需要
+- `stateManager`（resetStoreInfo）是否 Packer 侧需要
+- `appConfig` 语义（logic 用 `getAppConfigInfo` 做什么）
+- `runtimeType` 语义（logic 用 `isMiniGame` 做什么）
 
 ## 4. 提取序列草案（待验证）
 
