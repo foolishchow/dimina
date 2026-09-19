@@ -13,7 +13,7 @@ Status: **draft（2026-09-20）**
 
 ### P-PR02 — W3 env.ts 深度审计
 
-- 读图初始化逻辑（L800-891：addNode/addFile/addDependency 的完整 Scheme 图填充）
+- 读图初始化逻辑（L814-891：addNode/addFile/addDependency 的完整 Scheme 图填充）
 - 读 `storeInfo` / `getContentByPath` / `getComponent` / `getNpmResolver` 实现
 - 验证 7 个共用函数的 Packer 侧用法是否可改为参数注入
 
@@ -44,9 +44,13 @@ Status: **draft（2026-09-20）**
 
 - 值得做 / 不值得做
 - 粗略工作量估算（S/M/L）
-- 风险清单
 
-### P-PR08 — 研究发现回流
+### P-PR08 — 风险清单
+
+- 行为 0 风险、测试覆盖风险、回归风险
+- 逐项影响评估
+
+### P-PR09 — 研究发现回流
 
 - 若值得做：回流 architecture-notes（Packer API 草案 + 提取序列）
 - 若不值得做：回流 architecture-notes（评估结论 + 封存理由）
@@ -64,9 +68,11 @@ Status: **draft（2026-09-20）**
 | P-PR06 | P-PR05 |
 | P-PR07 | P-PR05 + P-PR06 |
 | P-PR08 | P-PR07 |
+| P-PR09 | P-PR07 + P-PR08 |
 
 ## 验证点
 
 - 每步产出写入 `source-audit.md` 或 `technical-design.md`
 - P-PR05 是关键决策点——决定后续步骤是否有意义
-- P-PR08 是 closure 前提——研究发现必须回流
+- P-PR08 是风险清单——与 P-PR07 决策建议互为补充
+- P-PR09 是 closure 前提——研究发现必须回流

@@ -13,7 +13,7 @@ Status: **draft（2026-09-20）**
 | W3 env | `compiler/core/env.ts` | 965 | ✗ |
 | W4 graph | `model/dependency-graph.ts` | 186 | ✓ incremental-target |
 
-辅助：`model/build-model.ts`（60 行，emit-memfs 产出层，不是焊点但紧邻 W1）。
+辅助：`model/build-model.ts`（79 行，emit-memfs 产出层，不是焊点但紧邻 W1）。
 
 ## 2. W1 emit.ts — 方法/接口清单
 
@@ -92,7 +92,7 @@ Status: **draft（2026-09-20）**
 | `storeInfo()` | 2 | 状态存储 | 可 → storeHook |
 | `resetStoreInfo()` | 3 | 状态重置 | 可 → resetHook |
 
-## 4. W3 env.ts — 27 exports 扇入分析
+## 4. W3 env.ts — 26 exports 扇入分析
 
 ### 扇入统计（谁 import env.ts 后用这个函数）
 
@@ -112,6 +112,7 @@ Status: **draft（2026-09-20）**
 | `getComponent` | 3 | logic, view, style | — |
 | `getStyleExts` | 2 | — | style, platforms |
 | `getPages` | 2 | — | view, style |
+| `getAppConfigInfo` | 3 | logic | config-compiler, build-pipeline |
 | `getAppName` | 1 | — | build-pipeline |
 | `runWithCompilerContext` | 1 | — | define-engine（基础设施） |
 | `resolveAppAlias` | 1 | logic | — |
@@ -129,8 +130,8 @@ Status: **draft（2026-09-20）**
 | 分类 | 函数 | 数量 |
 | --- | --- | --- |
 | **Packer 侧** | `getDependencyGraph`, `getNpmResolver`, `resolveAppAlias` | 3 |
-| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `storeInfo`, `resetStoreInfo` | 7 |
-| **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `isMiniGame`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 15 |
+| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getAppConfigInfo`, `storeInfo`, `resetStoreInfo` | 8 |
+| **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `isMiniGame`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 14 |
 | **基础设施** | `runWithCompilerContext` | 1 |
 | **未使用** | `storeProjectConfig`, `getRuntimeType`, `getProjectConfig` | 3 |
 
@@ -198,7 +199,7 @@ Status: **draft（2026-09-20）**
 ## 7. 待分析项（research 阶段填充）
 
 - W2 `resolveDependencyId()` 完整逻辑（import/require/export 解析）
-- W3 env.ts 图初始化完整逻辑（L800-891）
+- W3 env.ts 图初始化完整逻辑（L814-891）
 - W3 env.ts `storeInfo` / `getContentByPath` 完整逻辑
 - 跨焊点依赖：logic → env → graph 的写图路径
 - 跨焊点依赖：emit → env → workPath 的 rebase 路径

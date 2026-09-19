@@ -29,7 +29,7 @@ Status: **draft（2026-09-20）** — 研究阶段，待填充
 
 ### W3 env.ts — 最硬焊点，可能不值得拆
 
-- 27 exports，分类后 3 Packer / 7 共用 / 15 Scheme / 1 基础设施 / 3 未使用
+- 26 exports，分类后 3 Packer / 8 共用 / 14 Scheme / 1 基础设施 / 3 未使用
 - `runWithCompilerContext`（AsyncLocalStorage）是两侧共用基础设施
 - `getDependencyGraph` / `getWorkPath` / `getTargetPath` / `getAppId` / `getContentByPath` / `getComponent` 被 Packer 胚和 Scheme 编排同时调用
 - **假设**：env.ts 本质是 Scheme 的 context bus，Packer 胚通过它读 Scheme 状态。拆成 PackerContext + SchemeContext 需要重新设计 7 个共用函数的归属。可能不值得拆——可以保持 env.ts 为 Scheme 基础设施，Packer 通过注入的 context 对象访问需要的 3+7=10 个函数
@@ -100,9 +100,17 @@ interface CompiledModule {
 ## 6. 待验证项
 
 - [ ] W2 `resolveDependencyId()` 完整逻辑
-- [ ] W3 env.ts 图初始化完整逻辑（L800-891）
+- [ ] W3 env.ts 图初始化完整逻辑（L814-891）
 - [ ] W3 `storeInfo` / `getContentByPath` 逻辑
 - [ ] 跨焊点依赖图（logic → env → graph 写图路径）
 - [ ] hooks 粒度验证（11 种 Scheme 调用是否能收敛成 ≤5 个 hooks）
 - [ ] `getAffectedEntries` 跨图遍历可行性
 - [ ] modDefine 参数化后行为 0 可守性
+
+## 7. 风险清单（待填充）
+
+| 风险 | 影响 | 缓解 |
+| --- | --- | --- |
+| 行为 0 风险 | （待 research 填充） | |
+| 测试覆盖风险 | | |
+| 回归风险 | | |

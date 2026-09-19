@@ -18,7 +18,7 @@ logic/index.ts 的 Packer 胚（parseSync → walk → import/require 收集 →
 
 ### R-PR3（MUST）— env.ts 方法级分析
 
-env.ts 965 行、27 exports、15 文件扇入。哪些 exports 是 Packer 侧（graph/paths/npm）、哪些是 Scheme 侧（project/page/component/config）、哪些是共用基础设施（AsyncLocalStorage）？`runWithCompilerContext` 归谁？总线能拆成 PackerContext + SchemeContext 吗？
+env.ts 965 行、26 exports、15 文件扇入。哪些 exports 是 Packer 侧（graph/paths/npm）、哪些是 Scheme 侧（project/page/component/config）、哪些是共用基础设施（AsyncLocalStorage）？`runWithCompilerContext` 归谁？总线能拆成 PackerContext + SchemeContext 吗？
 
 ### R-PR4（MUST）— dependency-graph.ts 方法级分析
 
@@ -39,6 +39,10 @@ env.ts 965 行、27 exports、15 文件扇入。哪些 exports 是 Packer 侧（
 ### R-PR8（MUST）— 决策建议
 
 值得做 / 不值得做？附证据。如果值得做，估粗略工作量（S/M/L）。
+
+### R-PR9（MUST）— 风险清单
+
+行为 0 风险、测试覆盖风险、回归风险。逐项列出，附影响评估。
 
 ## 约束
 

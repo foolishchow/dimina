@@ -51,7 +51,7 @@
 ## Deliverables
 
 1. **方法级焊点分析表** — 4 焊点逐方法/逐 export 标注 Packer / Scheme / 共用 / 不可分
-2. **扇入扇出矩阵** — env.ts 27 exports × 15 文件扇入，标注 Packer 胚 vs Scheme 编排
+2. **扇入扇出矩阵** — env.ts 26 exports × 15 文件扇入，标注 Packer 胚 vs Scheme 编排
 3. **可抽提性评估** — 逐焊点：容易 / 需接口设计 / 极难 / 不值得
 4. **提取序列建议** — 哪个先拆、哪个后拆、哪个不拆
 5. **Packer API 草案** — extracted Packer 的接口形状（TypeScript interface，非实现）
@@ -69,4 +69,4 @@
 - 扇入扇出矩阵完备
 - 可抽提性评估逐焊点有结论
 - 决策建议（值得 / 不值得）有证据支撑
-- 研究发现回流 architecture-notes（若结论值得做）
+- 研究发现回流 architecture-notes（值得做：API 草案 + 提取序列；不值得做：封存理由）
