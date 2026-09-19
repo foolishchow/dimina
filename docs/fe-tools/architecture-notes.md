@@ -212,7 +212,7 @@ wxml/
 
 **落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../actions/_archive/complete/fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
 
-**Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/fe-tools-module-centric/README.md)（**`ready`**）——子门 M1 [`fe-tools-module-invalidation`](../actions/_archive/complete/fe-tools-module-invalidation/README.md)（**`complete`**，2026-09-20；D-IV-1..9 已实施）→ M2 [`fe-tools-module-result-cache`](../actions/fe-tools-module-result-cache/README.md)（**`ready`**，D-RC-1..4 已冻）。D-MF-1：方案 A / logic-only。下一步：M2 升 in_progress。
+**Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/fe-tools-module-centric/README.md)（**`ready`**）——子门 M1 [`fe-tools-module-invalidation`](../actions/_archive/complete/fe-tools-module-invalidation/README.md)（**`complete`**，2026-09-20；D-IV-1..9 已实施）→ M2 [`fe-tools-module-result-cache`](../actions/_archive/complete/fe-tools-module-result-cache/README.md)（**`complete`**，2026-09-21；D-RC-1..4 冻结已实施）。D-MF-1：方案 A / logic-only。下一步：伞内后续子门或 emit W1。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
@@ -272,3 +272,4 @@ wxml/
 | 2026-09-20 | **M1 complete**：getInvalidatedModules + computeInvalidatedModules 交付；logic-only 闭包（fileKinds seed + getDirectDependents('logic')）；6 测例（5 案 + 批量）；行为 0（仅 model/ + spec）；tsc 0；vitest 594/595（1 flaky pass）。下一步：M2 result-cache 消费本 API 脏集。 |
 | 2026-09-20 | **M2 `draft`**：Module 变换结果缓存立项；承接 M1 脏集 + D-MF-2 缓存宿主另定；4 议题待定（宿主/持久/worker回填/失效触发）。 |
 | 2026-09-20 | **M2 `ready`**：D-RC-1..4 冻结——B（独立 ModuleResultCache）/ α（session-only）/ I（IPC 回填 + 主线程管缓存）/ watch-plan 触发。 |
+| 2026-09-21 | **M2 `complete`**：D-RC-1..4 冻结已实施。新增 `model/module-result-cache.ts`（`ModuleResultCache` 类）；`compileJS` 返回 `{ compileRes, logicDependencies }`；cache hit 用 `cached.logicDependencies` 遍历依赖（非 graph，避免 stale edge）；AST walk 4 处 `addDependency` 后捕获 `logicDeps`；worker 响应含 `compileRes`+`logicDependencies`（仅 dirty）；主线程组装 `CachedModuleResult` 更新 cache（仅 dirty）；`watch-plan.ts` 加 `computeInvalidatedModules`；`watch-runner.ts` 创建 cache 实例 + 传 `build`。验证：tsc 0 errors；vitest 599 pass；行为 0 确认。 |

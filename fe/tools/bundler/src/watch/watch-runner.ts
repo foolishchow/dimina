@@ -1,6 +1,7 @@
 import chokidar from 'chokidar'
 import build from '../index.ts'
 import { createProjectStore } from '../model/project-store.ts'
+import { ModuleResultCache } from '../model/module-result-cache.ts'
 import {
 	createIgnoredPathMatcher,
 	createWatchBuildPlan,
@@ -83,7 +84,9 @@ export function createBuildWatcher({
 		// PS2：活图唯一权威为 ProjectStore——无注入时临时 create 并持有（W2），
 		// 不再维护闭包 dependencyGraph 镜像（W3 删除）。
 		const activeStore = store ?? createProjectStore()
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore }) as { appId: string; [key: string]: unknown }
+		// M2 D-RC-2：session-only cache 实例（随 watch session 存活）
+		const cache = new ModuleResultCache()
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, cache }) as { appId: string; [key: string]: unknown }
 		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId))
 
 		scheduler = createWatchRebuildScheduler({
@@ -111,6 +114,7 @@ export function createBuildWatcher({
 				const result = await build(targetPath, workPath, useAppIdDir, {
 					...options,
 					store: activeStore,
+					cache,
 					...plan.options,
 				})
 				buildResult = result as { appId: string; [key: string]: unknown }

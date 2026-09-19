@@ -44,6 +44,8 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 			compileConfig: options.compileConfig,
 			stageTimeoutMs: options.stageTimeoutMs as number | undefined,
 			collectOutput: typeof onOutput === 'function',  // 兼容字段（worker onMessage 旧版解构，runtime 不用）
+			cache: (() => { const c = (ctx as { cache?: { toJSON: () => [string, unknown][] } }).cache; return c ? new Map(c.toJSON()) : null })(),
+			invalidatedModules: (ctx as { invalidatedModules?: string[] }).invalidatedModules ?? null,
 		},
 		onOutput,
 		onProgress: (completed: number, total: number) => {
@@ -59,6 +61,17 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 		((ctx as { compatibilityWarnings: Set<string> }).compatibilityWarnings).add(warning)
 		if (lifecycle) {
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_WARNING, { message: warning })
+		}
+	}
+
+	// M2 D-RC-3：从 worker 响应更新 cache（仅 dirty 模块）
+	const cacheInstance = (ctx as { cache?: { set: (id: string, val: unknown) => void } }).cache
+	const compileRes = (result as { compileRes?: Array<{ path: string }> }).compileRes
+	const logicDeps = (result as { logicDependencies?: Record<string, string[]> }).logicDependencies
+	if (cacheInstance && compileRes) {
+		for (const info of compileRes) {
+			const deps = logicDeps?.[info.path] ?? []
+			cacheInstance.set(info.path, { compileInfo: info, logicDependencies: deps })
 		}
 	}
 

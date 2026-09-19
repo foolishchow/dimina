@@ -4,7 +4,7 @@ Status: **ready（2026-09-20）** — D-RC-1..4 冻结；改 `src` / `in_progres
 
 ## 1. 继承
 
-来自 [`fe-tools-module-centric` technical-design](../fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
+来自 [`fe-tools-module-centric` technical-design](../../../fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
 
 | # | 条款 |
 | --- | --- |
@@ -25,7 +25,7 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 | `hasCompileInfo` | build 内去重（同次 build 不重编同模块）；跨 build 不保留 |
 | worker 生命周期 | `executor.ts:24` 每 task `new Worker()` + `:29` `terminate()`；**不跨 build 复用**——`WorkerPool` 仅限流 |
 | M1 `computeInvalidatedModules` | 返回脏 moduleId 集；**无消费方** |
-| 旧 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md) | 已归档；显式不做 logic `compileResCache` 内容寻址（D-MC-3 选项 B） |
+| 旧 [`fe-tools-module-cache`](../../../_archive/complete/fe-tools-module-cache/README.md) | 已归档；显式不做 logic `compileResCache` 内容寻址（D-MC-3 选项 B） |
 | `ProjectStore` | 唯一活图权威；图序列化/恢复已有 |
 | `compileResCache`（view） | view-compiler 失败缓存 + minify key（旧 module-cache 交付） |
 

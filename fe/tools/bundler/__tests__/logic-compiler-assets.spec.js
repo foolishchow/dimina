@@ -43,7 +43,7 @@ describe('logic compiler asset paths', () => {
 		`)
 
 		storeInfo(tempDir)
-		const result = await compileJS([{ path: 'pages/index/index' }], null, null, { completedTasks: 0 })
+		const { compileRes: result } = await compileJS([{ path: 'pages/index/index' }], null, null, { completedTasks: 0 })
 		const pageModule = result.find(module => module.path === 'pages/index/index')
 
 		expect(pageModule.code).toContain('/test-app/main/static/')

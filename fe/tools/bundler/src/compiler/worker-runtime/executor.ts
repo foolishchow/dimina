@@ -37,7 +37,7 @@ export function executeTask({ engine, input, onOutput, onProgress }: ExecuteTask
 					await terminateWorker(); reject(new Error(`[executor] ${script} output count mismatch: expected ${message.outputCount}, received ${receivedOutputCount}`)); return
 				}
 				isResolved = true; await terminateWorker()
-				resolve({ dependencyGraph: message.dependencyGraph, compatibilityWarnings: message.compatibilityWarnings || [] })  // F35：result 回传，不碰 ctx
+				resolve({ dependencyGraph: message.dependencyGraph, compatibilityWarnings: message.compatibilityWarnings || [], compileRes: message.compileRes, logicDependencies: message.logicDependencies })  // F35：result 回传，不碰 ctx
 			} else if (message.error) { await terminateWorker(); reject(Object.assign(new Error(message.error.message), message.error)) }
 		})
 		worker.on('error', async (err) => { await terminateWorker(); reject(err) })

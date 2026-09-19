@@ -23,13 +23,15 @@ export function runWorker(engine: Engine): void {
 		abilityContext.run({ sink, logger }, async () => {
 			try {
 				const config = engine.buildConfig(msg as Record<string, unknown>)
-				await engine.compile({ msg, progress: makeProgress(parentPort!), config })
+				const compileResult = await engine.compile({ msg, progress: makeProgress(parentPort!), config })
 				engine.cleanup()
-				parentPort!.postMessage({
+				const response: Record<string, unknown> = {
 					success: true,
 					...engine.successPayload({ logger }),  // F27/F28：payload 归 successPayload（含 dependencyGraph + 可选 compatibilityWarnings）
 					outputCount: sink.count,  // D-WR-6
-				})
+				}
+				if (compileResult) Object.assign(response, compileResult)
+				parentPort!.postMessage(response)
 			}
 			catch (error) {
 				engine.cleanup()

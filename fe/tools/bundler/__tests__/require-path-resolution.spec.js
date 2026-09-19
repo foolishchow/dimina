@@ -93,7 +93,7 @@ describe('Require Path Resolution', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		expect(result.length).toBeGreaterThan(0)
@@ -150,7 +150,7 @@ describe('Require Path Resolution', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/alias-test/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/alias-test/index' }], null, null, progress)
 
 		const pageModule = result.find(module => module.path === 'pages/alias-test/index')
 		expect(pageModule).toBeDefined()
@@ -206,7 +206,7 @@ describe('Require Path Resolution', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		
@@ -261,7 +261,7 @@ describe('Require Path Resolution', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/npm-entry/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/npm-entry/index' }], null, null, progress)
 
 		const modulePaths = result.map(module => module.path)
 		expect(modulePaths).toContain('/miniprogram_npm/westore/index')
@@ -300,7 +300,7 @@ describe('Require Path Resolution', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/bare-local/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/bare-local/index' }], null, null, progress)
 
 		const modulePaths = result.map(module => module.path)
 		expect(modulePaths).toContain('/pages/bare-local/my-behavior')
@@ -341,7 +341,7 @@ describe('Require Path Resolution', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/npm-dir/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/npm-dir/index' }], null, null, progress)
 
 		const modulePaths = result.map(module => module.path)
 		expect(modulePaths).toContain('/miniprogram_npm/@vant/weapp/util/index')
@@ -385,7 +385,7 @@ describe('Require Path Resolution', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/near/index/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/near/index/index' }], null, null, progress)
 
 		const pageModule = result.find(module => module.path === 'pages/near/index/index')
 		expect(pageModule.code).toContain('require("/pages/near/index/miniprogram_npm/westore/local")')
@@ -432,7 +432,7 @@ describe('Require Path Resolution', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/crypto/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/crypto/index' }], null, null, progress)
 
 		const modulePaths = result.map(module => module.path)
 		expect(modulePaths).toContain('/miniprogram_npm/crypto-js/index')
@@ -491,7 +491,7 @@ describe('Require Path Resolution', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		
@@ -553,7 +553,7 @@ describe('Require Path Resolution', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		
@@ -614,7 +614,7 @@ describe('Require Path Resolution', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		

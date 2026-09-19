@@ -65,7 +65,7 @@ describe('Import Statement Support', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		expect(result.length).toBeGreaterThan(0)
@@ -122,7 +122,7 @@ describe('Import Statement Support', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		expect(result.length).toBeGreaterThan(0)
@@ -200,7 +200,7 @@ describe('Import Statement Support', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		expect(result.length).toBeGreaterThan(0)
@@ -251,7 +251,7 @@ describe('Import Statement Support', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/index/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/index/index' }], null, null, progress)
 
 		const modulePaths = result.map(module => module.path)
 		expect(modulePaths).toContain('pages/index/index')
@@ -315,8 +315,8 @@ describe('Import Statement Support', () => {
 
 		const pages = getPages()
 		const progress = { completedTasks: 0 }
-		const mainCompileRes = await compileJS(pages.mainPages, null, null, progress)
-		const subCompileRes = await compileJS(pages.subPages['sub_pages/feature/detail'].info, 'sub_pages/feature/detail', mainCompileRes, progress)
+		const { compileRes: mainCompileRes } = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: subCompileRes } = await compileJS(pages.subPages['sub_pages/feature/detail'].info, 'sub_pages/feature/detail', mainCompileRes, progress)
 
 		const mainModulePaths = mainCompileRes.map(module => module.path)
 		const subModulePaths = subCompileRes.map(module => module.path)

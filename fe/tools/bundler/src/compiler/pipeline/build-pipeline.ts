@@ -75,6 +75,8 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			prepareNpm = true,
 			store: runStore,
 			lifecycle: runLifecycle,
+			cache,
+			invalidatedModules,
 			skipMaterialize,
 		} = runOptions as {
 			targetPath: string
@@ -88,6 +90,8 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			prepareNpm?: boolean
 			store?: unknown
 			lifecycle?: { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
+			cache?: unknown
+			invalidatedModules?: string[]
 			skipMaterialize?: boolean
 		}
 		const store = (runStore ?? providedStore ?? createProjectStore()) as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => { addFile: (n: string, f: string, k: string) => void; toJSON: () => unknown } }
@@ -123,6 +127,8 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 						const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
 						(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, dependencyGraph });
 						(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
+						if (cache) (ctx as { cache: unknown }).cache = cache
+						if (invalidatedModules) (ctx as { invalidatedModules: string[] }).invalidatedModules = invalidatedModules
 						const allPages = getPages()
 						await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
 							fileTypes: ((ctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),

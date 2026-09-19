@@ -9,7 +9,7 @@
  */
 
 import path from 'node:path'
-import { computeAffectedEntries, computeStagesForFiles } from '../model/invalidation.ts'
+import { computeAffectedEntries, computeStagesForFiles, computeInvalidatedModules } from '../model/invalidation.ts'
 
 const WATCH_FILE_EVENTS = new Set(['add', 'change', 'unlink'])
 
@@ -92,7 +92,7 @@ function getPublishedOutputPath(targetPath: string, useAppIdDir: boolean, appId:
  * @param {Map<string, {mtime,size,hash}>} params.prevFingerprints 上次指纹表（可选）
  * @returns {{ skip: boolean, incremental: boolean, options: object, fingerprints: Map }}
  */
-function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string }) {
+function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; getInvalidatedModules: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string }) {
 	if (!changedFiles || changedFiles.length === 0) {
 		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
 	}
@@ -120,6 +120,9 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
 	}
 
+	// M2 D-RC-4：computeInvalidatedModules — dirty moduleId 集
+	const invalidatedModules = computeInvalidatedModules(dependencyGraph, tracked)
+
 	// stages：变更文件的 kind → 需要跑的编译阶段
 	const stages = computeStagesForFiles(dependencyGraph, tracked)
 	if (stages.size === 0) {
@@ -132,6 +135,7 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 		options: {
 			affectedEntries,
 			stages: [...stages],
+			invalidatedModules,
 			seedPath: publishedPath,
 			dependencyGraph: dependencyGraph.toJSON(),
 			prepareConfig: false,

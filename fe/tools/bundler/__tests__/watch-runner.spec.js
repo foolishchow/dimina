@@ -196,6 +196,7 @@ describe('createBuildWatcher', () => {
 			hasFile: () => true,
 			getAffectedEntries: () => ['pages/index/index'],
 			getFileKinds: () => ['logic'],
+			getInvalidatedModules: () => ['pages/index/index'],
 			toJSON: () => ({ nodes: [], edges: [], fileEdges: [] }),
 		}
 		const store = {

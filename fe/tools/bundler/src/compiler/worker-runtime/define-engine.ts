@@ -13,7 +13,7 @@ export interface CompileOptions {
 export interface Engine {
 	name: string
 	buildConfig: (msg: Record<string, unknown>) => Record<string, unknown>
-	compile: (opts: CompileOptions) => Promise<void>
+	compile: (opts: CompileOptions) => Promise<Record<string, unknown> | void>
 	cleanup: () => void
 	successPayload: (ctx: { logger: { warn: (msg: string) => void; flush: () => string[] } }) => Record<string, unknown>
 	normalizeError: (e: Error) => Record<string, unknown>

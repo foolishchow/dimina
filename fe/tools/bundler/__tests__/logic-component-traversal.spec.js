@@ -46,7 +46,7 @@ describe('logic compiler component dependency traversal', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		storeInfo(tempDir)
-		const result = await compileJS(getPages().mainPages, null, null, { completedTasks: 0 })
+		const { compileRes: result } = await compileJS(getPages().mainPages, null, null, { completedTasks: 0 })
 		const paths = result.map(item => item.path)
 
 		expect(paths).toContain('/components/cycle-a')
@@ -66,7 +66,7 @@ describe('logic compiler component dependency traversal', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		storeInfo(tempDir)
-		const result = await compileJS(getPages().mainPages, null, null, { completedTasks: 0 })
+		const { compileRes: result } = await compileJS(getPages().mainPages, null, null, { completedTasks: 0 })
 		const paths = result.map(item => item.path)
 
 		expect(paths).toContain(`/components/logic-depth-${depth - 1}`)

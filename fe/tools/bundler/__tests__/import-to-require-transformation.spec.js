@@ -75,7 +75,7 @@ describe('Import to Require Transformation', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		expect(result.length).toBeGreaterThan(0)
@@ -151,7 +151,7 @@ describe('Import to Require Transformation', () => {
 		}
 		
 		const progress = { completedTasks: 0 }
-		const result = await compileJS(pages.mainPages, null, null, progress)
+		const { compileRes: result } = await compileJS(pages.mainPages, null, null, progress)
 		
 		expect(result).toBeDefined()
 		expect(result.length).toBeGreaterThan(0)
@@ -209,7 +209,7 @@ describe('Import to Require Transformation', () => {
 		storeInfo(tempDir)
 
 		const progress = { completedTasks: 0 }
-		const result = await compileJS([{ path: 'pages/ts-import-equals/index' }], null, null, progress)
+		const { compileRes: result } = await compileJS([{ path: 'pages/ts-import-equals/index' }], null, null, progress)
 
 		const modulePaths = result.map(module => module.path)
 		expect(modulePaths).toContain('/utils/ts-helper')

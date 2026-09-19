@@ -87,4 +87,5 @@
 | 2026-09-20 | M1 fe-tools-module-invalidation 升 **`ready`**（用户授权）；6 轮 readiness review 收敛 |
 | 2026-09-20 | M1 fe-tools-module-invalidation **`complete`**：in_progress → 实施 → complete + 归档（getInvalidatedModules + computeInvalidatedModules + 6 测例；行为 0） |
 | 2026-09-20 | M2 fe-tools-module-result-cache formalize 为 `draft`；承接 M1 脏集 + D-MF-2；4 议题待定 |
+| 2026-09-21 | M2 fe-tools-module-result-cache `complete`（D-RC-1..4 冻结已实施已验证）；伞 D-MF-4 纪律：子门完成不自动改本伞 status |
 | 2026-09-20 | M2 冻结 D-RC-1..4 → 升 **`ready`**：B（独立 ModuleResultCache）/ α（session-only）/ I（IPC 回填）/ watch-plan 触发 |

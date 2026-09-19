@@ -1,13 +1,13 @@
 # FE Tools Module Result Cache（M2 / 刀 3）
 
 - Action: `fe-tools-module-result-cache`
-- Status: `ready`
-- Updated: 2026-09-20
-- Status authority: [Action Status](../STATUS.md)
-- 伞：[fe-tools-module-centric](../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
+- Status: `complete`
+- Updated: 2026-09-21
+- Status authority: [Action Status](../../../STATUS.md)
+- 伞：[fe-tools-module-centric](../../../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
-- 前置：[M1 fe-tools-module-invalidation](../_archive/complete/fe-tools-module-invalidation/README.md)（**complete**；`computeInvalidatedModules` 脏集 API 已交付）；[`project-store`](../_archive/complete/fe-tools-project-store/README.md)（Store 唯一活图权威）；[`incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（Entry 级增量）
+- 前置：[M1 fe-tools-module-invalidation](../../../_archive/complete/fe-tools-module-invalidation/README.md)（**complete**；`computeInvalidatedModules` 脏集 API 已交付）；[`project-store`](../../../_archive/complete/fe-tools-project-store/README.md)（Store 唯一活图权威）；[`incremental-target`](../../../_archive/complete/fe-tools-incremental-target/README.md)（Entry 级增量）
 
 ## 问题陈述
 
@@ -15,7 +15,7 @@ logic 模块变换结果（`CompileInfo = {path, code, map, extraInfoCode}`）�
 
 - `buildJSByPath` 递归收集 `compileRes[]`，无跨 rebuild 缓存
 - M1 交付了模块级脏集查询（`computeInvalidatedModules`），但**无消费方**——脏集有了，没人清缓存 / 跳过重编
-- 旧 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md)（已归档）显式 **不做** logic `compileResCache` 内容寻址（D-MC-3 选项 B）；M2 是另立新 Action
+- 旧 [`fe-tools-module-cache`](../../../_archive/complete/fe-tools-module-cache/README.md)（已归档）显式 **不做** logic `compileResCache` 内容寻址（D-MC-3 选项 B）；M2 是另立新 Action
 
 伞 D-MF-2：缓存宿主另定（不挂图节点）；D-MF-1 条款 2：moduleId = `CompileInfo.path`（= M1 返回集 / cache key）。
 
@@ -57,8 +57,9 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-20 用户授权）。**D-RC-1..4 已冻结**。升 `in_progress` 另授。
-- 仍未授权改产品代码（`ready` 仅文档门；`in_progress` 才授权实施）。
+- 当前 **`complete`**（2026-09-21 用户授权实施）。D-RC-1..4 已冻结 → 已实施 → 已验证。
+- 实施产品代码：`model/module-result-cache.ts`（新增）+ `compiler/logic/index.ts`（compileJS/buildJSByPath/logicCompile）+ `compiler/worker-runtime/define-engine.ts` + `runtime.ts` + `executor.ts` + `compiler/pipeline/stage-channel.ts` + `build-pipeline.ts` + `watch/watch-plan.ts` + `watch/watch-runner.ts`。
+- 验证：tsc 0 errors；vitest 599 pass（含 4 新增 M2 cache 单测）；行为 0 确认（cache hit 输出与无 cache 字节一致）。
 
 ## 闭合条件
 
@@ -80,3 +81,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 2026-09-20 | 三轮 R1 修正：F15 cache 自带 logicDependencies（graph stale edge → 不用 getDirectDependencies 做 dep discovery） |
 | 2026-09-20 | 三轮 R2 修正：F16 响应 logicDependencies scope 仅 dirty；§3.5 cache.set 加「仅 dirty」限定 |
 | 2026-09-20 | 三轮 R3 修正：§3.4 删「idempotent」→ 改「cached 不更新」；§4 executor 行补 `logicDependencies`（F15/F16 传播缺口） |
+| 2026-09-21 | 用户授权 `in_progress` → 实施 → `complete`：新增 `ModuleResultCache` 类；`compileJS`/`buildJSByPath` 加可选 `{ cache, invalidatedModules, logicDependencies }`；cache hit 用 `cached.logicDependencies` 遍历依赖（非 graph）；AST walk 捕获 `logicDeps`；`logicCompile` 返回 `{ compileRes, logicDependencies }`；`runtime.ts` 响应含 `compileRes`+`logicDependencies`；`executor.ts` resolve 含两者；`stage-channel.ts` 传 cache snapshot IPC + 更新 cache；`build-pipeline.ts` 解构 cache/invalidatedModules → ctx；`watch-plan.ts` 加 `computeInvalidatedModules`；`watch-runner.ts` 创建 cache 实例 + 传 build |

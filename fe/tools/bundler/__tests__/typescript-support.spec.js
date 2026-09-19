@@ -75,7 +75,7 @@ Page<PageData>({
 			mainPages: [{ path: 'pages/index/index' }]
 		}
 		
-		const compileRes = await compileJS(pages.mainPages, null, null, { completedTasks: 0 })
+		const { compileRes } = await compileJS(pages.mainPages, null, null, { completedTasks: 0 })
 		
 		// 验证编译结果
 		expect(compileRes).toBeDefined()
@@ -173,7 +173,7 @@ Component<ComponentData, {}, ComponentMethods>({
 			mainPages: pagesInfo.mainPages
 		}
 		
-		const compileRes = await compileJS(pages.mainPages, null, null, { completedTasks: 0 })
+		const { compileRes } = await compileJS(pages.mainPages, null, null, { completedTasks: 0 })
 		
 		// 验证编译结果
 		expect(compileRes).toBeDefined()
@@ -238,7 +238,7 @@ Page({
 			mainPages: [{ path: 'pages/index/index' }]
 		}
 		
-		const compileRes = await compileJS(pages.mainPages, null, null, { completedTasks: 0 })
+		const { compileRes } = await compileJS(pages.mainPages, null, null, { completedTasks: 0 })
 		
 		// 验证编译结果 - 即使有错误也应该有输出
 		expect(compileRes).toBeDefined()
