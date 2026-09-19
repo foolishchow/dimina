@@ -214,6 +214,8 @@ wxml/
 
 **Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/_archive/complete/fe-tools-module-centric/README.md)（**`complete`**，2026-09-21；子门 M1 invalidation + M2 result-cache 全 complete 归档；D-MF-1 封口）。D-MF-1：方案 A / logic-only。M0 emit W1 deferred（S 级，另门可独立先行）。
 
+**Module 收敛路线（2026-09-21）**：后继伞 [`fe-tools-module-convergence`](../actions/fe-tools-module-convergence/README.md)（**`draft`**，2026-09-21；半套资产 → 全套收敛：GraphNode 加 code → view 入图 → BuildModel 派生）。D-MC-1..4 待 review 冻结。
+
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
 | ID | 结论 |
@@ -274,3 +276,4 @@ wxml/
 | 2026-09-20 | **M2 `ready`**：D-RC-1..4 冻结——B（独立 ModuleResultCache）/ α（session-only）/ I（IPC 回填 + 主线程管缓存）/ watch-plan 触发。 |
 | 2026-09-21 | **M2 `complete`**：D-RC-1..4 冻结已实施。新增 `model/module-result-cache.ts`（`ModuleResultCache` 类）；`compileJS` 返回 `{ compileRes, logicDependencies }`；cache hit 用 `cached.logicDependencies` 遍历依赖（非 graph，避免 stale edge）；AST walk 4 处 `addDependency` 后捕获 `logicDeps`；worker 响应含 `compileRes`+`logicDependencies`（仅 dirty）；主线程组装 `CachedModuleResult` 更新 cache（仅 dirty）；`watch-plan.ts` 加 `computeInvalidatedModules`；`watch-runner.ts` 创建 cache 实例 + 传 `build`。验证：tsc 0 errors；vitest 599 pass；行为 0 确认。 |
 | 2026-09-21 | **伞 `fe-tools-module-centric` `complete`**：子门 M1+M2 全 complete 归档；MF0 文档门 pass；D-MF-1 封口（方案 A / logic-only / view·style 排除）。M0 emit W1 deferred（S 级纯重构，另门可独立先行）。 |
+| 2026-09-21 | **伞 `fe-tools-module-convergence` formalize `draft`**：承接 module-centric 伞 complete 后的半套资产收敛。子门 MC1（GraphNode code）→ MC2（view 入图）→ MC3（BuildModel 派生）。D-MC-1..4 待冻结。 |
