@@ -29,15 +29,15 @@
 | 活真源 | 已迁 [`docs/fe-tools/`](../fe-tools/README.md) |
 | 其后 | 可 formalize 下方「1. Module 中心伞」 |
 
-### 1. Module 中心伞 —— ✅ `ready`
+### 1. Module 中心伞 —— ✅ `complete` 已归档
 
 | Field | Value |
 | --- | --- |
-| Action | [`fe-tools-module-centric`](fe-tools-module-centric/README.md) **`ready`** |
+| Action | [`fe-tools-module-centric`](_archive/complete/fe-tools-module-centric/README.md) **✅ complete 已归档** |
 | 北星 | Module 一等公民；图与缓存围着它转；不整包抽 Packer |
-| 近端子门 | M1 [`fe-tools-module-invalidation`](_archive/complete/fe-tools-module-invalidation/README.md) **✅ complete 已归档** → M2 `fe-tools-module-result-cache` **✅ complete 已归档**；（可选）emit W1 |
+| 近端子门 | M1 [`fe-tools-module-invalidation`](_archive/complete/fe-tools-module-invalidation/README.md) **✅ complete 已归档** → M2 [`fe-tools-module-result-cache`](_archive/complete/fe-tools-module-result-cache/README.md) **✅ complete 已归档**；M0 emit W1 deferred |
 | D-MF-1 | **已封口**：方案 A（今日 `CompileInfo.path`）；刀 2 仅 logic；view/style 排除；规范形迁移另门 |
-| 其后 | M1 已 complete 归档；M2 [`fe-tools-module-result-cache`](_archive/complete/fe-tools-module-result-cache/README.md) 已 `complete` 归档（D-RC-1..4 冻结已实施已验证） |
+| 其后 | 伞级 complete 归档；M0 emit W1 另门可独立先行；近端无活跃 Action |
 
 ### 1a. M1 模块级失效 —— ✅ complete 已归档
 

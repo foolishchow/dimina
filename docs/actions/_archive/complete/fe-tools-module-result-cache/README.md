@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../../../STATUS.md)
-- 伞：[fe-tools-module-centric](../../../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
+- 伞：[fe-tools-module-centric](../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 - 前置：[M1 fe-tools-module-invalidation](../../../_archive/complete/fe-tools-module-invalidation/README.md)（**complete**；`computeInvalidatedModules` 脏集 API 已交付）；[`project-store`](../../../_archive/complete/fe-tools-project-store/README.md)（Store 唯一活图权威）；[`incremental-target`](../../../_archive/complete/fe-tools-incremental-target/README.md)（Entry 级增量）

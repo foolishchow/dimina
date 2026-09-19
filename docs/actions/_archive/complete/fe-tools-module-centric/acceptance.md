@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-module-centric
 
-Status: **ready（2026-09-19）** — 伞级文档门 A-MF0..3 pass；改 src 仅经子门。
+Status: **complete（2026-09-21）** — A-MF0..3 全 pass；子门 M1+M2 complete 归档。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

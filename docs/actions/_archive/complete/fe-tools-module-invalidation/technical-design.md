@@ -4,7 +4,7 @@ Status: **草案决策已冻结（2026-09-19）** — T1–T7 按讨论默认封
 
 ## 1. 继承（不可再议）
 
-来自 [`fe-tools-module-centric` technical-design](../../../fe-tools-module-centric/technical-design.md) D-MF-1：
+来自 [`fe-tools-module-centric` technical-design](../fe-tools-module-centric/technical-design.md) D-MF-1：
 
 | # | 条款 |
 | --- | --- |

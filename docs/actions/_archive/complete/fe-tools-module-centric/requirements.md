@@ -1,6 +1,6 @@
 # Requirements — fe-tools-module-centric
 
-Status: **ready（2026-09-19）** — 随 Action `ready`。伞级 MUST；子门细化自有 R-\*。
+Status: **complete（2026-09-21）** — 伞级 MUST 全满足；子门 M1+M2 complete 归档。
 
 ## R-MF0（MUST）Module 词汇
 
@@ -22,7 +22,7 @@ Status: **ready（2026-09-19）** — 随 Action `ready`。伞级 MUST；子门�
 
 ## R-MF3（MUST）回流
 
-- 冻结的 Module / moduleId 语义与子门终态，回流 [`docs/fe-tools/architecture-notes.md`](../../fe-tools/architecture-notes.md)。
+- 冻结的 Module / moduleId 语义与子门终态，回流 [`docs/fe-tools/architecture-notes.md`](../../../../fe-tools/architecture-notes.md)。
 - 不改写 session / CompileTarget / worker-runtime 已交付不变量的语义。
 
 ## R-MF4（MUST）零越权实施

@@ -1,13 +1,13 @@
 # FE Tools Module-Centric（Umbrella）
 
 - Action: `fe-tools-module-centric`
-- Status: `ready`
-- Updated: 2026-09-19
-- Status authority: [Action Status](../STATUS.md)
-- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)（Packer / Scheme）
+- Status: `complete`
+- Updated: 2026-09-21
+- Status authority: [Action Status](../../../STATUS.md)
+- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../../../fe-tools/architecture-notes.md)（Packer / Scheme）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md) · [roadmap](roadmap.md)
 - 工作分支：`feature/fe-tools-sidecar`
-- 前置：[`fe-tools-sidecar`](../_archive/complete/fe-tools-sidecar/README.md) complete；[`boundaries`](../_archive/complete/fe-tools-bundler-boundaries/README.md)；[`emit-layer`](../_archive/complete/fe-tools-bundler-emit-layer/README.md)；[`packer-research`](../_archive/complete/fe-tools-packer-research/README.md)（不立即抽 Packer）
+- 前置：[`fe-tools-sidecar`](../../../_archive/complete/fe-tools-sidecar/README.md) complete；[`boundaries`](../../../_archive/complete/fe-tools-bundler-boundaries/README.md)；[`emit-layer`](../../../_archive/complete/fe-tools-bundler-emit-layer/README.md)；[`packer-research`](../../../_archive/complete/fe-tools-packer-research/README.md)（不立即抽 Packer）
 
 ## 术语
 
@@ -42,7 +42,7 @@
 - 一次统一 view / logic / Store 的全部 Module 表示（TODO A 大收敛推迟到刀 2+3 之后）
 - 改 view / style 车道业务语义；改 `fe/packages`
 - 在本伞直接改 `fe/tools/bundler/src`（无子门授权时）
-- 复活或扩大已归档 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md) 的缩 scope 交付（刀 3 另立新 Action）
+- 复活或扩大已归档 [`fe-tools-module-cache`](../../../_archive/complete/fe-tools-module-cache/README.md) 的缩 scope 交付（刀 3 另立新 Action）
 
 ## 边界
 
@@ -66,7 +66,10 @@
 
 - 当前 **`ready`**（2026-09-19）。D-MF-1 已封口；A-MF0..3 文档门 pass。
 - **仍未授权**改 `fe/tools/bundler/src` / `fe/packages`。未授权子门 `in_progress`。
-- 子门 M1：[`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) **`complete`**（2026-09-20；API 交付 + 6 测例全绿 + 行为 0 + 已归档）。
+- 子门 M1：[`fe-tools-module-invalidation`](../../../_archive/complete/fe-tools-module-invalidation/README.md) **`complete`**（2026-09-20；API 交付 + 6 测例全绿 + 行为 0 + 已归档）。
+- 子门 M2：[`fe-tools-module-result-cache`](../../../_archive/complete/fe-tools-module-result-cache/README.md) **`complete`**（2026-09-21；D-RC-1..4 冻结已实施已验证 + 4 新增单测 + 行为 0 + 已归档）。
+- 可选 M0（emit W1 参数化）：**deferred**——S 级纯重构，不阻塞伞级关闭；另门可独立先行。
+- **伞级 `complete`**（2026-09-21）：子门 M1+M2 全 complete 归档；闭合条件全满足。
 
 ## 闭合条件
 
@@ -78,7 +81,7 @@
 
 | 日期 | 变更 |
 | --- | --- |
-| 2026-09-19 | M1 [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) formalize 为 `draft` |
+| 2026-09-19 | M1 [`fe-tools-module-invalidation`](../../../_archive/complete/fe-tools-module-invalidation/README.md) formalize 为 `draft` |
 | 2026-09-19 | 升 **`ready`**（用户授权）；MF0 冻结；下一步 formalize M1 |
 | 2026-09-19 | review findings：条款 3 明确 logic 闭包归 M1 TD；修订记录去歧义 |
 | 2026-09-19 | **D-MF-1 封口**：方案 A；刀 2 仅 logic；view/style 排除；规范形迁移另门；图不拆表 |
@@ -88,4 +91,5 @@
 | 2026-09-20 | M1 fe-tools-module-invalidation **`complete`**：in_progress → 实施 → complete + 归档（getInvalidatedModules + computeInvalidatedModules + 6 测例；行为 0） |
 | 2026-09-20 | M2 fe-tools-module-result-cache formalize 为 `draft`；承接 M1 脏集 + D-MF-2；4 议题待定 |
 | 2026-09-21 | M2 fe-tools-module-result-cache `complete`（D-RC-1..4 冻结已实施已验证）；伞 D-MF-4 纪律：子门完成不自动改本伞 status |
+| 2026-09-21 | **伞级 `complete`**：子门 M1+M2 全 complete 归档；M0 emit W1 deferred（S 级，另门可独立先行）；闭合条件全满足（MF0 交付 + A-MF0..3 pass + 持久发现已回流 architecture-notes） |
 | 2026-09-20 | M2 冻结 D-RC-1..4 → 升 **`ready`**：B（独立 ModuleResultCache）/ α（session-only）/ I（IPC 回填）/ watch-plan 触发 |

@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-20
 - Status authority: [Action Status](../../../STATUS.md)
-- 伞：[fe-tools-module-centric](../../../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
+- 伞：[fe-tools-module-centric](../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 - 前置：[`boundaries`](../../../_archive/complete/fe-tools-bundler-boundaries/README.md)；[`emit-layer`](../../../_archive/complete/fe-tools-bundler-emit-layer/README.md)；[`incremental-target`](../../../_archive/complete/fe-tools-incremental-target/README.md)（Entry 级 `affectedEntries` 保留）

@@ -4,7 +4,7 @@ Status: **complete（2026-09-21）** — D-RC-1..4 冻结已实施已验证。
 
 ## 1. 继承
 
-来自 [`fe-tools-module-centric` technical-design](../../../fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
+来自 [`fe-tools-module-centric` technical-design](../fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
 
 | # | 条款 |
 | --- | --- |

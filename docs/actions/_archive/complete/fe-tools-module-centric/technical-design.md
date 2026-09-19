@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-module-centric
 
-Status: **ready（2026-09-19）** — 伞级决策冻结；子门详细设计另文。**D-MF-1 已封口**。本伞 `ready` **不**授权改 src；formalize / 实施 M1 另授。
+Status: **complete（2026-09-21）** — 伞级决策已冻结；子门 M1+M2 complete 归档。 — 伞级决策冻结；子门详细设计另文。**D-MF-1 已封口**。本伞 `ready` **不**授权改 src；formalize / 实施 M1 另授。
 
 ## 1. 北星
 
@@ -83,4 +83,4 @@ Scheme 仍负责：编哪些页、车道、何时调用上述能力。
 
 ## 待定
 
-伞级无。子门 M1 见 [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/technical-design.md) T1–T7。
+伞级无。子门 M1 见 [`fe-tools-module-invalidation`](../../../_archive/complete/fe-tools-module-invalidation/technical-design.md) T1–T7。
