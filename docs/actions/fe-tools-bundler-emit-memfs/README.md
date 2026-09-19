@@ -20,8 +20,8 @@ dev 模式：worker → postEntry → BuildModel.add → materialize 写盘 → 
 
 ### 病症（P-MM1）：dev 模式产物落盘往返
 
-- `materialize`（build-pipeline L181）把 BuildModel.entries 刷盘到 targetPath
-- dev server（dev-server.ts L150-168）`fs.readFile(serveRoot=targetPath/...)` 从盘读产物 serve
+- `materialize`（build-pipeline L195）把 BuildModel.entries 刷盘到 targetPath
+- dev server（dev-server.ts L155 路径解析 → L173 `fs.readFile`）`fs.readFile(serveRoot=targetPath/...)` 从盘读产物 serve
 - 真机/热更新延迟来自落盘 + 读盘往返；BuildModel.entries 本身已是内存 Map，却要先落盘再读盘
 
 ## Goal（阶段 2：dev memfs）
