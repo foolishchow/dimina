@@ -23,3 +23,4 @@ Status: **ready（2026-09-20）**
 | --- | --- |
 | 2026-09-20 | 立项 `draft`：承接伞 D-MF-2 / 刀 3；M1 complete 后 formalize。 |
 | 2026-09-20 | **冻结** D-RC-1..4 → 升 `ready`：B/α/I/watch-plan；P-RC00 / A-RC0 + P-RC01 / A-RC1 pass。 |
+| 2026-09-20 | R1 readiness review（fail→修正）：F1 CompileInfo 7 字段；F2 ephemeral worker cache snapshot IPC；F3 stale「待拍板」；F4 注释归属。全修。 |

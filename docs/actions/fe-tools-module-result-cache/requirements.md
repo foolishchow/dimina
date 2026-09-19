@@ -5,12 +5,12 @@ Status: **ready（2026-09-20）** — D-RC-1..4 已冻；随 Action `ready`。
 ## R-RC0（MUST）遵守伞 D-MF-1 / D-MF-2
 
 - cache key = `moduleId` = logic `CompileInfo.path`（方案 A；与 M1 一致）。
-- 缓存宿主**不挂图节点**（D-MF-2）；另定宿主（待 RC0 拍板）。
+- 缓存宿主**不挂图节点**（D-MF-2）；独立 `ModuleResultCache` 对象（D-RC-1 冻结 B）。
 - 不改 emit / runtime id；不拆 `DependencyGraph` 结构。
 
 ## R-RC1（MUST）跨 rebuild 缓存
 
-- 缓存 logic `CompileInfo`（`{path, code, map, extraInfoCode}`）。
+- 缓存 logic 完整 `CompileInfo`（`{path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?}`）。
 - rebuild 时消费 M1 `computeInvalidatedModules(graph, changedFiles)` → 脏集 → 清缓存 → 只重编脏模块。
 - clean 模块命中缓存，跳过 transform。
 

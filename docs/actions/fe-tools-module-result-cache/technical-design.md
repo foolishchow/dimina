@@ -21,8 +21,9 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 | 资产 | 现状 |
 | --- | --- |
 | `buildJSByPath`（logic/index.ts） | 递归收集 `compileRes: CompileInfo[]`；无跨 rebuild 缓存 |
-| `CompileInfo` | `{path, code, map, extraInfoCode}`；path = moduleId（方案 A） |
+| `CompileInfo` | 7 字段：`{path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?}`；path = moduleId（方案 A） |
 | `hasCompileInfo` | build 内去重（同次 build 不重编同模块）；跨 build 不保留 |
+| worker 生命周期 | `executor.ts:24` 每 task `new Worker()` + `:29` `terminate()`；**不跨 build 复用**——`WorkerPool` 仅限流 |
 | M1 `computeInvalidatedModules` | 返回脏 moduleId 集；**无消费方** |
 | 旧 [`fe-tools-module-cache`](../_archive/complete/fe-tools-module-cache/README.md) | 已归档；显式不做 logic `compileResCache` 内容寻址（D-MC-3 选项 B） |
 | `ProjectStore` | 唯一活图权威；图序列化/恢复已有 |
@@ -38,24 +39,26 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 - 形态：`class ModuleResultCache { get(moduleId): CompileInfo | undefined; set(moduleId, info): void; has(moduleId): boolean; delete(moduleId): void; clear(dirtySet): void; size: number }`
 - 落点：`model/module-result-cache.ts`（并列 `dependency-graph.ts` / `invalidation.ts`）。
 - 注入点：`compileJS(pages, root, mainCompileRes, progress, { cache?, invalidatedModules? })` — 可选参数；不传时退化为全量重算。
+- **缓存完整 `CompileInfo`**（7 字段：`path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?`）——非仅 emit 4 字段；cache hit 须保留 `sourceFile`/`component`/`usingComponents` 供遍历/元数据。
 
 ### 3.2 持久策略（D-RC-2）
 
 **决策：α — session-only（watch 长驻）**
 
 - watch 是主场景；进程内跨 rebuild 复用；进程退出丢弃。
-- `createWatchBuildPlan` 已预留 `fingerprints: new Map()`（注释「M2 后续接入」）。
+- `createWatchBuildPlan` 返回 `fingerprints: new Map()`（空占位；注释「M2 后续接入」指 build-model M2，非本 Action）。
 - β（序列化持久）需模块级 fingerprint 下沉（依赖 Module 大对象统一，属另门）；β 作为后续门。
 
 ### 3.3 worker 回填（D-RC-3）
 
-**决策：I — IPC 回填 + 主线程管缓存**
+**决策：I — cache snapshot 经 IPC 传入 ephemeral worker；主线程管缓存实例**
 
-- 缓存在主线程 `ModuleResultCache` 实例。
-- `createWatchBuildPlan` 只传 dirty 集（`string[]`，小）给 worker。
-- `buildJSByPath` 内消费：`if cache.has(moduleId) && !invalidatedModules.has(moduleId) → 用 cached CompileInfo（skip transform）`。
-- worker 只编译 dirty 模块 → 返回 compileRes → 主线程更新 cache。
-- IPC 成本：dirty 集小；返回量 = 只重编脏模块（远小于全量）。
+- **worker 生命周期**（源码事实）：`executor.ts:24` 每 `executeTask` `new Worker()`；`:29,39,43` 任务后 `worker.terminate()`。worker **不跨 build 复用**——`WorkerPool` 仅并发限流。cache 不能靠 worker 自维护。
+- **cache 实例**：主线程 `ModuleResultCache`（session-scoped，随 `activeStore` 同生命周期在 watch-runner 创建）。
+- **IPC 传入**：cache snapshot（`[moduleId, CompileInfo][]` 或 `toJSON()`）经 `msg` 传入 worker——同 `dependencyGraph.toJSON()` / `storeInfo` 模式。同时传 `invalidatedModules: string[]`（dirty 集，小）。
+- **`buildJSByPath` 内消费**：worker 收到 cache snapshot + dirty 集 → `if cache.has(moduleId) && !invalidatedModules.has(moduleId) → 用 cached CompileInfo（skip transform）` → 否则 transform → `cache.set(moduleId, info)`。
+- **返回**：worker 返回 **full compileRes**（cached + dirty，同今日格式）→ 主线程从返回结果更新 cache（idempotent：cached 条目覆写同值，dirty 条目写入新值）。
+- **IPC 成本**：输入 = cache snapshot（∝ 全模块 code 量）+ dirty 集（小）；输出 = full compileRes（同今日）。**省的是 compute（skip transform），非 IPC**。
 
 ### 3.4 失效触发（D-RC-4）
 
@@ -64,6 +67,7 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 - 同位加 `computeInvalidatedModules`（2 行）；与现有 `computeAffectedEntries` 并列。
 - `dependencyGraph` 结构类型加 `getInvalidatedModules: (f: string) => string[]`（M1 已交付）。
 - 流入路径：`options.invalidatedModules` → `build()` → pipeline → `compileJS({ cache, invalidatedModules })` → `buildJSByPath` 内消费。
+- **cache 实例生命周期**：watch-runner 创建 `ModuleResultCache()`（同 `activeStore`）；经 `build(options: { ..., cache })` → pipeline `msg` → worker `logicCompile` → `compileJS({ cache, invalidatedModules })`。首次 build：cache 空 → 全量编译 → 主线程从返回 compileRes 填充 cache。rebuild：cache 有上次结果 → 传 snapshot + dirty 集 → worker skip clean → 返回 full compileRes → 主线程更新 cache。
 
 ### 3.5 两级过滤全景
 
@@ -98,7 +102,8 @@ buildJSByPath(page):
 | `compiler/logic/index.ts` | `buildJSByPath` / `compileJS` — M2 接入点（cache 检查 + 跳过 transform） |
 | `watch/watch-plan.ts` | `createWatchBuildPlan` — M2 触发点（加 `computeInvalidatedModules`） |
 | `ProjectStore` | 图权威（不挂 code；D-MF-2） |
-| `watch/watch-runner.ts` | 重建调度（M2 不改接线；plan 产出 dirty 集） |
+| `watch/watch-runner.ts` | 重建调度；**cache 实例创建**（同 `activeStore` 生命周期）→ 传 `build(options.cache)` |
+| `compiler/worker-runtime/executor.ts` | ephemeral worker（`new Worker()`+`terminate()`/task）；cache snapshot 经 IPC 传入 |
 
 ## 5. 明确不做
 
@@ -115,7 +120,7 @@ buildJSByPath(page):
 | --- | --- |
 | **D-RC-1** | 缓存宿主：**B** — 独立 `ModuleResultCache` 对象（`model/module-result-cache.ts`）；不挂图节点、不混 Store |
 | **D-RC-2** | 持久策略：**α** — session-only（watch 长驻）；β 需 fingerprint 下沉（另门） |
-| **D-RC-3** | worker 回填：**I** — 主线程管缓存；worker 只收 dirty 集、只编译脏模块；IPC 回填后主线程更新 cache |
+| **D-RC-3** | worker 回填：**I** — cache snapshot 经 IPC 传入 ephemeral worker（同 `dependencyGraph.toJSON()` 模式）；主线程管缓存实例；worker 只编译脏模块；返回 full compileRes；主线程更新 cache（省 compute 非 IPC） |
 | **D-RC-4** | 失效触发：`createWatchBuildPlan`（watch-plan.ts）同位加 `computeInvalidatedModules`；dirty 集经 `options` 流入 `compileJS` |
 
 ## 待定
