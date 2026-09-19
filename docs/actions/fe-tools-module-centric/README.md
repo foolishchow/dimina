@@ -86,3 +86,4 @@
 | 2026-09-20 | review M1 R4 修复：roadmap + TD 两处 T1–T5→T1–T7（M1 实际冻结 7 议题 → D-IV-1..9） |
 | 2026-09-20 | M1 fe-tools-module-invalidation 升 **`ready`**（用户授权）；6 轮 readiness review 收敛 |
 | 2026-09-20 | M1 fe-tools-module-invalidation **`complete`**：in_progress → 实施 → complete + 归档（getInvalidatedModules + computeInvalidatedModules + 6 测例；行为 0） |
+| 2026-09-20 | M2 fe-tools-module-result-cache formalize 为 `draft`；承接 M1 脏集 + D-MF-2；4 议题待定 |

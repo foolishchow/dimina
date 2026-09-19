@@ -37,7 +37,7 @@
 | 北星 | Module 一等公民；图与缓存围着它转；不整包抽 Packer |
 | 近端子门 | M1 [`fe-tools-module-invalidation`](_archive/complete/fe-tools-module-invalidation/README.md) **✅ complete 已归档** → M2 `fe-tools-module-result-cache`；（可选）emit W1 |
 | D-MF-1 | **已封口**：方案 A（今日 `CompileInfo.path`）；刀 2 仅 logic；view/style 排除；规范形迁移另门 |
-| 其后 | M1 已 complete 归档；下一步 formalize M2 `fe-tools-module-result-cache`；伞不授权改 src |
+| 其后 | M1 已 complete 归档；M2 [`fe-tools-module-result-cache`](fe-tools-module-result-cache/README.md) 已 formalize `draft`（4 议题待定）；伞不授权改 src |
 
 ### 1a. M1 模块级失效 —— ✅ complete 已归档
 

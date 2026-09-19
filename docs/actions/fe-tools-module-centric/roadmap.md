@@ -12,7 +12,7 @@ D-MF-1 moduleId 封口 ✓
 M1 fe-tools-module-invalidation（刀 2）← **`complete`**；T1–T7 已冻 + 已实施
         │
         ▼
-M2 fe-tools-module-result-cache（刀 3）
+M2 fe-tools-module-result-cache（刀 3）← **`draft`**；D-RC-1..4 待定
         │
         ▼
 伞 close（子门 complete 或书面降级）
@@ -23,5 +23,5 @@ M2 fe-tools-module-result-cache（刀 3）
 | MF0 本伞 | **`ready`**（2026-09-19） |
 | D-MF-1 | **已封口**（方案 A；logic-only；view/style 排除；规范形另门） |
 | M1 invalidation | **`complete`**（2026-09-20；D-IV 已实施）→ [README](../_archive/complete/fe-tools-module-invalidation/README.md) |
-| M2 result-cache | 未 formalize |
+| M2 result-cache | **`draft`**（D-RC-1..4 待定）→ [README](../fe-tools-module-result-cache/README.md) |
 | M0 emit W1 | 可选 |
