@@ -16,7 +16,7 @@ Status: **draft（2026-09-20）**
 | V-PR05 | A-PR5 | technical-design.md §2 4 焊点评估完备 | 文档审阅 | technical-design.md §2 | pending |
 | V-PR06 | A-PR6 | technical-design.md §4 提取序列完备 | 文档审阅 | technical-design.md §4 | pending |
 | V-PR07 | A-PR7 | technical-design.md §3 API 草案完备 | 文档审阅 | technical-design.md §3 | pending |
-| V-PR08 | A-PR8 | technical-design.md §5/§6 决策建议完备 | 文档审阅 | technical-design.md | pending |
+| V-PR08 | A-PR8 | technical-design.md §3+§4 / §5 决策建议完备（值得:API+序列; 不值得:替代方案） | 文档审阅 | technical-design.md | pending |
 | V-PR09 | A-PR9 | technical-design.md §7 风险清单完备（行为 0 / 测试覆盖 / 回归） | 文档审阅 | technical-design.md §7 | pending |
 | V-PR10 | A-PR8 | architecture-notes 回流（若值得做）或封存记录（若不值得） | architecture-notes 更新 | architecture-notes diff | pending |
 | V-PR11 | 范围 | research only — `git diff fe/tools/bundler/` 无产品代码变更 | `git diff --stat` | git diff | pending |

@@ -11,5 +11,5 @@ Status: **draft（2026-09-20）**
 | A-PR5 | R-PR5 | 4 焊点可抽提性评估逐个有结论（容易/需接口设计/极难/不值得） | technical-design.md §2 | pending |
 | A-PR6 | R-PR6 | 提取序列建议（或：不提取建议）有依赖顺序 | technical-design.md §4 | pending |
 | A-PR7 | R-PR7 | Packer API 草案 TypeScript interface 完备 | technical-design.md §3 | pending |
-| A-PR8 | R-PR8 | 决策建议（值得/不值得）有证据 + 工作量估算 | technical-design.md §5 或 §6 | pending |
+| A-PR8 | R-PR8 | 决策建议（值得/不值得）有证据 + 工作量估算 | technical-design.md §3+§4 或 §5 | pending |
 | A-PR9 | R-PR9 | 风险清单完备：行为 0 风险 + 测试覆盖风险 + 回归风险，逐项有影响评估 | technical-design.md §7 | pending |
