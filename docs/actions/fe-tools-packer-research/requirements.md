@@ -14,11 +14,11 @@ emit.ts 的 `emitEntry` / `EmitModule` / `ModuleCollection` / `EmitEntryParams` 
 
 ### R-PR2（MUST）— logic/index.ts 方法级分析
 
-logic/index.ts 的 Packer 胚（parseSync → walk → import/require 收集 → MagicString → esbuild.transform → remapSourcemap）与 Scheme 调用（`getDependencyGraph` ×9 / `getComponent` / `getAppId` / `resolveAppAlias` 等）能否分离？Scheme 调用能抽成 Packer 的 hooks/callbacks 吗？
+logic/index.ts 的 Packer 胚（parseSync → walk → import/require 收集 → MagicString → esbuild.transform → remapSourcemap）与 Scheme 调用（`getDependencyGraph` ×8 / `getComponent` / `getAppId` / `resolveAppAlias` 等）能否分离？Scheme 调用能抽成 Packer 的 hooks/callbacks 吗？
 
 ### R-PR3（MUST）— env.ts 方法级分析
 
-env.ts 965 行、26 exports、15 文件扇入。哪些 exports 是 Packer 侧（graph/paths/npm）、哪些是 Scheme 侧（project/page/component/config）、哪些是共用基础设施（AsyncLocalStorage）？`runWithCompilerContext` 归谁？总线能拆成 PackerContext + SchemeContext 吗？
+env.ts 965 行、26 exports、15 文件扇入。哪些 exports 是 Packer 侧（npm/alias）、哪些是共用（graph/paths/config/identity/runtime）、哪些是 Scheme 侧（project/page/component/template）、哪些是共用基础设施（AsyncLocalStorage）？`runWithCompilerContext` 归谁？总线能拆成 PackerContext + SchemeContext 吗？
 
 ### R-PR4（MUST）— dependency-graph.ts 方法级分析
 
