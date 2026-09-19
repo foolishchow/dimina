@@ -2,7 +2,7 @@
 
 Status: **讨论地图（2026-09-14）**  
 Authority: 本文件为梳理地图；不授权实施。下一刀决策见 §下一刀。  
-Scope: `@dimina/bundler`（`fe/tools/bundler`）在 [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) 交付之后的残余散点。  
+Scope: `@dimina/bundler`（`fe/tools/bundler`）在 [`fe-tools-compiler-target`](../actions/_archive/complete/fe-tools-compiler-target/README.md) 交付之后的残余散点。  
 **不做**：第二 renderer、真 web target 产品能力、为空而造的 adapter 接口。
 
 ## 已收口（不当作开放病症）
@@ -58,7 +58,7 @@ session PIPELINE_OPTION_KEYS ─┘              │
 
 目标是**梳理逻辑**；模板 IR 路径额外以「能换 Backend」为硬验收（见 fe-tools-wxml-ir）：
 
-- **优先 / 并列**：E7 簇（S1/S2/S3/S9）— [`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（`draft`）；TS-2（S13）— [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**；S14 非目标；style 侧书面剩余）
+- **优先 / 并列**：E7 簇（S1/S2/S3/S9）— [`fe-tools-incremental-target`](../actions/_archive/complete/fe-tools-incremental-target/README.md)（`draft`）；TS-2（S13）— [`fe-tools-wxml-ir`](../actions/_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**；S14 非目标；style 侧书面剩余）
 - **其次**：Listr 与阶段语义拆缝（S5/S6）— 可测性
 - **勿单独做**：为 platform/renderer 造空 adapter；S10 说明 platform 轴还没有真消费者
 
@@ -66,8 +66,8 @@ session PIPELINE_OPTION_KEYS ─┘              │
 
 | 项 | 值 |
 | --- | --- |
-| 选定（增量） | **E7** — [`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（`draft`） |
-| 并列（模板） | **TS-2 / S13** — [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**：view 缝交付；style 剩余另议） |
+| 选定（增量） | **E7** — [`fe-tools-incremental-target`](../actions/_archive/complete/fe-tools-incremental-target/README.md)（`draft`） |
+| 并列（模板） | **TS-2 / S13** — [`fe-tools-wxml-ir`](../actions/_archive/complete/fe-tools-wxml-ir/README.md)（**complete 已归档**：view 缝交付；style 剩余另议） |
 | 另立 | Listr/BP2（S5/S6） |
 
 ## 修订记录

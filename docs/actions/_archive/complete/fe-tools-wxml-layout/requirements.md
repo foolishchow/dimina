@@ -33,4 +33,4 @@ Status: **冻结（2026-09-15）** — D-WL-1..9 已拍板；随 Action `ready`�
 ## R-WL5（MUST）证据与回流
 
 - 消融：破坏目录不变量或错误阶段 import（如 load import cheerio）须可观测失败（Experience §6，能消融则消融）。
-- 持久目录不变量回流 `fe-tools-sidecar/architecture-notes.md`。
+- 持久目录不变量回流 `docs/fe-tools/architecture-notes.md`。

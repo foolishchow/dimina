@@ -102,4 +102,4 @@ Service 与 Render 运行在不同线程或执行环境中，JavaScript 微任�
 
 ## 11. FE tools 旁路与 packages 同构
 
-私有 toolchain 落在 `fe/tools/*`；`fe/packages/*` 与已对齐的 `origin/main`（didi）保持同构，禁止长期私有 improve。上游同步先 merge 进工作分支的 packages，再按需 port 到 tools 副本。操作清单与可检查句见 `docs/actions/fe-tools-sidecar/sync-rhythm.md`。
+私有 toolchain 落在 `fe/tools/*`；`fe/packages/*` 与已对齐的 `origin/main`（didi）保持同构，禁止长期私有 improve。上游同步先 merge 进工作分支的 packages，再按需 port 到 tools 副本。操作清单与可检查句见 `docs/fe-tools/sync-rhythm.md`。

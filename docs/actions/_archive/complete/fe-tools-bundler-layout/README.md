@@ -5,8 +5,8 @@
 - Updated: 2026-09-12（L0–L3 闭合；归档）
 - Authorized: 2026-09-12
 - Status authority: [Action Status](../../../STATUS.md)
-- 关系：独立卫生 / 结构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；与已归档 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md) 互补。
-- 工作分支：[`feature/fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)
+- 关系：独立卫生 / 结构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；与已归档 [`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md) 互补。
+- 工作分支：[`feature/fe-tools-sidecar`](../fe-tools-sidecar/README.md)
 - 设计权威：[layout.draft.md](./layout.draft.md)（归属表已冻）+ 本 README **D-BL-***。
 
 ## 实际交付摘要（闭合口径，2026-09-12）

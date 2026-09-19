@@ -4,9 +4,9 @@
 - Status: `complete`
 - Updated: 2026-09-10（O1–O3 交付 + 消融×3 + 独立复核；闭合并归档）
 - Status authority: [Action Status](../../../STATUS.md)
-- 关系：独立架构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。与 [`fe-tools-bundler-unvite`](../fe-tools-bundler-unvite/README.md) 无依赖（已 complete）。
+- 关系：独立架构 Action（**不是** umbrella 子门）。背景见 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；闭合不依赖伞 `ready`。与 [`fe-tools-bundler-unvite`](../fe-tools-bundler-unvite/README.md) 无依赖（已 complete）。
 - 曾用名：`fe-tools-bundler-core`（讨论中改名：本门是**会话/编排门面**，不是编译内核或插件宿主）。
-- 工作分支建议：长线 [`feature/fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)，或短分支 `feature/fe-tools-bundler-session`。
+- 工作分支建议：长线 [`feature/fe-tools-sidecar`](../fe-tools-sidecar/README.md)，或短分支 `feature/fe-tools-bundler-session`。
 - 设计权威：已随实施落地——`fe/tools/bundler/src/session/` 为实现真源；本文档集（探针 + [technical-design](technical-design.md)）转为历史设计记录。
 
 ## Positioning

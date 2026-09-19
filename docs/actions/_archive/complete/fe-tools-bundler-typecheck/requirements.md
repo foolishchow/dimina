@@ -41,4 +41,4 @@ Status: **冻结（2026-09-15）** — D-TC-1..10 已拍板；随 Action `ready`
 ## R-TC4（MUST）证据与回流
 
 - 消融：去掉某白名单文件的 `// @ts-check` **不**作为失败判据；应以「故意破坏一处 typedef / 参数类型使 `tsc` 报错 → 恢复通过」证明门禁有效（Experience §6）。
-- 短回流 `fe-tools-sidecar/architecture-notes.md`：bundler 类型门禁不变量（allowJs、CI typecheck、S1 白名单边界、集中 typedef）。
+- 短回流 `docs/fe-tools/architecture-notes.md`：bundler 类型门禁不变量（allowJs、CI typecheck、S1 白名单边界、集中 typedef）。

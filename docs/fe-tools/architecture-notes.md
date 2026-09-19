@@ -1,7 +1,7 @@
 # Architecture notes — session / ProjectStore / BuildPipeline
 
 Status: **discussion consensus**（2026-09-12）  
-Authority pointers: [`fe-tools-project-store`](../_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../_archive/complete/fe-tools-compiler-target/README.md) · [`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（draft） · [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（**ready** · TS-2） · [compiler-symptom-inventory](./compiler-symptom-inventory.md) · 已归档 session
+Authority pointers: [`fe-tools-project-store`](../actions/_archive/complete/fe-tools-project-store/README.md) · [`fe-tools-build-pipeline`](../actions/_archive/complete/fe-tools-build-pipeline/README.md) · [`fe-tools-session-unify`](../actions/_archive/complete/fe-tools-session-unify/README.md) · [`fe-tools-compiler-target`](../actions/_archive/complete/fe-tools-compiler-target/README.md) · [`fe-tools-incremental-target`](../actions/_archive/complete/fe-tools-incremental-target/README.md)（draft） · [`fe-tools-wxml-ir`](../actions/_archive/complete/fe-tools-wxml-ir/README.md)（**ready** · TS-2） · [compiler-symptom-inventory](./compiler-symptom-inventory.md) · 已归档 session
 
 ## 唯一会话管理者
 
@@ -101,7 +101,7 @@ BuildPipeline「编译项目」闭包只消费 plan.stageSpecs（不再散算形
 
 **E1 不变量**：管线侧必须自调 `resolveCompileConfig`（直调 `build()` 自洽，L3）；session 层另经 `resolveBundlerConfig`（D-R2 seeds）——两合法路径，同一纯函数；不得在 pipeline 内联 `MODE_PRESETS` / `sourcemapStrategyFor` / 平台私算。
 
-**残余（E7 · 近端 draft）**：watch-plan / compile-cache 的碎片 `plan.options` 回灌仍使增量路径绕开形态单源——见 [`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md) 与 [compiler-symptom-inventory](./compiler-symptom-inventory.md) S1/S2/S3/S9。
+**残余（E7 · 近端 draft）**：watch-plan / compile-cache 的碎片 `plan.options` 回灌仍使增量路径绕开形态单源——见 [`fe-tools-incremental-target`](../actions/_archive/complete/fe-tools-incremental-target/README.md) 与 [compiler-symptom-inventory](./compiler-symptom-inventory.md) S1/S2/S3/S9。
 
 ## WXML 模板缝（fe-tools-wxml-ir · 已交付 2026-09-14；目录轴见 layout）
 
@@ -210,7 +210,7 @@ wxml/
 
 后续架构文档沿用这对术语。包名、目录名 `compiler/logic` 保持不变，直到另有 Action 改名。
 
-**落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../_archive/complete/fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
+**落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../actions/_archive/complete/fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 

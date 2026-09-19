@@ -8,7 +8,7 @@ Status: **in_progress（2026-09-14）** — W0..W2 实施中；基线 `d75f001a`
 | --- | --- | --- |
 | 1 | `fe/tools/crates/dimina-wxml-parser/VENDOR.md` | 溯源 + 同步责任 + docs 主从 + 桥约束（D-WB-5） |
 | 2 | `fe/tools/crates/Cargo.toml` + `.gitignore` + **Cargo.lock** | workspace 正式化（继承字段、members、target/ 忽略）——已落地复验；**Cargo.lock 提交**（可复现构建，钉住 swc 依赖树；`fe/.gitignore` 加 `!tools/crates/Cargo.lock` 例外；W1 加 serde/napi 依赖时更新） |
-| 3 | `docs/actions/fe-tools-sidecar/architecture-notes.md` | **D-WIR-1 修订入档**（D-WB-2；oxc 先例、单 crate 边界、`fe/packages` 禁触） |
+| 3 | `docs/fe-tools/architecture-notes.md` | **D-WIR-1 修订入档**（D-WB-2；oxc 先例、单 crate 边界、`fe/packages` 禁触） |
 | 4 | 验证 | `cargo test`（workspace）483 绿；validator 全绿；docs 主从声明在 VENDOR |
 
 ## W1 触达序（napi 桥 + SpanView）

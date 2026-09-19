@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-boundaries
 
-Status: **草案（2026-09-18）** — 职责 D-BD-1..6 已写入。落点表已填完。术语见 [architecture-notes](../../../fe-tools-sidecar/architecture-notes.md)。
+Status: **草案（2026-09-18）** — 职责 D-BD-1..6 已写入。落点表已填完。术语见 [architecture-notes](../../../../fe-tools/architecture-notes.md)。
 
 ## 1. 职责（本门要冻的）
 

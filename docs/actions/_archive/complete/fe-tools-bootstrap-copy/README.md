@@ -7,7 +7,7 @@
 - Authorized: 2026-09-10（对齐 origin/main → tag → 开分支实施）
 - Archived: 2026-09-10
 - Status authority: [Action Status](../../../STATUS.md)
-- 关系：独立 Action（**不是**任何 umbrella 的子门）。策略背景可对照 [`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md)；本门闭合不依赖该伞 `ready`。
+- 关系：独立 Action（**不是**任何 umbrella 的子门）。策略背景可对照 [`fe-tools-sidecar`](../fe-tools-sidecar/README.md)；本门闭合不依赖该伞 `ready`。
 - 设计权威：本目录文档；命名/终态约定见下方 **D-BC-***（与 sidecar 伞 TS-0 对齐，但以本 Action 为准）。
 - Draft review：#1 + #2（2026-09-10）→ `ready` → 实施 → **`complete`**。
 
@@ -82,7 +82,7 @@
 | --- | --- |
 | `docs/actions/fe-tools-bootstrap-copy/**` | 本 Action（MUST） |
 | `docs/actions/STATUS.md` / `TODO.md` / `README.md` 中与本 Action 相关的行 | MUST；**禁止**用 improve 整文件盲覆盖干净 main 上已有 STATUS（合并本 Action 行，保留 main 既有行） |
-| **MAY**：`docs/actions/fe-tools-sidecar/**` | 非本门闭合条件 |
+| **MAY**：`docs/fe-tools/**`（原伞活真源；现项目文档） | 非本门闭合条件 |
 | **SHOULD**：`docs/actions/_archive/complete/**`（improve 归档）+ `docs/Compiler-Architecture-RFC.md` improve 增量 | 历史可追溯 |
 
 **不默认**整份 `docs/` 无差别覆盖。
@@ -153,4 +153,4 @@
 | [requirements](requirements.md) | MUST |
 | [acceptance](acceptance.md) | 验收表 |
 | [validation](validation.md) | 计划命令与证据 |
-| （可选对照）[fe-tools-sidecar](../../../fe-tools-sidecar/README.md) | 后续战略伞；非父门 |
+| （可选对照）[fe-tools-sidecar](../fe-tools-sidecar/README.md) | 后续战略伞；非父门 |

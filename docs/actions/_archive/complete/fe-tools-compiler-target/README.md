@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-14（T0+T1+T2 交付；A-CT0..06 全 pass；消融 ×3；回流完成；归档）
 - Status authority: [Action Status](../../../STATUS.md)
-- 前置上下文：[`fe-tools-session-unify`](../fe-tools-session-unify/README.md)（S1+S2 已归档；其 README 预告本方向为正交 Action）；[`fe-tools-build-pipeline`](../fe-tools-build-pipeline/README.md)（BP1 已归档；阶段表抽取、Listr 保留）；上游 A4 renderer 抽象边界（`src/compiler/renderers.js` 头注）；回流：[architecture-notes.md](../../../fe-tools-sidecar/architecture-notes.md)
+- 前置上下文：[`fe-tools-session-unify`](../fe-tools-session-unify/README.md)（S1+S2 已归档；其 README 预告本方向为正交 Action）；[`fe-tools-build-pipeline`](../fe-tools-build-pipeline/README.md)（BP1 已归档；阶段表抽取、Listr 保留）；上游 A4 renderer 抽象边界（`src/compiler/renderers.js` 头注）；回流：[architecture-notes.md](../../../../fe-tools/architecture-notes.md)
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -69,7 +69,7 @@ TS-2（deferred）:        模板管线 parse/IR/webview —— 再激活条件�
 
 ## Status / 授权
 
-- 终局 **`complete`**（2026-09-14）：T0 + T1 + T2 均已交付；A-CT0..06 全 pass；P-CT08 消融 ×3 ✓；持久发现已回流 `fe-tools-sidecar/architecture-notes.md`；归档至 `_archive/complete/fe-tools-compiler-target/`。
+- 终局 **`complete`**（2026-09-14）：T0 + T1 + T2 均已交付；A-CT0..06 全 pass；P-CT08 消融 ×3 ✓；持久发现已回流 `docs/fe-tools/architecture-notes.md`；归档至 `_archive/complete/fe-tools-compiler-target/`。
 - 交付 commit：T0 `f89f4488`；T1+T2 `821eb539`。
 - **D-CT-0..5 已拍板（2026-09-14，全部照建议）**，见 [design.draft](design.draft.md) §决策记录。
 

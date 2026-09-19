@@ -4,8 +4,8 @@
 - Status: `complete`
 - Updated: 2026-09-14（T-IR0..3 交付；A-WIR0..9 全 pass；消融 ×2；S13 view 收口 + 回流；归档）
 - Status authority: [Action Status](../../../STATUS.md)
-- 伞门：[`fe-tools-sidecar`](../../../fe-tools-sidecar/README.md) **TS-2**（本 Action 为再激活载体）
-- 病症锚点：[compiler-symptom-inventory.md](../../../fe-tools-sidecar/compiler-symptom-inventory.md) **S13**（主）；**S14 本 Action 非目标**（见 Non-goals）
+- 伞门：[`fe-tools-sidecar`](../fe-tools-sidecar/README.md) **TS-2**（本 Action 为再激活载体）
+- 病症锚点：[compiler-symptom-inventory.md](../../../../fe-tools/compiler-symptom-inventory.md) **S13**（主）；**S14 本 Action 非目标**（见 Non-goals）
 - 形状输入：[`docs/wxml/WXML-AST-TYPES.md`](../../../../wxml/WXML-AST-TYPES.md)
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`

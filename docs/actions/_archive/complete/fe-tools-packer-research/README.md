@@ -43,7 +43,7 @@
 
 ## Design inputs
 
-- [architecture-notes §Packer/Scheme](../../../fe-tools-sidecar/architecture-notes.md) — 术语定义
+- [architecture-notes §Packer/Scheme](../../../../fe-tools/architecture-notes.md) — 术语定义
 - [fe-tools-bundler-boundaries technical-design §2 落点表](../fe-tools-bundler-boundaries/technical-design.md) — D-BD-1..6 + 4 焊点落点
 - [fe-tools-bundler-emit-layer](../fe-tools-bundler-emit-layer/README.md) — D-E-1..12 emit 契约（已归档）
 - [fe-tools-incremental-target](../fe-tools-incremental-target/README.md) — D-IT-1..4 图/失效语义

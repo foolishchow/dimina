@@ -24,7 +24,7 @@ dev 编排（宿主页、静态服务、WS、代理、reload、预览资产）�
 
 在 `@dimina/bundler` 内，模板路径具备 **parse → 中立 Document → Backend** 的逻辑边界（TS-2）；首版允许同包多入口，Document 边界须可单测。
 
-**时机（2026-09-14）**：伞门 TS-2 由 [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md) **`ready`**（JS）；仍 **未授权实施**。勿与 E7（incremental-target）混为一刀。
+**时机（2026-09-20 closeout）**：TS-2 已由 [`fe-tools-wxml-ir`](../fe-tools-wxml-ir/README.md) **complete 归档**（view 缝；style 书面剩余见 validation U-SC4）。
 
 ## R-007（MUST）renderer 与 platform 正交
 
@@ -36,13 +36,13 @@ parser / Document **不得**绑定 `platform: native|web`；Backend 选择渲染
 
 ## R-009（MUST）终态 B：packages 与 upstream 同构
 
-工作分支上 `fe/packages/*` 与已对齐的 `origin/main`（didi）同构（无私有 improve 长期 diff）。预览/改造以 `fe/tools` 内 `@dimina/bundler` + `@dimina/web-container-sdk` 为唯一私有面。可检查句与同步节奏见 [sync-rhythm.md](./sync-rhythm.md)（TS-4；D-TS0-1 最终句）。
+工作分支上 `fe/packages/*` 与已对齐的 `origin/main`（didi）同构（无私有 improve 长期 diff）。预览/改造以 `fe/tools` 内 `@dimina/bundler` + `@dimina/web-container-sdk` 为唯一私有面。可检查句与同步节奏见 [sync-rhythm](../../../../fe-tools/sync-rhythm.md)（TS-4；D-TS0-1 最终句）。
 
 ## R-011（MUST）分支与复制源
 
 实施复制前：对 `feature/compiler-improve` 打不可变 tag；工作在从已对齐的 `origin/main` 拉出的 `feature/fe-tools-bootstrap` 上进行（D-TS0-2/3；细节以 bootstrap Action D-BC 为准）。
 
-**落地备注（2026-09-10）**：tag `fe-tools-copy-source`、搬迁期分支名 `feature/fe-tools-bootstrap`（后改名为 **`feature/fe-tools-sidecar`**）、双包与冒烟已由 [`fe-tools-bootstrap-copy`](../_archive/complete/fe-tools-bootstrap-copy/README.md) 完成；本条保留为历史前置说明，不再阻塞 TS-2。
+**落地备注（2026-09-10）**：tag `fe-tools-copy-source`、搬迁期分支名 `feature/fe-tools-bootstrap`（后改名为 **`feature/fe-tools-sidecar`**）、双包与冒烟已由 [`fe-tools-bootstrap-copy`](../fe-tools-bootstrap-copy/README.md) 完成；本条保留为历史前置说明，不再阻塞 TS-2。
 
 ## R-012（MUST）目标目录、包名与 bin
 

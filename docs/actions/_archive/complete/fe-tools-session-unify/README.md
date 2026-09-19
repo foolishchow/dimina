@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-14（S1+S2 交付；A-SU01..06 全 pass；消融 ×2；回流完成；归档）
 - Status authority: [Action Status](../../../STATUS.md)
-- 前置上下文：[`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（O1–O3 已归档 complete）；[`fe-tools-project-store`](../fe-tools-project-store/README.md)（PS1+PS2 已归档）；[`fe-tools-build-pipeline`](../fe-tools-build-pipeline/README.md)（BP1 已归档）；调度设计：[session-scheduling.draft.md](../../../fe-tools-sidecar/session-scheduling.draft.md)（L1–L4 / W1–W4 已确认）
+- 前置上下文：[`fe-tools-bundler-session`](../fe-tools-bundler-session/README.md)（O1–O3 已归档 complete）；[`fe-tools-project-store`](../fe-tools-project-store/README.md)（PS1+PS2 已归档）；[`fe-tools-build-pipeline`](../fe-tools-build-pipeline/README.md)（BP1 已归档）；调度设计：[session-scheduling.draft.md](../../../../fe-tools/session-scheduling.draft.md)（L1–L4 / W1–W4 已确认）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -78,7 +78,7 @@ compiler target 方向       : 产物形态切面（独立 Action）—— 「�
 - **两门交付**：S1 + S2 均完成，A-SU01..06 全 pass，证据回填 acceptance / validation；
 - **消融在档**：P-SU07 消融 ×2（S1 拔内核 / S2 拔收口）完成且失败点落在对应断言，恢复后全绿；
 - **行为 0 证据**：全量 vitest 绿 + nomap/sourcemap diff=0（基线随门递进，P-SU02）；
-- **持久发现回流**：结构不变量「新增执行入口必须经内核」写入 [`fe-tools-sidecar/architecture-notes.md`](../../../fe-tools-sidecar/architecture-notes.md)（或伞 README）；
+- **持久发现回流**：结构不变量「新增执行入口必须经内核」写入 [`docs/fe-tools/architecture-notes.md`](../../../../fe-tools/architecture-notes.md)（或伞 README）；
 - **一致变更**：STATUS / README / 归档位置随 `complete` 一次同步（→ `_archive/complete/`）；
 - **范围守恒**：已知限制（lifecycle `off()` 等）确认维持 Non-requirements，不新开范围。
 

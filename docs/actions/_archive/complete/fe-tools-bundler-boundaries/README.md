@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-18
 - Status authority: [Action Status](../../../STATUS.md)
-- 术语权威：[architecture-notes](../../../fe-tools-sidecar/architecture-notes.md)「架构术语：Packer / Scheme」
+- 术语权威：[architecture-notes](../../../../fe-tools/architecture-notes.md)「架构术语：Packer / Scheme」
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 

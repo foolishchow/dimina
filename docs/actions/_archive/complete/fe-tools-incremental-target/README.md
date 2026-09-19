@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-20
 - Status authority: [Action Status](../../../STATUS.md)
-- 前置上下文：[`fe-tools-compiler-target`](../fe-tools-compiler-target/README.md)（T0+T1+T2 已归档；E7 为 Non-goal 另立）；[`fe-tools-session-unify`](../fe-tools-session-unify/README.md)；病症地图：[compiler-symptom-inventory.md](../../../fe-tools-sidecar/compiler-symptom-inventory.md)（S1/S2/S3/S4/S9）
+- 前置上下文：[`fe-tools-compiler-target`](../fe-tools-compiler-target/README.md)（T0+T1+T2 已归档；E7 为 Non-goal 另立）；[`fe-tools-session-unify`](../fe-tools-session-unify/README.md)；病症地图：[compiler-symptom-inventory.md](../../../../fe-tools/compiler-symptom-inventory.md)（S1/S2/S3/S4/S9）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 

@@ -78,7 +78,7 @@ module-cache MC1 与本门 M1 均改动 `view-compiler.js`（M1 改产物输出�
 - M1 outputCount 对账：去对账（无完整性校验）→ 对账测例失败
 - M2 失效传播：去 closure → 增量对拍失败
 - M2 verify 对拍：去 verify 子项 → R-BM6/A-BM06 失败（营造漏算场景）
-③ Backflow：`docs/actions/fe-tools-sidecar` roadmap 增补本 Action 与 TS-2 的地基关系；Action-Review-Playbook 若有新经验回流
+③ Backflow：`docs/fe-tools/architecture-notes.md`（及原伞 roadmap，现已归档）增补本 Action 与 TS-2 的地基关系；Action-Review-Playbook 若有新经验回流
 ④ STATUS/归档/指针一致变更
 
 ## Documents

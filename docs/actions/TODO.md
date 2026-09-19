@@ -6,20 +6,56 @@
 
 将候选移入 `docs/actions/<action-id>/` 之前，需确认：
 
+- 可观察的问题与具体目标；
+- 明确的范围与非范围；
+- 当前设计输入与依赖；
+- 可枚举的交付物；
+- 可观察的验收标准；
+- 可执行或可复现的验证方法。
+
+任一条件不明确时，条目保留在此处或仓库 Research 区域，并记录缺失的决策或证据。
+
+---
+
+## 近端顺序（2026-09-20 · 已约定）
+
+先收旁路战略伞，再开 Module 中心。**不并行**开 Packer 整包抽取。
+
+### 0. `fe-tools-sidecar` 伞级 closeout —— ✅ complete（2026-09-20）
+
+| Field | Value |
+| --- | --- |
+| 结果 | [`_archive/complete/fe-tools-sidecar`](_archive/complete/fe-tools-sidecar/README.md)：A-001..010 全 pass；TS-3/PS3 deferred；CI 外部 Uncovered |
+| 活真源 | 已迁 [`docs/fe-tools/`](../fe-tools/README.md) |
+| 其后 | 可 formalize 下方「1. Module 中心伞」 |
+
+### 1. Module 中心伞 —— sidecar 收完再 formalize
+
+| Field | Value |
+| --- | --- |
+| 北星 | **Module 一等公民**；图与缓存围着它转（成熟 Packer 模型）；不是整包抽 Packer |
+| 近端子门 | **刀 2** 模块级失效查询 → **刀 3** ModuleCache；（可选）emit W1 `modDefine` 参数化（S 级） |
+| 明确不做 | 整包 Packer extraction（见 [`packer-research`](_archive/complete/fe-tools-packer-research/README.md)）；一次统一 view/logic/Store 全部表示；改 view/style 车道语义 |
+| 前置 | **0. sidecar closeout 完成**；boundaries 落点表 + emit 模块集合契约已在 |
+| 与旧候选关系 | 收束下方 **A**（Module 收敛）与 **C** 刀 2+3；A 不再单独抢先开大伞 |
+| 形态 | 薄 umbrella `draft`（术语 + 子门顺序 + Non-goals）；子门另立另授 `in_progress` |
+
 ---
 
 ## 架构候选（2026-09-15 · 讨论中，未定稿）
 
-### A. Module 收敛（ProjectStore / worker 分散割裂的彻底化）——候选
+> **2026-09-20**：近端以上方「近端顺序」为准。A / C 保留为背景；正式化走「1. Module 中心伞」，勿绕过 sidecar closeout。
+
+### A. Module 收敛（ProjectStore / worker 分散割裂的彻底化）——候选 · 并入近端顺序 §1
 
 | Field | Value |
 | --- | --- |
 | 问题 | logic/view worker 各自持有 modules（scriptRes / compileRes / compileResCache），与 ProjectStore 的 DependencyGraph 分散割裂——同一逻辑实体（一个源模块）在多处有不相关的表示：图节点有归属/边但无编译负载，worker 有编译负载但图不感知 |
 | 目标 | 统一的 Module 对象 `{ id, kind, code, deps, files[], packageRoot, sourcemap }` 贯穿：图（DependencyGraph node = 它）、编译（worker transform 结果回填）、失效（fingerprint 模块级）、产物（BuildModel 派生）、HMR（热更最小单位） |
-| 关键点 | 大部分情况只需存 module 的 parse 结果；最后按 page/subpackage 从图取模块 emit；共享模块不重复编译；失效粒度从 page/package 降到 module |
+| 赢点 | 大部分情况只需存 module 的 parse 结果；最后按 page/subpackage 从图取模块 emit；共享模块不重复编译；失效粒度从 page/package 降到 module |
 | 不是新造层 | 是把已有半套资产（图空壳 node + worker 游离编译结果 + BuildModel end-state）收敛成同一对象；PS2「Store 唯一活图权威」在等它彻底化 |
 | 待定 | ① Module.code 存 Store 内存（watch 长驻）还是序列化持久（重启复用）——决定 fingerprint 是否下沉模块级；② worker 编译回填 Store = IPC 放大 vs 本地再算——HMR/增量值得，单构建多余 |
-| 触发 | 需要模块级失效/增量 or HMR 深化 or 多平台 emit 时；立项为 umbrella（S1 收敛 → S2 emit → S3 Store/失效）或分步 |
+| 触发 | sidecar closeout 完成后，由「1. Module 中心伞」formalize；近端先刀 2+3 倒逼形状，不一次收敛全部表示 |
 
 ### B. Emit 抽象层（「先从 emit 做一刀」）——✅ complete（`fe-tools-bundler-emit-layer` 已交付归档）
 
@@ -36,9 +72,9 @@
 | 前置斟酌 | 是否趁刀统一 transform 粒度——建议不统一（各有原因），差异留参数 |
 | 形态 | 小 Action `fe-tools-bundler-emit-layer`（纯重构 + 行为 0），落点 `pipeline/emit.js` |
 
-### C. 三刀细化（2026-09-15 · 讨论收敛：emit 抽取 / 失效查询 / ModuleCache）——候选 · packer-research 推荐优先推进刀 2+3
+### C. 三刀细化（2026-09-15 · 讨论收敛：emit 抽取 / 失效查询 / ModuleCache）——候选 · 刀 2+3 并入近端顺序 §1
 
-> 结论：emit 抽取与缓存层通过「**模块集合接口**」耦合（emit 消费、缓存提供同一形状 iterable<{moduleId, code, map}>）。先立契约 → 消费端 → 提供端。分为三刀，各独立验证。
+> 结论：emit 抽取与缓存层通过「**模块集合接口**」耦合（emit 消费、缓存提供同一形状 iterable<{moduleId, code, map}>）。先立契约 → 消费端 → 提供端。分为三刀，各独立验证。packer-research：**优先刀 2+3**；整包 Packer 不立即做。
 
 | 刀 | 内容 | 契约角色 | 验收 |
 | --- | --- | --- | --- |
@@ -53,31 +89,18 @@
 - ModuleCache 的「家」：主线程 ProjectStore 侧（长驻、IPC 回填）vs worker 内跨任务保留（零 IPC）——影响刀 3 形态
 - 维度 2 寿命若仅 stage 内 = 无收益；跨 rebuild 才有价值（watch 长驻）
 - 刀 1 必须把「模块集合接口」立成规约（形状+语义），刀 3 守规约——否则刀 3 会让 emit 改接口
-
-
-
-
-
-- 可观察的问题与具体目标；
-- 明确的范围与非范围；
-- 当前设计输入与依赖；
-- 可枚举的交付物；
-- 可观察的验收标准；
-- 可执行或可复现的验证方法。
-
-任一条件不明确时，条目保留在此处或仓库 Research 区域，并记录缺失的决策或证据。
+- **formalize**：sidecar closeout 完成后，经「1. Module 中心伞」立子门；勿在伞未收口时单独开刀 2
 
 ## Candidates
 
-### FE tools sidecar（旁路工具链）——已 formalize（2026-09-10）
+### FE tools sidecar（旁路工具链）——✅ complete 已归档（2026-09-20）
 
 | Field | Value |
 | --- | --- |
-| 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-bundler-typecheck`](_archive/complete/fe-tools-bundler-typecheck/README.md)（**complete 已归档**：`eb3b2bc4` allowJs+CI `tsc --noEmit`）；[`fe-tools-bundler-tsc-dist`](_archive/complete/fe-tools-bundler-tsc-dist/README.md)（**complete 已归档**：`b2` tsc emit + 第0/1刀迁 .ts）；[`fe-tools-incremental-target`](_archive/complete/fe-tools-incremental-target/README.md)（E7 **complete 已归档**）；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
-| 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
-| 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
-| 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
+| Action | [`fe-tools-sidecar`](_archive/complete/fe-tools-sidecar/README.md) **complete** |
+| 活真源 | [`docs/fe-tools/`](../fe-tools/README.md)（architecture-notes / sync-rhythm） |
+| 书面延后 | PS3 / TS-3 deferred；CI 外部 Uncovered；style 剩余另议 |
+| 说明 | 伞级不再授权大实施；近端见「1. Module 中心伞」 |
 
 ### WXML 双 Parser 改造——`fe-tools-wxml-refactor` complete（2026-09-15）
 
