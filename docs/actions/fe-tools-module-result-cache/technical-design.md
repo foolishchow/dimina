@@ -36,7 +36,7 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 **决策：B — 独立 `ModuleResultCache` 对象**
 
 - D-MF-2 明确「M2 另定宿主」；不挂图节点；不混 Store 图职责。
-- 形态：`class ModuleResultCache { get(moduleId): CompileInfo | undefined; set(moduleId, info): void; has(moduleId): boolean; delete(moduleId): void; clear(dirtySet): void; size: number }`
+- 形态：`class ModuleResultCache { get(moduleId): CompileInfo | undefined; set(moduleId, info): void; has(moduleId): boolean; delete(moduleId): void; clear(dirtySet): void; size: number; toJSON(): [string, CompileInfo][] }`
 - 落点：`model/module-result-cache.ts`（并列 `dependency-graph.ts` / `invalidation.ts`）。
 - 注入点：`compileJS(pages, root, mainCompileRes, progress, { cache?, invalidatedModules? })` — 可选参数；不传时退化为全量重算。
 - **缓存完整 `CompileInfo`**（7 字段：`path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?`）——非仅 emit 4 字段；cache hit 须保留 `sourceFile`/`component`/`usingComponents` 供遍历/元数据。
@@ -57,8 +57,8 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 - **worker 生命周期**（源码事实）：`executor.ts:24` 每 `executeTask` `new Worker()`；`:29,39,43` 任务后 `worker.terminate()`。worker **不跨 build 复用**——`WorkerPool` 仅并发限流。cache 不能靠 worker 自维护。
 - **cache 实例**：主线程 `ModuleResultCache`（session-scoped，随 `activeStore` 同生命周期在 watch-runner 创建）。
 - **IPC 传入**：cache snapshot（`[moduleId, CompileInfo][]` 或 `toJSON()`）经 `msg` 传入 worker——同 `dependencyGraph.toJSON()` / `storeInfo` 模式。同时传 `invalidatedModules: string[]`（dirty 集，小）。
-- **`buildJSByPath` 内消费**：worker 收到 cache snapshot + dirty 集 → `if snapshot.has(moduleId) && !invalidatedModules.has(moduleId) → 用 cached CompileInfo（skip transform）` → 否则 transform → `compileRes.push(info)`。
-- **返回**（**协议变更**）：worker 响应消息增加 `compileRes` 字段（`CompileInfo[]`，cached + dirty 全量）。`logicCompile` / `engine.compile` 返回 `CompileInfo[]` → `runWorker` `postMessage({ success, ..., compileRes })` → `executeTask` resolve → `runCompileStage` → 主线程从 `compileRes` 更新 cache（idempotent：cached 覆写同值，dirty 写入新值）。**非经 sink/emit**——sink 仍发 EmitEntry（转换后 4 字段），与 cache 更新正交。
+- **`buildJSByPath` 内消费**：worker 收到 cache snapshot + dirty 集 + graph snapshot → `if snapshot.has(moduleId) && !invalidatedModules.has(moduleId) → compileRes.push(cached CompileInfo)（skip transform）` → 否则 transform → `compileRes.push(info)`。**cache hit 仍须遍历依赖**：`require`/`import` 依赖在 transform 的 AST walk 中发现（`logic/index.ts:218-345` `walk(ast)` → `dependenciesToProcess` → L354 递归）；skip transform 须改用 `graph.getDirectDependencies(moduleId, 'logic')`（`dependency-graph.ts:85`）发现依赖 → 递归 `buildJSByPath`（dep 可能也 cached）。`usingComponents` 来自 `module` 参数（PageModule 输入，非 transform 产物），cache hit 仍可遍历（L158-193）。
+- **返回**（**协议变更**）：worker 响应消息增加 `compileRes` 字段（`CompileInfo[]`，cached + dirty 全量）。`logicCompile` 将 main + 所有 sub 的 `compileRes` flat merge 为单个 `CompileInfo[]`（path 唯一，无冲突）返回 → `runWorker` `postMessage({ success, ..., compileRes })` → `executeTask` resolve → `runCompileStage` → 主线程从 `compileRes` 更新 cache（idempotent：cached 覆写同值，dirty 写入新值）。**非经 sink/emit**——sink 仍发 EmitEntry（转换后 4 字段），与 cache 更新正交。
 - **IPC 成本**：输入 = cache snapshot（∝ 全模块 code 量）+ dirty 集（小）；输出 = EmitEntry（sink，同今日）+ compileRes（response 新增）。**省的是 compute（skip transform），非 IPC**。
 
 ### 3.4 失效触发（D-RC-4）
@@ -76,12 +76,15 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 文件变更 → computeAffectedEntries (Entry 级) → 过滤页（现有）
          → computeInvalidatedModules (Module 级) → 脏模块集（M1 + M2）
            ↓
-buildJSByPath(page) [worker: cache snapshot + dirtySet]:
+buildJSByPath(page) [worker: cache snapshot + dirtySet + graph]:
   for each module in page:
     if snapshot.has(moduleId) && moduleId NOT in dirtySet:
-      → 用 cached CompileInfo (skip transform)     ← M2 新增
+      → compileRes.push(cached CompileInfo)        ← M2 新增
+      → dep 发现改用 graph.getDirectDependencies(id,'logic')  ← M2 新增
     else:
       → transform → compileRes.push(info)           ← 现有
+      → dep 发现经 AST walk (require/import)         ← 现有
+    [共享] module.usingComponents → 递归 buildJSByPath  [现有]
   return compileRes  [cached + dirty]
 
 主线程: response.compileRes → cache.set(每个 moduleId, info)    ← M2 新增
