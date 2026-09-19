@@ -1,9 +1,11 @@
 # fe-tools-packer-research
 
 - Action: `fe-tools-packer-research`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-20
-- Status authority: [Action Status](../STATUS.md)
+- Status authority: [Action Status](../../../STATUS.md)
+- Closure: `complete` — P-PR01..09 全实施，决策「不值得立即做」有证据（ROI 不足 / 优先 TODO 刀 2+3），PackerContext 草案已回流 architecture-notes。A-PR1..9 + V-PR01..11 全 pass，research only 零产品代码变更
+- Archived: `_archive/complete/`（2026-09-20）
 
 ## Background
 
@@ -41,11 +43,11 @@
 
 ## Design inputs
 
-- [architecture-notes §Packer/Scheme](../fe-tools-sidecar/architecture-notes.md) — 术语定义
-- [fe-tools-bundler-boundaries technical-design §2 落点表](../_archive/complete/fe-tools-bundler-boundaries/technical-design.md) — D-BD-1..6 + 4 焊点落点
-- [fe-tools-bundler-emit-layer](../_archive/complete/fe-tools-bundler-emit-layer/README.md) — D-E-1..12 emit 契约（已归档）
-- [fe-tools-incremental-target](../_archive/complete/fe-tools-incremental-target/README.md) — D-IT-1..4 图/失效语义
-- [fe-tools-bundler-emit-memfs](../_archive/complete/fe-tools-bundler-emit-memfs/README.md) — D-MM-1..6 memfs/materialize
+- [architecture-notes §Packer/Scheme](../../../fe-tools-sidecar/architecture-notes.md) — 术语定义
+- [fe-tools-bundler-boundaries technical-design §2 落点表](../fe-tools-bundler-boundaries/technical-design.md) — D-BD-1..6 + 4 焊点落点
+- [fe-tools-bundler-emit-layer](../fe-tools-bundler-emit-layer/README.md) — D-E-1..12 emit 契约（已归档）
+- [fe-tools-incremental-target](../fe-tools-incremental-target/README.md) — D-IT-1..4 图/失效语义
+- [fe-tools-bundler-emit-memfs](../fe-tools-bundler-emit-memfs/README.md) — D-MM-1..6 memfs/materialize
 - TODO 候选 B（Emit 抽象层）+ 候选 C（三刀细化）
 
 ## Deliverables

@@ -1,6 +1,6 @@
 # Validation — fe-tools-packer-research
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 Status: **in_progress（2026-09-20）**
 
