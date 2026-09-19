@@ -129,8 +129,8 @@ Status: **draft（2026-09-20）**
 
 | 分类 | 函数 | 数量 |
 | --- | --- | --- |
-| **Packer 侧** | `getDependencyGraph`, `getNpmResolver`, `resolveAppAlias` | 3 |
-| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getAppConfigInfo`, `storeInfo`, `resetStoreInfo` | 8 |
+| **Packer 侧** | `getNpmResolver`, `resolveAppAlias` | 2 |
+| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getDependencyGraph`, `getAppConfigInfo`, `storeInfo`, `resetStoreInfo` | 9 |
 | **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `isMiniGame`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 14 |
 | **基础设施** | `runWithCompilerContext` | 1 |
 | **未使用** | `storeProjectConfig`, `getRuntimeType`, `getProjectConfig` | 3 |
@@ -196,10 +196,13 @@ Status: **draft（2026-09-20）**
 
 `BuildModel` 不是 Packer 的一部分——它是 Scheme 的产物持有者。Packer 的产出通过 `sink.write(entry)` 到达 `BuildModel`。
 
-## 7. 待分析项（research 阶段填充）
+## 7. 待分析项（research 阶段填充，权威全集）
 
 - W2 `resolveDependencyId()` 完整逻辑（import/require/export 解析）
 - W3 env.ts 图初始化完整逻辑（L814-891）
 - W3 env.ts `storeInfo` / `getContentByPath` 完整逻辑
 - 跨焊点依赖：logic → env → graph 的写图路径
 - 跨焊点依赖：emit → env → workPath 的 rebase 路径
+- hooks 粒度验证（11 种 Scheme 调用是否能收敛成 ≤5 个 hooks）
+- `getAffectedEntries` 跨图遍历可行性
+- modDefine 参数化后行为 0 可守性
