@@ -60,7 +60,7 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 - **cache 实例**：主线程 `ModuleResultCache`（session-scoped，随 `activeStore` 同生命周期在 watch-runner 创建）。
 - **IPC 传入**：cache snapshot（`[moduleId, CachedModuleResult][]` 或 `toJSON()`）经 `msg` 传入 worker——同 `dependencyGraph.toJSON()` / `storeInfo` 模式。同时传 `invalidatedModules: string[]`（dirty 集，小）。
 - **`buildJSByPath` 内消费**：worker 收到 cache snapshot + dirty 集 → `if snapshot.has(moduleId) && !invalidatedModules.has(moduleId) → compileRes.push(cached.compileInfo)（skip transform）` → 否则 transform → `compileRes.push(info)`。**cache hit 仍须遍历依赖**：`require`/`import` 依赖在 transform 的 AST walk 中发现（`logic/index.ts:218-345` `walk(ast)` → `dependenciesToProcess` → L354 递归）；skip transform 须改用 **`cached.logicDependencies`**（transform 时捕获的 dep ID 列表，永远新鲜）发现依赖 → 递归 `buildJSByPath`（dep 可能也 cached）。**不用 `graph.getDirectDependencies`**——图无 `removeDependency` API，stale edge（已删 require 的旧边）会导致多余模块入产物。`usingComponents` 来自 `module` 参数（PageModule 输入，非 transform 产物），cache hit 仍可遍历（L158-193）。
-- **返回**（**协议变更**）：worker 响应消息增加 `compileRes` 字段（`CompileInfo[]`，cached + dirty 全量）+ `logicDependencies` 字段（`Record<string, string[]>`，每 moduleId → require/import dep ID 列表）。`logicCompile` 将 main + 所有 sub 的 `compileRes` flat merge + `logicDependencies` 合并为单个返回 → `runWorker` `postMessage({ success, ..., compileRes, logicDependencies })` → `executeTask` resolve → `runCompileStage` → 主线程从 `compileRes` + `logicDependencies` 组装 `CachedModuleResult` 更新 cache（idempotent）。**非经 sink/emit**——sink 仍发 EmitEntry（转换后 4 字段），与 cache 更新正交。
+- **返回**（**协议变更**）：worker 响应消息增加 `compileRes` 字段（`CompileInfo[]`，cached + dirty 全量）+ `logicDependencies` 字段（`Record<string, string[]>`，**仅 dirty 模块**——cached 模块 skip transform 不跑 AST walk，无 `logicDependencies` 条目）。`logicCompile` 将 main + 所有 sub 的 `compileRes` flat merge + `logicDependencies` 合并为单个返回 → `runWorker` `postMessage({ success, ..., compileRes, logicDependencies })` → `executeTask` resolve → `runCompileStage` → 主线程从 `compileRes` + `logicDependencies` 组装 `CachedModuleResult`：`logicDependencies[path]` 存在 → dirty → `cache.set`；不存在 → cached → skip（已在 cache 中）。**非经 sink/emit**——sink 仍发 EmitEntry（转换后 4 字段），与 cache 更新正交。
 - **IPC 成本**：输入 = cache snapshot（∝ 全模块 code + dep list 量）+ dirty 集（小）；输出 = EmitEntry（sink，同今日）+ compileRes + logicDependencies（response 新增）。**省的是 compute（skip transform），非 IPC**。
 
 ### 3.4 失效触发（D-RC-4）
@@ -90,7 +90,8 @@ buildJSByPath(page) [worker: cache snapshot + dirtySet]:
   return compileRes  [cached + dirty]
 
 主线程: response.compileRes + logicDependencies
-  → cache.set(moduleId, { compileInfo, logicDependencies })  ← M2 新增
+  → 仅 dirty 模块组装 CachedModuleResult → cache.set  ← M2 新增
+    (logicDependencies[path] 存在 → dirty; 不存在 → cached → skip)
 ```
 
 **不替换 Entry API**（D-MF-1 条款 7）：`affectedEntries` 决定编哪些页；`invalidatedModules` 决定页内哪些模块重编。两层正交。

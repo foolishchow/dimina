@@ -29,3 +29,4 @@ Status: **ready（2026-09-20）**
 | 2026-09-20 | 二轮 R1 readiness review（fail→修正）：F10 cache hit 依赖发现须改用 graph.getDirectDependencies（skip transform 跳过 AST walk）；F11 main+sub compileRes flat merge；F12 toJSON() 补 class shape。全修。 |
 | 2026-09-20 | 二轮 R2 readiness review（pass-with-findings→修正）：F13 §4 接口表 dependency-graph 行补 getDirectDependencies（F10 传播缺口）。全修。 |
 | 2026-09-20 | 三轮 R1 readiness review（fail→修正）：F15 graph stale edge——addDependency 只增不删，cache hit 用 getDirectDependencies 会返回已删 require → 多余模块入产物。修正：cache 自带 logicDependencies（transform 时捕获，永远新鲜）；不用 graph 做 dep discovery。全修。 |
+| 2026-09-20 | 三轮 R2 readiness review（pass-with-findings→修正）：F16 响应 logicDependencies scope 仅 dirty（cached skip transform 无 dep list）；§3.5 cache.set 加「仅 dirty」限定；删「idempotent 覆写」措辞。全修。 |

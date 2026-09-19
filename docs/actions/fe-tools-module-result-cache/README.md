@@ -78,3 +78,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 2026-09-20 | 二轮 R1 修正：F10 cache hit 依赖发现（graph.getDirectDependencies）；F11 main+sub flat merge；F12 toJSON() class shape |
 | 2026-09-20 | 二轮 R2 修正：F13 §4 接口表 dependency-graph 行补 getDirectDependencies（F10 传播缺口） |
 | 2026-09-20 | 三轮 R1 修正：F15 cache 自带 logicDependencies（graph stale edge → 不用 getDirectDependencies 做 dep discovery） |
+| 2026-09-20 | 三轮 R2 修正：F16 响应 logicDependencies scope 仅 dirty；§3.5 cache.set 加「仅 dirty」限定 |
