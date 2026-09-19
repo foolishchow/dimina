@@ -79,3 +79,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 2026-09-20 | 二轮 R2 修正：F13 §4 接口表 dependency-graph 行补 getDirectDependencies（F10 传播缺口） |
 | 2026-09-20 | 三轮 R1 修正：F15 cache 自带 logicDependencies（graph stale edge → 不用 getDirectDependencies 做 dep discovery） |
 | 2026-09-20 | 三轮 R2 修正：F16 响应 logicDependencies scope 仅 dirty；§3.5 cache.set 加「仅 dirty」限定 |
+| 2026-09-20 | 三轮 R3 修正：§3.4 删「idempotent」→ 改「cached 不更新」；§4 executor 行补 `logicDependencies`（F15/F16 传播缺口） |
