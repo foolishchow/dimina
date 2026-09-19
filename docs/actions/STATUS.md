@@ -39,6 +39,7 @@
 | `es-target-unification` | `complete` | [README](_archive/complete/es-target-unification/README.md) | CF-3：仅 logic 车道收敛；A-001~A-008 全 passed（含消融；产物 diff=0）；已归档。 | 2026-09-10 |
 | `watch-api` | `complete` | [README](_archive/complete/watch-api/README.md) | CF-4：watch API 化；A-001~A-009 全 passed（含 A-005 消融）；已归档。 | 2026-09-10 |
 | `fe-tools-sidecar` | `complete` | [README](_archive/complete/fe-tools-sidecar/README.md) | 伞级 Close（2026-09-20）：A-001..010 全 pass；TS-3/PS3 deferred；CI=外部 Uncovered；活真源迁 [`docs/fe-tools/`](../fe-tools/README.md)。伞级不再授权大实施。 | 2026-09-20 |
+| `fe-tools-module-convergence` | `draft` | [README](fe-tools-module-convergence/README.md) | Module 收敛伞：GraphNode 加 code → view 入图 → BuildModel 派生。承接 module-centric 伞半套资产。D-MC-* 待冻结。 | 2026-09-21 |
 | `fe-tools-module-centric` | `complete` | [README](_archive/complete/fe-tools-module-centric/README.md) | Module 一等公民伞：D-MF-1 已封；MF0 文档门 pass；M1 invalidation + M2 result-cache 全 complete 归档；M0 emit W1 deferred。伞级 complete 归档。 | 2026-09-21 |
 | `fe-tools-module-invalidation` | `complete` | [README](_archive/complete/fe-tools-module-invalidation/README.md) | 刀 2：模块级失效查询 API 交付；getInvalidatedModules + computeInvalidatedModules；6 测例全绿；行为 0（仅 model/ + spec 改动）；A-IV0..4 / P-IV00..04 全 pass。已归档。 | 2026-09-20 |
 | `fe-tools-module-result-cache` | `complete` | [README](_archive/complete/fe-tools-module-result-cache/README.md) | 刀 3：D-RC-1..4 冻结已实施（B 独立 ModuleResultCache / α session-only / I IPC 回填 / watch-plan 触发）；cache hit 用 cached.logicDependencies 遍历依赖；行为 0 验证 pass。 | 2026-09-21 |
