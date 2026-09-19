@@ -2,7 +2,7 @@
 
 - Action: `fe-tools-sidecar`
 - Status: `draft`
-- Updated: 2026-09-12（近端 ProjectStore/BuildPipeline 升 ready；伞仍 draft）
+- Updated: 2026-09-20（伞级收尾书面确认：TS-0..4 全 complete 或书面 deferred；仍 draft 仅因 gap 4 CI 外部约束）
 - Status authority: [Action Status](../STATUS.md)
 - 前置上下文：[compiler-improvement](../_archive/complete/compiler-improvement/README.md)（已归档 A 轨道）、[compiler-configuration](../_archive/complete/compiler-configuration/README.md)（已归档 CF 门）、分支 `feature/compiler-improve` 上的私有演进
 - 工作分支（现行）：`feature/fe-tools-sidecar`（由 `feature/fe-tools-bootstrap` 改名延续；bootstrap 已落地；伞文档同分支演进）
@@ -150,7 +150,7 @@ fe/tools/
 | TS-0 | 冻结项 D-TS0-1..6 + workspace | **决策已冻；落地完成** |
 | TS-1 | 复制改名接线冒烟（前置独立 Action） | **前置 complete** |
 | TS-2 | tools 内模板管线切开（parse / Document / Backend） | **complete**（2026-09-14）→ [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)（view 缝；style 剩余） |
-| TS-3 | 编排可选拆包与 sdk 深改边界 | 控制面已由 session 交付；剩余 sdk 深改 pending / 可 deferred |
+| TS-3 | 编排可选拆包与 sdk 深改边界 | **deferred（2026-09-20 书面）**：控制面已由 session 交付；剩余 sdk 深改无当前消费者，另立 Action 时重评估 |
 | TS-4 | 终态 B 门禁闭环与同步节奏成文 | **文档完成（2026-09-12）** — [sync-rhythm.md](./sync-rhythm.md)；packages 干净；可检查句已最终化 |
 
 ### TS-2（2026-09-14 再激活）
@@ -179,12 +179,12 @@ fe/tools/
 1. ~~复制源 / 目标包名 / 分支 / 目录 / bin~~ — **已冻**（D-TS0-2..6）。  
 2. ~~近端必须先做最小 IR~~ → TS-2 [`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md) 已 **`ready`**；未授权实施。  
 3. ~~终态 B 可检查句~~ — **已最终化**（[sync-rhythm.md](./sync-rhythm.md) §1；D-TS0-1）。  
-4. **CI**：tools 独立 job 与否。  
+4. **CI**：tools 独立 job 与否 — **外部约束**（fork Actions 禁用，CI green 推迟到 didi-side 回流 PR；非伞内工作）。
 5. ~~tag 名 / VENDOR~~ — **已完成**（`fe-tools-copy-source` / 两包 VENDOR.md → sync-rhythm）。  
 6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
 7. ~~近端结构债~~ — **已闭合**：[`project-store`](../_archive/complete/fe-tools-project-store/README.md)（**complete / 已归档**：PS1+PS2）+ [`build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；PS3 已书面 deferred；见 [architecture-notes.md](./architecture-notes.md)。
 
-伞级在 gap 4（CI）之外可维持 `draft`；**不授权伞级大实施**。TS-2 / E7 / E8 complete；TS-4 文档门已闭合。
+伞级收尾（2026-09-20 书面确认）：TS-0 冻结 + TS-1/TS-2/TS-4 complete + TS-3 书面 deferred；终态 B 可检查；packages 不依赖 tools；闭合条件（Closure conditions）全满足。**仍 `draft` 仅因 gap 4（CI）外部约束**（fork Actions 禁用 → CI green 推迟到 didi-side 回流 PR）——gap 4 非伞内工作，不阻塞闭合；回流 PR 后可升 `complete` 归档（参照 `compiler-improvement` 伞先例）。**伞级不再授权大实施**；后续候选独立 formalize（见 TODO）。
 
 ## Closure conditions
 

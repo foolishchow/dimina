@@ -21,7 +21,9 @@
 | 待定 | ① Module.code 存 Store 内存（watch 长驻）还是序列化持久（重启复用）——决定 fingerprint 是否下沉模块级；② worker 编译回填 Store = IPC 放大 vs 本地再算——HMR/增量值得，单构建多余 |
 | 触发 | 需要模块级失效/增量 or HMR 深化 or 多平台 emit 时；立项为 umbrella（S1 收敛 → S2 emit → S3 Store/失效）或分步 |
 
-### B. Emit 抽象层（「先从 emit 做一刀」）——候选 · packer-research 评估：可独立先行（S 级低风险）
+### B. Emit 抽象层（「先从 emit 做一刀」）——✅ complete（`fe-tools-bundler-emit-layer` 已交付归档）
+
+> **2026-09-20 注**：本候选已由 [`fe-tools-bundler-emit-layer`](_archive/complete/fe-tools-bundler-emit-layer/README.md) **complete 交付并归档**（emitEntry + emitOutput 骨架 + 模块集合接口；行为 0 diff=0 + 全量 vitest）。以下为历史需求记录，供后续演进参考。packer-research 评估：如需再演进（如 HMR patch 产物）可独立先行（S 级低风险）。
 
 | Field | Value |
 | --- | --- |
@@ -72,7 +74,7 @@
 | Field | Value |
 | --- | --- |
 | 决策 | 战略伞 [`fe-tools-sidecar`](fe-tools-sidecar/README.md)（`draft`）；搬迁 / unvite / session / build-model / module-cache / worker-architecture 均已 **complete** 并归档 |
-| 下一步 | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**，待 Close）；[`fe-tools-bundler-tsc-dist`](fe-tools-bundler-tsc-dist/README.md)（**`ready`**，待实施授权）；[`fe-tools-incremental-target`](_archive/complete/fe-tools-incremental-target/README.md)（E7）仍 `draft`；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
+| 下一步 | [`fe-tools-bundler-typecheck`](_archive/complete/fe-tools-bundler-typecheck/README.md)（**complete 已归档**：`eb3b2bc4` allowJs+CI `tsc --noEmit`）；[`fe-tools-bundler-tsc-dist`](_archive/complete/fe-tools-bundler-tsc-dist/README.md)（**complete 已归档**：`b2` tsc emit + 第0/1刀迁 .ts）；[`fe-tools-incremental-target`](_archive/complete/fe-tools-incremental-target/README.md)（E7 **complete 已归档**）；[`fe-tools-wxml-layout`](_archive/complete/fe-tools-wxml-layout/README.md) **complete 已归档**；病症地图 [compiler-symptom-inventory.md](fe-tools-sidecar/compiler-symptom-inventory.md)；**PS3 deferred** |
 | 再激活 / 推进 | project-store PS3（增量装载 applyChanges / subscribe）**deferred**（2026-09-12；见 sidecar README「PS3 deferred」）；伞保持 draft |
 | 再激活条件 | ① watch rebuild 全量 load 成为可量化性能瓶颈（需要 applyChanges 增量图更新）；② preview 出现需要 store 内部 metadata 的真实消费方（如依赖图详情展示） |
 | 说明 | 长线分支 **`feature/fe-tools-sidecar`** |
@@ -97,7 +99,7 @@
 
 | Field | Value |
 | --- | --- |
-| Action | [`fe-tools-bundler-typecheck`](fe-tools-bundler-typecheck/README.md)（**`in_progress`**；S0–S1 已交付，待 Close） |
+| Action | [`fe-tools-bundler-typecheck`](_archive/complete/fe-tools-bundler-typecheck/README.md)（**complete 已归档**：`eb3b2bc4`） |
 | 问题 | bundler 无 tsc 门禁；整仓改 .ts 过重 |
 | 目标 | allowJs + CI `tsc --noEmit`（fe-tests.yml）；S0+S1（common/load/registry/stub/compile-target）；strict；集中 typedef |
 | 待定 | 无（D-TC-1..10 已拍板） |
@@ -113,11 +115,11 @@
 
 | Field | Value |
 | --- | --- |
-| Action | [`fe-tools-bundler-tsc-dist`](fe-tools-bundler-tsc-dist/README.md)（**`ready`**；实施未授权） |
+| Action | [`fe-tools-bundler-tsc-dist`](_archive/complete/fe-tools-bundler-tsc-dist/README.md)（**complete 已归档**） |
 | 问题 | JSDoc 类型不直观；sync 无法安全绿场 `.ts`；决定 B2 全交 tsc emit |
 | 目标 | B2 build（emit 全 src；删 sync、留 postbuild）+ 第0/1刀迁 `.ts`；typecheck include 对齐 |
 | 待定 | 无（D-TD-1..16 已拍板） |
-| 前置 | typecheck Close/合入后再实施（D-TD-12） |
+| 前置 | ~~typecheck Close/合入后再实施（D-TD-12）~~ — 已满足（typecheck complete） |
 
 ### napi parser 产标准 Document 形状（删 documentFromSpanView 翻译器）——候选（2026-09-15 · 讨论收敛）
 
