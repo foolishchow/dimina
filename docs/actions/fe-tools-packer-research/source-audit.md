@@ -64,7 +64,7 @@ Status: **in_progress（2026-09-20）**
 | --- | --- | --- | --- |
 | `writeCompileRes()` | L44-58 | | `emitEntry()` 调用（模块集合 → emit） |
 | `compileJS()` | L76-87 | | 页面遍历编排、进度报告 |
-| `buildJSByPath()` | L88-415 | ◐ AST parse + walk + import/require 收集 + MagicString 路径重写 + esbuild transform + remapSourcemap | `getDependencyGraph()` ×8（addFile/addDependency kind='logic'）、`getWorkPath()` ×8、`resetStoreInfo()` ×2、`getComponent()` ×1、`getAppId()` ×1、`getAppConfigInfo()` ×1、`getContentByPath()` ×1、`getNpmResolver()` ×1、`resolveAppAlias()` ×1、`isMiniGame()` ×1、`getTargetPath()` ×1 |
+| `buildJSByPath()` | L88-415 | ◐ AST parse + walk + import/require 收集 + MagicString 路径重写 + esbuild transform + remapSourcemap | `getDependencyGraph()` ×8、`getWorkPath()` ×8、`getComponent()` ×1、`getAppId()` ×1、`getAppConfigInfo()` ×1、`getContentByPath()` ×1、`getNpmResolver()` ×1、`resolveAppAlias()` ×1、`isMiniGame()` ×1、`getTargetPath()` ×1；另有 `resetStoreInfo()` ×1 在 logicCompile 入口（非 buildJSByPath 内） |
 
 ### Packer 胚元素（可抽提）
 
@@ -83,7 +83,7 @@ Status: **in_progress（2026-09-20）**
 | `getDependencyGraph()` | 8 | 写模块边（addFile/addDependency kind='logic'） | 可 → graph hook |
 | `getWorkPath()` | 8 | 源根路径 | 可 → sourceRoot 参数 |
 | `getTargetPath()` | 2 | 输出路径 | 可 → outputRoot 参数 |
-| `resetStoreInfo()` | 2 | 状态重置 | 可 → resetHook |
+| `resetStoreInfo()` | 1 | 状态重置（logicCompile 入口） | 可 → resetHook |
 | `getComponent()` | 1 | 组件配置 | 可 → componentResolver hook |
 | `getAppId()` | 1 | 模块 ID 前缀 | 可 → moduleIdPrefix 参数 |
 | `getAppConfigInfo()` | 1 | app 配置 | 可 → appConfig hook |
@@ -198,13 +198,134 @@ Status: **in_progress（2026-09-20）**
 
 `BuildModel` 不是 Packer 的一部分——它是 Scheme 的产物持有者。Packer 的产出通过 `sink.write(entry)` 到达 `BuildModel`。
 
-## 7. 待分析项（research 阶段填充，权威全集）
+## 7. 分析结果（P-PR01..04 深度审计）
 
-- W2 `resolveDependencyId()` 完整逻辑（import/require/export 解析）
-- W3 env.ts 图初始化完整逻辑（L814-891）
-- W3 env.ts `storeInfo` / `getContentByPath` 完整逻辑
-- 跨焊点依赖：logic → env → graph 的写图路径
-- 跨焊点依赖：emit → env → workPath 的 rebase 路径
-- hooks 粒度验证（11 种 Scheme 调用是否能收敛成 ≤5 个 hooks）
-- `getAffectedEntries` 跨图遍历可行性
-- modDefine 参数化后行为 0 可守性
+### P-PR01 — W2 logic/index.ts 深度审计
+
+#### resolveDependencyId (L459-509)
+
+- 模块标识解析：miniprogram_npm/ 前缀 → 相对路径(./, ../) → 绝对路径(/) → app 别名 → bare specifier(@, npm)
+- **Packer 胚**：模块标识解析是 Packer 核心能力
+- **Scheme 耦合**：resolveAppAlias 读 configInfo.appInfo.resolveAlias（Scheme 状态）；resolveNpmModuleId 读 getNpmResolver()（Scheme 基础设施）；resolveRelativeModuleId 读 getWorkPath()（Scheme 路径状态）
+- **结论**：可参数化为 resolver hook（alias + npm + path 三合一）
+
+#### buildJSByPath (L88-415) — Packer 核心管线
+
+1. 模块文件解析（getJSAbsolutePath → getWorkPath）
+2. 源码读取（getContentByPath → fs.readFileSync 包装）
+3. 图写（getDependencyGraph().addFile kind='logic'）
+4. AST parse（parseSync from oxc-parser）
+5. AST walk（walk from oxc-walker）
+   - 依赖收集（addDependency kind='logic'）
+   - 资产收集（addFile kind='logic' for local assets）
+   - 组件解析（getComponent → configInfo.componentInfo 查表）
+   - 分包配置（getAppConfigInfo().subPackages）
+   - 组件依赖过滤（getDirectDependencies('component') — 读 Scheme 节点边）
+   - 路径重写（MagicString.overwrite）
+6. Sourcemap（MagicString.generateMap）
+7. Transform（esbuild.transform → CJS + minify）
+8. Sourcemap remap（remapSourcemap）
+9. 产物 → compileRes → writeCompileRes → emitEntry
+
+#### hooks 收敛分析
+
+11 种 env.ts 调用可收敛为 4 个 hooks：
+
+| Hook | 包含的 env.ts 函数 | 语义 |
+| --- | --- | --- |
+| graphWriter | getDependencyGraph（addFile + addDependency + getDirectDependencies） | 写模块边 + 读组件依赖（Scheme 节点边） |
+| pathProvider | getWorkPath + getTargetPath | sourceRoot + outputRoot（标量参数） |
+| resolver | getContentByPath + getNpmResolver + resolveAppAlias + getComponent + getAppConfigInfo | 内容/npm/别名/组件/appConfig 五合一 |
+| stateRestore | resetStoreInfo + getAppId + isMiniGame | 状态恢复 + 模块 ID 前缀 + 运行时类型（标量 + 状态） |
+
+**≤5 ✓**。但 resolver hook 粒度较粗（5 函数合一），需验证语义不冲突。
+
+### P-PR02 — W3 env.ts 深度审计
+
+#### storeInfo (L192-213)
+
+- 入口函数：storePathInfo + storeProjectConfig + storeAppConfig + storePageConfig + createInitialDependencyGraph
+- **纯 Scheme**：初始化整个工程上下文（路径、配置、图）
+- **Packer 无关**：Packer 胚不调 storeInfo（仅 project-store 调）
+
+#### getContentByPath (L?)
+
+- `fs.readFileSync(path, { encoding: 'utf-8' })` — 纯文件读取
+- **可参数化**：content(path) => string
+
+#### getComponent (L?)
+
+- `configInfo.componentInfo[src]` — 配置查表
+- **可参数化**：component(path) => unknown
+
+#### getNpmResolver (L?)
+
+- `getCompilerContext().npmResolver` — 从 ALS 读
+- **可参数化**：直接注入 npmResolver 实例
+
+#### resolveAppAlias (L?)
+
+- 读 configInfo.appInfo.resolveAlias → 别名匹配（endswith('/*') 或全等）
+- **可参数化**：alias(specifier) => string | null
+
+#### 图初始化 (L814-899)
+
+- Scheme 填工程图：addNode('app') / addNode(page.path, { type: 'page', entry: true }) / addNode(component.path, { type: 'component' })
+- addFile for app.json/app.js/project.config.json（kind='config'）
+- addDependency(page.path, 'app', 'app') + addDependency(page.path, dep, 'component')
+- **纯 Scheme**：Packer 不参与图初始化
+
+#### 结论
+
+env.ts 不拆。改为注入 PackerContext（4 hooks），Packer 胚通过 context 访问需要的 9 个共用函数。env.ts 保持为 Scheme 基础设施。
+
+### P-PR03 — W4 dependency-graph.ts 跨图遍历分析
+
+#### getAffectedEntries 遍历路径
+
+file → fileOwners → owners → BFS getDirectDependents → 收集 entry=true
+
+跨两侧：
+- 'logic' file → 'module' owner (Packer) → dependents 可能是 'page' (Scheme) → entry=true ✓
+- 'config' file → 'app' owner (Scheme) → dependents = pages (Scheme) → entry=true ✓
+
+**本质耦合**：一条 file→entry 路径可能跨 Packer 节点和 Scheme 节点。拆成两图需要跨图索引。
+
+#### 拆分方案评估
+
+- **方案 A（拆 + 跨图索引）**：ProjectGraph + ModuleGraph + CrossGraphIndex。复杂度高，getAffectedEntries 需查两图。
+- **方案 B（不拆，暴露 Packer API）**：保持一份实例，Packer 用 addModuleFile/addModuleDependency 限定 kind='logic'。简单，零行为风险。
+
+**推荐方案 B**：不拆图。Packer 通过限定 kind 的 API 间接使用同一图实例。
+
+#### getFileKinds 分离
+
+kind 值分两侧：Scheme（config/view/style/app/component）vs Packer（logic）。getFileKinds 返回所有 kind — 用于 compile-stages 选道（Scheme 逻辑）。拆图后需查两图合并。方案 B 下无需拆。
+
+### P-PR04 — W1 emit.ts parameterize 验证
+
+#### modDefine 参数化
+
+`modDefine('${moduleId}', function(require, module, exports) { ... })` 出现在 3 处。
+
+参数化为 `wrapModule(moduleId: string, code: string): string`：
+- Packer 提供函数签名
+- Scheme 提供 wrapModule 实现（注入 modDefine 格式器）
+- 行为 0 可守：wrapModule 返回相同字符串即字节等价
+
+#### getWorkPath 参数化
+
+perModule rebase：`relative(finalOutputDir, resolve(getWorkPath(), sourcePath))`
+
+参数化为 `sourceRoot: string`：直接传入。行为 0 可守。
+
+#### kind 泛化
+
+`kind: 'view' | 'logic'` → 可泛化为 `kind: string` 或移除（strategy 已区分）。
+但 kind 用于 BuildModel.entries 键（`${kind}:${entryId}`）和 dev server 路由——移除需改 Scheme 侧。
+
+**推荐**：保留 kind，但 Packer API 接受 kind 作为参数（注入而非硬编码）。
+
+### 计数修正
+
+resetStoreInfo 实际调用 ×1（非 ×2）：`typeof resetStoreInfo` 类型引用被误计为函数调用。总调用 27→26。

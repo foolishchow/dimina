@@ -21,7 +21,7 @@
 | 待定 | ① Module.code 存 Store 内存（watch 长驻）还是序列化持久（重启复用）——决定 fingerprint 是否下沉模块级；② worker 编译回填 Store = IPC 放大 vs 本地再算——HMR/增量值得，单构建多余 |
 | 触发 | 需要模块级失效/增量 or HMR 深化 or 多平台 emit 时；立项为 umbrella（S1 收敛 → S2 emit → S3 Store/失效）或分步 |
 
-### B. Emit 抽象层（「先从 emit 做一刀」）——候选 · 可与 A 解耦先行
+### B. Emit 抽象层（「先从 emit 做一刀」）——候选 · packer-research 评估：可独立先行（S 级低风险）
 
 | Field | Value |
 | --- | --- |
@@ -34,7 +34,7 @@
 | 前置斟酌 | 是否趁刀统一 transform 粒度——建议不统一（各有原因），差异留参数 |
 | 形态 | 小 Action `fe-tools-bundler-emit-layer`（纯重构 + 行为 0），落点 `pipeline/emit.js` |
 
-### C. 三刀细化（2026-09-15 · 讨论收敛：emit 抽取 / 失效查询 / ModuleCache）——候选
+### C. 三刀细化（2026-09-15 · 讨论收敛：emit 抽取 / 失效查询 / ModuleCache）——候选 · packer-research 推荐优先推进刀 2+3
 
 > 结论：emit 抽取与缓存层通过「**模块集合接口**」耦合（emit 消费、缓存提供同一形状 iterable<{moduleId, code, map}>）。先立契约 → 消费端 → 提供端。分为三刀，各独立验证。
 
