@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-packer-research
 
-Status: **draft（2026-09-20）**
+Status: **ready（2026-09-20）**
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

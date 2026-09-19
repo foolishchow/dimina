@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-packer-research
 
-Status: **draft（2026-09-20）** — 研究阶段，待填充
+Status: **ready（2026-09-20）** — 15 轮 review 收敛，23 findings 全修正
 
 ## 1. 研究方法
 

@@ -1,6 +1,6 @@
 # Source Audit — fe-tools-packer-research
 
-Status: **draft（2026-09-20）**
+Status: **ready（2026-09-20）**
 
 基线 commit：`ef879a87`（emit-memfs 归档后）。
 
