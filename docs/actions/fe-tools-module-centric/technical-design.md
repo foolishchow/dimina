@@ -83,4 +83,4 @@ Scheme 仍负责：编哪些页、车道、何时调用上述能力。
 
 ## 待定
 
-伞级无。子门 M1 见 [`fe-tools-module-invalidation`](../fe-tools-module-invalidation/technical-design.md) T1–T7。
+伞级无。子门 M1 见 [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/technical-design.md) T1–T7。

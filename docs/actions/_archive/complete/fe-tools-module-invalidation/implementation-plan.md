@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-module-invalidation
 
-Status: **ready（2026-09-20）** — 未授权改 `src`（`in_progress` 另授）。
+Status: **complete（2026-09-20）** — 实施 + close。
 
 ## 纪律
 
@@ -15,8 +15,8 @@ Status: **ready（2026-09-20）** — 未授权改 `src`（`in_progress` 另授�
 | 2 | 讨论冻结 T1–T7 → D-IV-1..9 | **done**（2026-09-19） |
 | 3 | review findings：Goal=`string[]`；requirements / A-IV0 对齐 | **done** |
 | 4 | 升 `ready`（用户授权） | **done**（2026-09-20） |
-| 5 | `in_progress`：实现 API + 单测（另授）。IV1 内序：① `getInvalidatedModules` 方法 → ② `computeInvalidatedModules` 函数 → ③ 5 案测例（对齐 TD §2.2 + D-IV-3） | pending |
-| 6 | validation Actual；回流 architecture-notes；close | pending |
+| 5 | `in_progress`：实现 API + 单测（用户授权）。IV1 内序：① `getInvalidatedModules` 方法 → ② `computeInvalidatedModules` 函数 → ③ 5 案测例（对齐 TD §2.2 + D-IV-3） | **done**（2026-09-20） |
+| 6 | validation Actual；回流 architecture-notes；close | **done**（2026-09-20） |
 
 ## 依赖
 

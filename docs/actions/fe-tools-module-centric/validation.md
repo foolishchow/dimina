@@ -25,3 +25,4 @@ Status: **ready（2026-09-19）** — 文档门已对拍；close / 子门实施�
 | 2026-09-19 | review findings 修复后复验：`validate_action` 0/0；人工对拍 P-MF00..03 全 pass（见上）。工作树 `fe/tools/bundler/src`、`fe/packages` 无改动。 |
 | 2026-09-19 | 升 **`ready`**（用户授权）。status 仍不授权改 src；下一步 formalize M1。 |
 | 2026-09-20 | review M1 R4 修复：roadmap + TD 两处 T1–T5→T1–T7（M1 实际冻结 7 议题）。伞文档同步。 |
+| 2026-09-20 | M1 complete：getInvalidatedModules + computeInvalidatedModules 交付；6 测例；行为 0（仅 model/ + spec）。伞仍 `ready`（D-MF-4）；下一步 formalize M2。 |

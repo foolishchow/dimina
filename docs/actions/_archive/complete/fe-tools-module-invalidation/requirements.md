@@ -1,6 +1,6 @@
 # Requirements — fe-tools-module-invalidation
 
-Status: **草案（2026-09-19）** — 随 Action `ready`（2026-09-20）；D-IV-1..9 已冻。
+Status: **complete（2026-09-20）** — 随 Action complete；D-IV-1..9 已冻 + 已实施。
 
 ## R-IV0（MUST）遵守伞 D-MF-1
 

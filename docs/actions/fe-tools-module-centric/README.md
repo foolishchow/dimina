@@ -66,7 +66,7 @@
 
 - 当前 **`ready`**（2026-09-19）。D-MF-1 已封口；A-MF0..3 文档门 pass。
 - **仍未授权**改 `fe/tools/bundler/src` / `fe/packages`。未授权子门 `in_progress`。
-- 子门 M1：[`fe-tools-module-invalidation`](../fe-tools-module-invalidation/README.md) **`ready`**（2026-09-20 用户授权；6 轮 review 收敛；升 in_progress 另授）。
+- 子门 M1：[`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) **`complete`**（2026-09-20；API 交付 + 6 测例全绿 + 行为 0 + 已归档）。
 
 ## 闭合条件
 
@@ -78,10 +78,11 @@
 
 | 日期 | 变更 |
 | --- | --- |
-| 2026-09-19 | M1 [`fe-tools-module-invalidation`](../fe-tools-module-invalidation/README.md) formalize 为 `draft` |
+| 2026-09-19 | M1 [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) formalize 为 `draft` |
 | 2026-09-19 | 升 **`ready`**（用户授权）；MF0 冻结；下一步 formalize M1 |
 | 2026-09-19 | review findings：条款 3 明确 logic 闭包归 M1 TD；修订记录去歧义 |
 | 2026-09-19 | **D-MF-1 封口**：方案 A；刀 2 仅 logic；view/style 排除；规范形迁移另门；图不拆表 |
 | 2026-09-20 | 立项 `draft`：从 TODO 近端顺序 §1 formalize |
 | 2026-09-20 | review M1 R4 修复：roadmap + TD 两处 T1–T5→T1–T7（M1 实际冻结 7 议题 → D-IV-1..9） |
 | 2026-09-20 | M1 fe-tools-module-invalidation 升 **`ready`**（用户授权）；6 轮 readiness review 收敛 |
+| 2026-09-20 | M1 fe-tools-module-invalidation **`complete`**：in_progress → 实施 → complete + 归档（getInvalidatedModules + computeInvalidatedModules + 6 测例；行为 0） |

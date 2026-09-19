@@ -108,6 +108,26 @@ class DependencyGraph {
 		return [...entries].sort()
 	}
 
+	getInvalidatedModules(filePath: string): string[] {
+		const normalizedPath = normalizeFilePath(filePath)
+		const ownerKinds = this.fileKinds.get(normalizedPath)
+		if (!ownerKinds) return []
+		const pending: string[] = []
+		for (const [owner, kinds] of ownerKinds) {
+			if (kinds.has('logic')) pending.push(owner)
+		}
+		const visited = new Set<string>()
+		while (pending.length > 0) {
+			const id = pending.pop()!
+			if (visited.has(id)) continue
+			visited.add(id)
+			for (const dependent of this.getDirectDependents(id, 'logic')) {
+				pending.push(dependent)
+			}
+		}
+		return [...visited].sort()
+	}
+
 	hasFile(filePath: string): boolean {
 		return this.fileOwners.has(normalizeFilePath(filePath))
 	}

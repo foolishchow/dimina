@@ -35,19 +35,19 @@
 | --- | --- |
 | Action | [`fe-tools-module-centric`](fe-tools-module-centric/README.md) **`ready`** |
 | 北星 | Module 一等公民；图与缓存围着它转；不整包抽 Packer |
-| 近端子门 | M1 [`fe-tools-module-invalidation`](fe-tools-module-invalidation/README.md) **`draft`** → M2 `fe-tools-module-result-cache`；（可选）emit W1 |
+| 近端子门 | M1 [`fe-tools-module-invalidation`](_archive/complete/fe-tools-module-invalidation/README.md) **✅ complete 已归档** → M2 `fe-tools-module-result-cache`；（可选）emit W1 |
 | D-MF-1 | **已封口**：方案 A（今日 `CompileInfo.path`）；刀 2 仅 logic；view/style 排除；规范形迁移另门 |
-| 其后 | M1 升 `ready`（另授）→ 实施；伞不授权改 src |
+| 其后 | M1 已 complete 归档；下一步 formalize M2 `fe-tools-module-result-cache`；伞不授权改 src |
 
-### 1a. M1 模块级失效 —— ✅ 已 formalize（`draft`）
+### 1a. M1 模块级失效 —— ✅ complete 已归档
 
 | Field | Value |
 | --- | --- |
-| Action | [`fe-tools-module-invalidation`](fe-tools-module-invalidation/README.md) **`draft`** |
+| Action | [`fe-tools-module-invalidation`](_archive/complete/fe-tools-module-invalidation/README.md) **✅ complete 已归档** |
 | 目标 | `getInvalidatedModules`：changed files → logic moduleId 集 |
 | 继承 | 伞 D-MF-1 七条 |
-| 阻塞 ready | **无设计项**（D-IV-1..9 已冻）；升 ready 另授 |
-| 其后 | 升 `ready` → `in_progress`（API + 单测） |
+| 闭合证据 | tsc 0 错；vitest 9/9 + 全量 594/595（1 flaky retry pass）；diff scope 仅 model/ + spec；A-IV0..4 / P-IV00..04 全 pass |
+| 其后 | 已实施 complete；回流 architecture-notes；M2 消费本 API 脏集 |
 
 ---
 

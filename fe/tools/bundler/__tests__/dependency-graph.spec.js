@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DependencyGraph } from '../src/model/dependency-graph.ts'
+import { computeInvalidatedModules } from '../src/model/invalidation.ts'
 import build from '../src/index.ts'
 import { getDependencyGraph, storeInfo } from '../src/compiler/core/env.ts'
 
@@ -122,4 +123,71 @@ describe('compiler dependency graph', () => {
 		expect(fs.readFileSync(path.join(outputDir, 'main/pages_one_index.js'), 'utf8')).toContain('one changed')
 		expect(fs.readFileSync(unaffectedPath, 'utf8')).toBe(unaffectedBefore)
 	}, 30000)
+
+	// --- M1: 模块级失效查询（getInvalidatedModules / computeInvalidatedModules）---
+	// D-IV-1..9; TD §2.2 行为锚点 + D-IV-3 边缘案
+
+	it('getInvalidatedModules: shared JS → moduleId + logic dependents', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('/utils/shared', path.join(tempDir, 'utils/shared.js'), 'logic')
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
+		graph.addDependency('pages/foo/index', '/utils/shared', 'logic')
+
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'utils/shared.js')))
+			.toEqual(['/utils/shared', 'pages/foo/index'])
+	})
+
+	it('getInvalidatedModules: page.js → page moduleId', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
+
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.js')))
+			.toEqual(['pages/foo/index'])
+	})
+
+	it('getInvalidatedModules: wxml → empty (no logic file edge)', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.wxml'), 'view')
+
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.wxml')))
+			.toEqual([])
+	})
+
+	it('getInvalidatedModules: component.js → moduleId in set, page NOT (D-IV-6)', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
+		graph.addFile('/components/leaf/index', path.join(tempDir, 'components/leaf/index.js'), 'logic')
+		graph.addDependency('pages/foo/index', '/components/leaf/index', 'component')
+
+		const result = graph.getInvalidatedModules(path.join(tempDir, 'components/leaf/index.js'))
+		expect(result).toContain('/components/leaf/index')
+		expect(result).not.toContain('pages/foo/index')
+	})
+
+	it('getInvalidatedModules: unknown file → [] (D-IV-3, does not throw)', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
+
+		expect(() => graph.getInvalidatedModules(path.join(tempDir, 'nonexistent.js')))
+			.not.toThrow()
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'nonexistent.js')))
+			.toEqual([])
+	})
+
+	it('computeInvalidatedModules: unions across files, dedupes, sorts', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('/utils/a', path.join(tempDir, 'utils/a.js'), 'logic')
+		graph.addFile('/utils/b', path.join(tempDir, 'utils/b.js'), 'logic')
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
+		graph.addDependency('pages/foo/index', '/utils/a', 'logic')
+		graph.addDependency('pages/foo/index', '/utils/b', 'logic')
+
+		expect(computeInvalidatedModules(graph, [
+			path.join(tempDir, 'utils/a.js'),
+			path.join(tempDir, 'utils/b.js'),
+		])).toEqual(['/utils/a', '/utils/b', 'pages/foo/index'])
+
+		// D-IV-3: empty changedFiles → []
+		expect(computeInvalidatedModules(graph, [])).toEqual([])
+	})
 })

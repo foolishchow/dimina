@@ -1,13 +1,13 @@
 # FE Tools Module Invalidation（M1 / 刀 2）
 
 - Action: `fe-tools-module-invalidation`
-- Status: `ready`
+- Status: `complete`
 - Updated: 2026-09-20
-- Status authority: [Action Status](../STATUS.md)
-- 伞：[fe-tools-module-centric](../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
+- Status authority: [Action Status](../../../STATUS.md)
+- 伞：[fe-tools-module-centric](../../../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
-- 前置：[`boundaries`](../_archive/complete/fe-tools-bundler-boundaries/README.md)；[`emit-layer`](../_archive/complete/fe-tools-bundler-emit-layer/README.md)；[`incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（Entry 级 `affectedEntries` 保留）
+- 前置：[`boundaries`](../../../_archive/complete/fe-tools-bundler-boundaries/README.md)；[`emit-layer`](../../../_archive/complete/fe-tools-bundler-emit-layer/README.md)；[`incremental-target`](../../../_archive/complete/fe-tools-incremental-target/README.md)（Entry 级 `affectedEntries` 保留）
 
 ## 问题陈述
 
@@ -56,8 +56,8 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-20 用户授权）。**T1–T7 / D-IV-1..9 已冻结**。升 `in_progress` 另授。
-- 仍未授权改产品代码（`ready` 仅文档门；`in_progress` 才授权实施）。
+- 当前 **`complete`**（2026-09-20）。**in_progress → complete**：API 实施 + 6 测例全绿 + 行为 0 + 回流。
+- 闭合：A-IV0..4 全 pass；P-IV00..04 全 pass；证据入 validation Actual。
 
 ## 闭合条件
 
@@ -76,3 +76,5 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留
 | 2026-09-20 | review R2 F1–F4 修复：R-IV2 补 component + 未知文件案（F1/F4 源头传播）；D-IV-1 参数名 files→changedFiles（F2）；README Updated 日期（F3）；A-IV2/P-IV02 补未知文件案（F4） |
 | 2026-09-20 | review R3 F1–F2 修复：plan 步 5 案数 4→5 + 引用补 D-IV-3（F1）；TD §2.1 伪代码删死 owners 行 + 显式定义 file=normalizeFilePath（F2） |
 | 2026-09-20 | **升 `ready`**（用户授权）；6 轮 readiness review 收敛（R1–R6: 4→4→2→1→1→0）；文档门全 pass；升 `in_progress` 另授 |
+| 2026-09-20 | **升 `in_progress`**（用户授权）：实施 getInvalidatedModules + computeInvalidatedModules + 6 测例 |
+| 2026-09-20 | **升 `complete`**：tsc 0 错；vitest 9/9 + 全量 594/595（1 flaky retry pass）；diff scope 仅 model/ + spec；A-IV0..4 / P-IV00..04 全 pass；回流 architecture-notes |

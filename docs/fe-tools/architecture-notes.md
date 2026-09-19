@@ -212,7 +212,7 @@ wxml/
 
 **落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../actions/_archive/complete/fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
 
-**Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/fe-tools-module-centric/README.md)（**`ready`**）——子门 M1 [`fe-tools-module-invalidation`](../actions/fe-tools-module-invalidation/README.md)（**`ready`**，2026-09-20 授权；D-IV-1..9 已冻）→ M2 结果缓存。D-MF-1：方案 A / logic-only。下一步：M1 升 in_progress → 实施。
+**Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/fe-tools-module-centric/README.md)（**`ready`**）——子门 M1 [`fe-tools-module-invalidation`](../actions/_archive/complete/fe-tools-module-invalidation/README.md)（**`complete`**，2026-09-20；D-IV-1..9 已实施）→ M2 结果缓存。D-MF-1：方案 A / logic-only。下一步：M2 formalize。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
@@ -269,3 +269,4 @@ wxml/
 | 2026-09-19 | **fe-tools-module-invalidation `draft`**：刀 2 立项；继承 D-MF-1；T1–T7 → D-IV-1..9 冻结（见下行） |
 | 2026-09-19 | **M1 D-IV-1..9 冻结**：logic-only 闭包；Graph+invalidation 双挂；sorted `string[]`；不接线 watch |
 | 2026-09-20 | **M1 升 `ready`**：6 轮 readiness review 收敛（R1–R6: 4→4→2→1→1→0）；D-IV-1..9 全冻；文档门 pass；升 in_progress 另授 |
+| 2026-09-20 | **M1 complete**：getInvalidatedModules + computeInvalidatedModules 交付；logic-only 闭包（fileKinds seed + getDirectDependents('logic')）；6 测例（5 案 + 批量）；行为 0（仅 model/ + spec）；tsc 0；vitest 594/595（1 flaky pass）。下一步：M2 result-cache 消费本 API 脏集。 |

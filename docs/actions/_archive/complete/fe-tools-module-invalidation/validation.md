@@ -1,16 +1,16 @@
 # Validation — fe-tools-module-invalidation
 
-Status: **草案（随 Action `ready`）**
+Status: **complete（2026-09-20）**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
 | P-IV00 | D-MF-1 继承 | 对照伞 TD 与本 TD §1 七条；README Non-goals | A-IV0 | **pass**（2026-09-19） |
 | P-IV01 | 决策冻结 | D-IV-1..9 成文；待定节为空；Goal=`string[]` | A-IV1 | **pass**（2026-09-19） |
-| P-IV02 | 单测矩阵 | 手搓图测例 5 案（对齐 TD §2.2 + D-IV-3）：共享 JS / page.js / wxml / **component.js（验 D-IV-6：moduleId 进集、页 moduleId 不进集）** / **未知文件 → [] 不抛（验 D-IV-3）** | A-IV2 | pending |
-| P-IV03 | 落点 / 边界 | Graph 方法 + `invalidation.ts`；`fe/packages` 空 diff | A-IV3 | pending |
-| P-IV04 | 行为 0 | 仅加法 API；既有 vitest 绿 | A-IV4 | pending |
+| P-IV02 | 单测矩阵 | 手搓图测例 5 案（对齐 TD §2.2 + D-IV-3）：共享 JS / page.js / wxml / **component.js（验 D-IV-6：moduleId 进集、页 moduleId 不进集）** / **未知文件 → [] 不抛（验 D-IV-3）** | A-IV2 | **pass**（2026-09-20） |
+| P-IV03 | 落点 / 边界 | Graph 方法 + `invalidation.ts`；`fe/packages` 空 diff | A-IV3 | **pass**（2026-09-20） |
+| P-IV04 | 行为 0 | 仅加法 API；既有 vitest 绿 | A-IV4 | **pass**（2026-09-20） |
 
 ## Uncovered
 
@@ -27,3 +27,4 @@ Status: **草案（随 Action `ready`）**
 | 2026-09-20 | review R2 F1–F4 修复：R-IV2 补 component + 未知文件案（F1/F4 源头）；D-IV-1 参数名 files→changedFiles（F2）；README Updated 日期（F3）；A-IV2/P-IV02 补未知文件案（F4）。复验 pass。 |
 | 2026-09-20 | review R3 F1–F2 修复：plan 步 5 案数 4→5 + 引用补 D-IV-3（F1）；TD §2.1 伪代码删死 owners 行 + 显式定义 file（F2）。复验 pass。 |
 | 2026-09-20 | **升 `ready`**（用户授权）；6 轮 readiness review 收敛（4→4→2→1→1→0）。validator 0/0。升 `in_progress` 另授。 |
+| 2026-09-20 | **in_progress → complete**：API 实施（getInvalidatedModules + computeInvalidatedModules）；6 新测例全绿（9/9）；tsc 0 错；全量 vitest 594/595（1 flaky retry pass）；diff scope 仅 model/ + spec（logic/emit/watch 零触碰）；A-IV2..4 / P-IV02..04 pass。回流 architecture-notes。 |
