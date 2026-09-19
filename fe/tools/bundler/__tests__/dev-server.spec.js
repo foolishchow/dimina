@@ -218,3 +218,116 @@ describe('dev server — WebSocket 协议与 pendingReload', () => {
 		socket.close()
 	})
 })
+
+describe('dev server — artifactResolver 注入', () => {
+	let serveRoot
+	let devServer
+	let baseUrl
+
+	function get(url) {
+		return new Promise((resolve, reject) => {
+			http.get(url, (res) => {
+				const chunks = []
+				res.on('data', c => chunks.push(c))
+				res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString('utf8') }))
+			}).on('error', reject)
+		})
+	}
+
+	it('(a) 传 artifactResolver 返回内存产物；GET 响应 body == resolver code', async () => {
+		serveRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-server-ar-'))
+		fs.mkdirSync(path.join(serveRoot, 'main'), { recursive: true })
+		fs.writeFileSync(path.join(serveRoot, 'main', 'logic.js'), '/* disk logic */\n')
+
+		devServer = createDevServer({
+			serveRoot,
+			sdkRoot: serveRoot,
+			appId: 'wx_test',
+			artifactResolver: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null,
+		})
+		await devServer.listen(0, '127.0.0.1')
+		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`
+
+		const res = await get(`${baseUrl}/main/logic.js`)
+		expect(res.status).toBe(200)
+		expect(res.body).toBe('/* memory logic */')
+		expect(res.headers['content-type']).toContain('text/javascript')
+
+		await devServer.close()
+		fs.rmSync(serveRoot, { recursive: true, force: true })
+	})
+
+	it('(b) GET 未命中路径 fallback 磁盘', async () => {
+		serveRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-server-ar-'))
+		fs.mkdirSync(path.join(serveRoot, 'main'), { recursive: true })
+		fs.writeFileSync(path.join(serveRoot, 'main', 'logic.js'), '/* disk logic */\n')
+		fs.writeFileSync(path.join(serveRoot, 'app-config.json'), JSON.stringify({ appId: 'wx_test' }))
+
+		devServer = createDevServer({
+			serveRoot,
+			sdkRoot: serveRoot,
+			appId: 'wx_test',
+			artifactResolver: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null,
+		})
+		await devServer.listen(0, '127.0.0.1')
+		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`
+
+		// app-config.json not in resolver → disk fallback
+		const cfg = await get(`${baseUrl}/app-config.json`)
+		expect(cfg.status).toBe(200)
+		expect(cfg.body).toContain('wx_test')
+
+		await devServer.close()
+		fs.rmSync(serveRoot, { recursive: true, force: true })
+	})
+
+	it('(c) 不传 resolver 时行为同今天（全走磁盘）', async () => {
+		serveRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-server-ar-'))
+		fs.mkdirSync(path.join(serveRoot, 'main'), { recursive: true })
+		fs.writeFileSync(path.join(serveRoot, 'main', 'logic.js'), '/* disk logic */\n')
+
+		devServer = createDevServer({
+			serveRoot,
+			sdkRoot: serveRoot,
+			appId: 'wx_test',
+		})
+		await devServer.listen(0, '127.0.0.1')
+		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`
+
+		const res = await get(`${baseUrl}/main/logic.js`)
+		expect(res.status).toBe(200)
+		expect(res.body).toContain('disk logic')
+
+		await devServer.close()
+		fs.rmSync(serveRoot, { recursive: true, force: true })
+	})
+
+	it('(d) appId 前缀剥离：GET /wx_test/main/logic.js → resolver key main/logic.js', async () => {
+		serveRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-server-ar-'))
+		fs.mkdirSync(path.join(serveRoot, 'wx_test', 'main'), { recursive: true })
+		fs.writeFileSync(path.join(serveRoot, 'wx_test', 'main', 'logic.js'), '/* disk logic */\n')
+		fs.writeFileSync(path.join(serveRoot, 'wx_test', 'app-config.json'), JSON.stringify({ appId: 'wx_test' }))
+
+		devServer = createDevServer({
+			serveRoot,
+			sdkRoot: serveRoot,
+			appId: 'wx_test',
+			artifactResolver: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null,
+		})
+		await devServer.listen(0, '127.0.0.1')
+		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`
+
+		// appId prefix stripped → resolver hit
+		const logic = await get(`${baseUrl}/wx_test/main/logic.js`)
+		expect(logic.status).toBe(200)
+		expect(logic.body).toBe('/* memory logic */')
+
+		// appId prefix stripped → resolver miss → disk fallback
+		const cfg = await get(`${baseUrl}/wx_test/app-config.json`)
+		expect(cfg.status).toBe(200)
+		expect(cfg.body).toContain('wx_test')
+
+		await devServer.close()
+		fs.rmSync(serveRoot, { recursive: true, force: true })
+	})
+})

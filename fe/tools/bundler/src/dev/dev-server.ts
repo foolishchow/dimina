@@ -50,6 +50,7 @@ export function createDevServer({
 	hostHtml = createHostPageHtml({ appId, wsPath }),
 	pageFrameHtml = createPageFrameHtml(),
 	allowedOrigins = '',
+	artifactResolver,
 }: {
 	serveRoot: string
 	sdkRoot: string
@@ -58,6 +59,7 @@ export function createDevServer({
 	hostHtml?: string
 	pageFrameHtml?: string
 	allowedOrigins?: string
+	artifactResolver?: (relativePath: string) => { code: string } | null
 }) {
 	if (!serveRoot || !sdkRoot || !appId) {
 		throw new TypeError('createDevServer requires serveRoot, sdkRoot, and appId')
@@ -152,7 +154,16 @@ export function createDevServer({
 				filePath = resolveContainedPath(sdkRoot, pathname.slice('/sdk/'.length))
 			}
 			else {
-				filePath = resolveContainedPath(serveRoot, pathname.slice(1))
+				const relativePath = pathname.slice(1)
+				const artifactPath = stripAppIdPrefix(relativePath, appId)
+				const artifact = artifactResolver?.(artifactPath)
+				if (artifact) {
+					const contentType = MIME_TYPES[path.extname(pathname).toLowerCase()]
+						|| 'application/octet-stream'
+					writeStatic(response, artifact.code, contentType, request.method === 'HEAD')
+					return
+				}
+				filePath = resolveContainedPath(serveRoot, relativePath)
 			}
 		}
 		catch {
@@ -252,6 +263,11 @@ function getPathname(requestUrl: string | undefined = '/'): string {
 		throw new Error('Invalid URL')
 	}
 }
+function stripAppIdPrefix(relativePath: string, appId: string): string {
+	const prefix = `${appId}/`
+	return relativePath.startsWith(prefix) ? relativePath.slice(prefix.length) : relativePath
+}
+
 function resolveContainedPath(root: string, relativePath: string): string {
 	const absoluteRoot = path.resolve(root)
 	const candidate = path.resolve(absoluteRoot, relativePath)

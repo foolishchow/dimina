@@ -48,12 +48,13 @@ export function createWebPreviewAdapter() {
 		},
 
 		/** Wrap today's createDevServer; host/port are NOT accepted here (belong to listen). */
-		async createServer({ serveRoot, appId }: { serveRoot: string; appId: string }) {
+		async createServer({ serveRoot, appId, artifactResolver }: { serveRoot: string; appId: string; artifactResolver?: (relativePath: string) => { code: string } | null }) {
 			state.devServer = createDevServer({
 				serveRoot,
 				sdkRoot: resolveSdkRoot(),
 				appId,
 				wsPath: '/ws',
+				artifactResolver,
 			})
 		},
 

@@ -36,6 +36,7 @@ import { createProjectStore } from '../model/project-store.ts'
 import { createSessionRunner, COMPILE_KEYS } from './runner.ts'
 import type { ResolvedBundlerInput } from './resolve.ts'
 import type { ReloadContext } from './preview-adapter.ts'
+import type { BuildModel } from '../model/build-model.ts'
 
 /** server on Resolved / session — host/port only (D-R3) */
 const SERVER_KEYS = Object.freeze(['host', 'port'])
@@ -55,6 +56,7 @@ export interface SessionState {
 	lifecycle: Lifecycle
 	activeLoop: null | 'watch' | 'dev'
 	store: ProjectStore
+	buildModel?: BuildModel
 }
 
 export interface WatchOpts {
@@ -228,6 +230,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 				onRebuild: onRebuild as WatchOpts['onRebuild'],
 				options: {
 					fileTypes: state.fileTypes,
+					skipMaterialize: !previewAdapter,
 				},
 			})
 
@@ -236,14 +239,20 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 			try {
 				const buildResult = await watcher.start()
 
+				state.buildModel = (buildResult as { buildModel?: BuildModel }).buildModel
+
 				await adapter.createServer({
 					serveRoot: state.targetPath,
 					appId: (buildResult as { appId: string }).appId,
+					artifactResolver: (path: string) => state.buildModel?.getArtifact(path) ?? null,
 				})
 
 				// KNOWN LIMITATION (A1 v1, no off()): these stay mounted after
 				// rollback/close — accumulate, but harmless (see above).
 				state.lifecycle.on('bundle:published', () => adapter.notifyBuildPublished())
+				state.lifecycle.on('build:end', (({ result }: { result?: { buildModel?: BuildModel } }) => {
+					state.buildModel = result?.buildModel
+				}) as (payload: unknown) => void)
 				state.lifecycle.on('build:error', (({ error }: { error?: { message?: string } }) => {
 					adapter.notifyBuildError(error?.message || 'build failed')
 				}) as (payload: unknown) => void)

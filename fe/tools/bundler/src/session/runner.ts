@@ -38,6 +38,7 @@ const PIPELINE_OPTION_KEYS = Object.freeze([
 	'dependencyGraph',
 	'prepareConfig',
 	'prepareNpm',
+	'skipMaterialize',
 ])
 
 /**

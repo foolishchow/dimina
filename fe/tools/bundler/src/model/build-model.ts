@@ -13,6 +13,7 @@ import path from 'node:path'
 
 export class BuildModel {
 	entries: Map<string, { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }> = new Map()
+	private _artifactIndex: Map<string, { code: string }> | null = null
 	constructor() {
 		/** @type {Map<string, object>} entryId → { entryId, kind, files: [{path, code}], sourcemaps?: [{path, map}] } */
 		this.entries = new Map()
@@ -27,11 +28,28 @@ export class BuildModel {
 			throw new TypeError('BuildModel.add: entry.entryId must be a string')
 		}
 		this.entries.set(`${entry.kind}:${entry.entryId}`, entry)
+		this._artifactIndex = null
 	}
 
 	/** 当前持有条目数（供对账/诊断） */
 	get size() {
 		return this.entries.size
+	}
+
+	/** 按相对发布根路径查产物 code。仅 dev 路径调；compile 路径不调。 */
+	getArtifact(relativePath: string): { code: string } | undefined {
+		if (!this._artifactIndex) {
+			this._artifactIndex = new Map()
+			for (const entry of this.entries.values()) {
+				for (const file of entry.files ?? []) {
+					this._artifactIndex.set(file.path, { code: file.code })
+				}
+				for (const sm of entry.sourcemaps ?? []) {
+					this._artifactIndex.set(sm.path, { code: String(sm.map) })
+				}
+			}
+		}
+		return this._artifactIndex.get(relativePath)
 	}
 }
 

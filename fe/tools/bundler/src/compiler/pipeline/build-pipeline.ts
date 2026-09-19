@@ -75,6 +75,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			prepareNpm = true,
 			store: runStore,
 			lifecycle: runLifecycle,
+			skipMaterialize,
 		} = runOptions as {
 			targetPath: string
 			workPath: string
@@ -87,6 +88,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			prepareNpm?: boolean
 			store?: unknown
 			lifecycle?: { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
+			skipMaterialize?: boolean
 		}
 		const store = (runStore ?? providedStore ?? createProjectStore()) as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => { addFile: (n: string, f: string, k: string) => void; toJSON: () => unknown } }
 		// T1：C1 / renderer 校验 / stages 白名单改道 createCompileTarget（消息不变）
@@ -192,7 +194,9 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 					{
 						title: '写入编译产物',
 						task: async (ctx: Record<string, unknown>) => {
+							if (!skipMaterialize) {
 							materialize(ctx.buildModel as BuildModel, getTargetPath())
+						}
 							publishToDist(targetPath, useAppIdDir)
 							await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
 						},
@@ -216,6 +220,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 				name: getAppName(),
 				path: getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
 				dependencyGraph: ((context as { dependencyGraph?: { toJSON: () => unknown } }).dependencyGraph?.toJSON()),
+				buildModel: (context as { buildModel?: BuildModel }).buildModel,
 			}
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_END, {
 				result,
