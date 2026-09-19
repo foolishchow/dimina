@@ -27,3 +27,4 @@ Status: **ready（2026-09-19）** — 文档门已对拍；close / 子门实施�
 | 2026-09-20 | review M1 R4 修复：roadmap + TD 两处 T1–T5→T1–T7（M1 实际冻结 7 议题）。伞文档同步。 |
 | 2026-09-20 | M1 complete：getInvalidatedModules + computeInvalidatedModules 交付；6 测例；行为 0（仅 model/ + spec）。伞仍 `ready`（D-MF-4）；下一步 formalize M2。 |
 | 2026-09-20 | M2 `draft` formalized：fe-tools-module-result-cache；承接 M1 脏集 + D-MF-2 缓存宿主另定；D-RC-1..4 待定。伞仍 `ready`。 |
+| 2026-09-20 | M2 升 `ready`：D-RC-1..4 冻结（B/α/I/watch-plan）；A-RC0/A-RC1 文档门 pass。伞仍 `ready`（D-MF-4）。 |

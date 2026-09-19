@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-module-result-cache
 
-Status: **draft（2026-09-20）** — 未授权改 `src`。
+Status: **ready（2026-09-20）** — 未授权改 `src`（`in_progress` 另授）。
 
 ## 纪律
 
@@ -12,7 +12,7 @@ Status: **draft（2026-09-20）** — 未授权改 `src`。
 | Step | 动作 | 状态 |
 | --- | --- | --- |
 | 1 | 立项 `draft`；写入继承 + 现状 + 待定表 | **done** |
-| 2 | 讨论冻结 D-RC-1..4 → 升 `ready`（另授） | pending |
+| 2 | 讨论冻结 D-RC-1..4 → 升 `ready`（用户授权） | **done**（2026-09-20） |
 | 3 | `in_progress`：实现缓存 + 接线 + 单测 + watch 冒烟（另授） | pending |
 | 4 | validation Actual；回流 architecture-notes；close | pending |
 

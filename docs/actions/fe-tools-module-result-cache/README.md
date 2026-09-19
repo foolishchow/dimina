@@ -1,7 +1,7 @@
 # FE Tools Module Result Cache（M2 / 刀 3）
 
 - Action: `fe-tools-module-result-cache`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-20
 - Status authority: [Action Status](../STATUS.md)
 - 伞：[fe-tools-module-centric](../fe-tools-module-centric/README.md)（`ready`；D-MF-1 已封口）
@@ -56,8 +56,8 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 
 ## Status / 授权
 
-- 当前 **`draft`**。**设计待定项未冻**（见 TD §待定：缓存宿主 / 持久 / worker回填 / 失效触发）。升 `ready` / `in_progress` 另授。
-- 未授权改产品代码。
+- 当前 **`ready`**（2026-09-20 用户授权）。**D-RC-1..4 已冻结**。升 `in_progress` 另授。
+- 仍未授权改产品代码（`ready` 仅文档门；`in_progress` 才授权实施）。
 
 ## 闭合条件
 
@@ -70,3 +70,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 日期 | 变更 |
 | --- | --- |
 | 2026-09-20 | 立项 `draft`：承接伞 D-MF-2 / 刀 3；M1 complete 后 formalize |
+| 2026-09-20 | **冻结** D-RC-1..4 → 升 `ready`：B（独立 ModuleResultCache）/ α（session-only）/ I（IPC 回填）/ watch-plan 触发 |

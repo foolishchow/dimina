@@ -1,6 +1,6 @@
 # Requirements — fe-tools-module-result-cache
 
-Status: **草案（2026-09-20）** — 随 Action `draft`；设计待定项未冻。
+Status: **ready（2026-09-20）** — D-RC-1..4 已冻；随 Action `ready`。
 
 ## R-RC0（MUST）遵守伞 D-MF-1 / D-MF-2
 
