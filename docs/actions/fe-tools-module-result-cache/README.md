@@ -75,3 +75,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 2026-09-20 | R2 readiness review 修正：F5 cache 更新路径协议变更（响应含 compileRes）；F6 Goal stale「待定」；F7 类型引用 type-only import |
 | 2026-09-20 | R3 readiness review 修正：F8 §3.3 bullet 对齐 §3.5（snapshot.has/compileRes.push）；F9 IPC 成本措辞（EmitEntry+compileRes） |
 | 2026-09-20 | 二轮 R1 修正：F10 cache hit 依赖发现（graph.getDirectDependencies）；F11 main+sub flat merge；F12 toJSON() class shape |
+| 2026-09-20 | 二轮 R2 修正：F13 §4 接口表 dependency-graph 行补 getDirectDependencies（F10 传播缺口） |

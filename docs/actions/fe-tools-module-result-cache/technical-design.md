@@ -103,7 +103,7 @@ buildJSByPath(page) [worker: cache snapshot + dirtySet + graph]:
 
 | 资产 | 角色 |
 | --- | --- |
-| `model/dependency-graph.ts` | M1 `getInvalidatedModules` 已交付（M2 只消费） |
+| `model/dependency-graph.ts` | M1 `getInvalidatedModules` 已交付（M2 只消费）；M2 cache hit 用 `getDirectDependencies(id, 'logic')` 发现依赖 |
 | `model/invalidation.ts` | M1 `computeInvalidatedModules` 已交付（M2 只消费） |
 | `model/module-result-cache.ts` | **M2 新增**：`ModuleResultCache` 类 |
 | `compiler/logic/index.ts` | `buildJSByPath` / `compileJS` — M2 接入点（cache 检查 + 跳过 transform） |
