@@ -212,6 +212,8 @@ wxml/
 
 **落点权威**：目录/文件级 Packer / Scheme / 焊点归属见 [`fe-tools-bundler-boundaries`](../actions/_archive/complete/fe-tools-bundler-boundaries/technical-design.md) §2 落点表（D-BD-1..6）。4 个焊点：`compiler/pipeline/emit.ts`、`compiler/logic/**`、`compiler/core/env.ts`、`model/dependency-graph.ts`。本术语节不展开焊点拆分；方法级拆分另立。
 
+**Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/fe-tools-module-centric/README.md)（**`ready`**）——子门 M1 [`fe-tools-module-invalidation`](../actions/fe-tools-module-invalidation/README.md)（**`ready`**，2026-09-20 授权；D-IV-1..9 已冻）→ M2 结果缓存。D-MF-1：方案 A / logic-only。下一步：M1 升 in_progress → 实施。
+
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
 | ID | 结论 |
@@ -260,3 +262,10 @@ wxml/
 | 2026-09-18 | **术语对齐**：Packer 用词改为模块标识、模块图、transform、模块产出。`compiler/logic/**` 整目录是焊点，不是 Scheme 车道 |
 | 2026-09-18 | **回流 fe-tools-bundler-boundaries**：落点表权威指针入档（4 焊点：emit.ts / logic/** / env.ts / dependency-graph.ts；D-BD-1..6） |
 | 2026-09-20 | **回流 fe-tools-packer-research（complete）**：Packer extraction 评估完成，结论 **不值得立即做**。4 焊点方法级审计：26 exports = 2 Packer / 9 共用 / 14 Scheme / 1 基礎 / 3 未使用。11 env.ts 调用 → 4 hooks（graphWriter / pathProvider / resolver / stateRestore）。决策依据：ROI 不足（W2 需 L 级 633 行重构 + 4 Scheme hooks，Packer 无法独立运行）；当前耦合度可接受；优先推 TODO 刀 2+3。**PackerContext 草案**回流供长期参考：`PackerContext { sourceRoot, outputRoot, moduleIdPrefix, runtimeType, graphWriter{addModuleFile/addModuleDependency/getComponentDependencies}, resolver{content/npm/alias/component/appConfig}, stateRestore }`。**推荐路径**：先 TODO 刀 2（失效查询）+ 刀 3（ModuleCache）→ 落地后重评估 Packer 边界。W1（emit.ts parameterize）可独立先行（S 级低风险）。W3 env.ts 不拆（注入 context）；W4 dependency-graph 不拆（限定 kind API）。 |
+| 2026-09-20 | **指针 fe-tools-module-centric（draft）**：Module 一等公民伞立项；M1 失效→M2 结果缓存（嗣后 D-MF-1 已封，见下两行） |
+| 2026-09-19 | **D-MF-1 讨论稿指针**（已被同行「封口」行取代）：两层方向；细节当时未封 |
+| 2026-09-19 | **D-MF-1 封口**：方案 A（CompileInfo.path）；刀 2 仅 logic；view/style 排除；规范形迁移另门 |
+| 2026-09-19 | **fe-tools-module-centric → `ready`**：MF0 冻结；下一步 formalize M1（伞不授改 src） |
+| 2026-09-19 | **fe-tools-module-invalidation `draft`**：刀 2 立项；继承 D-MF-1；T1–T7 → D-IV-1..9 冻结（见下行） |
+| 2026-09-19 | **M1 D-IV-1..9 冻结**：logic-only 闭包；Graph+invalidation 双挂；sorted `string[]`；不接线 watch |
+| 2026-09-20 | **M1 升 `ready`**：6 轮 readiness review 收敛（R1–R6: 4→4→2→1→1→0）；D-IV-1..9 全冻；文档门 pass；升 in_progress 另授 |

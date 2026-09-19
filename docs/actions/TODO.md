@@ -29,16 +29,25 @@
 | 活真源 | 已迁 [`docs/fe-tools/`](../fe-tools/README.md) |
 | 其后 | 可 formalize 下方「1. Module 中心伞」 |
 
-### 1. Module 中心伞 —— sidecar 收完再 formalize
+### 1. Module 中心伞 —— ✅ `ready`
 
 | Field | Value |
 | --- | --- |
-| 北星 | **Module 一等公民**；图与缓存围着它转（成熟 Packer 模型）；不是整包抽 Packer |
-| 近端子门 | **刀 2** 模块级失效查询 → **刀 3** ModuleCache；（可选）emit W1 `modDefine` 参数化（S 级） |
-| 明确不做 | 整包 Packer extraction（见 [`packer-research`](_archive/complete/fe-tools-packer-research/README.md)）；一次统一 view/logic/Store 全部表示；改 view/style 车道语义 |
-| 前置 | **0. sidecar closeout 完成**；boundaries 落点表 + emit 模块集合契约已在 |
-| 与旧候选关系 | 收束下方 **A**（Module 收敛）与 **C** 刀 2+3；A 不再单独抢先开大伞 |
-| 形态 | 薄 umbrella `draft`（术语 + 子门顺序 + Non-goals）；子门另立另授 `in_progress` |
+| Action | [`fe-tools-module-centric`](fe-tools-module-centric/README.md) **`ready`** |
+| 北星 | Module 一等公民；图与缓存围着它转；不整包抽 Packer |
+| 近端子门 | M1 [`fe-tools-module-invalidation`](fe-tools-module-invalidation/README.md) **`draft`** → M2 `fe-tools-module-result-cache`；（可选）emit W1 |
+| D-MF-1 | **已封口**：方案 A（今日 `CompileInfo.path`）；刀 2 仅 logic；view/style 排除；规范形迁移另门 |
+| 其后 | M1 升 `ready`（另授）→ 实施；伞不授权改 src |
+
+### 1a. M1 模块级失效 —— ✅ 已 formalize（`draft`）
+
+| Field | Value |
+| --- | --- |
+| Action | [`fe-tools-module-invalidation`](fe-tools-module-invalidation/README.md) **`draft`** |
+| 目标 | `getInvalidatedModules`：changed files → logic moduleId 集 |
+| 继承 | 伞 D-MF-1 七条 |
+| 阻塞 ready | **无设计项**（D-IV-1..9 已冻）；升 ready 另授 |
+| 其后 | 升 `ready` → `in_progress`（API + 单测） |
 
 ---
 
@@ -79,7 +88,7 @@
 | 刀 | 内容 | 契约角色 | 验收 |
 | --- | --- | --- | --- |
 | **刀 1：emit 抽取** ✅ complete | `pipeline/emit.js` 骨架（emitEntry + emitOutput）；**输入 = 模块集合接口（明确契约）**；scriptRes/compileRes 以「提供者 A0」接入 | **定义契约 + 消费端** | diff=0 + 全量 vitest |
-| **刀 2：维度 1 失效查询** | DependencyGraph 补 `getInvalidatedModules(changedFiles)`（fileOwners 反查 + dependents 传播）；fingerprint 文件级串上 | 闭环上游 | 单测：改文件 → 正确失效集 |
+| **刀 2：维度 1 失效查询** | DependencyGraph 补模块级失效查询（**以 [`fe-tools-module-centric`](fe-tools-module-centric/technical-design.md) D-MF-1 为准**：仅 logic Module；方案 A = 今日 `CompileInfo.path`；排除 view/style；**不**替换 `getAffectedEntries`）。fileOwners → logic 过滤 → logic dependents 闭包；算法细节在子门 M1 TD | 闭环上游 | 单测：改 JS → 正确 moduleId 集；改 wxml 不进该集 |
 | **刀 3：ModuleCache** | 编译结果持久（跨 rebuild）；worker 编译回填；watch 接增量 | **实现契约提供端** | watch 冒烟：改 1 文件只重编该模块 |
 
 **闭环**：文件变更 → 维度 1 `getInvalidatedModules` → Set<moduleId> → 维度 2 清缓存 → 只重编失效模块 → emit 重组产物。
