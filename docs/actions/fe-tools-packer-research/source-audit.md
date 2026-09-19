@@ -64,7 +64,7 @@ Status: **draft（2026-09-20）**
 | --- | --- | --- | --- |
 | `writeCompileRes()` | L44-58 | | `emitEntry()` 调用（模块集合 → emit） |
 | `compileJS()` | L76-87 | | 页面遍历编排、进度报告 |
-| `buildJSByPath()` | L88-200+ | ◐ AST parse + walk + import/require 收集 + MagicString 路径重写 + esbuild transform + remapSourcemap | `getDependencyGraph()` ×9（addFile/addDependency kind='logic'）、`getComponent()` ×2、`getAppId()` ×2、`getWorkPath()` ×9、`getTargetPath()` ×3、`resolveAppAlias()` ×2、`getContentByPath()` ×2、`getNpmResolver()` ×2、`getAppConfigInfo()` ×2、`storeInfo()` ×2、`resetStoreInfo()` ×3 |
+| `buildJSByPath()` | L88-415 | ◐ AST parse + walk + import/require 收集 + MagicString 路径重写 + esbuild transform + remapSourcemap | `getDependencyGraph()` ×8（addFile/addDependency kind='logic'）、`getWorkPath()` ×8、`resetStoreInfo()` ×2、`getComponent()` ×1、`getAppId()` ×1、`getAppConfigInfo()` ×1、`getContentByPath()` ×1、`getNpmResolver()` ×1、`resolveAppAlias()` ×1、`isMiniGame()` ×1、`getTargetPath()` ×1 |
 
 ### Packer 胚元素（可抽提）
 
@@ -78,49 +78,51 @@ Status: **draft（2026-09-20）**
 
 ### Scheme 调用（混入，需抽成 hooks）
 
-| env.ts 调用 | 次数 | 用途 | 可参数化？ |
+| env.ts 调用 | 调用次数 | 用途 | 可参数化？ |
 | --- | --- | --- | --- |
-| `getDependencyGraph()` | 9 | 写模块边（addFile/addDependency kind='logic'） | 可 → graph hook |
-| `getWorkPath()` | 9 | 源根路径 | 可 → sourceRoot 参数 |
-| `getTargetPath()` | 3 | 输出路径 | 可 → outputRoot 参数 |
-| `getComponent()` | 2 | 组件配置 | 可 → componentResolver hook |
-| `getAppId()` | 2 | 模块 ID 前缀 | 可 → moduleIdPrefix 参数 |
-| `getAppConfigInfo()` | 2 | app 配置 | 可 → appConfig hook |
-| `getContentByPath()` | 2 | 内容查找 | 可 → contentResolver hook |
-| `getNpmResolver()` | 2 | npm 解析 | 可 → npmResolver 参数 |
-| `resolveAppAlias()` | 2 | 路径别名 | 可 → aliasResolver hook |
-| `storeInfo()` | 2 | 状态存储 | 可 → storeHook |
-| `resetStoreInfo()` | 3 | 状态重置 | 可 → resetHook |
+| `getDependencyGraph()` | 8 | 写模块边（addFile/addDependency kind='logic'） | 可 → graph hook |
+| `getWorkPath()` | 8 | 源根路径 | 可 → sourceRoot 参数 |
+| `getTargetPath()` | 2 | 输出路径 | 可 → outputRoot 参数 |
+| `resetStoreInfo()` | 2 | 状态重置 | 可 → resetHook |
+| `getComponent()` | 1 | 组件配置 | 可 → componentResolver hook |
+| `getAppId()` | 1 | 模块 ID 前缀 | 可 → moduleIdPrefix 参数 |
+| `getAppConfigInfo()` | 1 | app 配置 | 可 → appConfig hook |
+| `getContentByPath()` | 1 | 内容查找 | 可 → contentResolver hook |
+| `getNpmResolver()` | 1 | npm 解析 | 可 → npmResolver 参数 |
+| `resolveAppAlias()` | 1 | 路径别名 | 可 → aliasResolver hook |
+| `isMiniGame()` | 1 | 运行时类型检查 | 可 → runtimeType 参数 |
 
 ## 4. W3 env.ts — 26 exports 扇入分析
 
-### 扇入统计（谁 import env.ts 后用这个函数）
+### 扇入统计（grep 校验，基线 `ef879a87`）
 
-| 函数 | 扇入数 | Packer 侧文件 | Scheme 侧文件 |
+文件名缩写：logic=`compiler/logic/index.ts`、emit=`compiler/pipeline/emit.ts`、build-pipeline=`compiler/pipeline/build-pipeline.ts`、compile-target=`compiler/pipeline/compile-target.ts`、config-compiler=`compiler/pipeline/config-compiler.ts`、publish=`compiler/pipeline/publish.ts`、style=`compiler/style/index.ts`、view=`compiler/view/index.ts`、view/compile=`compiler/view/wxml/compile.ts`、view/paths=`compiler/view/wxml/load/paths.ts`、view/template=`compiler/view/wxml/load/template.ts`、define-engine=`compiler/worker-runtime/define-engine.ts`、compatibility=`compiler/core/compatibility.ts`、npm-builder=`compiler/core/npm-builder.ts`、project-store=`model/project-store.ts`。**Packer 胚文件**= logic（唯一含 Packer 模块编译管线的焊点）；**Scheme 文件**= 其余全部（含 emit 焊点的 Scheme 侧、view/style 车道、编排设施）。
+
+| 函数 | 扇入数 | logic (Packer 胚) | Scheme 文件 |
 | --- | --- | --- | --- |
-| `getWorkPath` | 7 | logic, view, style, emit | build-pipeline, config-compiler, project-store |
-| `getDependencyGraph` | 7 | logic, view, style, emit | build-pipeline, compile-target, project-store |
-| `getTargetPath` | 6 | logic, view, style, emit | build-pipeline, config-compiler |
-| `getAppId` | 6 | logic, view, style | build-pipeline, emit, config-compiler |
-| `storeInfo` | 5 | logic, view, style | build-pipeline, config-compiler |
-| `getViewScriptTags` | 4 | — | view, compatibility |
-| `getContentByPath` | 4 | logic, view, style | — |
-| `resetStoreInfo` | 3 | logic, view, style | — |
-| `isMiniGame` | 3 | — | view, style, compatibility |
-| `getViewScriptExts` | 3 | — | view, compatibility, platforms |
-| `getTemplateExts` | 3 | — | view, paths, platforms |
-| `getComponent` | 3 | logic, view, style | — |
-| `getStyleExts` | 2 | — | style, platforms |
-| `getPages` | 2 | — | view, style |
-| `getAppConfigInfo` | 3 | logic | config-compiler, build-pipeline |
-| `getAppName` | 1 | — | build-pipeline |
-| `runWithCompilerContext` | 1 | — | define-engine（基础设施） |
-| `resolveAppAlias` | 1 | logic | — |
-| `isTemporaryTargetPath` | 1 | — | build-pipeline |
-| `getTemplateDirectivePrefixes` | 1 | — | view |
-| `getPageConfigInfo` | 1 | — | view |
-| `getNpmResolver` | 1 | logic | — |
-| `getAppStyleScopeId` | 1 | — | style |
+| `getWorkPath` | 7 | ✓ | build-pipeline, config-compiler, emit, style, view, view/compile |
+| `getDependencyGraph` | 7 | ✓ | build-pipeline, style, view, view/compile, define-engine, project-store |
+| `getTargetPath` | 6 | ✓ | build-pipeline, config-compiler, publish, style, view |
+| `getAppId` | 6 | ✓ | compile-target, config-compiler, publish, style, view |
+| `storeInfo` | 5 | ✓ | build-pipeline, style, view, project-store |
+| `getViewScriptTags` | 4 | — | compatibility, view, view/compile, view/template |
+| `getContentByPath` | 4 | ✓ | style, view, view/compile |
+| `resetStoreInfo` | 3 | ✓ | style, view |
+| `isMiniGame` | 3 | ✓ | build-pipeline, compile-target |
+| `getViewScriptExts` | 3 | — | npm-builder, view, view/paths |
+| `getTemplateExts` | 3 | — | npm-builder, view/compile, view/paths |
+| `getComponent` | 3 | ✓ | style, view |
+| `getStyleExts` | 2 | — | npm-builder, style |
+| `getPages` | 2 | — | build-pipeline, compile-target |
+| `getAppConfigInfo` | 3 | ✓ | build-pipeline, config-compiler |
+| `getAppName` | 2 | — | build-pipeline, config-compiler |
+| `runWithCompilerContext` | 1 | — | build-pipeline（基础设施） |
+| `resolveAppAlias` | 1 | ✓ | — |
+| `isTemporaryTargetPath` | 1 | — | publish |
+| `getTemplateDirectivePrefixes` | 1 | — | compatibility |
+| `getPageConfigInfo` | 1 | — | config-compiler |
+| `getNpmResolver` | 1 | ✓ | — |
+| `getAppStyleScopeId` | 1 | — | compile-target |
 | `storeProjectConfig` | 0 | — | — |
 | `getRuntimeType` | 0 | — | — |
 | `getProjectConfig` | 0 | — | — |
@@ -130,8 +132,8 @@ Status: **draft（2026-09-20）**
 | 分类 | 函数 | 数量 |
 | --- | --- | --- |
 | **Packer 侧** | `getNpmResolver`, `resolveAppAlias` | 2 |
-| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getDependencyGraph`, `getAppConfigInfo`, `storeInfo`, `resetStoreInfo` | 9 |
-| **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `isMiniGame`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 14 |
+| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getDependencyGraph`, `getAppConfigInfo`, `storeInfo`, `resetStoreInfo`, `isMiniGame` | 10 |
+| **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 13 |
 | **基础设施** | `runWithCompilerContext` | 1 |
 | **未使用** | `storeProjectConfig`, `getRuntimeType`, `getProjectConfig` | 3 |
 

@@ -23,16 +23,16 @@ Status: **draft（2026-09-20）** — 研究阶段，待填充
 ### W2 logic/index.ts — Packer 胚与 Scheme 深度交织
 
 - Packer 胚（AST parse + walk + transform + sourcemap）是完整的模块编译管线
-- 11 种 env.ts 调用混入（graph 写入 ×9、path ×12、config ×6、state ×5）
+- 11 种 env.ts 调用混入（graph ×8 [getDependencyGraph]、path ×11 [getWorkPath 8+getTargetPath 2+resolveAppAlias 1]、config ×4 [getComponent+getAppConfigInfo+getContentByPath+getNpmResolver 各 1]、state ×2 [resetStoreInfo]、identity ×1 [getAppId]、runtime ×1 [isMiniGame]）= 27 调用
 - **假设**：Scheme 调用可抽成 Packer 的 hooks（graphWriter / pathResolver / componentResolver / npmResolver / stateManager），但需要大量接口设计
 - **可抽提性预估**：需接口设计 + 大量重构（633 行混合逻辑）
 
 ### W3 env.ts — 最硬焊点，可能不值得拆
 
-- 26 exports，分类后 2 Packer / 9 共用 / 14 Scheme / 1 基础设施 / 3 未使用
+- 26 exports，分类后 2 Packer / 10 共用 / 13 Scheme / 1 基础设施 / 3 未使用
 - `runWithCompilerContext`（AsyncLocalStorage）是两侧共用基础设施
-- `getDependencyGraph` / `getWorkPath` / `getTargetPath` / `getAppId` / `getContentByPath` / `getComponent` 被 Packer 胚和 Scheme 编排同时调用
-- **假设**：env.ts 本质是 Scheme 的 context bus，Packer 胚通过它读 Scheme 状态。拆成 PackerContext + SchemeContext 需要重新设计 9 个共用函数的归属。可能不值得拆——可以保持 env.ts 为 Scheme 基础设施，Packer 通过注入的 context 对象访问需要的 2+9=11 个函数
+- `getDependencyGraph` / `getWorkPath` / `getTargetPath` / `getAppId` / `getContentByPath` / `getComponent` / `isMiniGame` 被 Packer 胚和 Scheme 编排同时调用
+- **假设**：env.ts 本质是 Scheme 的 context bus，Packer 胚通过它读 Scheme 状态。拆成 PackerContext + SchemeContext 需要重新设计 10 个共用函数的归属。可能不值得拆——可以保持 env.ts 为 Scheme 基础设施，Packer 通过注入的 context 对象访问需要的 2+10=12 个函数
 - **可抽提性预估**：极难（或：不拆，改为注入 context）
 
 ### W4 dependency-graph.ts — 一图两职，可拆但需跨图索引
