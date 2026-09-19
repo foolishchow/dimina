@@ -78,7 +78,8 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板
 
 ## 消融纪律
 
-- I1 消融：拔 `getArtifact` → dev server miss → 全走磁盘 → materialize 被跳过 → build artifacts 不在磁盘 → **404 回归**（须恢复后全绿）
-- I2 消融：拔 `skipMaterialize` 条件 → materialize 仍跑 → dev 路径写盘（不 404，但 R-MM1 退化）
+- I1 消融：拔 `getArtifact` → dev server miss → 全走磁盘 → materialize 被 `!previewAdapter` 守卫跳过 → build artifacts 不在磁盘 → **404 回归**（须恢复后全绿）
+- I2 消融（守卫）：拔 `skipMaterialize` 条件 → materialize 仍跑 → dev 路径写盘（不 404，但 R-MM1 退化）
+- I2 消融（白名单）：拔 `PIPELINE_OPTION_KEYS` 中 `skipMaterialize` → `splitBuildOverrides` throw `TypeError: unknown keys skipMaterialize` → **dev 启动 crash**
 - I5 消融：拔 `build:end` listener → rebuild 后 `state.buildModel` 过期 → dev server serve 旧产物（须恢复后全绿）
 - 消融补丁不入最终提交

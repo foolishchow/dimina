@@ -192,13 +192,13 @@ async createServer({ serveRoot, appId, artifactResolver }: {
 }
 ```
 
-**自定义 previewAdapter 兼容**：`skipMaterialize` 设为 `!previewAdapter`（仅用默认 adapter 时跳过）。用户提供自定义 adapter 时 `skipMaterialize = false` → materialize 仍跑 → dev server 从磁盘读 → **行为同今天**（无回归）。自定义 adapter 欲启用 memfs 须自行透传 `artifactResolver` 并将 `skipMaterialize` 设为 `true`（通过 watch options 传入）。
+**自定义 previewAdapter 兼容**：`skipMaterialize` 设为 `!previewAdapter`（仅用默认 adapter 时跳过）。用户提供自定义 adapter 时 `skipMaterialize = false` → materialize 仍跑 → dev server 从磁盘读 → **行为同今天**（无回归）。自定义 adapter 欲启用 memfs 须走 `session.watch()` 直调（绕过 `dev()` 便捷入口）+ 手动创建 dev server，在 `watch({ options: { skipMaterialize: true } })` 中显式传入；`DevOpts` 为封闭接口（unknown keys throw），不支持通过 `dev()` 传入 `skipMaterialize`。
 
 ## 8. 行为 0 等价性分析
 
 | 维度 | 磁盘读（今天） | 内存读（本门） | 等价 |
 | --- | --- | --- | --- |
-| body 字节 | `fs.readFile` → `Buffer` → `response.end(Buffer)` | `artifact.code`（`string`）→ `response.end(string)` | ✓ UTF-8 文本，`Buffer.byteLength(string)` == `Buffer.length` |
+| body 字节 | `fs.readFile` → `Buffer` → `writeStatic(response, Buffer, ...)` → `response.write(body)` + `response.end()` | `artifact.code`（`string`）→ `writeStatic(response, string, ...)` → `response.write(body)` + `response.end()` | ✓ 两条路径共用同一 `writeStatic` 函数；`response.write` 对 `Buffer`/`string` 均按 UTF-8 发字节 |
 | Content-Type | `MIME_TYPES[extname]` | 同（仍按 `pathname` ext 取） | ✓ |
 | Cache-Control | `no-cache` | `no-cache`（`writeStatic` 不变） | ✓ |
 | 404 | `fs.stat` 抛 → `writeJson(404)` | resolver miss + `fs.stat` miss → `writeJson(404)` | ✓ |
