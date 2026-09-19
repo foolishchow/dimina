@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-module-result-cache
 
-Status: **ready（2026-09-20）** — D-RC-1..4 冻结；改 `src` / `in_progress` 另授。
+Status: **complete（2026-09-21）** — D-RC-1..4 冻结已实施已验证。
 
 ## 1. 继承
 

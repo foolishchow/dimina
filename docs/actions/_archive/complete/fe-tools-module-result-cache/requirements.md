@@ -1,6 +1,6 @@
 # Requirements — fe-tools-module-result-cache
 
-Status: **ready（2026-09-20）** — D-RC-1..4 已冻；随 Action `ready`。
+Status: **complete（2026-09-21）** — D-RC-1..4 冻结已实施已验证。
 
 ## R-RC0（MUST）遵守伞 D-MF-1 / D-MF-2
 
