@@ -104,7 +104,7 @@ Status: **draft（2026-09-20）**
 | `getDependencyGraph` | 7 | ✓ | build-pipeline, style, view, view/compile, define-engine, project-store |
 | `getTargetPath` | 6 | ✓ | build-pipeline, config-compiler, publish, style, view |
 | `getAppId` | 6 | ✓ | compile-target, config-compiler, publish, style, view |
-| `storeInfo` | 5 | ✓ | build-pipeline, style, view, project-store |
+| `storeInfo` | 1 | — | project-store |
 | `getViewScriptTags` | 4 | — | compatibility, view, view/compile, view/template |
 | `getContentByPath` | 4 | ✓ | style, view, view/compile |
 | `resetStoreInfo` | 3 | ✓ | style, view |
@@ -132,8 +132,8 @@ Status: **draft（2026-09-20）**
 | 分类 | 函数 | 数量 |
 | --- | --- | --- |
 | **Packer 侧** | `getNpmResolver`, `resolveAppAlias` | 2 |
-| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getDependencyGraph`, `getAppConfigInfo`, `storeInfo`, `resetStoreInfo`, `isMiniGame` | 10 |
-| **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 13 |
+| **Packer + Scheme 共用** | `getWorkPath`, `getTargetPath`, `getAppId`, `getContentByPath`, `getComponent`, `getDependencyGraph`, `getAppConfigInfo`, `resetStoreInfo`, `isMiniGame` | 9 |
+| **Scheme 侧** | `getPages`, `getProjectConfig`, `getPageConfigInfo`, `getAppName`, `getViewScriptExts`, `getViewScriptTags`, `getTemplateExts`, `getTemplateDirectivePrefixes`, `getStyleExts`, `storeInfo`, `getRuntimeType`, `getAppStyleScopeId`, `isTemporaryTargetPath`, `storeProjectConfig` | 14 |
 | **基础设施** | `runWithCompilerContext` | 1 |
 | **未使用** | `storeProjectConfig`, `getRuntimeType`, `getProjectConfig` | 3 |
 

@@ -15,7 +15,7 @@ Status: **draft（2026-09-20）**
 
 - 读图初始化逻辑（L814-891：addNode/addFile/addDependency 的完整 Scheme 图填充）
 - 读 `storeInfo` / `getContentByPath` / `getComponent` / `getNpmResolver` 实现
-- 验证 10 个共用函数的 Packer 侧用法是否可改为参数注入
+- 验证 9 个共用函数的 Packer 侧用法是否可改为参数注入
 
 ### P-PR03 — W4 dependency-graph.ts 跨图遍历分析
 

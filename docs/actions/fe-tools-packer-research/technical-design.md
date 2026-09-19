@@ -29,10 +29,10 @@ Status: **draft（2026-09-20）** — 研究阶段，待填充
 
 ### W3 env.ts — 最硬焊点，可能不值得拆
 
-- 26 exports，分类后 2 Packer / 10 共用 / 13 Scheme / 1 基础设施 / 3 未使用
+- 26 exports，分类后 2 Packer / 9 共用 / 14 Scheme / 1 基础设施 / 3 未使用
 - `runWithCompilerContext`（AsyncLocalStorage）是两侧共用基础设施
-- `getDependencyGraph` / `getWorkPath` / `getTargetPath` / `getAppId` / `getContentByPath` / `getComponent` / `isMiniGame` 被 Packer 胚和 Scheme 编排同时调用
-- **假设**：env.ts 本质是 Scheme 的 context bus，Packer 胚通过它读 Scheme 状态。拆成 PackerContext + SchemeContext 需要重新设计 10 个共用函数的归属。可能不值得拆——可以保持 env.ts 为 Scheme 基础设施，Packer 通过注入的 context 对象访问需要的 2+10=12 个函数
+- `getDependencyGraph` / `getWorkPath` / `getTargetPath` / `getAppId` / `getContentByPath` / `getComponent` / `isMiniGame` 被 Packer 胚和 Scheme 编排同时调用（`storeInfo` 实际仅 project-store 调，归 Scheme 侧）
+- **假设**：env.ts 本质是 Scheme 的 context bus，Packer 胚通过它读 Scheme 状态。拆成 PackerContext + SchemeContext 需要重新设计 9 个共用函数的归属。可能不值得拆——可以保持 env.ts 为 Scheme 基础设施，Packer 通过注入的 context 对象访问需要的 2+9=11 个函数
 - **可抽提性预估**：极难（或：不拆，改为注入 context）
 
 ### W4 dependency-graph.ts — 一图两职，可拆但需跨图索引
