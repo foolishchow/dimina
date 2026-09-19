@@ -11,6 +11,7 @@ Status: **ready（2026-09-20）** — D-RC-1..4 已冻；随 Action `ready`。
 ## R-RC1（MUST）跨 rebuild 缓存
 
 - 缓存 logic 完整 `CompileInfo`（`{path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?}`）。
+- 缓存含 `logicDependencies`（require/import dep ID 列表，transform AST walk 时捕获）；cache hit 用此列表遍历依赖，**非 graph.getDirectDependencies**（图无 `removeDependency` API，stale edge 风险）。
 - rebuild 时消费 M1 `computeInvalidatedModules(graph, changedFiles)` → 脏集 → 清缓存 → 只重编脏模块。
 - clean 模块命中缓存，跳过 transform。
 

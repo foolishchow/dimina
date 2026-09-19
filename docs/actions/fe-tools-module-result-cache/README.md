@@ -24,8 +24,9 @@ logic 模块变换结果（`CompileInfo = {path, code, map, extraInfoCode}`）�
 交付 **Module 变换结果缓存**（刀 3）：
 
 - 缓存 logic 完整 `CompileInfo`（`{path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?}`），key = `moduleId`（= `CompileInfo.path`）
+- cache 自带 `logicDependencies`（require/import dep ID 列表，transform 时捕获）；cache hit 用此列表遍历依赖（**非 graph**，避免 stale edge）
 - 跨 rebuild 复用：rebuild 时 `computeInvalidatedModules(graph, changedFiles)` → 脏集 → 清缓存 → 只重编脏模块 → clean 模块命中缓存
-- worker cache snapshot 经 IPC 回填（D-RC-3 冻结 I）；响应含 `compileRes` → 主线程更新 cache
+- worker cache snapshot 经 IPC 回填（D-RC-3 冻结 I）；响应含 `compileRes` + `logicDependencies` → 主线程组装 `CachedModuleResult` 更新 cache
 - watch 增量接线：改 1 JS 文件 → 只重编该模块 + 其 logic dependents
 
 ## Non-goals
@@ -76,3 +77,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 2026-09-20 | R3 readiness review 修正：F8 §3.3 bullet 对齐 §3.5（snapshot.has/compileRes.push）；F9 IPC 成本措辞（EmitEntry+compileRes） |
 | 2026-09-20 | 二轮 R1 修正：F10 cache hit 依赖发现（graph.getDirectDependencies）；F11 main+sub flat merge；F12 toJSON() class shape |
 | 2026-09-20 | 二轮 R2 修正：F13 §4 接口表 dependency-graph 行补 getDirectDependencies（F10 传播缺口） |
+| 2026-09-20 | 三轮 R1 修正：F15 cache 自带 logicDependencies（graph stale edge → 不用 getDirectDependencies 做 dep discovery） |
