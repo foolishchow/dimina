@@ -1,6 +1,6 @@
 # Requirements — fe-tools-bundler-emit-memfs
 
-Status: **ready（2026-09-20）** — D-MM-1..6 全拍板，冻结 v1
+Status: **in_progress（2026-09-20）** — D-MM-1..6 全拍板，冻结 v1
 
 ## R-MM1（MUST）dev 模式产物不落盘
 

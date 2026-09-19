@@ -1,7 +1,7 @@
 # FE Tools Bundler Emit Memfs
 
 - Action: `fe-tools-bundler-emit-memfs`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-20
 - Status authority: [Action Status](../STATUS.md)
 - 前置依赖：[`fe-tools-worker-runtime`](../_archive/complete/fe-tools-worker-runtime/README.md)（worker-runtime 后 emitEntry sink.write→PostMessageSink→主线程 materialize 写盘，materialize 成唯一写盘点；原 output-pure 已 superseded 被 worker-runtime 包含）
