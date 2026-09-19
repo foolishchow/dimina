@@ -25,7 +25,7 @@ logic 模块变换结果（`CompileInfo = {path, code, map, extraInfoCode}`）�
 
 - 缓存 logic 完整 `CompileInfo`（`{path, code, map?, sourceFile, extraInfoCode?, component?, usingComponents?}`），key = `moduleId`（= `CompileInfo.path`）
 - 跨 rebuild 复用：rebuild 时 `computeInvalidatedModules(graph, changedFiles)` → 脏集 → 清缓存 → 只重编脏模块 → clean 模块命中缓存
-- worker 编译回填缓存（IPC 或本地，待定）
+- worker cache snapshot 经 IPC 回填（D-RC-3 冻结 I）；响应含 `compileRes` → 主线程更新 cache
 - watch 增量接线：改 1 JS 文件 → 只重编该模块 + 其 logic dependents
 
 ## Non-goals
@@ -72,3 +72,4 @@ Entry 路径:         getAffectedEntries / computeAffectedEntries 保留（page 
 | 2026-09-20 | 立项 `draft`：承接伞 D-MF-2 / 刀 3；M1 complete 后 formalize |
 | 2026-09-20 | **冻结** D-RC-1..4 → 升 `ready`：B（独立 ModuleResultCache）/ α（session-only）/ I（IPC 回填）/ watch-plan 触发 |
 | 2026-09-20 | R1 readiness review 修正：F1 CompileInfo 7 字段；F2 ephemeral worker cache snapshot IPC；F3 stale「待拍板」；F4 注释归属 |
+| 2026-09-20 | R2 readiness review 修正：F5 cache 更新路径协议变更（响应含 compileRes）；F6 Goal stale「待定」；F7 类型引用 type-only import |
