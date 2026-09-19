@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-bundler-emit-memfs
 
-Status: **冻结 v1（2026-09-20）** — 升 `ready`
+Status: **complete（2026-09-20）** — 归档
 
 ## 1. 方案选择
 

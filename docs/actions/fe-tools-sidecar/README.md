@@ -132,7 +132,7 @@ fe/tools/
 - ~~workspace 含 `tools/*`；`@dimina/bundler` 与 `@dimina/web-container-sdk` 可 filter~~ — **bootstrap 已交付**；
 - ~~`dimina-cli` 冷启动冒烟~~ — **bootstrap 已交付**；
 - `packages/*` 满足终态 B 可检查句 — **已满足；操作真源 [sync-rhythm.md](./sync-rhythm.md)**；
-- 后续：~~TS-2~~ → **complete 已归档**（[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；style 剩余另议）；E7 → incremental-target（**complete 已归档**）；E8 → emit-memfs（**ready**）；TS-3 可选；CI job 仍为 gap；
+- 后续：~~TS-2~~ → **complete 已归档**（[`fe-tools-wxml-ir`](../_archive/complete/fe-tools-wxml-ir/README.md)；style 剩余另议）；E7 → incremental-target（**complete 已归档**）；E8 → emit-memfs（**complete 已归档**）；TS-3 可选；CI job 仍为 gap；
 - ~~VENDOR 元数据~~ — **已有**；`@dimina/bundler` description 含领域 bundler 释义；Sync 行指向 sync-rhythm。
 
 ## Umbrella 机制
@@ -161,7 +161,7 @@ fe/tools/
 
 **已冻（本伞记录）**：实现语言 **JS**；管线 `parse → Document → load → Backend`；Vue = backend₀；硬验收「第二 Backend 可注册」。形状指南见 `docs/wxml`（字段级分期）。**ready，未授权实施**。
 
-**近端并列**：[`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（**complete 已归档**：E7）+ [`fe-tools-bundler-emit-memfs`](../fe-tools-bundler-emit-memfs/README.md)（**ready**：E8 dev memfs）；已归档 project-store / build-pipeline / session-unify / compiler-target；病症地图 [compiler-symptom-inventory.md](./compiler-symptom-inventory.md)。
+**近端并列**：[`fe-tools-incremental-target`](../_archive/complete/fe-tools-incremental-target/README.md)（**complete 已归档**：E7）+ [`fe-tools-bundler-emit-memfs`](../_archive/complete/fe-tools-bundler-emit-memfs/README.md)（**complete 已归档**：E8 dev memfs）；已归档 project-store / build-pipeline / session-unify / compiler-target；病症地图 [compiler-symptom-inventory.md](./compiler-symptom-inventory.md)。
 
 ### PS3 deferred（2026-09-12）
 
@@ -184,7 +184,7 @@ fe/tools/
 6. ~~`tools/*` workspace + 双包落地~~ — **已完成**（bootstrap）。  
 7. ~~近端结构债~~ — **已闭合**：[`project-store`](../_archive/complete/fe-tools-project-store/README.md)（**complete / 已归档**：PS1+PS2）+ [`build-pipeline`](../_archive/complete/fe-tools-build-pipeline/README.md)（**complete / 已归档**）；PS3 已书面 deferred；见 [architecture-notes.md](./architecture-notes.md)。
 
-伞级在 gap 4（CI）之外可维持 `draft`；**不授权伞级大实施**。TS-2 / E7 complete；E8 ready 未授权实施；TS-4 文档门已闭合。
+伞级在 gap 4（CI）之外可维持 `draft`；**不授权伞级大实施**。TS-2 / E7 / E8 complete；TS-4 文档门已闭合。
 
 ## Closure conditions
 

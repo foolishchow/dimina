@@ -1,10 +1,10 @@
 # FE Tools Bundler Emit Memfs
 
 - Action: `fe-tools-bundler-emit-memfs`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-20
-- Status authority: [Action Status](../STATUS.md)
-- 前置依赖：[`fe-tools-worker-runtime`](../_archive/complete/fe-tools-worker-runtime/README.md)（worker-runtime 后 emitEntry sink.write→PostMessageSink→主线程 materialize 写盘，materialize 成唯一写盘点；原 output-pure 已 superseded 被 worker-runtime 包含）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置依赖：[`fe-tools-worker-runtime`](../fe-tools-worker-runtime/README.md)（worker-runtime 后 emitEntry sink.write→PostMessageSink→主线程 materialize 写盘，materialize 成唯一写盘点；原 output-pure 已 superseded 被 worker-runtime 包含）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 

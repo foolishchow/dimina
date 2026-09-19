@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-bundler-emit-memfs
 
-Status: **in_progress（2026-09-20）** — D-MM-1..6 全拍板
+Status: **complete（2026-09-20）** — D-MM-1..6 全拍板
 
 ## I0 契约冻结（文档级）
 
