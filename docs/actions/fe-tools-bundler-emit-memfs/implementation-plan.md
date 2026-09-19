@@ -26,8 +26,9 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板
 | 2 | 同上 | "写入编译产物" task: `if (!skipMaterialize) { materialize(...) }`；`publishToDist` 保留不动 | dev 跳过 materialize；publishToDist move 冷路径 ✓ |
 | 3 | 同上 | `result` 对象加 `buildModel: (context as { buildModel?: BuildModel }).buildModel` | 返回值增字段，不影响原有 4 字段 ✓ |
 | 4 | 同上 | `import type { BuildModel }` 如需（或 inline cast） | 类型擦除 ✓ |
+| 5 | `src/session/runner.ts` | `PIPELINE_OPTION_KEYS` 末尾加 `'skipMaterialize'`（`session.watch()` → `composeOptions()` → `splitBuildOverrides()` 对非白名单键 throw TypeError；不入白名单则 crash） | one-shot `build()` 不传 → `undefined` → 不跳过 ✓ |
 
-**锚定**：`grep -n 'skipMaterialize' src/compiler/pipeline/build-pipeline.ts` 命中；`grep -n 'buildModel' src/compiler/pipeline/build-pipeline.ts` 含 result 字段。
+**锚定**：`grep -n 'skipMaterialize' src/compiler/pipeline/build-pipeline.ts` 命中（解构 + 条件守卫）；`grep -n 'buildModel' src/compiler/pipeline/build-pipeline.ts` 命中（result 字段）；`grep -n 'skipMaterialize' src/session/runner.ts` 命中（PIPELINE_OPTION_KEYS 白名单）。
 
 ## I3 dev server artifactResolver 注入（D-MM-5）
 
@@ -35,7 +36,7 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板
 | --- | --- | --- | --- |
 | 1 | `src/dev/dev-server.ts` | `createDevServer` options 加 `artifactResolver?: (relativePath: string) => { code: string } \| null` | 可选参数，不传时行为同今天 ✓ |
 | 2 | 同上 | 加 `stripAppIdPrefix(relativePath, appId)` 辅助函数 | 纯函数 ✓ |
-| 3 | 同上 | `handleHttpRequest` serveRoot 分支（else L155 后）：先试 `artifactResolver?.(stripAppIdPrefix(pathname.slice(1), appId))` → hit → `writeStatic(response, artifact.code, contentType, headOnly)` → return；miss → 原有 `fs.stat` + `fs.readFile` 路径 | 有 resolver hit 时不读盘；miss 时行为同今天 ✓ |
+| 3 | 同上 | `handleHttpRequest` serveRoot 分支（else L155 后）：先试 `artifactResolver?.(stripAppIdPrefix(pathname.slice(1), appId))` → hit → `writeStatic(response, artifact.code, contentType, headOnly)` → return；miss → 原有 `resolveContainedPath(serveRoot, pathname.slice(1))`（**用原始未剥前缀路径**，因 `publishToDist` 在磁盘建 `serveRoot/appId/` 子目录）+ `fs.stat` + `fs.readFile` 路径 | 有 resolver hit 时不读盘；miss 时行为同今天 ✓ |
 | 4 | 同上 | `stat` 检查调整：hit 路径跳过 `fs.stat`（内存有即存在），直接取 `contentType` 按 `pathname` extname | 省一次 `fs.stat`；Content-Type 取法不变 ✓ |
 
 **锚定**：`grep -n 'artifactResolver' src/dev/dev-server.ts` 命中；`grep -n 'stripAppIdPrefix' src/dev/dev-server.ts` 命中。
@@ -54,7 +55,7 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板
 | Step | 文件 | 动作 | 行为 0 |
 | --- | --- | --- | --- |
 | 1 | `src/session/index.ts` | `SessionState` 加 `buildModel?: BuildModel` 字段 + import type | 类型擦除 ✓ |
-| 2 | 同上 | `dev()` watch options 加 `skipMaterialize: true` | dev 路径跳过 materialize ✓ |
+| 2 | 同上 | `dev()` watch options 加 `skipMaterialize: !previewAdapter`（仅用默认 adapter 时跳过；自定义 adapter 路径下仍跑 materialize 防回归） | dev 路径跳过 materialize ✓ |
 | 3 | 同上 | `dev()` 在 `watcher.start()` 后设 `state.buildModel = buildResult.buildModel` | 初始值 ✓ |
 | 4 | 同上 | `adapter.createServer({ ..., artifactResolver: (path) => state.buildModel?.getArtifact(path) ?? null })` | 注入 resolver ✓ |
 | 5 | 同上 | `state.lifecycle.on('build:end', ({ result }) => { state.buildModel = result.buildModel })` | rebuild 更新 ✓ |
@@ -65,13 +66,12 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板
 
 | Step | 文件 | 动作 | 行为 0 |
 | --- | --- | --- | --- |
-| 1 | `__tests__/dev-server.spec.js` | 新增 describe block: `artifactResolver 注入` — 传 `artifactResolver` 返回内存产物；GET 响应 body == resolver code；GET 未命中路径 fallback 磁盘；不传 resolver 时行为同今天 | 新增测例 ✓ |
+| 1 | `__tests__/dev-server.spec.js` | 新增 describe block: `artifactResolver 注入` — 4 个用例： (a) 传 `artifactResolver` 返回内存产物；GET 响应 body == resolver code； (b) GET 未命中路径 fallback 磁盘； (c) 不传 resolver 时行为同今天； (d) appId 前缀剥离：`appId: 'wx_test'` + `serveRoot/wx_test/main/logic.js` 磁盘文件 + resolver key `main/logic.js` → `GET /wx_test/main/logic.js` 返回 resolver code（验 appId strip 生效）；fallback：`GET /wx_test/app-config.json` resolver miss → 磁盘 fallback `serveRoot/wx_test/app-config.json` | 新增测例 ✓ |
 
 ## 不做
 
 - 不改 `config-compiler.ts`（app-config.json 仍写盘）
 - 不改 `publish.ts`（createDist + publishToDist 保留）
-- 不改 `PIPELINE_OPTION_KEYS`（skipMaterialize 不入白名单；watch 直传）
 - 不改 `collectAssets`（tabBar icons 仍写盘）
 - 不引入 memfs 依赖
 - 不改 SDK 资产服务路径

@@ -6,7 +6,7 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板，冻结 v1
 
 dev 模式下，BuildModel.entries 持有的编译产物（view/logic/style code + sourcemaps）不得落盘。dev server 须从内存直读产物。
 
-**当前病症（P-MM1）**：`materialize`（build-pipeline L195）把 BuildModel.entries 刷盘到 `getTargetPath()`；dev server（dev-server L155）`fs.readFile(serveRoot)` 从盘读产物 serve——BuildModel.entries 本身已是内存 Map，却先落盘再读盘。
+**当前病症（P-MM1）**：`materialize`（build-pipeline L195）把 BuildModel.entries 刷盘到 `getTargetPath()`；dev server（dev-server L155 路径解析 → L173 `fs.readFile`）从盘读产物 serve——BuildModel.entries 本身已是内存 Map，却先落盘再读盘。
 
 ## R-MM2（MUST）冷路径保留写盘
 

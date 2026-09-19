@@ -24,7 +24,7 @@ Status: **冻结 v1（2026-09-20）** — 升 `ready`
 
 | # | 写盘者 | 位置 | 写什么 | 本门处理 |
 | --- | --- | --- | --- | --- |
-| W1 | `createDist` | publish.ts L36 → build-pipeline L136 | 建空目录 + seed 拷贝 | **保留**（冷路径目录） |
+| W1 | `createDist` | publish.ts L21 → build-pipeline L136 | 建空目录 + seed 拷贝 | **保留**（冷路径目录） |
 | W2 | `compileConfig` | config-compiler.ts L67-70 | `app-config.json` | **保留**（冷路径） |
 | W3 | `collectAssets` | utils.ts L100 → config-compiler `processTabBarIcons` | tabBar icons (binary) | **保留**（冷路径 binary） |
 | W4 | `materialize` | build-model.ts L48 → build-pipeline L195 | BuildModel.entries (view/logic/style code + sourcemaps) | **dev 跳过** |
@@ -157,7 +157,7 @@ export interface SessionState {
 const watcher = session.watch({
     options: {
         fileTypes: state.fileTypes,
-        skipMaterialize: true,  // ← 新增
+        skipMaterialize: !previewAdapter,  // ← 新增：仅用默认 adapter 时跳过
     },
 })
 ```
@@ -173,7 +173,9 @@ if (!skipMaterialize) {
 publishToDist(targetPath, useAppIdDir)  // 保留（move 冷路径）
 ```
 
-**`PIPELINE_OPTION_KEYS` 不加 `skipMaterialize`**：watch options 直传 `build()`，不经 `composeOptions` 白名单。one-shot `build()` 不传 `skipMaterialize`，默认 `undefined`（falsy）→ 不跳过。
+**`PIPELINE_OPTION_KEYS` 须加 `skipMaterialize`**：`session.watch()` 内调 `composeOptions()` → `splitBuildOverrides()`，后者对非白名单键 **throw TypeError**（非静默丢弃）。须在 `runner.ts` 的 `PIPELINE_OPTION_KEYS` 末尾加 `'skipMaterialize'`。one-shot `build()` 不传 `skipMaterialize`，默认 `undefined`（falsy）→ 不跳过。
+
+**自定义 adapter 守卫**：`skipMaterialize: !previewAdapter` —— 仅当用户未提供自定义 adapter（用默认 `createWebPreviewAdapter`）时才跳过 materialize。自定义 adapter 可能不透传 `artifactResolver`（TypeScript 结构类型允许：可选参数可被忽略），此时 dev server 无 resolver → 若 `skipMaterialize` 仍为 `true` 则 build artifacts 不在磁盘也不在内存 → **404 回归**。`!previewAdapter` 守卫确保自定义 adapter 路径下 materialize 仍跑（dev server 从磁盘读，行为同今天）。
 
 ## 7. preview-adapter 透传
 
@@ -190,7 +192,7 @@ async createServer({ serveRoot, appId, artifactResolver }: {
 }
 ```
 
-**自定义 previewAdapter 兼容**：用户自带的 adapter 不接受 `artifactResolver` 时，dev server 无 resolver → 全走磁盘 fallback → 行为同今天（materialize 仍跳过但 fallback 读不到 build artifacts——用户须用 `createWebPreviewAdapter` 或自行注入 resolver）。
+**自定义 previewAdapter 兼容**：`skipMaterialize` 设为 `!previewAdapter`（仅用默认 adapter 时跳过）。用户提供自定义 adapter 时 `skipMaterialize = false` → materialize 仍跑 → dev server 从磁盘读 → **行为同今天**（无回归）。自定义 adapter 欲启用 memfs 须自行透传 `artifactResolver` 并将 `skipMaterialize` 设为 `true`（通过 watch options 传入）。
 
 ## 8. 行为 0 等价性分析
 

@@ -8,10 +8,11 @@ Status: **ready（2026-09-20）** — D-MM-1..6 全拍板
 | A-MM2 | R-MM2 | 冷路径仍写盘：`app-config.json`（config-compiler）、tabBar icons（collectAssets）、`publishToDist` move 保留 | P-MM04 源码审查 | pending |
 | A-MM3 | R-MM3 | 行为 0：全量 vitest 绿；dev HTTP 响应字节不变（resolver hit body == 磁盘读 body）；compile 模式不受影响（`build()` 仍 materialize） | P-MM01 / P-MM05 | pending |
 | A-MM4 | R-MM4 | 零新依赖：`package.json` 无 memfs 或其他新增 | P-MM04 `git diff package.json` | pending |
-| A-MM5 | R-MM5 | rebuild 后 dev server 用最新 BuildModel（`build:end` listener 更新 `state.buildModel`） | P-MM03 + 消融 | pending |
+| A-MM5 | R-MM5 | rebuild 后 dev server 用最新 BuildModel（`build:end` listener 更新 `state.buildModel`）；自定义 adapter 路径下 `skipMaterialize = false` 防回归 | P-MM03 + 消融 | pending |
 
 ## Notes
 
 - 升 `in_progress` 需明确授权。
-- 消融 MUST：I1 拔 `getArtifact` → 404 回归；I5 拔 `build:end` listener → serve 旧产物。
+- 消融 MUST：I1 拔 `getArtifact` → 404 回归；I5 拔 `build:end` listener → serve 旧产物；I2 拔 `PIPELINE_OPTION_KEYS` 白名单 → `TypeError` crash。
 - compile 模式（one-shot `build()`）不传 `skipMaterialize` → materialize 仍跑 → 产物仍落盘（R-MM3 compile 不受影响）。
+- 自定义 `previewAdapter` 路径下 `skipMaterialize = false`（`!previewAdapter` 守卫）→ materialize 仍跑 → dev server 从磁盘读 → 无回归。
