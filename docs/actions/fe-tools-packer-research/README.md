@@ -1,7 +1,7 @@
 # fe-tools-packer-research
 
 - Action: `fe-tools-packer-research`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-20
 - Status authority: [Action Status](../STATUS.md)
 

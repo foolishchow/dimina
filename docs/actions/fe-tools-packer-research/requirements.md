@@ -1,6 +1,6 @@
 # Requirements — fe-tools-packer-research
 
-Status: **ready（2026-09-20）**
+Status: **in_progress（2026-09-20）**
 
 ## 问题
 
