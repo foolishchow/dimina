@@ -25,3 +25,4 @@ Status: **ready（2026-09-20）**
 | 2026-09-20 | **冻结** D-RC-1..4 → 升 `ready`：B/α/I/watch-plan；P-RC00 / A-RC0 + P-RC01 / A-RC1 pass。 |
 | 2026-09-20 | R1 readiness review（fail→修正）：F1 CompileInfo 7 字段；F2 ephemeral worker cache snapshot IPC；F3 stale「待拍板」；F4 注释归属。全修。 |
 | 2026-09-20 | R2 readiness review（fail→修正）：F5 cache 更新路径协议变更（worker 响应含 compileRes；非经 sink/emit）；F6 Goal stale「待定」；F7 类型引用 type-only import。全修。 |
+| 2026-09-20 | R3 readiness review（pass-with-findings→修正）：F8 §3.3 bullet 对齐 §3.5（snapshot.has/compileRes.push；非 cache.has/cache.set）；F9 IPC 成本措辞（EmitEntry+compileRes；非「同今日」）。全修。 |

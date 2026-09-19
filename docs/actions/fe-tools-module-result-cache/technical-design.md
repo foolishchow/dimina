@@ -57,9 +57,9 @@ D-MF-2：`DependencyGraph` 不挂 code；**M2 另定缓存宿主**。
 - **worker 生命周期**（源码事实）：`executor.ts:24` 每 `executeTask` `new Worker()`；`:29,39,43` 任务后 `worker.terminate()`。worker **不跨 build 复用**——`WorkerPool` 仅并发限流。cache 不能靠 worker 自维护。
 - **cache 实例**：主线程 `ModuleResultCache`（session-scoped，随 `activeStore` 同生命周期在 watch-runner 创建）。
 - **IPC 传入**：cache snapshot（`[moduleId, CompileInfo][]` 或 `toJSON()`）经 `msg` 传入 worker——同 `dependencyGraph.toJSON()` / `storeInfo` 模式。同时传 `invalidatedModules: string[]`（dirty 集，小）。
-- **`buildJSByPath` 内消费**：worker 收到 cache snapshot + dirty 集 → `if cache.has(moduleId) && !invalidatedModules.has(moduleId) → 用 cached CompileInfo（skip transform）` → 否则 transform → `cache.set(moduleId, info)`。
+- **`buildJSByPath` 内消费**：worker 收到 cache snapshot + dirty 集 → `if snapshot.has(moduleId) && !invalidatedModules.has(moduleId) → 用 cached CompileInfo（skip transform）` → 否则 transform → `compileRes.push(info)`。
 - **返回**（**协议变更**）：worker 响应消息增加 `compileRes` 字段（`CompileInfo[]`，cached + dirty 全量）。`logicCompile` / `engine.compile` 返回 `CompileInfo[]` → `runWorker` `postMessage({ success, ..., compileRes })` → `executeTask` resolve → `runCompileStage` → 主线程从 `compileRes` 更新 cache（idempotent：cached 覆写同值，dirty 写入新值）。**非经 sink/emit**——sink 仍发 EmitEntry（转换后 4 字段），与 cache 更新正交。
-- **IPC 成本**：输入 = cache snapshot（∝ 全模块 code 量）+ dirty 集（小）；输出 = full compileRes（同今日）。**省的是 compute（skip transform），非 IPC**。
+- **IPC 成本**：输入 = cache snapshot（∝ 全模块 code 量）+ dirty 集（小）；输出 = EmitEntry（sink，同今日）+ compileRes（response 新增）。**省的是 compute（skip transform），非 IPC**。
 
 ### 3.4 失效触发（D-RC-4）
 
