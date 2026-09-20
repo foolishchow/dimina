@@ -60,7 +60,7 @@ worker (logicCompile):
 ```text
 main (build-pipeline, worker 返回后):
   1. update cache + merge graph                    ← M2 已有
-  2. 从 storeInfo 取 page 列表
+  2. 调 getPages() 取 page 列表（mainPages + subPages with packageRoot）
   3. 分组:
      for each mainPage: graph.getDependencyClosure(pageId) → IDs
      合并 → mainIDSet
@@ -70,11 +70,32 @@ main (build-pipeline, worker 返回后):
        合并 → subIDSet[root]
        allCompileRes.filter(m => subIDSet[root].has(m.path)) → subCompileRes[root]
   4. 逐组发 emit-worker:
-     emit-worker.send({ entryId: 'logic', modules: mainCompileRes.map(toEmitModule), transform, ... })
-     emit-worker.send({ entryId: 'logic:'+root, modules: subCompileRes[root].map(...), ... })
+     emit-worker.send({ entryId: 'logic', modules: mainCompileRes.map(toEmitModule), transform, ..., storeInfo })
+     emit-worker.send({ entryId: 'logic:'+root, modules: subCompileRes[root].map(...), ..., storeInfo })
   5. 收 EmitEntry → BuildModel.add
   6. materialize
 ```
+
+### §1.3 emit 步骤在 build-pipeline 的位置
+
+当前 build-pipeline 流程：
+```text
+(1) 收集配置信息 → storeInfo + BuildModel
+(2) 准备产物目录 → createDist
+(3) 并发编译（view + logic + style，streaming emit 在此）
+(4) 写入编译产物 → materialize + publish
+```
+
+打破 streaming 后，logic emit 须在 (3) 之后、(4) 之前：
+```text
+(1) 收集配置信息
+(2) 准备产物目录
+(3) 并发编译（view + style 仍 streaming；logic 不 streaming）
+(3.5) logic emit：分组 → emit-worker → BuildModel.add   ← 新增步骤
+(4) 写入编译产物 → materialize + publish
+```
+
+(3.5) 可以是 (3) 的子任务（编译完成后自动接 emit），也可以是独立 task。实施时选独立 task 更清晰（与 (4) 分离）。
 
 ### §1.3 emit-worker
 
@@ -92,10 +113,10 @@ emit-worker:
 | --- | --- |
 | `compiler/logic/index.ts` | 删 `writeCompileRes` 调用（L676-678）；worker 不再 emit |
 | `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（纯函数，`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
-| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `produceEntry` 返回 `{ entry }` |
+| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `resetStoreInfo` + `produceEntry` 返回 `{ entry }` |
 | `pipeline/emit-worker-entry.ts`（新增） | `runWorker(emitEngine)` |
 | `compiler/worker-runtime/executor.ts` | 泛化 `executeTask`：`pages` 变可选；`ENTRY_PATH` 加 `'emit'`；resolve 透传 payload（strip protocol fields `success`/`type`/`completedTasks`/`outputCount`） |
-| `pipeline/build-pipeline.ts` | worker 返回后：分组 → 发 emit-worker → 收 EmitEntry → BuildModel.add |
+| `pipeline/build-pipeline.ts` | 新增 (3.5) logic emit task（分组 → emit-worker → BuildModel.add）；worker 返回后编排 |
 | `compiler/core/env.ts` | `getPages()` 等 API 供主线程取 page 列表 + packageRoot |
 | `model/dependency-graph.ts` | 不变（`getDependencyClosure` 已在 MC3a 交付） |
 | `model/convergence.ts` | 不变（`deriveFromGraph` 不接入——deferred） |
@@ -104,23 +125,7 @@ emit-worker:
 
 ### §3.1 emit-engine
 
-```ts
-// pipeline/emit-engine.ts（新增）
-import { defineEngine } from '../worker-runtime/define-engine.ts'
-import { produceEntry } from './emit.ts'
-
-export const emitEngine = defineEngine({
-    name: 'emit',
-    buildConfig: (msg) => ({ ...msg }),  // 透传
-    compile: async ({ msg }) => {
-        const params = msg as EmitEntryParams
-        const entry = await produceEntry(params)  // 纯函数 → EmitEntry
-        return { entry }  // 通过 compileResult 返回
-    },
-    successPayload: () => ({}),  // 无 graph
-    cleanup: () => {},
-})
-```
+见 §3.5（含 `resetStoreInfo` 上下文搭建）。
 
 ### §3.2 emit-worker-entry
 
@@ -162,6 +167,8 @@ if (message.success) {
 // pipeline/emit.ts
 
 // 纯函数：提取 strategy.apply
+// 注：perModule 策略的 sourcemap rebase 路径调 getWorkPath()（L142），
+// 需编译器上下文。emit-worker 须先调 resetStoreInfo 搭建上下文（见 §3.5）。
 export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> {
     const strategy = strategies[params.transform.strategy as keyof typeof strategies]
     if (!strategy) throw new Error(`produceEntry: 未知 transform 策略 ${params.transform.strategy}`)
@@ -177,14 +184,46 @@ export async function emitEntry(params: EmitEntryParams) {
 }
 ```
 
+### §3.5 emit-worker 上下文搭建（D-ER-6 补充）
+
+`produceEntry` 的 perModule 策略 sourcemap rebase 路径调 `getWorkPath()`（`emit.ts:142`），
+需编译器上下文（`pathInfo.workPath`）。
+
+compile-worker（logic/view/style）的 `compile` 函数先调 `resetStoreInfo(msg.storeInfo)` 搭建上下文。
+emit-worker 同理：emit params 须带 `storeInfo`，emit-engine 的 `compile` 先调 `resetStoreInfo`。
+
+```ts
+// pipeline/emit-engine.ts（新增）
+import { defineEngine } from '../worker-runtime/define-engine.ts'
+import { resetStoreInfo } from '../core/env.ts'
+import { produceEntry } from './emit.ts'
+import type { EmitEntryParams } from './emit.ts'
+
+export const emitEngine = defineEngine({
+    name: 'emit',
+    buildConfig: (msg) => ({ ...msg }),
+    compile: async ({ msg }) => {
+        const params = msg as EmitEntryParams & { storeInfo: Parameters<typeof resetStoreInfo>[0] }
+        resetStoreInfo(params.storeInfo)  // 搭建上下文（getWorkPath 等可用）
+        const { storeInfo: _, ...emitParams } = params
+        const entry = await produceEntry(emitParams as EmitEntryParams)
+        return { entry }
+    },
+    successPayload: () => ({}),
+    cleanup: () => {},
+})
+```
+
+主线程发 emit-worker 时，msg 须含 `storeInfo`（从 `ctx.storeInfo` 取）+ emit params（`entryId`/`modules`/`transform`/`sourcemap`/...）。
+
 ## §4 行为 0 守卫
 
 - `compileRes` 顺序不变：`filter` 只筛不改序，组内顺序 = 编译顺序
 - `emitEntry` perModule 策略不变：modDefine + sourcemap rebase + mergeSourcemap + esbuild minify 逻辑全不动
-- `produceEntry` = `strategy.apply` 提取，逻辑不变
+- `produceEntry` = `strategy.apply` 提取，逻辑不变（注：perModule 策略 sourcemap rebase 调 `getWorkPath()`，emit-worker 须 `resetStoreInfo` 搭建上下文——见 TD §3.5）
 - 唯一变化：调用位置从 worker 搬到 emit-worker（同一段代码，不同 worker）
 
-## §4 getDependencyClosure 消费者
+## §5 getDependencyClosure 消费者
 
 MC3a 交付的 `getDependencyClosure(entryId)` 在本 Action 中首次接入 production：
 - 主线程分组用它遍历 page closure → 收集 module IDs → 分组 compileRes
