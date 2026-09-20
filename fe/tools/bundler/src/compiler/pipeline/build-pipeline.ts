@@ -22,6 +22,8 @@ import { artCode, resetAssetCache } from '../../shared/utils.ts'
 import { NpmBuilder } from '../core/npm-builder.ts'
 import compileConfig from './config-compiler.ts'
 import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from '../core/env.ts'
+import { executeTask } from '../worker-runtime/executor.ts'
+import { emitEngine } from './emit-engine.ts'
 import { runCompileStage } from './stage-channel.ts'
 import { BuildModel, materialize } from '../../model/build-model.ts'
 import { createProjectStore } from '../../model/project-store.ts'
@@ -180,6 +182,13 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 								affectedEntries,
 							})
 							;(ctx as { pages: unknown }).pages = (plan as { filteredPages: PagesInfo }).filteredPages
+						// D-ER-3：存 logic workerOptions 到 ctx（供 3.5 Logic emit task 取用）
+						const logicOpts = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown> }> }).stageSpecs.logic?.workerOptions
+						if (logicOpts) {
+							(ctx as { compileConfig?: unknown }).compileConfig = logicOpts.compileConfig as unknown
+							(ctx as { sourcemap?: boolean }).sourcemap = logicOpts.sourcemap as boolean | undefined
+							(ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath = logicOpts.sourcemapTargetPath as string | undefined
+						}
 							const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
 								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]!
 								return createStageTask(
@@ -194,11 +203,44 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 							if (compileTasks.length > 0) {
 								return ((task as { newListr: (p: unknown[], o: unknown) => unknown }).newListr)(compileTasks, { concurrent: true })
 							}
-							return undefined
-						},
+						return undefined
 					},
-					{
-						title: '写入编译产物',
+				},
+				{
+					title: 'Logic emit',
+					task: async (ctx: Record<string, unknown>) => {
+						const emitBuckets = (ctx as { emitBuckets?: { main: Array<{ path: string; code: string; map?: string | null; extraInfoCode?: string }>; subs: { root: string; modules: Array<{ path: string; code: string; map?: string | null; extraInfoCode?: string }> }[] } }).emitBuckets
+						if (!emitBuckets) return
+						const buildModel = ctx.buildModel as BuildModel
+						const storeInfo = ctx.storeInfo
+						const compileConfig = (ctx as { compileConfig?: { minify: boolean; esTarget: { logic: string } } }).compileConfig!
+						const sourcemap = !!(ctx as { sourcemap?: boolean }).sourcemap
+						const sourcemapTargetPath = (ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath!
+						const toEmitModule = (m: { path: string; code: string; map?: string | null; extraInfoCode?: string }) => ({
+							moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode,
+						})
+						const transform = { strategy: 'perModule', minify: compileConfig.minify, target: compileConfig.esTarget.logic, platform: 'neutral' }
+						try {
+							for (const { root, modules } of emitBuckets.subs) {
+								const { entry } = await executeTask({ engine: emitEngine, input: {
+									entryId: 'logic:' + root, kind: 'logic' as const, modules: modules.map(toEmitModule),
+									transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: root, storeInfo,
+								} }) as { entry: Parameters<typeof buildModel.add>[0] }
+								buildModel.add(entry)
+							}
+							const { entry } = await executeTask({ engine: emitEngine, input: {
+								entryId: 'logic', kind: 'logic' as const, modules: emitBuckets.main.map(toEmitModule),
+								transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: 'main', storeInfo,
+							} }) as { entry: Parameters<typeof buildModel.add>[0] }
+							buildModel.add(entry)
+						} catch (error) {
+							await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage: 'logic', error })
+							throw error
+						}
+					},
+				},
+				{
+					title: '写入编译产物',
 						task: async (ctx: Record<string, unknown>) => {
 							if (!skipMaterialize) {
 							materialize(ctx.buildModel as BuildModel, getTargetPath())

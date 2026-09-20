@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-emit-relocate
 
-Status: **in_progress（2026-09-20）** — 待授 `in_progress`。
+Status: **in_progress（2026-09-20）** — 实施完成，待 close。
 
 ## 纪律
 
@@ -13,13 +13,13 @@ Status: **in_progress（2026-09-20）** — 待授 `in_progress`。
 | Step | 动作 | 状态 |
 | --- | --- | --- |
 | 0 | 立项 + 讨论冻结 D-ER-0..7；多轮 review 收敛（含 F-ER-21 桶语义、F-ER-24 `transSubDir`） | **done** |
-| 1 | `pipeline/emit.ts`：拆 `produceEntry`（无 sink）+ `emitEntry` wrapper（view/style 仍用） | pending |
-| 2 | 新增 `emit-engine.ts` + `emit-worker-entry.ts`（`resetStoreInfo` + `produceEntry` → `{ entry }`） | pending |
-| 3 | `executor.ts`：`pages` 可选；`ENTRY_PATH`/`script` 加 `'emit'`；resolve 透传 payload | pending |
-| 4 | `logic/index.ts`：删 `writeCompileRes` 及调用；返回 `emitBuckets` + 循环后拼 `compileRes`；简化 `logicBuildConfig` | pending |
-| 5 | `stage-channel.ts`：存 `emitBuckets` 到 `ctx`；M2 cache 仍用 `compileRes` | pending |
-| 6 | `build-pipeline.ts`：新增 (3.5) 按桶发 emit-worker → `BuildModel.add`；compile 侧存 transform/sourcemap 水管；logic `BuildModel.add` 改由 3.5 | pending |
-| 7 | P-ER01..04 / A-ER1..4：grep + 行为 0 diff + vitest；勾 acceptance；回流 architecture-notes；close 另授 | pending |
+| 1 | `pipeline/emit.ts`：拆 `produceEntry`（无 sink）+ `emitEntry` wrapper（view/style 仍用） | **done** |
+| 2 | 新增 `emit-engine.ts` + `emit-worker-entry.ts`（`resetStoreInfo` + `produceEntry` → `{ entry }`） | **done** |
+| 3 | `executor.ts`：`pages` 可选；`ENTRY_PATH`/`script` 加 `'emit'`；resolve 透传 payload | **done** |
+| 4 | `logic/index.ts`：删 `writeCompileRes` 及调用；返回 `emitBuckets` + 循环后拼 `compileRes`；简化 `logicBuildConfig` | **done** |
+| 5 | `stage-channel.ts`：存 `emitBuckets` 到 `ctx`；M2 cache 仍用 `compileRes` | **done** |
+| 6 | `build-pipeline.ts`：新增 (3.5) 按桶发 emit-worker → `BuildModel.add`；compile 侧存 transform/sourcemap 水管；logic `BuildModel.add` 改由 3.5 | **done** |
+| 7 | P-ER01..04 / A-ER1..4：grep + 行为 0 diff + vitest；勾 acceptance；回流 architecture-notes；close 另授 | **done** |
 
 ## 依赖
 

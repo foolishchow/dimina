@@ -14,7 +14,6 @@ import type { CachedModuleResult } from '../../model/module-result-cache.ts'
 import { collectAssets, hasCompileInfo, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
 import { getAppConfigInfo, getAppId, getComponent, getContentByPath, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, isMiniGame, resetStoreInfo, resolveAppAlias } from '../core/env.ts'
 import { remapSourcemap } from '../core/sourcemap.ts'
-import { emitEntry } from '../pipeline/emit.ts'
 import { errorMessage } from '../../shared/utils.ts'
 
 // 用于缓存已处理的模块
@@ -22,7 +21,6 @@ const processedModules = new Set()
 
 // 是否生成 sourcemap
 let enableSourcemap = false
-let sourcemapTargetPath: string | null = null
 interface ActiveCompileConfig {
 	minify: boolean
 	sourcemap: boolean
@@ -42,27 +40,6 @@ export interface CompileInfo {
 	component?: boolean
 	usingComponents?: Record<string, string>
 }
-async function writeCompileRes(compileRes: CompileInfo[], root: string | null) {
-	// 相对发布根的物化路径前缀（D-P2）
-	const relPrefix = root ? `${root}` : 'main'
-
-	await emitEntry({
-		entryId: `logic${root ? ':' + root : ''}`,
-		kind: 'logic',
-		modules: compileRes.map((m: CompileInfo) => ({ moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode })),
-		transform: {
-			strategy: 'perModule',
-			minify: activeCompileConfig.minify,
-			target: activeCompileConfig.esTarget.logic,
-			platform: 'neutral',
-		},
-		sourcemap: enableSourcemap,
-		sourcemapTargetPath,
-		filename: 'logic',
-		relPrefix,
-	})
-}
-
 /**
  * 编译 js 文件
  */
@@ -644,21 +621,19 @@ export function _setActiveCompileConfigForTest(config?: { minify?: boolean; sour
 }
 
 // P-WR02: engine export（不动调度，F47）
-function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minify: boolean; sourcemapTargetPath: string; esTarget: { logic: string; view: string } } {
+function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minify: boolean; esTarget: { logic: string; view: string } } {
 	return {
 		sourcemap: !!msg.sourcemap,
 		minify: msg.compileConfig?.minify !== false,
-		sourcemapTargetPath: msg.sourcemapTargetPath || getTargetPath(),
 		esTarget: {
 			logic: msg.compileConfig?.esTarget?.logic || 'es2023',
 			view: msg.compileConfig?.esTarget?.view || 'es2020',
 		},
 	}
 }
-async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
+async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ emitBuckets: { main: CompileInfo[], subs: { root: string, modules: CompileInfo[] }[] }, compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
 	resetStoreInfo((msg as { storeInfo: Parameters<typeof resetStoreInfo>[0] }).storeInfo)
 	enableSourcemap = !!(msg as { sourcemap?: boolean }).sourcemap
-	sourcemapTargetPath = (config as { sourcemapTargetPath: string | null }).sourcemapTargetPath
 	activeCompileConfig = config as ActiveCompileConfig
 
 	// M2: 从 msg 读 cache snapshot + invalidatedModules
@@ -669,18 +644,17 @@ async function logicCompile({ msg, progress, config }: CompileOptions): Promise<
 	const compileJSOptions = cache ? { cache, invalidatedModules, logicDependencies } : undefined
 
 	const { compileRes: mainCompileRes } = await compileJS((msg as { pages: { mainPages: PageModule[]; subPages: Record<string, { info: PageModule[]; independent: boolean }> } }).pages.mainPages, null, null, progress as Progress, compileJSOptions)
-	const allCompileRes = [...mainCompileRes]
+	const subs: { root: string, modules: CompileInfo[] }[] = []
 	for (const [root, subPages] of Object.entries((msg as { pages: { subPages: Record<string, { info: PageModule[]; independent: boolean }> } }).pages.subPages)) {
 		const { compileRes: subCompileRes } = await compileJS(
 			subPages.info, root, subPages.independent ? [] as CompileInfo[] : mainCompileRes, progress as Progress, compileJSOptions,
 		)
-		allCompileRes.push(...subCompileRes)
-		await writeCompileRes(subCompileRes, root)
+		subs.push({ root, modules: subCompileRes })
 	}
-	await writeCompileRes(mainCompileRes, null)
+	const compileRes = [...mainCompileRes, ...subs.flatMap(s => s.modules)]  // 循环后拼（修早快照漏 putMain）
 
 	processedModules.clear()
-	return { compileRes: allCompileRes, logicDependencies }
+	return { emitBuckets: { main: mainCompileRes, subs }, compileRes, logicDependencies }
 }
 function logicSuccessPayload({ logger }: { logger: { warn: (msg: string) => void; flush: () => string[] } }): Record<string, unknown> {
 	return {

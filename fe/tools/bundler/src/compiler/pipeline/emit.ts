@@ -196,6 +196,21 @@ ${m.code}
 }
 
 /**
+ * produceEntry —— D-ER-5 从 emitEntry 提取，无 sink。
+ * perModule 策略会调 getWorkPath()，须上下文（emit-worker 须先 resetStoreInfo）。
+ * @param params
+ * @returns {Promise<EmitEntry>}
+ */
+export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> {
+	const strategy = strategies[params.transform.strategy as keyof typeof strategies]
+	if (!strategy) {
+		throw new Error(`produceEntry: 未知 transform 策略 ${params.transform.strategy}`)
+	}
+	const { entry } = await strategy.apply(params)
+	return entry
+}
+
+/**
  * emitEntry —— D-E-9 废弃 return number（D-WR-11 fire-and-forget）。
  * D-E-1 契约 / D-E-2 策略注入 / D-E-12 rebase 留策略。
  * P-WR03：从 abilityContext.getStore() 拿 sink（不收 outputEnv 第二参数）。
@@ -211,11 +226,7 @@ ${m.code}
  * @returns {Promise<void>}
  */
 export async function emitEntry(params: EmitEntryParams) {
-	const strategy = strategies[params.transform.strategy as keyof typeof strategies]
-	if (!strategy) {
-		throw new Error(`emitEntry: 未知 transform 策略 ${params.transform.strategy}`)
-	}
-	const { entry } = await strategy.apply(params)
+	const entry = await produceEntry(params)
 	const store = abilityContext.getStore() as { sink?: { write: (entry: unknown) => void } } | undefined
 	const { sink } = store ?? {}  // 收敛点 getStore（不兜底——产物必须 sink，F55）
 	sink?.write(entry)

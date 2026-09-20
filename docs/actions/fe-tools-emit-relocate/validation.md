@@ -6,10 +6,10 @@ Status: **in_progress（2026-09-20）**
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
-| P-ER01 | emit 不在 compile-worker | `logicCompile` 不调 `writeCompileRes`；grep 确认；返回含 `emitBuckets` | R-ER-1 / A-ER1 | pending |
-| P-ER02 | emit-worker 产出 EmitEntry | emit-worker 接收 params → `resetStoreInfo` + `produceEntry` → postMessage(EmitEntry) | R-ER-2 / A-ER2 | pending |
-| P-ER03 | emit 桶正确 | 主线程按 `emitBuckets` 发（先 sub 再 main）；`subs[].root` = `pages.subPages` key（`transSubDir` 形）；与今日 `writeCompileRes` 输入对拍；含 putMain 进 main；无 path-prefix/closure；未误用 app.json root | R-ER-3 / A-ER3 | pending |
-| P-ER04 | 行为 0 | nomap + sourcemap 产物 diff=0 + 全量 vitest 绿 | R-ER-4 / A-ER4 | pending |
+| P-ER01 | emit 不在 compile-worker | `logicCompile` 不调 `writeCompileRes`；grep 确认；返回含 `emitBuckets` | R-ER-1 / A-ER1 | ✅ pass |
+| P-ER02 | emit-worker 产出 EmitEntry | emit-worker 接收 params → `resetStoreInfo` + `produceEntry` → postMessage(EmitEntry) | R-ER-2 / A-ER2 | ✅ pass |
+| P-ER03 | emit 桶正确 | 主线程按 `emitBuckets` 发（先 sub 再 main）；`subs[].root` = `pages.subPages` key（`transSubDir` 形）；与今日 `writeCompileRes` 输入对拍；含 putMain 进 main；无 path-prefix/closure；未误用 app.json root | R-ER-3 / A-ER3 | ✅ pass |
+| P-ER04 | 行为 0 | nomap + sourcemap 产物 diff=0 + 全量 vitest 绿 | R-ER-4 / A-ER4 | ✅ pass |
 
 ## Uncovered
 
@@ -31,4 +31,5 @@ Status: **in_progress（2026-09-20）**
 | 2026-09-20 | review readiness fail 修正：F-ER-17 (HIGH) path-prefix 漏 normalize 前导 `/`（与 `putMain` 不对齐）→ TD/R/D-ER-3 伪代码补 `substring(1)`；F-ER-18 P-ER03 仍写 closure 分组 → 改 path-prefix+normalize；F-ER-19 补 `acceptance.md`（A-ER1..4）；F-ER-20 architecture-notes / TODO 挂本 Action。仍 **`ready`**。 |
 | 2026-09-20 | review readiness fail 修正：F-ER-21 (HIGH) path-prefix 重归属 ≠ 今日 `writeCompileRes` 编译期桶（跨分包错桶 + 早快照漏 putMain）→ D-ER-3 改为结构化 `emitBuckets`；禁 path-prefix/closure；`compileRes` 循环后拼；F-ER-22 D-ER-5/README 去掉「纯函数」；F-ER-23 STATUS/architecture-notes 对齐 MC3b→本 Action。仍 **`ready`**。 |
 | 2026-09-20 | review pass-with-findings 修正：F-ER-24 (MEDIUM) 澄清 `subs[].root` = `pages.subPages` key（`transSubDir` 形，非 app.json root）；F-ER-25 TD §0.3 去掉 strategy.apply「纯函数」；F-ER-26 接口表注明 logic 阶段 onOutput 可留可去（outputCount=0）。仍 **`ready`**。 |
+| 2026-09-21 | 授权 `in_progress` → 实施。Step 1-6 完成：emit.ts 拆 produceEntry；emit-engine.ts + emit-worker-entry.ts 新增；executor.ts 泛化（pages 可选+ENTRY_PATH 加 emit+resolve 透传 payload+guards 保留）；logic/index.ts 删 writeCompileRes 返回 emitBuckets+循环后拼 compileRes；stage-channel.ts 存 emitBuckets 到 ctx；build-pipeline.ts (3.5) Logic emit task。tsc 0 errors；vitest 608/608 pass；fe/packages diff=0（行为 0）。(3.5) task 加 try/catch emit STAGE_ERROR（lifecycle 回归修复）。 |
 | 2026-09-20 | review pass 残余修正：F-ER-27 TD §1.1 厘清 `dependencyGraph` 仅 `logicSuccessPayload`（不进 compile return）；F-ER-28 补 `implementation-plan.md`。仍 **`ready`**。 |
