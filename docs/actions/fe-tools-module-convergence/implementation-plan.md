@@ -14,21 +14,19 @@ Status: **draft（2026-09-21）** — 伞级规划。`draft` 不授权改产品�
 | Step | 动作 | 状态 |
 | --- | --- | --- |
 | 1 | formalize 本伞 `draft` | **done**（2026-09-21） |
-| 2 | review 冻结 D-MC-0..5 → 升 `ready` | pending |
-| 3 | formalize 子门 MC0（graph 正确性） | pending |
-| 4 | MC0 实施 → complete | pending |
-| 5 | formalize 子门 MC1（GraphNode code） | pending |
-| 6 | MC1 实施 → complete | pending |
-| 7 | formalize 子门 MC2（view Module 入图） | pending |
-| 8 | MC2 实施 → complete | pending |
-| 9 | formalize 子门 MC3（BuildModel 派生） | pending |
-| 10 | MC3 实施 → complete | pending |
-| 11 | 子门回流后更新本伞 roadmap；伞 close | pending |
+| 2 | 讨论冻结 D-MC-0（graph vs fs module 职责边界）→ 选 A | **done**（2026-09-21） |
+| 3 | review 冻结 D-MC-3..5 → 升 `ready` | pending |
+| 4 | formalize 子门 MC0（graph 正确性） | pending |
+| 5 | MC0 实施 → complete | pending |
+| 6 | formalize 子门 MC3（BuildModel 派生） | pending |
+| 7 | MC3 实施 → complete | pending |
+| 8 | 子门回流后更新本伞 roadmap；伞 close | pending |
 
 ## 子门依赖
 
 ```text
-MC0 graph 正确性 ──► MC1 GraphNode code ──► MC2 view 入图 ──► MC3 BuildModel 派生
+MC0 graph 正确性 ──► MC3 BuildModel 派生
 ```
 
-MC0 是前置（图先正确才能放 code）；MC1 依赖 MC0（code 上图前图须正确）；MC2 依赖 MC1（view node 需要 code 字段）；MC3 依赖 MC1+MC2（派生需要全量 Module 在图）。
+MC0 是前置（图先正确才能从图派生）；MC3 依赖 MC0（派生需要可靠的 graph 结构）。
+MC1/MC2 deferred（D-MC-0 选 A：code 不上图）。

@@ -42,11 +42,24 @@ graph 和 fs module 的职责**没有清晰边界**：
 
 | 选项 | graph 职责 | 优点 | 缺点 |
 | --- | --- | --- | --- |
-| **A: graph = 结构权威** | node + edge + entry 集 + 文件归属；**不含 code** | graph 轻量；IPC 只传结构；code 由 fs module/cache 管 | 给定 entry 无法单从 graph 取 code → emit；两维度查询 |
-| **B: graph = 完整 module graph** | node + edge + code + sourcemap + deps | 单一维度：entry → 遍历 graph → code → emit | graph 重；IPC 传 code（体量大）；D-MF-2 推翻 |
-| **C: graph = 结构 + code 引用** | node + edge + `codeRef`（指向 cache/Store）；code 不内联 | graph 中量；IPC 传结构 + 引用；code 在 Store 侧 | code 仍跨维度查；引用一致性新问题 |
+| **A: graph = 结构权威** ✅ 已选 | node + edge + entry 集 + 文件归属；**不含 code** | graph 轻量；IPC 只传结构；code 由 fs module/cache 管 | 给定 entry 无法单从 graph 取 code → emit；两维度查询 |
+| B: graph = 完整 module graph | node + edge + code + sourcemap + deps | 单一维度：entry → 遍历 graph → code → emit | graph 重；IPC 传 code（体量大）；D-MF-2 推翻；stale edge 零容忍 |
+| C: graph = 结构 + code 引用 | node + edge + `codeRef`（指向 cache/Store）；code 不内联 | graph 中量；IPC 传结构 + 引用；code 在 Store 侧 | code 仍跨维度查；引用一致性新问题 |
 
-**当前 M2 走的是 A**（cache 独立于 graph，D-MF-2 不推翻）。**convergence 伞原设计走 B**（GraphNode 加 code）。**C 是折中**。
+**已选 A**（2026-09-21 讨论）：
+
+- M2 已用 A 跑通增量（cache 独立于 graph，D-MF-2 不推翻）
+- IPC 成本：worker ephemeral，graph snapshot 每次传；A 只传结构（轻），B 传结构+code（重）
+- stale edge 容忍度：A 多编不漏（安全），B 多编进产物（diff≠0，M2 F15 已证）
+- 无即时消费者需要 code 在图上（HMR deferred 另门）
+- **D-MF-2 不推翻**：graph = 结构权威，code 留在 cache
+
+**对 convergence 伞的影响：**
+
+- MC0 graph 正确性 → **核心价值**（stale edge/node 清理 + closure 一致）
+- MC1 GraphNode code → **deferred**（code 不上图；等 HMR 或另一个真实消费者出现时再做）
+- MC2 view 入图 → **deferred**（view 不需要 code 上图）
+- MC3 BuildModel 派生 → **保留**（entry → graph 取 module 集 → cache 取 code → emit；单一派生路径）
 
 ### §0.5 watch 变化分流流程（目标态）
 
@@ -235,8 +248,9 @@ entry (entryId)
 
 | ID | 议题 | 选项 |
 | --- | --- | --- |
-| D-MC-0 | graph 与 fs module 职责边界：code 要不要上图？ | A: graph=结构权威（code 不上图，沿用 M2）/ B: graph=完整 module graph（code 上图，推翻 D-MF-2）/ C: graph=结构+code引用（折中） |
-| D-MC-1 | GraphNode 扩字段后 `toJSON()` 体量增大——是否 dirty-only snapshot？ | A: 全量（简单） / B: dirty-only（省 IPC） |
-| D-MC-2 | `ModuleResultCache` 是删除还是退化为覆盖层？ | A: 删除（图直接持有） / B: 退化为覆盖层（热路径 cache hit 不走 IPC） |
-| D-MC-3 | view `compileResCache` 是 within-build cache（非 cross-rebuild）；不能退化到 graph node | 保留不动（TD §2.3 已查实） |
+| D-MC-0 | graph 与 fs module 职责边界：code 要不要上图？ | **A 已选**（2026-09-21）：graph=结构权威，code 不上图，沿用 M2 D-MF-2 不推翻。B/C deferred（HMR 或另一消费者出现时再评估） |
+| D-MC-1 | MC1 GraphNode code 子门 → deferred | code 不上图；MC1 deferred |
+| D-MC-2 | MC2 view 入图子门 → deferred | view 不需要 code 上图；MC2 deferred |
+| D-MC-3 | view `compileResCache` 是 within-build cache（非 cross-rebuild）；保留不动 | 保留不动（TD §2.3 已查实） |
 | D-MC-4 | `BuildModel.add` 散装 entries 是删除还是退居兼容？ | A: 删除 / B: 兼容（watch 直传保留） |
+| D-MC-5 | MC0 graph 正确性实施方式：removeDependency + removeNode + merge diff？ | 待 review 冻结 |
