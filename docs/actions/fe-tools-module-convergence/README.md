@@ -1,7 +1,7 @@
 # FE Tools Module Convergence（伞）
 
 - Action: `fe-tools-module-convergence`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 前身：[`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md)（**complete 已归档**；刀 2+3 倒逼出半套 Module 资产）
@@ -73,8 +73,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 ## Status / 授权
 
-- 当前 **`draft`**（2026-09-21）。D-MC-* 待 review 冻结。
-- **未授权**改 `fe/tools/bundler/src` / `fe/packages`。子门另立另授 `in_progress`。
+- 当前 **`ready`**（2026-09-21）。D-MC-0..5 已冻结。子门 MC0 + MC3a 待 formalize。
 
 ## 闭合条件
 
@@ -90,3 +89,4 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 | 2026-09-21 | D-MC-0 冻结：选 A（graph = 结构权威，code 不上图）；MC1/MC2 deferred |
 | 2026-09-21 | TD §0 加 GraphNode vs ModuleResult 职责边界 + watch 数据流向 |
 | 2026-09-21 | MC3 拆为 MC3a（deriveFromGraph 函数，低风险）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）。伞目标调整为「推进 Packer 形状」 |
+| 2026-09-21 | review 冻结 D-MC-0..5（F-REV-1..5 修正）；§1 D-MF-2 不推翻；§3 重写为 MC0+MC3a；§4 接口表更新；D-MC-4 deferred 到 MC3b；D-MC-5 冻结（clearOutgoingEdges + removeNode + merge diff）。升 **`ready`** |

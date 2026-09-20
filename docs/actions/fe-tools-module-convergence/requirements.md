@@ -1,6 +1,6 @@
 # Requirements — fe-tools-module-convergence
 
-Status: **draft（2026-09-21）** — 伞级 MUST；子门细化自有 R-*。
+Status: **ready（2026-09-21）** — 伞级 MUST；子门细化自有 R-*。
 
 ## R-MC0（MUST）Graph 正确性
 

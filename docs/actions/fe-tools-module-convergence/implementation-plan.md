@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-module-convergence
 
-Status: **draft（2026-09-21）** — 伞级规划。`draft` 不授权改产品代码；改 src 仅经子门 `in_progress`。
+Status: **ready（2026-09-21）** — 伞级规划。`draft` 不授权改产品代码；改 src 仅经子门 `in_progress`。
 
 ## 纪律
 

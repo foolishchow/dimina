@@ -214,7 +214,7 @@ wxml/
 
 **Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/_archive/complete/fe-tools-module-centric/README.md)（**`complete`**，2026-09-21；子门 M1 invalidation + M2 result-cache 全 complete 归档；D-MF-1 封口）。D-MF-1：方案 A / logic-only。M0 emit W1 deferred（S 级，另门可独立先行）。
 
-**Module 收敛路线（2026-09-21）**：后继伞 [`fe-tools-module-convergence`](../actions/fe-tools-module-convergence/README.md)（**`draft`**，2026-09-21；推进 Packer 形状：MC0 graph 正确性 → MC3a deriveFromGraph 函数）。D-MC-0 选 A（graph = 结构权威，code 不上图，D-MF-2 不推翻）。MC3 拆为 MC3a（只读派生函数，低风险）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）。
+**Module 收敛路线（2026-09-21）**：后继伞 [`fe-tools-module-convergence`](../actions/fe-tools-module-convergence/README.md)（**`ready`**，2026-09-21；推进 Packer 形状：MC0 graph 正确性 → MC3a deriveFromGraph 函数）。D-MC-0 选 A（graph = 结构权威，code 不上图，D-MF-2 不推翻）。D-MC-0..5 已冻结。MC3 拆为 MC3a（只读派生函数，低风险）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 

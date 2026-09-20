@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-module-convergence
 
-Status: **draft（2026-09-21）** — D-MC-* 待定（需 review 冻结）。
+Status: **draft（2026-09-21）** — D-MC-0..5 已冻结。待升 `ready`。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -254,8 +254,8 @@ MC3 不只是「打破 streaming」——还要：
 
 来自 [`fe-tools-module-centric` technical-design](../_archive/complete/fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
 
-- **D-MF-1**：方案 A；`moduleId = CompileInfo.path`；logic-only → 本伞扩展到 view。
-- **D-MF-2**：缓存宿主不挂图节点 → **本伞推翻此条款**：MC1 后 node 持有 code，图成为 Module 宿主。此推翻需在 review 中显式确认。
+- **D-MF-1**：方案 A；`moduleId = CompileInfo.path`；logic-only。本伞继承，不改。
+- **D-MF-2**：缓存宿主不挂图节点 → **不推翻**（D-MC-0 选 A）。graph = 结构权威，code 留在 ModuleResultCache。
 
 ## §2 当前资产盘点
 
@@ -328,95 +328,88 @@ entries: Map<string, { entryId, kind, files: [{path, code}], sourcemaps?: [{path
 // entry 级，非 module 级
 ```
 
-## §3 设计方向（待 review 冻结）
+## §3 设计方向（D-MC-0..5 已冻结）
 
-### §3.0 D-MC-0: Graph 正确性（前置）
+### §3.0 MC0: Graph 正确性（前置）
 
 **已知问题：**
 
 | 问题 | 事实 | 影响 |
 | --- | --- | --- |
 | stale edge | `addDependency`（L68-82）只 `kinds.add(kind)` → Set 只增；无 `removeDependency` API | 删 require 后旧边残留；增量 rebuild 脏图 |
-| stale node | watch merge 不删 node（`storeInfo` 全量重建才清） | 删 page 后 node 残留 |
-| closure 不一致 | cache hit 跳编译时，transitive dep 边不更新 | M2 已用 `cached.logicDependencies` 规避 logic；但 graph 边仍 stale |
+| stale node | watch merge 不删 node（`storeInfo` 全量重建才清；F-SIM-5 merge 可复活 stale node） | 删 page 后 node 残留 |
+| closure 不一致 | cache hit 跳编译时，transitive dep 边不更新 | M2 已用 `cached.logicDependencies` 规避 logic dep discovery；但 graph 边仍 stale |
 
-**方向：**
-- 补 `removeDependency(from, to, kind?)` API 或增量 rebuild 时先清后加。
-- 补 `removeNode(id)` 或 merge 时 diff node 集。
-- graph 边须与 `cached.logicDependencies` 一致——cache hit 模块的 graph 边用 cached dep list 回填。
+**D-MC-5 冻结：MC0 实施方式**
 
-### §3.1 D-MC-1: GraphNode 扩字段
+- **stale edge**：dirty 模块 AST walk 前，清其 outgoing 'logic' 边，然后 walk 重新加。需补 `clearOutgoingEdges(id, kind?)` API（或 `removeDependency(from, to, kind?)`）。cache hit 模块的边不清（其 require 未变）。
+- **stale node**：watch merge 时 diff node 集——新 snapshot 没有的 node 从图中删。需补 `removeNode(id)` API 或 merge 时做 diff。
+- **closure 一致**：dirty 模块边清+重建 = fresh；cache hit 模块边不碰 = stale 但不影响正确性（cache hit 用 `cached.logicDependencies` 不用 graph 边）。`computeInvalidatedModules` 用 `getDirectDependents`（incoming 边）——incoming 边的 staleness 只影响 dirty 集是否 over-inclusive（安全）。
+
+### §3.1 MC3a: deriveFromGraph 函数（Packer 核心形状）
 
 ```ts
-interface GraphNode {
-  id: string
-  type: string
-  entry: boolean
-  packageRoot: string | null
-  files: Set<string>
-  // 新增（MC1）
-  code?: string           // logic 编译结果（worker 回填）
-  sourcemap?: string | null
-  deps?: Set<string>       // logicDependencies（M2 捕获的 require/import dep ID）
+/**
+ * deriveFromGraph — Packer 核心形状：entry → 遍历 GraphNode → 取 module 集 → ModuleResult 取 code → [EmitModule]
+ * 只读：不改 graph、不改 cache、不碰 emit/transform/bundle。
+ */
+function deriveFromGraph(
+  graph: DependencyGraph,
+  cache: ModuleResultCache,
+  entryId: string,
+): EmitModule[] {
+  // 1. 从 entry node 出发，遍历 'logic' kind 依赖闭包
+  const moduleIds = graph.getDependencyClosure(entryId, 'logic')
+  // 2. 对每个 moduleId，从 ModuleResult 取 code + map
+  const modules: EmitModule[] = []
+  for (const id of moduleIds) {
+    const cached = cache.get(id)
+    if (!cached) continue  // 未编译过的 module 不返回
+    modules.push({
+      moduleId: id,
+      code: cached.compileInfo.code,
+      map: cached.compileInfo.map || null,
+      extraInfoCode: cached.compileInfo.extraInfoCode,
+    })
+  }
+  return modules
 }
 ```
 
-- logic worker 编译后，`compileRes` + `logicDependencies` 回填 node。
-- `ModuleResultCache` 退化为 **session 覆盖层**：
-  - cache hit = `node.code` 存在 + `!invalidatedModules.has(id)`
-  - cache miss = 全量重算 → 回填 node
-  - **不再独立序列化**（cache = 图的快照；toJSON 已有 `nodes` 数组）
+- **只读**：不改 graph、不改 cache、不调 `emitEntry`、不做 transform/bundle。
+- **返回 `[EmitModule]`**：与 `pipeline/emit.ts` 的 `ModuleCollection` 契约一致。
+- **依赖 MC0**：`getDependencyClosure(entryId, 'logic')` 须返回正确的依赖闭包（MC0 修复 stale edge 后才可靠）。
+- **不替代 streaming**：MC3a 是独立新增函数；streaming emit（worker 内 `writeCompileRes` → `emitEntry`）不动。MC3b（搬 emit 到主线程）deferred。
+- **用途**：提供「从 graph + cache 重建 module 集」的能力——Packer 形状。未来 MC3b 可用此函数替代 streaming。
 
-### §3.2 D-MC-2: view Module 入图
+## §4 接口表（D-MC-0..5 已冻结）
 
-- `scriptRes` 的 `Map<modulePath, code>` → `node.code`（view kind node）。
-- view Module 的 component 依赖已入图边（`kind = 'component'`，`addDependency` 已调用）。
-- `compileResCache` 退化或删除（需查消费方）。
-
-### §3.3 D-MC-3: BuildModel 从图派生
-
-```text
-entry (entryId)
-  → graph.getModulesForEntry(entryId)  // 遍历 entry node 的依赖闭包
-  → [EmitModule]                       // { moduleId: node.id, code: node.code, map: node.sourcemap }
-  → emitEntry(modules, strategy)
-  → BuildModel entry
-```
-
-- `BuildModel.add` 散装 entries 退居兼容（watch 路径可能仍直传）。
-
-### §3.4 IPC 成本
-
-- MC1 后，cache snapshot = `graph.toJSON()`（已有 `nodes` 数组，含 `code` 字段后增大）。
-- 与 M2 的 `cache.toJSON()` + `dependencyGraph.toJSON()` 双传相比，**合并为单次 `graph.toJSON()`**——IPC 帧数减少。
-- `code` 字段增大 snapshot 体量；dirty-only 更新策略沿用 M2（仅 dirty 模块回传）。
-
-## §4 接口表（待 review 细化）
-
-| 组件 | 变更 |
-| --- | --- |
-| `dependency-graph.ts` | MC0: 补 `removeDependency`/`removeNode`；MC1: GraphNode 扩 `code`/`sourcemap`/`deps`；`getModule(id)` 返回完整 node |
-| `module-result-cache.ts` | 退化为图 node 覆盖层；或删除（由 graph node 直接持有） |
-| `logic/index.ts` | `logicCompile` 回填 `node.code`；cache hit 走 `node.deps` |
-| `view/index.ts` | `scriptRes` → `node.code`；`compileResCache` 退化 |
-| `build-model.ts` | 新增 `deriveFromGraph(graph, entryId)` 派生路径 |
-| `emit.ts` | 不变（消费 `EmitModule` 契约不变） |
-| `stage-channel.ts` | input 合并 `graph.toJSON()`（含 code）；不再双传 cache |
-| `watch-plan.ts` | 不变（`getInvalidatedModules` 已有） |
+| 组件 | MC0 变更 | MC3a 变更 |
+| --- | --- | --- |
+| `dependency-graph.ts` | 补 `clearOutgoingEdges(id, kind?)` / `removeNode(id)`；merge 时 diff node 集 | 新增 `getDependencyClosure(entryId, kind?)`（遍历依赖闭包） |
+| `module-result-cache.ts` | 不变 | 不变（deriveFromGraph 只读 cache.get） |
+| `logic/index.ts` | dirty 模块 AST walk 前清 outgoing 'logic' 边 | 不变 |
+| `view/index.ts` | 不变 | 不变（MC3c deferred） |
+| `build-model.ts` | 不变 | 不变（MC3a 是独立函数，不碰 BuildModel.add） |
+| `pipeline/emit.ts` | 不变 | 不变（MC3a 返回 EmitModule[]，不调 emitEntry） |
+| `stage-channel.ts` | 不变 | 不变 |
+| `watch-plan.ts` | 不变 | 不变 |
+| `model/convergence.ts`（新增） | — | `deriveFromGraph(graph, cache, entryId)` 函数 |
 
 ## §5 行为 0 守卫
 
-- 每子门独立 diff：nomap 94 + sourcemap 185 产物 diff=0。
+- 每子门独立 diff：nomap + sourcemap 产物 diff=0。
 - 全量 vitest 绿。
-- `node.code` 存在与否不影响 transform/emit 输出（仅影响是否跳过重算）。
+- MC0：清边/删 node 不影响产物（边仅影响 dirty 集计算 = over-inclusive 安全）。
+- MC3a：纯新增只读函数，不改任何现有流。
 
-## 待定议题
+## 待定议题（D-MC-0..5 已冻结）
 
-| ID | 议题 | 选项 |
+| ID | 议题 | 冻结结果 |
 | --- | --- | --- |
-| D-MC-0 | graph 与 fs module 职责边界：code 要不要上图？ | **A 已选**（2026-09-21）：graph=结构权威，code 不上图，沿用 M2 D-MF-2 不推翻。B/C deferred（HMR 或另一消费者出现时再评估） |
-| D-MC-1 | MC1 GraphNode code 子门 → deferred | code 不上图；MC1 deferred |
-| D-MC-2 | MC2 view 入图子门 → deferred | view 不需要 code 上图；MC2 deferred |
-| D-MC-3 | view `compileResCache` 是 within-build cache（非 cross-rebuild）；保留不动 | 保留不动（TD §2.3 已查实） |
-| D-MC-4 | `BuildModel.add` 散装 entries 是删除还是退居兼容？ | A: 删除 / B: 兼容（watch 直传保留） |
-| D-MC-5 | MC0 graph 正确性实施方式：removeDependency + removeNode + merge diff？ | 待 review 冻结 |
+| D-MC-0 | code 要不要上图？ | **A 已选**：graph=结构权威，code 不上图，D-MF-2 不推翻。B/C deferred |
+| D-MC-1 | MC1 GraphNode code | **deferred**：code 不上图；等 HMR 或另一消费者出现时再评估 |
+| D-MC-2 | MC2 view 入图 | **deferred**：同 MC1 |
+| D-MC-3 | view `compileResCache` | **保留不动**：within-build cache（非 cross-rebuild），不退化到 graph node |
+| D-MC-4 | `BuildModel.add` 散装 entries | **deferred 到 MC3b**：MC3a 是只读函数，不碰 `BuildModel.add`。MC3b（搬 emit）时再评估 |
+| D-MC-5 | MC0 实施方式 | **已冻结**：dirty 模块 AST walk 前清 outgoing 'logic' 边（`clearOutgoingEdges`）；merge 时 diff node 集（`removeNode`）；cache hit 边不清（安全） |

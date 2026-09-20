@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-module-convergence
 
-Status: **draft（2026-09-21）** — 伞级文档门；子门各有 A-*。
+Status: **ready（2026-09-21）** — 伞级文档门；子门各有 A-*。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
