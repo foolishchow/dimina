@@ -19,17 +19,21 @@ Status: **ready（2026-09-21）**
 ## R-ER-3（MUST）主线程分组
 
 - worker 返回 flat `compileRes`（main + sub 混合）
-- 主线程从 storeInfo 取 page 列表（mainPages + subPages with packageRoot）
-- 用 `getDependencyClosure(pageId)` 遍历 graph → 收集 module IDs → 分组
-- `allCompileRes.filter(m => idSet.has(m.path))` → 保序筛出各组 `CompileInfo[]`
+- 主线程按 **path-prefix** 归属分组（精确匹配 `putMain` 语义）：
+  - 从 `getAppConfigInfo().subPackages` 取 subpackage roots（如 `pkgA`）
+  - 遍历 `allCompileRes`，`m.path` 前缀匹配 subpackage root → 归属该分包
+  - 不匹配任意 root → 归属 main
+  - 分组 key：main 为 `null`；sub 为 `transSubDir(root+'/')`（如 `sub_pkgA`）
+- `allCompileRes` 遍历保序——组内顺序 = 编译顺序
 - 逐组发 emit-worker
 
 ## R-ER-4（MUST）行为 0
 
 - nomap + sourcemap 产物 diff=0
 - 全量 vitest 绿
-- `compileRes` 顺序不变（filter 保序）
+- `compileRes` 顺序不变（path-prefix 分组保序）
 - `emitEntry` perModule 策略不变（modDefine + sourcemap + esbuild 逻辑不动）
+- 分组精确匹配 `putMain`（path-prefix 归属，非 closure 可达性）
 
 ## Non-requirements
 

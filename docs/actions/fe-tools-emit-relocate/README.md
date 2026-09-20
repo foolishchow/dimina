@@ -41,7 +41,7 @@
 | D-ER-0 | esbuild 放哪 | **新 emit-worker**（不上主线程，不阻塞 dev server） |
 | D-ER-1 | streaming | **打破**（CLI 无所谓；dev server 延迟后续优化） |
 | D-ER-2 | scope | **先只做 logic**（view/style 仍走 streaming；MC3c deferred） |
-| D-ER-3 | 分组方式 | **B：主线程从 graph 推导**（不依赖 worker 返回分组） |
+| D-ER-3 | 分组方式 | **path-prefix 分组**：主线程按 module path 前缀归属（精确匹配 `putMain` 语义）。不依赖 worker 返回分组，不依赖 closure。 |
 | D-ER-4 | emit-worker 生命周期 | **复用 worker-runtime**（`defineEngine` + `runWorker` + `workerPool`）；per-task 新建+销毁；emit-engine 的 compile 调 `produceEntry` 返回 entry |
 | D-ER-5 | emitEntry 拆分 | `produceEntry(params) → EmitEntry` 纯函数（`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
 | D-ER-6 | config 传递 | emit-engine 的 buildConfig 透传 msg；主线程把 transform/sourcemap 等参数直接放在 msg里 |
@@ -70,5 +70,6 @@ convergence 伞（complete 归档）:  MC0 graph 正确 + MC3a deriveFromGraph�
 
 - nomap + sourcemap 产物 diff=0
 - 全量 vitest 绿
-- `compileRes` 顺序不变（filter 只筛不改序）
+- `compileRes` 顺序不变（path-prefix 分组保序——遍历 `allCompileRes` 逐模块归类，不改变模块间顺序）
 - `emitEntry` perModule 策略不变
+- 分组精确匹配 `putMain` 语义（module path 不属于任意 subpackage root → main；属于 root X → sub:X）

@@ -37,7 +37,8 @@ worker (logicCompile):
 export async function emitEntry(params: EmitEntryParams) {
     const strategy = strategies[params.transform.strategy]  // 'perModule' | 'bundle'
     const { entry } = await strategy.apply(params)           // → EmitEntry
-    const { sink } = abilityContext.getStore() ?? {}
+    const store = abilityContext.getStore() as { sink?: { write: (e: unknown) => void } } | undefined
+    const { sink } = store ?? {}
     sink?.write(entry)                                        // streaming
 }
 ```
@@ -60,21 +61,47 @@ worker (logicCompile):
 ```text
 main (build-pipeline, worker 返回后):
   1. update cache + merge graph                    ← M2 已有
-  2. 调 getPages() 取 page 列表（mainPages + subPages with packageRoot）
-  3. 分组:
-     for each mainPage: graph.getDependencyClosure(pageId) → IDs
-     合并 → mainIDSet
-     allCompileRes.filter(m => mainIDSet.has(m.path)) → mainCompileRes（保序）
-     for each subRoot:
-       for each subPage in root: getDependencyClosure → IDs
-       合并 → subIDSet[root]
-       allCompileRes.filter(m => subIDSet[root].has(m.path)) → subCompileRes[root]
+  2. 从 getAppConfigInfo().subPackages 取 subpackage roots
+  3. path-prefix 分组（精确匹配 putMain 语义）:
+     const subPkgs = getAppConfigInfo().subPackages ?? []   // [{ root: 'pkgA' }, ...]
+     const mainCompileRes = []
+     const subCompileRes = {}   // { 'sub_pkgA': [...], ... }
+     for (const m of allCompileRes) {                        // 遍历保序
+       let owner = null                                      // 默认 main
+       for (const sub of subPkgs) {
+         if (m.path.startsWith(sub.root + '/')) {
+           owner = transSubDir(sub.root.endsWith('/') ? sub.root : sub.root + '/')
+           break
+         }
+       }
+       if (owner === null) mainCompileRes.push(m)
+       else (subCompileRes[owner] ??= []).push(m)
+     }
   4. 逐组发 emit-worker:
-     emit-worker.send({ entryId: 'logic', modules: mainCompileRes.map(toEmitModule), transform, ..., storeInfo })
-     emit-worker.send({ entryId: 'logic:'+root, modules: subCompileRes[root].map(...), ..., storeInfo })
-  5. 收 EmitEntry → BuildModel.add
-  6. materialize
+     // main 组
+     executeTask({ engine: emitEngine, input: {
+       entryId: 'logic',
+       kind: 'logic',
+       modules: mainCompileRes.map(m => ({
+         moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode
+       })),
+       transform: {
+         strategy: 'perModule',
+         minify: compileConfig.minify,               // 从 options.compileConfig 取
+         target: compileConfig.esTarget.logic,
+         platform: 'neutral',
+       },
+       sourcemap: !!options.sourcemap,               // 从 options.sourcemap 取
+       sourcemapTargetPath: options.sourcemapTargetPath,
+       filename: 'logic',
+       relPrefix: 'main',
+       storeInfo: ctx.storeInfo,                      // 上下文（供 resetStoreInfo）
+     }}) → { entry } → BuildModel.add(entry)
+     // sub 组（同结构，entryId: 'logic:'+root, relPrefix: root）
+  5. materialize
 ```
+
+**分组正确性论证**：`putMain` 逻辑（`logic/index.ts:221-261`）的判定标准是 module path 是否属于某个 subpackage root（`normalizedPath.startsWith(subPackage.root + '/')`）。path-prefix 分组用完全相同的判定，因此分组结果与 `putMain` 一致。closure 分组不可用——闭包是可达性分组，会把共享模块放入多个组（`putMain` 只放 main）。
 
 ### §1.3 emit 步骤在 build-pipeline 的位置
 
@@ -97,7 +124,7 @@ main (build-pipeline, worker 返回后):
 
 (3.5) 可以是 (3) 的子任务（编译完成后自动接 emit），也可以是独立 task。实施时选独立 task 更清晰（与 (4) 分离）。
 
-### §1.3 emit-worker
+### §1.4 emit-worker
 
 ```text
 emit-worker:
@@ -218,16 +245,19 @@ export const emitEngine = defineEngine({
 
 ## §4 行为 0 守卫
 
-- `compileRes` 顺序不变：`filter` 只筛不改序，组内顺序 = 编译顺序
+- `compileRes` 顺序不变：path-prefix 分组遍历 `allCompileRes` 逐模块归类，不改变模块间顺序；组内顺序 = 编译顺序
 - `emitEntry` perModule 策略不变：modDefine + sourcemap rebase + mergeSourcemap + esbuild minify 逻辑全不动
 - `produceEntry` = `strategy.apply` 提取，逻辑不变（注：perModule 策略 sourcemap rebase 调 `getWorkPath()`，emit-worker 须 `resetStoreInfo` 搭建上下文——见 TD §3.5）
+- 分组精确匹配 `putMain`：path-prefix 归属（非 closure 可达性），共享模块只入 main，跨分包模块只入所属分包
 - 唯一变化：调用位置从 worker 搬到 emit-worker（同一段代码，不同 worker）
 
 ## §5 getDependencyClosure 消费者
 
-MC3a 交付的 `getDependencyClosure(entryId)` 在本 Action 中首次接入 production：
-- 主线程分组用它遍历 page closure → 收集 module IDs → 分组 compileRes
-- `deriveFromGraph` 仍不接入（code 来自 `compileRes` 不是 cache）
+~~MC3a 交付的 `getDependencyClosure(entryId)` 在本 Action 中首次接入 production。~~
+
+**修订（F-ER-7）**：本 Action 不再消费 `getDependencyClosure`——分组改用 path-prefix（精确匹配 `putMain` 语义，closure 是可达性分组会导致共享/跨分包模块重复入组 → 行为 0 破坏）。`getDependencyClosure` 仍由 MC3a 交付，保留供未来 HMR / config-only rebuild 场景使用。
+
+`deriveFromGraph` 仍不接入（code 来自 `compileRes` 不是 cache）。
 
 ## 待定议题
 
