@@ -77,7 +77,7 @@ GraphNode 与 ModuleResult 的职责**没有清晰边界**：
 
 ### §0.5 watch 变化分流流程（目标态）
 
-无论选 A/B/C，watch 变化后的分流流程须清晰：
+D-MC-0 已选 A；watch 变化后的分流流程须清晰：
 
 ```text
 file change
@@ -191,13 +191,13 @@ MC3b（搬 emit 到主线程；BuildModel 从 GraphNode 派生）要求：
 ##### F-SIM-1：三个 stage 并发跑
 
 ```ts
-// build-pipeline.ts L192
+// build-pipeline.ts L195
 newListr(compileTasks, { concurrent: true })
 ```
 
 view + logic + style worker **同时启动**，streaming emit（`BuildModel.add`）交错，graph merge 也交错（非确定性顺序，但同步调用无 race）。
 
-MC3 影响：emit 派生须在**全部 stage** merge 后（不是单 stage merge 后），因为 BuildModel 是跨 stage 的。
+MC3b 影响：emit 派生须在**全部 stage** merge 后（不是单 stage merge 后），因为 BuildModel 是跨 stage 的。
 
 ##### F-SIM-2：worker 做 compile + emit 两件事
 
@@ -209,7 +209,7 @@ writeCompileRes(compileRes) → emitEntry  // emit（含 mergeSourcemap + esbuil
 return { compileRes, logicDependencies }  // 返回 raw ModuleResult
 ```
 
-worker 不只编译，还做 emit（transform + bundle）。MC3 如果要「从 GraphNode 派生 emit」，须把 emit（transform + bundle）从 worker 搬到主线程，或改 worker 协议为两阶段（compile → 返回 → emit 指令）。
+worker 不只编译，还做 emit（transform + bundle）。MC3b 如果要「从 GraphNode 派生 emit」，须把 emit（transform + bundle）从 worker 搬到主线程，或改 worker 协议为两阶段（compile → 返回 → emit 指令）。
 
 ##### F-SIM-3：EmitEntry ≠ CompileInfo
 
@@ -218,7 +218,7 @@ worker 不只编译，还做 emit（transform + bundle）。MC3 如果要「从 
 | `EmitEntry`（entry 级，已 bundle + transform） | `CompileInfo[]`（module 级，raw） |
 | `{ entryId, kind, files: [{path, code}], sourcemaps }` | `{ path, code, map, ... }[]` |
 
-两种数据**不同维度**——EmitEntry 是产物（已打包），CompileInfo 是模块（未打包）。MC3 派生须在主线程做 CompileInfo → EmitEntry 转换（即 `writeCompileRes` + `emitEntry` 逻辑搬主线程）。
+两种数据**不同维度**——EmitEntry 是产物（已打包），CompileInfo 是模块（未打包）。MC3b 派生须在主线程做 CompileInfo → EmitEntry 转换（即 `writeCompileRes` + `emitEntry` 逻辑搬主线程）。
 
 ##### F-SIM-4：只有 logic 返回 compileRes
 
@@ -230,7 +230,7 @@ worker 不只编译，还做 emit（transform + bundle）。MC3 如果要「从 
 
 ModuleResultCache 只被 logic 更新。view 有自己的 within-build `compileResCache`（不改 ModuleResultCache）。style 不碰 cache。
 
-MC3 影响：MC3 派生只涉及 logic（有 compileRes + cache）；view/style 不走 ModuleResultCache 路径，MC3 须分别处理或排除。
+MC3b 影响：MC3b 派生只涉及 logic（有 compileRes + cache）；view/style 不走 ModuleResultCache 路径，MC3b 须分别处理或排除。
 
 ##### F-SIM-5：watch 模式 storeInfo 重建 + merge
 
@@ -276,7 +276,7 @@ interface GraphNode {
   entry: boolean      // 是否入口
   packageRoot: string | null
   files: Set<string>   // 归属源文件
-  // 缺：code, sourcemap, deps
+  // 不含 code/sourcemap/deps（D-MC-0 选 A：code 不上图）
 }
 ```
 
@@ -395,9 +395,10 @@ function deriveFromGraph(
 
 | 组件 | MC0 变更 | MC3a 变更 |
 | --- | --- | --- |
-| `dependency-graph.ts` | 补 `clearOutgoingEdges(id, kind?)` / `removeNode(id)`；`storeInfo` merge 后清 stale entry node | 新增 `getDependencyClosure(entryId)`（遍历所有 kind outgoing 边闭包） |
+| `dependency-graph.ts` | 补 `clearOutgoingEdges(id, kind?)` / `removeNode(id)` API | 新增 `getDependencyClosure(entryId)`（遍历所有 kind outgoing 边闭包） |
+| `compiler/core/env.ts` | `storeInfo` merge 后调 `removeNode` 删 stale page 型 / component 型 node | 不变 |
 | `module-result-cache.ts` | 不变 | 不变（deriveFromGraph 只读 cache.get） |
-| `logic/index.ts` | dirty 模块 AST walk 前清 outgoing 'logic' 边 | 不变 |
+| `logic/index.ts` | dirty 模块 AST walk 前调 `clearOutgoingEdges` 清 outgoing 'logic' 边 | 不变 |
 | `view/index.ts` | 不变 | 不变（MC3c deferred） |
 | `build-model.ts` | 不变 | 不变（MC3a 是独立函数，不碰 BuildModel.add） |
 | `pipeline/emit.ts` | 不变 | 不变（MC3a 返回 EmitModule[]，不调 emitEntry） |
