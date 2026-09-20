@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-module-convergence
 
-Status: **ready（2026-09-21）** — 伞级；A-MC1 文档门 pass；A-MC0 / A-MC3a / A-MC3 待子门交付。
+Status: **in_progress（2026-09-21）** — 伞级；A-MC1 文档门 pass；A-MC0 / A-MC3a / A-MC3 待子门交付。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

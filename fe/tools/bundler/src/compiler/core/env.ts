@@ -199,7 +199,18 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	storePageConfig()
 	context.dependencyGraph = createInitialDependencyGraph()
 	if (options.dependencyGraph) {
+		const freshEntryIds = new Set<string>()
+		for (const [id, node] of context.dependencyGraph.nodes) {
+			if (node.type === 'page' || node.type === 'component') {
+				freshEntryIds.add(id)
+			}
+		}
 		context.dependencyGraph.merge(options.dependencyGraph)
+		for (const [id, node] of context.dependencyGraph.nodes) {
+			if ((node.type === 'page' || node.type === 'component') && !freshEntryIds.has(id)) {
+				context.dependencyGraph.removeNode(id)
+			}
+		}
 	}
 
 	return {

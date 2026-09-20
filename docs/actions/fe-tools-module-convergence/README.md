@@ -1,7 +1,7 @@
 # FE Tools Module Convergence（伞）
 
 - Action: `fe-tools-module-convergence`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 前身：[`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md)（**complete 已归档**；刀 2+3 倒逼出半套 Module 资产）
@@ -73,7 +73,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 ## Status / 授权
 
-- 当前 **`ready`**（2026-09-21）。D-MC-0..5 已冻结。子门 MC0 + MC3a 待 formalize。
+- 当前 **`in_progress`**（2026-09-21）。D-MC-0..5 已冻结。子门 MC0 + MC3a 实施中。
 
 ## 闭合条件
 

@@ -158,6 +158,8 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		return
 	}
 	getDependencyGraph().addFile(currentPath, modulePath, 'logic')
+	// [MC0 D-MC-5] dirty 模块 AST walk 前清 outgoing 'logic' 边，避免 stale edge
+	getDependencyGraph().clearOutgoingEdges(currentPath, 'logic')
 	const diagnosticSource = modulePath.startsWith(getWorkPath())
 		? modulePath.slice(getWorkPath().length)
 		: src

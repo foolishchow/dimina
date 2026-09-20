@@ -128,6 +128,80 @@ class DependencyGraph {
 		return [...visited].sort()
 	}
 
+	clearOutgoingEdges(id: string, kind?: string): void {
+		const outgoing = this.dependencies.get(id)
+		if (!outgoing) return
+		for (const [to, kinds] of [...outgoing]) {
+			if (kind) {
+				kinds.delete(kind)
+				if (kinds.size === 0) {
+					outgoing.delete(to)
+				}
+			} else {
+				outgoing.delete(to)
+			}
+			const incoming = this.dependents.get(to)
+			if (incoming) {
+				const reverseKinds = incoming.get(id)
+				if (reverseKinds) {
+					if (kind) {
+						reverseKinds.delete(kind)
+						if (reverseKinds.size === 0) incoming.delete(id)
+					} else {
+						incoming.delete(id)
+					}
+				}
+				if (incoming.size === 0) this.dependents.delete(to)
+			}
+		}
+		if (outgoing.size === 0) this.dependencies.delete(id)
+	}
+
+	removeNode(id: string): void {
+		const node = this.nodes.get(id)
+		if (!node) return
+		for (const filePath of node.files) {
+			const owners = this.fileOwners.get(filePath)
+			if (owners) {
+				owners.delete(id)
+				if (owners.size === 0) this.fileOwners.delete(filePath)
+			}
+			const ownerKinds = this.fileKinds.get(filePath)
+			if (ownerKinds) {
+				ownerKinds.delete(id)
+				if (ownerKinds.size === 0) this.fileKinds.delete(filePath)
+			}
+		}
+		this.clearOutgoingEdges(id)
+		const incoming = this.dependents.get(id)
+		if (incoming) {
+			for (const from of [...incoming.keys()]) {
+				const fromOutgoing = this.dependencies.get(from)
+				if (fromOutgoing) {
+					fromOutgoing.delete(id)
+					if (fromOutgoing.size === 0) this.dependencies.delete(from)
+				}
+			}
+			this.dependents.delete(id)
+		}
+		this.nodes.delete(id)
+	}
+
+	getDependencyClosure(entryId: string): string[] {
+		if (!this.nodes.has(entryId)) return []
+		const visited = new Set<string>()
+		const pending: string[] = [entryId]
+		while (pending.length > 0) {
+			const id = pending.pop()!
+			if (visited.has(id)) continue
+			visited.add(id)
+			for (const dep of this.getDirectDependencies(id)) {
+				if (!visited.has(dep)) pending.push(dep)
+			}
+		}
+		return [...visited].sort()
+	}
+
 	hasFile(filePath: string): boolean {
 		return this.fileOwners.has(normalizeFilePath(filePath))
 	}
