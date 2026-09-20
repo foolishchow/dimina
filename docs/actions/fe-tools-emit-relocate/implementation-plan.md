@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-emit-relocate
 
-Status: **ready（2026-09-20）** — 待授 `in_progress`。
+Status: **in_progress（2026-09-20）** — 待授 `in_progress`。
 
 ## 纪律
 

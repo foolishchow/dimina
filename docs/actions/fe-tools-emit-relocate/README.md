@@ -1,7 +1,7 @@
 # FE Tools Emit Relocate
 
 - Action: `fe-tools-emit-relocate`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-20
 - Status authority: [Action Status](../STATUS.md)
 - 前身：[`fe-tools-module-convergence`](../_archive/complete/fe-tools-module-convergence/README.md)（**complete 已归档**；MC3b deferred → 本 Action 独立立项）

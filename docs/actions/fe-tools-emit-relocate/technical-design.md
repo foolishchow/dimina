@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-emit-relocate
 
-Status: **ready（2026-09-20）** — D-ER-0..7 全冻结。
+Status: **in_progress（2026-09-20）** — D-ER-0..7 全冻结。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 

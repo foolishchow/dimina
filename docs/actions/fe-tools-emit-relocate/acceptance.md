@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-emit-relocate
 
-Status: **ready（2026-09-20）** — A-ER1..4 pending（实施后勾）。
+Status: **in_progress（2026-09-20）** — A-ER1..4 pending（实施后勾）。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
