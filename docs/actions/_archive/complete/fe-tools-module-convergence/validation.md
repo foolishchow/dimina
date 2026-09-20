@@ -1,17 +1,17 @@
 # Validation — fe-tools-module-convergence
 
-Status: **in_progress（2026-09-21）**
+Status: **complete（2026-09-21）**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 本伞以文档门为主。行为 0 = 无子门授权时产品源码零 diff。
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
-| P-MC00 | graph 正确性 | stale edge/node 清理 + 增量 closure（D-MC-5）；`fe/packages` 空 diff | A-MC0 | pending |
+| P-MC00 | graph 正确性 | stale edge/node 清理 + 增量 closure（D-MC-5）；`fe/packages` 空 diff | A-MC0 | **pass**（2026-09-21） |
 | P-MC01 | 词汇与顺序 | 对照 README / TD：D-MC-0 A；MC0→MC3a；术语；否决双字段上图 | A-MC1 | **pass**（2026-09-20） |
-| P-MC3a | MC3a 落点 | `deriveFromGraph`：entry → graph → modules → code → `[EmitModule]`；只读 | A-MC3a | pending |
-| P-MC03 | 行为 0 | 每子门 nomap + sourcemap diff=0 + 全量 vitest 绿 | A-MC3 | pending |
+| P-MC3a | MC3a 落点 | `deriveFromGraph`：entry → graph → modules → code → `[EmitModule]`；只读 | A-MC3a | **pass**（2026-09-21） |
+| P-MC03 | 行为 0 | 每子门 nomap + sourcemap diff=0 + 全量 vitest 绿 | A-MC3 | **pass**（2026-09-21） |
 
 ## Uncovered
 
@@ -38,3 +38,5 @@ Status: **in_progress（2026-09-21）**
 | 2026-09-21 | review 第 3 轮：F-REV-14..18 修正。F-REV-14: "entry 型" → `type: 'page'` 或 `type: 'component'`（component `entry: false`）；F-REV-15: `getDependencyClosure` 显式含 `entryId` 自身；F-REV-16: §0.5 "merge diff" → "storeInfo 重建 + stale entry node 清理"；F-REV-17: §0.6 "MC3" → "MC3b"；F-REV-18: impl-plan Step 5a 遗留项移除。 |
 | 2026-09-21 | review 第 4 轮：F-REV-19..23 修正。F-REV-19: 接口表加 `env.ts` 行，`dependency-graph.ts` 行去掉调用点；F-REV-20: F-SIM-1..4 正文 "MC3" → "MC3b"（4 处）；F-REV-21: F-SIM-1 行号 L192→L195；F-REV-22: §0.5 "无论选 A/B/C" → "D-MC-0 已选 A"；F-REV-23: §2.1 "缺" → "不含（D-MC-0 选 A）"。 |
 | 2026-09-21 | review 第 5 轮：F-REV-24..25 修正。F-REV-24: README 子门表 MC0 `removeDependency`/`merge diff` → `clearOutgoingEdges`/`storeInfo merge 后删 stale node`（跨文档传播缺口）；F-REV-25: README 修订记录 `merge diff` → `storeInfo merge 后删 stale node`。 |
+| 2026-09-21 | review 第 6 轮：**pass**（零 findings）。6 轮 review 共修 25 findings（F-REV-1..25）。设计收敛。 |
+| 2026-09-21 | **伞 `complete`**：MC0 + MC3a 全 complete。MC0（commit c1d5b98b）：`dependency-graph.ts` 补 `clearOutgoingEdges`/`removeNode`；`env.ts` storeInfo merge 后删 stale page/component node；`logic/index.ts` dirty 模块 AST walk 前清 outgoing 'logic' 边。MC3a（同 commit）：`getDependencyClosure` + `model/convergence.ts`（`deriveFromGraph`）。tsc 0 errors；vitest 607 pass（598+9 new）+1 flaky（非回归）；`fe/packages` 空 diff = 行为 0 确认。 |

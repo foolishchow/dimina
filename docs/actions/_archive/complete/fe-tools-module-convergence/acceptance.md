@@ -1,13 +1,13 @@
 # Acceptance — fe-tools-module-convergence
 
-Status: **in_progress（2026-09-21）** — 伞级；A-MC1 文档门 pass；A-MC0 / A-MC3a / A-MC3 待子门交付。
+Status: **complete（2026-09-21）** — 伞级；A-MC0 / A-MC1 / A-MC3a / A-MC3 全 pass。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-MC0 | R-MC0 | graph stale edge/node 清理 + 增量 closure（对齐 D-MC-5）；graph 成为可靠结构权威 | P-MC00 | pending |
+| A-MC0 | R-MC0 | graph stale edge/node 清理 + 增量 closure（对齐 D-MC-5）；graph 成为可靠结构权威 | P-MC00 | **pass**（2026-09-21） |
 | A-MC1 | R-MC1 | D-MC-0 已冻结（A＝code 不上图）；子门顺序 MC0→MC3a；继承 D-MF-1；D-MF-2 不推翻；GraphNode vs ModuleResult 术语统一；否决双字段上图 | P-MC01 | **pass**（2026-09-20） |
-| A-MC3a | R-MC2 | `deriveFromGraph`：entry → graph → modules → code → `[EmitModule]`；只读，不碰 emit | P-MC3a | pending |
-| A-MC3 | R-MC3 | 行为 0：每子门 nomap + sourcemap diff=0；全量 vitest 绿 | P-MC03 | pending |
+| A-MC3a | R-MC2 | `deriveFromGraph`：entry → graph → modules → code → `[EmitModule]`；只读，不碰 emit | P-MC3a | **pass**（2026-09-21） |
+| A-MC3 | R-MC3 | 行为 0：每子门 nomap + sourcemap diff=0；全量 vitest 绿 | P-MC03 | **pass**（2026-09-21） |
 
 ## Non-acceptance
 

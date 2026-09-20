@@ -1,10 +1,10 @@
 # FE Tools Module Convergence（伞）
 
 - Action: `fe-tools-module-convergence`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-21
-- Status authority: [Action Status](../STATUS.md)
-- 前身：[`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md)（**complete 已归档**；刀 2+3 倒逼出半套 Module 资产）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前身：[`fe-tools-module-centric`](../fe-tools-module-centric/README.md)（**complete 已归档**；刀 2+3 倒逼出半套 Module 资产）
 - 文档集：[requirements](requirements.md) · [technical-design](technical-design.md) · [roadmap](roadmap.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 
@@ -73,7 +73,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 ## Status / 授权
 
-- 当前 **`in_progress`**（2026-09-21）。D-MC-0..5 已冻结。子门 MC0 + MC3a 实施中。
+- 当前 **`complete`**（2026-09-21）。MC0 + MC3a 全 complete。
 
 ## 闭合条件
 
@@ -91,4 +91,5 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 | 2026-09-20 | review findings：验收 ID→A-MC3a；R-MC0∥D-MC-5；A-MC1/P-MC01 pass |
 | 2026-09-20 | **确认持 D-MC-0 A**：code 不上图；明确否决双字段上图候选（与 D-MC-0 A 撞名澄清） |
 | 2026-09-21 | MC3 拆为 MC3a（deriveFromGraph 函数，低风险）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）。伞目标调整为「推进 Packer 形状」 |
-| 2026-09-21 | review 冻结 D-MC-0..5（F-REV-1..5 修正）；§1 D-MF-2 不推翻；§3 重写为 MC0+MC3a；§4 接口表更新；D-MC-4 deferred 到 MC3b；D-MC-5 冻结（clearOutgoingEdges + removeNode + storeInfo merge 后删 stale node）。升 **`ready`** |
+| 2026-09-21 | review 第 5 轮（F-REV-24..25）+ 第 6 轮 pass（零 findings）；6 轮共修 25 findings |
+| 2026-09-21 | **伞 `complete`**：MC0 + MC3a 全 complete（commit c1d5b98b）。tsc 0 errors；vitest 607 pass；`fe/packages` 空 diff = 行为 0。 |

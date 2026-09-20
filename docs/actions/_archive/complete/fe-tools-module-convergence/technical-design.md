@@ -1,8 +1,8 @@
 # Technical Design — fe-tools-module-convergence
 
-Status: **in_progress（2026-09-21）** — D-MC-0..5 已冻结；近端 MC0 + MC3a。
+Status: **complete（2026-09-21）** — D-MC-0..5 已冻结；近端 MC0 + MC3a。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 ## §0 Graph 与 ModuleResult 职责边界
 
@@ -259,7 +259,7 @@ MC3b 不只是「打破 streaming」——还要：
 
 ## §1 继承
 
-来自 [`fe-tools-module-centric` technical-design](../_archive/complete/fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
+来自 [`fe-tools-module-centric` technical-design](../fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
 
 - **D-MF-1**：方案 A；`moduleId = CompileInfo.path`；logic-only。本伞继承，不改。
 - **D-MF-2**：缓存宿主不挂图节点 → **不推翻**（D-MC-0 选 A）。graph = 结构权威，code 留在 ModuleResultCache。

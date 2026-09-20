@@ -214,7 +214,7 @@ wxml/
 
 **Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/_archive/complete/fe-tools-module-centric/README.md)（**`complete`**，2026-09-21；子门 M1 invalidation + M2 result-cache 全 complete 归档；D-MF-1 封口）。D-MF-1：方案 A / logic-only。M0 emit W1 deferred（S 级，另门可独立先行）。
 
-**Module 收敛路线（2026-09-21 / 确认 2026-09-20）**：后继伞 [`fe-tools-module-convergence`](../actions/fe-tools-module-convergence/README.md)（**`ready`**；推进 Packer 形状：MC0 graph 正确性 → MC3a deriveFromGraph）。**D-MC-0 选 A** = graph 结构权威、**code 不上图**、D-MF-2 不推翻（**不是** `logicCode`/`viewCode` 双字段上图——该候选已否决）。D-MC-0..5 已冻结。MC3a 只读派生；MC3b/MC3c/MC1/MC2 deferred。
+**Module 收敛路线（2026-09-21 / 确认 2026-09-20）**：伞 [`fe-tools-module-convergence`](../actions/_archive/complete/fe-tools-module-convergence/README.md) **`complete`**。MC0（graph 正确性：`clearOutgoingEdges` + `removeNode` + `storeInfo` merge 后删 stale page/component node）+ MC3a（`deriveFromGraph` 函数：entry→graph→modules→code→[EmitModule]，只读）全 complete。D-MC-0 选 A = graph 结构权威、**code 不上图**、D-MF-2 不推翻。MC3b/MC3c/MC1/MC2 deferred。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
