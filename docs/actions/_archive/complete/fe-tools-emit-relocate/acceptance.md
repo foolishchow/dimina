@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-emit-relocate
 
-Status: **in_progress（2026-09-20）** — A-ER1..4 实施完成。
+Status: **complete（2026-09-20）** — A-ER1..4 实施完成。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

@@ -1,8 +1,8 @@
 # Validation — fe-tools-emit-relocate
 
-Status: **in_progress（2026-09-20）**
+Status: **complete（2026-09-20）**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
@@ -32,4 +32,5 @@ Status: **in_progress（2026-09-20）**
 | 2026-09-20 | review readiness fail 修正：F-ER-21 (HIGH) path-prefix 重归属 ≠ 今日 `writeCompileRes` 编译期桶（跨分包错桶 + 早快照漏 putMain）→ D-ER-3 改为结构化 `emitBuckets`；禁 path-prefix/closure；`compileRes` 循环后拼；F-ER-22 D-ER-5/README 去掉「纯函数」；F-ER-23 STATUS/architecture-notes 对齐 MC3b→本 Action。仍 **`ready`**。 |
 | 2026-09-20 | review pass-with-findings 修正：F-ER-24 (MEDIUM) 澄清 `subs[].root` = `pages.subPages` key（`transSubDir` 形，非 app.json root）；F-ER-25 TD §0.3 去掉 strategy.apply「纯函数」；F-ER-26 接口表注明 logic 阶段 onOutput 可留可去（outputCount=0）。仍 **`ready`**。 |
 | 2026-09-21 | 授权 `in_progress` → 实施。Step 1-6 完成：emit.ts 拆 produceEntry；emit-engine.ts + emit-worker-entry.ts 新增；executor.ts 泛化（pages 可选+ENTRY_PATH 加 emit+resolve 透传 payload+guards 保留）；logic/index.ts 删 writeCompileRes 返回 emitBuckets+循环后拼 compileRes；stage-channel.ts 存 emitBuckets 到 ctx；build-pipeline.ts (3.5) Logic emit task。tsc 0 errors；vitest 608/608 pass；fe/packages diff=0（行为 0）。(3.5) task 加 try/catch emit STAGE_ERROR（lifecycle 回归修复）。 |
+| 2026-09-21 | **closeout `complete`**：8 条 complete gate 全满足。A-ER1..4 done；P-ER01..04 pass；行为 0 diff=0；tsc 0 errors；vitest 608/608；validator 0 errors 0 warnings。归档 `_archive/complete/fe-tools-emit-relocate/`；相对链接修正（STATUS +2 层；Experience-Review +2 层；convergence 同目录）。 |
 | 2026-09-20 | review pass 残余修正：F-ER-27 TD §1.1 厘清 `dependencyGraph` 仅 `logicSuccessPayload`（不进 compile return）；F-ER-28 补 `implementation-plan.md`。仍 **`ready`**。 |
