@@ -93,6 +93,70 @@ file change
 
 **关键约束**：fs module 的 require/import 变化必须同步到 graph 边——这是 MC0 graph 正确性的核心。
 
+### §0.6 数据流向：build vs watch
+
+#### Build 模式（单次编译，无 cache）
+
+```text
+storeInfo → GraphNode 全量创建（fresh）
+    │
+    ▼
+worker 编译 → ModuleResult 全量产出（CompileInfo[]）
+    │
+    ├──► worker 返回 dependencyGraph → merge GraphNode（补 transitive 边）
+    └──► emit 用 ModuleResult 直接 emit → BuildModel.add
+            │
+            ▼
+         materialize
+```
+
+方向：**GraphNode 先建 → ModuleResult 后产 → emit 用 ModuleResult**。GraphNode 不参与 emit。
+
+#### Watch 模式（增量，有 cache）
+
+```text
+file change
+    │
+    ▼
+查询 GraphNode（computeInvalidatedModules → dirty 集）
+    │
+    ▼
+worker 收到 cache snapshot + invalidatedModules
+    │
+    ├──► cache hit → 用 ModuleResult（cached.compileInfo + cached.logicDependencies）
+    └──► cache miss → 重编译 → 产出新 ModuleResult + addDependency（补 GraphNode 边）
+    │
+    ▼
+worker 返回 { compileRes, logicDependencies, dependencyGraph }
+    │
+    ├──► merge GraphNode（仅 dirty 模块的边更新）
+    ├──► update cache（仅 dirty 模块的 ModuleResult 更新）
+    └──► emit 用 compileRes（ModuleResult）直接 emit → BuildModel.add
+            │
+            ▼
+         materialize
+```
+
+方向：**先查 GraphNode → 再产/取 ModuleResult → emit 用 ModuleResult → 最后 merge GraphNode**。
+
+#### 对比
+
+| | GraphNode 参与 emit？ | ModuleResult 参与 emit？ | 更新顺序 |
+| --- | --- | --- | --- |
+| Build | ❌ 不参与 | ✅ 直接用 | GraphNode 先建 → ModuleResult 后产 → emit |
+| Watch | ❌ 不参与（只用于算 dirty） | ✅ 直接用 | 查 GraphNode → 产 ModuleResult → emit → merge GraphNode |
+
+**emit 现在完全用 ModuleResult，不用 GraphNode。** GraphNode 在 build 里是「前置结构」，在 watch 里是「查询 + 后置更新」——两个模式里 GraphNode 和 emit 的时序关系不同。
+
+#### 对 MC3 的影响
+
+MC3（BuildModel 从图派生）要求 emit 发生在 GraphNode merge **之后**——因为派生需要最新的 GraphNode 结构。
+
+- **Build 模式**：GraphNode 在 storeInfo 时全量创建，编译后 merge transitive 边。emit 须等 merge 完成。
+- **Watch 模式**：worker 返回后先 merge GraphNode（仅 dirty 模块边），再从 GraphNode 派生 → emit。当前 merge 和 emit 并行-ish（都在 worker 返回后）；MC3 要求串行化：`worker 返回 → merge GraphNode → 从 GraphNode 派生 → emit`。
+
+这是 MC3 的时序约束，须在子门 TD 中明确。
+
 ## §1 继承
 
 来自 [`fe-tools-module-centric` technical-design](../_archive/complete/fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
