@@ -7,14 +7,14 @@ Status: **ready（2026-09-21）** — 伞级 MUST；子门细化自有 R-*。
 - graph 是 entry 的上级（创建 node、持有 files、追踪 dep edges）；Packer 前须确保 graph 正确且全面。
 - **stale edge 清理**：`addDependency` 只增不删（M2 F15 已发现）；须补 `removeDependency` 或增量 rebuild 时清边。
 - **stale node 清理**：watch merge 不删 node（storeInfo 全量重建才清）；须补 node 清理或 merge 时 diff。
-- **增量 closure 一致**：cache hit 跳过编译时，transitive dep 边不更新；须确保 cache hit 的模块仍用 cached dep list（M2 已用 `cached.logicDependencies` 解决 logic；graph 边须与之一致）。
+- **增量 closure（对齐 D-MC-5）**：dirty 模块 AST walk 前清 outgoing `logic` 边再重建；**cache hit 模块边可不清理**（hit 路径用 `cached.logicDependencies`，不用 graph 边）。incoming 边若 stale，仅使 dirty 集 over-inclusive（安全，可接受）。**不要求** cache hit 后 graph 边与 dep list 字节级一致。
 - graph 是小程序维度的图（page/component/usingComponents），不是 fs module 维度——GraphNode 管结构，ModuleResult 管内容。
 
 ## R-MC1（MUST）继承 module-centric 伞资产
 
 - 承接 D-MF-1（方案 A；`moduleId = CompileInfo.path`）。
 - 不复活旧 `fe-tools-module-cache` 的缩 scope 结论。
-- `ModuleResultCache` 是 M2 交付的半步资产；本伞不动它（D-MC-0 选 A：code 不上图）。
+- `ModuleResultCache` 是 M2 交付的半步资产；本伞不动它（D-MC-0 选 A：code 不上图；**否决**同 node 双字段上图）。
 
 ## R-MC2（MUST）deriveFromGraph 函数
 

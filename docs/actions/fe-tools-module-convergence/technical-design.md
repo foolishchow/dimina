@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-module-convergence
 
-Status: **draft（2026-09-21）** — D-MC-0..5 已冻结。待升 `ready`。
+Status: **ready（2026-09-21）** — D-MC-0..5 已冻结；近端 MC0 + MC3a。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -45,7 +45,7 @@ GraphNode 与 ModuleResult 的职责**没有清晰边界**：
 3. **stale 清理归属不清**：ModuleResult 删了 `require`，但 GraphNode 边不删（无 `removeDependency`）——GraphNode 结构与 ModuleResult 实际依赖不一致。
 4. **ModuleResult cache 归属不清**：`ModuleResultCache` 持有 `{ compileInfo, logicDependencies }`——code + dep list 都在 cache 里，但 cache 游离于 graph。ModuleResult cache hit 时 dep 发现用 `cached.logicDependencies`（M2 F15），不用 graph 边——GraphNode 边在 cache hit 时已不可信。
 
-### §0.4 职责边界方向（待 review 冻结）
+### §0.4 职责边界方向（已冻结）
 
 **核心问题：code 要不要上图？**
 
@@ -55,7 +55,7 @@ GraphNode 与 ModuleResult 的职责**没有清晰边界**：
 | B: graph = 完整 module graph | node + edge + code + sourcemap + deps | 单一维度：entry → 遍历 graph → code → emit | graph 重；IPC 传 code（体量大）；D-MF-2 推翻；stale edge 零容忍 |
 | C: graph = 结构 + code 引用 | node + edge + `codeRef`（指向 cache/Store）；code 不内联 | graph 中量；IPC 传结构 + 引用；code 在 Store 侧 | code 仍跨维度查；引用一致性新问题 |
 
-**已选 A**（2026-09-21 讨论）：
+**已选 A**（2026-09-21 讨论；2026-09-20 复确认持 A）：
 
 - M2 已用 A 跑通增量（cache 独立于 graph，D-MF-2 不推翻）
 - IPC 成本：worker ephemeral，graph snapshot 每次传；A 只传结构（轻），B 传结构+code（重）
@@ -63,12 +63,17 @@ GraphNode 与 ModuleResult 的职责**没有清晰边界**：
 - 无即时消费者需要 code 在图上（HMR deferred 另门）
 - **D-MF-2 不推翻**：graph = 结构权威，code 留在 cache
 
+> **命名澄清（防撞车）**：此处 **D-MC-0「选项 A」= code 不上图**。  
+> **不是**「同 GraphNode 上 `logicCode`/`viewCode` 双字段上图」——该方案曾作讨论候选，**已否决**（与 D-MC-0 A 冲突；本伞不采纳）。
+
 **对 convergence 伞的影响：**
 
 - MC0 graph 正确性 → **核心价值**（stale edge/node 清理 + closure 一致）
 - MC1 GraphNode code → **deferred**（code 不上图；等 HMR 或另一个真实消费者出现时再做）
 - MC2 view 入图 → **deferred**（view 不需要 code 上图）
-- MC3 BuildModel 派生 → **保留**（entry → graph 取 module 集 → cache 取 code → emit；单一派生路径）
+- MC3a deriveFromGraph → **保留**（只读派生函数：entry → graph → modules → code → [EmitModule]）
+- MC3b 搬 emit 到主线程 → **deferred**（打破 streaming；行为 0 风险高）
+- MC3c view/style 派生 → **deferred**
 
 ### §0.5 watch 变化分流流程（目标态）
 
@@ -250,6 +255,8 @@ MC3 不只是「打破 streaming」——还要：
 
 这是 MC3 的核心架构约束，须在子门 TD 中明确。
 
+> **注（2026-09-21）**：以上 F-SIM-1..5 + MC3 影响汇总描述的是 **MC3b**（搬 emit 到主线程）的约束，已 **deferred**。MC3a（deriveFromGraph 只读函数）无此约束——它只读 graph + cache，不碰 emit/transform/bundle，不打破 streaming。F-SIM-1..5 的审查发现是 MC3 拆分决策的依据。
+
 ## §1 继承
 
 来自 [`fe-tools-module-centric` technical-design](../_archive/complete/fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
@@ -293,7 +300,7 @@ export interface CompileInfo {
 ```ts
 // compiler/view/index.ts
 const scriptRes = new Map<string, string>()  // modulePath → code
-const compileResCache = new Map<string, unknown>()  // view cache（无消费方？待查）
+const compileResCache = new Map<string, unknown>()  // view within-build cache；消费方 source-audit → MC3c（本伞 Uncovered）
 ```
 
 ### §2.4 ModuleResultCache（M2 半步资产）
@@ -407,7 +414,7 @@ function deriveFromGraph(
 
 | ID | 议题 | 冻结结果 |
 | --- | --- | --- |
-| D-MC-0 | code 要不要上图？ | **A 已选**：graph=结构权威，code 不上图，D-MF-2 不推翻。B/C deferred |
+| D-MC-0 | code 要不要上图？ | **A 已选**：graph=结构权威，code 不上图，D-MF-2 不推翻。B/C deferred。**否决**「双字段上图」（`logicCode`/`viewCode`）——与本 A 冲突 |
 | D-MC-1 | MC1 GraphNode code | **deferred**：code 不上图；等 HMR 或另一消费者出现时再评估 |
 | D-MC-2 | MC2 view 入图 | **deferred**：同 MC1 |
 | D-MC-3 | view `compileResCache` | **保留不动**：within-build cache（非 cross-rebuild），不退化到 graph node |

@@ -36,7 +36,7 @@ entry → traverse GraphNode → module 集 → 查 ModuleResult 取 code → [E
 ## Non-goals
 
 - 整包 Packer 抽取（packer-research 已否决；重评估条件见 packer-research）
-- code 上图（D-MC-0 选 A：graph = 结构权威，code 留 ModuleResultCache；D-MF-2 不推翻）
+- code 上图（D-MC-0 选 A：graph = 结构权威，code 留 ModuleResultCache；D-MF-2 不推翻）。**非**「`logicCode`/`viewCode` 双字段上图」（已否决）。
 - 搬 emit/transform/bundle 到主线程（MC3b；deferred；行为 0 风险高）
 - view/style 在派生路径中的处理（MC3c；deferred）
 - fingerprint 下沉模块级（β；另门）
@@ -68,7 +68,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 | 门 | 内容 | 验收 |
 | --- | --- | --- |
-| **MC0** | graph 正确性：stale edge/node 清理 + 增量 closure 一致 | A-MC0 pass |
+| **MC0** | graph 正确性：stale edge/node 清理 + 增量 closure 一致（D-MC-5） | A-MC0 pass |
 | **MC3a** | deriveFromGraph 函数：entry → graph → modules → code → [EmitModule] | A-MC3a pass |
 
 ## Status / 授权
@@ -88,5 +88,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 | 2026-09-21 | 立项 `draft`：从 TODO A formalize；承接 module-centric 伞 complete 后的半套资产收敛 |
 | 2026-09-21 | D-MC-0 冻结：选 A（graph = 结构权威，code 不上图）；MC1/MC2 deferred |
 | 2026-09-21 | TD §0 加 GraphNode vs ModuleResult 职责边界 + watch 数据流向 |
+| 2026-09-20 | review findings：验收 ID→A-MC3a；R-MC0∥D-MC-5；A-MC1/P-MC01 pass |
+| 2026-09-20 | **确认持 D-MC-0 A**：code 不上图；明确否决双字段上图候选（与 D-MC-0 A 撞名澄清） |
 | 2026-09-21 | MC3 拆为 MC3a（deriveFromGraph 函数，低风险）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）。伞目标调整为「推进 Packer 形状」 |
 | 2026-09-21 | review 冻结 D-MC-0..5（F-REV-1..5 修正）；§1 D-MF-2 不推翻；§3 重写为 MC0+MC3a；§4 接口表更新；D-MC-4 deferred 到 MC3b；D-MC-5 冻结（clearOutgoingEdges + removeNode + merge diff）。升 **`ready`** |

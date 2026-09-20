@@ -18,7 +18,7 @@ MC3a deriveFromGraph 函数（entry → graph → modules → code → [EmitModu
 
 | 门 / 子门 | 状态 |
 | --- | --- |
-| D-MC-0 | **已冻结**（A：graph = 结构权威，code 不上图） |
+| D-MC-0 | **已冻结**（A：graph = 结构权威，code 不上图；**非**双字段上图） |
 | MC0 graph 正确性 | 待 formalize（**Packer 前置**；stale edge/node + closure 一致） |
 | MC3a deriveFromGraph | 待 formalize（**Packer 核心形状**；只读函数，低风险） |
 | ~~MC3b~~ 搬 emit 到主线程 | **deferred**（打破 streaming；行为 0 风险高） |
