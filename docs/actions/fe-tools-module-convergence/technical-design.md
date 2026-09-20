@@ -84,6 +84,21 @@ entries: Map<string, { entryId, kind, files: [{path, code}], sourcemaps?: [{path
 
 ## §3 设计方向（待 review 冻结）
 
+### §3.0 D-MC-0: Graph 正确性（前置）
+
+**已知问题：**
+
+| 问题 | 事实 | 影响 |
+| --- | --- | --- |
+| stale edge | `addDependency`（L68-82）只 `kinds.add(kind)` → Set 只增；无 `removeDependency` API | 删 require 后旧边残留；增量 rebuild 脏图 |
+| stale node | watch merge 不删 node（`storeInfo` 全量重建才清） | 删 page 后 node 残留 |
+| closure 不一致 | cache hit 跳编译时，transitive dep 边不更新 | M2 已用 `cached.logicDependencies` 规避 logic；但 graph 边仍 stale |
+
+**方向：**
+- 补 `removeDependency(from, to, kind?)` API 或增量 rebuild 时先清后加。
+- 补 `removeNode(id)` 或 merge 时 diff node 集。
+- graph 边须与 `cached.logicDependencies` 一致——cache hit 模块的 graph 边用 cached dep list 回填。
+
 ### §3.1 D-MC-1: GraphNode 扩字段
 
 ```ts
@@ -134,7 +149,7 @@ entry (entryId)
 
 | 组件 | 变更 |
 | --- | --- |
-| `dependency-graph.ts` | GraphNode 扩 `code` / `sourcemap` / `deps`；`getModule(id)` 返回完整 node |
+| `dependency-graph.ts` | MC0: 补 `removeDependency`/`removeNode`；MC1: GraphNode 扩 `code`/`sourcemap`/`deps`；`getModule(id)` 返回完整 node |
 | `module-result-cache.ts` | 退化为图 node 覆盖层；或删除（由 graph node 直接持有） |
 | `logic/index.ts` | `logicCompile` 回填 `node.code`；cache hit 走 `node.deps` |
 | `view/index.ts` | `scriptRes` → `node.code`；`compileResCache` 退化 |

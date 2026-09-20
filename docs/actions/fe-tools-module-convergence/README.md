@@ -60,6 +60,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 | 子门 | 内容 | 行为 0 |
 | --- | --- | --- |
+| **MC0** | graph 正确性：删 stale edge/node；增量 closure 一致（cache hit 不跳过 dep 发现）；graph 成为可靠的结构权威 | ✅（输出不变；图修正仅影响内部一致性） |
 | **MC1** | GraphNode 加 `code?` / `sourcemap?` / `deps` 字段；logic worker 回填 node.code；`ModuleResultCache` 退化为图 node 的 session 覆盖层 | ✅（输出不变；图持有 = cache 持有） |
 | **MC2** | view `scriptRes` → graph node；view Module 统一；`compileResCache` 退化为图 node | ✅（输出不变；view Module 入图） |
 | **MC3** | BuildModel 从图派生（entry → 遍历 module → emit）；`BuildModel.add` 散装 entries 退居兼容 | ✅（输出不变；派生路径替代散装） |
@@ -68,7 +69,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 | 门 | 内容 | 验收 |
 | --- | --- | --- |
-| **MC0** | 词汇 + 子门顺序 + D-MC-* 冻结 | 文档门 pass |
+| **MC0** | graph 正确性：stale edge/node 清理 + 增量 closure 一致 | A-MC0 pass |
 | **MC1** | GraphNode code 字段 + logic 回填 + cache 退化 | A-MC1 pass |
 | **MC2** | view Module 入图 | A-MC2 pass |
 | **MC3** | BuildModel 派生 | A-MC3 pass |
