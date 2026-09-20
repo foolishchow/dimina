@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-emit-relocate
 
-Status: **ready（2026-09-21）** — D-ER-0..7 全冻结。
+Status: **ready（2026-09-20）** — D-ER-0..7 全冻结。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -29,7 +29,9 @@ worker (logicCompile):
 - `writeCompileRes(mainCompileRes, null)` → `entryId: 'logic'`, `relPrefix: 'main'`
 - `writeCompileRes(subCompileRes, root)` → `entryId: 'logic:'+root`, `relPrefix: root`
 
-返回的 `allCompileRes = [...mainCompileRes, ...allSubCompileRes]` 是 flat 的——分组信息只在 `writeCompileRes` 调用时存在。
+其中循环里的 `root` 来自 `Object.entries(pages.subPages)` 的 **key** = `transSubDir(...)`（如 `sub_pkgA`），不是 app.json 的 `pkgA`。
+
+返回的 `allCompileRes = [...mainCompileRes, ...allSubCompileRes]` 是 flat 的——分组信息只在 `writeCompileRes` 调用时存在。（且今日对 `mainCompileRes` 有循环前早快照问题：sub 中 `putMain` 追加进 main 的模块会进最终 `writeCompileRes(main)`，却可能不在返回的 `allCompileRes` 里——本 Action 用 `emitBuckets` + 循环后拼 `compileRes` 一并修掉。）
 
 ### §0.3 emitEntry 结构
 
@@ -43,66 +45,77 @@ export async function emitEntry(params: EmitEntryParams) {
 }
 ```
 
-- `strategy.apply` 是纯函数（输入 params → 输出 EmitEntry）
+- `strategy.apply` 产出 `EmitEntry`（perModule 路径会调 `getWorkPath()`，非无上下文纯函数）
 - `sink.write` 是 streaming 出口
 
 ## §1 目标架构
 
-### §1.1 worker 只 compile
+### §1.1 worker 只 compile（保留分桶，不 emit）
 
 ```text
 worker (logicCompile):
-  compileJS(pages) → CompileInfo[]
-  return { compileRes, logicDependencies, dependencyGraph }  ← 不调 writeCompileRes
+  mainCompileRes = compileJS(mainPages, null, null)
+  subs = []
+  for (const [root, subPages] of Object.entries(pages.subPages)):
+    // root = pages.subPages key = transSubDir 形（如 sub_pkgA），非 app.json subPackages.root
+    subCompileRes = compileJS(subPages.info, root, independent ? [] : mainCompileRes)
+    // ↑ putMain 仍可能向 mainCompileRes 追加（共享模块）
+    subs.push({ root, modules: subCompileRes })
+    // 不再 writeCompileRes
+  compileRes = [...mainCompileRes, ...subs.flatMap(s => s.modules)]  // 循环后拼；勿早快照
+  // compile() 返回值（runtime Object.assign 进 success message）：
+  return {
+    emitBuckets: { main: mainCompileRes, subs },  // 与今日 writeCompileRes 输入同形
+    compileRes,                                   // M2 cache
+    logicDependencies,
+  }
+  // dependencyGraph / compatibilityWarnings 仍只由 logicSuccessPayload 提供（不进 compile return）
 ```
 
-### §1.2 主线程编排
+### §1.2 主线程编排（按桶发，不重归属）
 
 ```text
 main (build-pipeline, worker 返回后):
-  1. update cache + merge graph                    ← M2 已有
-  2. 从 getAppConfigInfo().subPackages 取 subpackage roots
-  3. path-prefix 分组（精确匹配 putMain 语义）:
-     const subPkgs = getAppConfigInfo().subPackages ?? []   // [{ root: 'pkgA' }, ...]
-     const mainCompileRes = []
-     const subCompileRes = {}   // { 'sub_pkgA': [...], ... }
-     for (const m of allCompileRes) {                        // 遍历保序
-       let owner = null                                      // 默认 main
-       for (const sub of subPkgs) {
-         if (m.path.startsWith(sub.root + '/')) {
-           // transSubDir 是 env.ts 私有函数，内联：sub_${root.replace(/\/$/, '')}
-           owner = `sub_${sub.root.replace(/\/$/, '')}`
-           break
-         }
-       }
-       if (owner === null) mainCompileRes.push(m)
-       else (subCompileRes[owner] ??= []).push(m)
+  1. update cache + merge graph（用 compileRes；须含最终 main）  ← M2 已有
+  2. 读 ctx.emitBuckets（或 result.emitBuckets）
+  3. 按今日 writeCompileRes 顺序发 emit-worker:
+     // 先各 sub（与 pages.subPages 遍历序一致）
+     for (const { root, modules } of emitBuckets.subs) {
+       executeTask({ engine: emitEngine, input: {
+         entryId: 'logic:' + root,
+         kind: 'logic',
+         modules: modules.map(m => ({
+           moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode
+         })),
+         transform: {
+           strategy: 'perModule',
+           minify: ctx.compileConfig.minify,
+           target: ctx.compileConfig.esTarget.logic,
+           platform: 'neutral',
+         },
+         sourcemap: !!ctx.sourcemap,
+         sourcemapTargetPath: ctx.sourcemapTargetPath,
+         filename: 'logic',
+         relPrefix: root,
+         storeInfo: ctx.storeInfo,
+       }}) → { entry } → BuildModel.add(entry)
      }
-  4. 逐组发 emit-worker:
-     // main 组
+     // 再 main（含 sub 编译中 putMain 追加的模块）
      executeTask({ engine: emitEngine, input: {
        entryId: 'logic',
        kind: 'logic',
-       modules: mainCompileRes.map(m => ({
-         moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode
-       })),
-       transform: {
-         strategy: 'perModule',
-         minify: ctx.compileConfig.minify,               // 从 ctx.compileConfig 取（compile task 存入）
-         target: ctx.compileConfig.esTarget.logic,
-         platform: 'neutral',
-       },
-       sourcemap: !!ctx.sourcemap,                    // 从 ctx.sourcemap 取（compile task 存入）
-       sourcemapTargetPath: ctx.sourcemapTargetPath,   // 从 ctx.sourcemapTargetPath 取
+       modules: emitBuckets.main.map(...同形...),
+       transform: { ...同上... },
+       sourcemap: !!ctx.sourcemap,
+       sourcemapTargetPath: ctx.sourcemapTargetPath,
        filename: 'logic',
        relPrefix: 'main',
-       storeInfo: ctx.storeInfo,                      // 上下文（供 resetStoreInfo）
+       storeInfo: ctx.storeInfo,
      }}) → { entry } → BuildModel.add(entry)
-     // sub 组（同结构，entryId: 'logic:'+root, relPrefix: root）
-  5. materialize
+  4. materialize
 ```
 
-**分组正确性论证**：`putMain` 逻辑（`logic/index.ts:221-261`）的判定标准是 module path 是否属于某个 subpackage root（`normalizedPath.startsWith(subPackage.root + '/')`）。path-prefix 分组用完全相同的判定，因此分组结果与 `putMain` 一致。closure 分组不可用——闭包是可达性分组，会把共享模块放入多个组（`putMain` 只放 main）。
+**分组正确性论证（F-ER-21）**：今日 emit 输入是 `writeCompileRes(mainCompileRes|subCompileRes, root)` 的**编译期桶**，不是 flat `allCompileRes` 的事后归属。`putMain` 只在 DFS 内决定推进哪个数组；跨分包组件 path 属 `pkgB` 却可能落在编 `pkgA` 时的 `subCompileRes`——path-prefix 重归属会错桶。早快照 `allCompileRes = [...mainCompileRes]` 还会漏掉 sub 循环中 `putMain` 追加进 main 的模块。故 D-ER-3 = **原样返回桶**；禁止 path-prefix / closure 重归属。**`root` 必须原样保留 `pages.subPages` key**（`transSubDir` 形）；若改成 app.json `subPackages.root`，`entryId`/`relPrefix`/产物路径会与今日不一致（F-ER-24）。
 
 ### §1.3 emit 步骤在 build-pipeline 的位置
 
@@ -119,7 +132,7 @@ main (build-pipeline, worker 返回后):
 (1) 收集配置信息
 (2) 准备产物目录
 (3) 并发编译（view + style 仍 streaming；logic 不 streaming）
-(3.5) logic emit：分组 → emit-worker → BuildModel.add   ← 新增步骤
+(3.5) logic emit：按 emitBuckets 发 emit-worker → BuildModel.add   ← 新增步骤
 (4) 写入编译产物 → materialize + publish
 ```
 
@@ -139,15 +152,15 @@ emit-worker:
 
 | 组件 | 变更 |
 | --- | --- |
-| `compiler/logic/index.ts` | 删 `writeCompileRes` 函数（L45-58）+ 调用（L678,680）；删 `sourcemapTargetPath` 模块变量（L25）——仅 writeCompileRes 读，删后无读者；删 `import { emitEntry }`（L17）——logic 不再用；`logicBuildConfig`（L647-651）可简化（不再算 sourcemapTargetPath）；worker 不再 emit |
-| `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（纯函数，`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
-| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `resetStoreInfo` + `produceEntry` 返回 `{ entry }`；`buildConfig: () => ({})`（compile 不用 config）；`successPayload: () => ({})`（无 graph） |
+| `compiler/logic/index.ts` | 删 `writeCompileRes` 函数（L45-58）+ 调用（L678,680）；删 `sourcemapTargetPath` 模块变量（L25）；删 `import { emitEntry }`（L17）；`logicBuildConfig` 可简化；返回 `emitBuckets` + 循环**后**拼的 `compileRes`（修早快照漏 `putMain`）；worker 不再 emit |
+| `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（无 sink，`strategy.apply` 提取；须上下文）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
+| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `resetStoreInfo` + `produceEntry` 返回 `{ entry }`；`buildConfig: () => ({})`；`successPayload: () => ({})` |
 | `pipeline/emit-worker-entry.ts`（新增） | `runWorker(emitEngine)` |
-| `compiler/worker-runtime/executor.ts` | 泛化 `executeTask`：`pages` 变可选；`ENTRY_PATH` 加 `'emit'`；resolve 透传 payload（strip protocol fields `success`/`type`/`completedTasks`/`outputCount`） |
-| `pipeline/stage-channel.ts` | `runCompileStage` 存 `result.compileRes` 到 `ctx.logicCompileRes`（供 3.5 task 分组） |
-| `pipeline/build-pipeline.ts` | 新增 (3.5) logic emit task（分组 → emit-worker → BuildModel.add）；compile task 存 `compileConfig`/`sourcemap`/`sourcemapTargetPath` 到 `ctx`（供 3.5 task 取用）；worker 返回后编排 |
-| `compiler/core/env.ts` | `getPages()` 等 API 供主线程取 page 列表 + packageRoot |
-| `model/dependency-graph.ts` | 不变（`getDependencyClosure` 已在 MC3a 交付） |
+| `compiler/worker-runtime/executor.ts` | 泛化 `executeTask`：`pages` 变可选；`ENTRY_PATH` 加 `'emit'`；resolve 透传 payload（strip protocol fields） |
+| `pipeline/stage-channel.ts` | 存 `result.emitBuckets` 到 `ctx`（供 3.5）；`compileRes` 仍供 M2 cache；logic 阶段 `onOutput` **可留可去**（打破 streaming 后 `outputCount=0`，mismatch 检查仅在有 `onOutput` 时生效） |
+| `pipeline/build-pipeline.ts` | 新增 (3.5) logic emit task（按桶发 emit-worker → BuildModel.add）；compile task 存 `compileConfig`/`sourcemap`/`sourcemapTargetPath` 到 `ctx`；logic 的 `BuildModel.add` 改由 3.5 完成（不再依赖 compile 阶段 streaming `onOutput`） |
+| `compiler/core/env.ts` | 不变（emit 桶自带 `root`；无需主线程再查 subPackages 做归属） |
+| `model/dependency-graph.ts` | 不变（`getDependencyClosure` 已在 MC3a 交付；本门不消费） |
 | `model/convergence.ts` | 不变（`deriveFromGraph` 不接入——deferred） |
 
 ## §3 emit-engine 设计（D-ER-4/5/6 冻结）
@@ -203,9 +216,8 @@ if (message.success) {
 ```ts
 // pipeline/emit.ts
 
-// 纯函数：提取 strategy.apply
-// 注：perModule 策略的 sourcemap rebase 路径调 getWorkPath()（L142），
-// 需编译器上下文。emit-worker 须先调 resetStoreInfo 搭建上下文（见 §3.5）。
+// 无 sink：提取 strategy.apply（非「纯」——perModule 调 getWorkPath）
+// emit-worker 须先调 resetStoreInfo 搭建上下文（见 §3.5）。
 export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> {
     const strategy = strategies[params.transform.strategy as keyof typeof strategies]
     if (!strategy) throw new Error(`produceEntry: 未知 transform 策略 ${params.transform.strategy}`)
@@ -255,19 +267,19 @@ export const emitEngine = defineEngine({
 
 ## §4 行为 0 守卫
 
-- `compileRes` 顺序不变：path-prefix 分组遍历 `allCompileRes` 逐模块归类，不改变模块间顺序；组内顺序 = 编译顺序
+- emit 桶 = 今日 `writeCompileRes` 输入数组（最终 main + 各 sub）；桶内顺序 = DFS 推进顺序
+- 发射顺序 = 今日：先各 sub，再 main
 - `emitEntry` perModule 策略不变：modDefine + sourcemap rebase + mergeSourcemap + esbuild minify 逻辑全不动
-- `produceEntry` = `strategy.apply` 提取，逻辑不变（注：perModule 策略 sourcemap rebase 调 `getWorkPath()`，emit-worker 须 `resetStoreInfo` 搭建上下文——见 TD §3.5）
-- 分组精确匹配 `putMain`：path-prefix 归属（非 closure 可达性），共享模块只入 main，跨分包模块只入所属分包
-- 唯一变化：调用位置从 worker 搬到 emit-worker（同一段代码，不同 worker）
+- `produceEntry` = `strategy.apply` 提取（须 `resetStoreInfo`——见 TD §3.5）
+- **禁止** path-prefix / closure 对 flat 列表重归属（F-ER-21）
+- 唯一变化：调用位置从 compile-worker 内 `writeCompileRes` 搬到主线程按桶调 emit-worker
 
-## §5 getDependencyClosure 消费者
+## §5 分组方案沿革（非 getDependencyClosure）
 
-~~MC3a 交付的 `getDependencyClosure(entryId)` 在本 Action 中首次接入 production。~~
+~~曾议 MC3a `getDependencyClosure` 接入 production 分组。~~  
+~~F-ER-7：改 path-prefix（误称「精确匹配 putMain」）。~~
 
-**修订（F-ER-7）**：本 Action 不再消费 `getDependencyClosure`——分组改用 path-prefix（精确匹配 `putMain` 语义，closure 是可达性分组会导致共享/跨分包模块重复入组 → 行为 0 破坏）。`getDependencyClosure` 仍由 MC3a 交付，保留供未来 HMR / config-only rebuild 场景使用。
-
-`deriveFromGraph` 仍不接入（code 来自 `compileRes` 不是 cache）。
+**F-ER-21**：path-prefix / closure 均 ≠ 今日 `writeCompileRes` 分桶。定稿 **结构化 `emitBuckets`**（D-ER-3）。`getDependencyClosure` / `deriveFromGraph` 仍不接入；保留供未来 HMR / config-only rebuild。
 
 ## 待定议题
 

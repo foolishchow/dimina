@@ -11,4 +11,4 @@
 | [session-scheduling.draft.md](./session-scheduling.draft.md) | 会话调度草案（L1–L4 / W1–W4 历史确认） |
 | [compiler-symptom-inventory.md](./compiler-symptom-inventory.md) | 病症地图（梳理用，不授权实施） |
 
-近端正式 Action：[`fe-tools-module-centric`](../actions/fe-tools-module-centric/README.md)（Module 一等公民伞，`draft`）。候选池见 [`docs/actions/TODO.md`](../actions/TODO.md)。
+近端正式 Action：[`fe-tools-emit-relocate`](../actions/fe-tools-emit-relocate/README.md)（emit 搬迁，`ready`；MC3b）。候选池见 [`docs/actions/TODO.md`](../actions/TODO.md)。

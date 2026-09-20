@@ -214,7 +214,9 @@ wxml/
 
 **Module 中心路线（2026-09-19）**：近端伞 [`fe-tools-module-centric`](../actions/_archive/complete/fe-tools-module-centric/README.md)（**`complete`**，2026-09-21；子门 M1 invalidation + M2 result-cache 全 complete 归档；D-MF-1 封口）。D-MF-1：方案 A / logic-only。M0 emit W1 deferred（S 级，另门可独立先行）。
 
-**Module 收敛路线（2026-09-21 / 确认 2026-09-20）**：伞 [`fe-tools-module-convergence`](../actions/_archive/complete/fe-tools-module-convergence/README.md) **`complete`**。MC0（graph 正确性：`clearOutgoingEdges` + `removeNode` + `storeInfo` merge 后删 stale page/component node）+ MC3a（`deriveFromGraph` 函数：entry→graph→modules→code→[EmitModule]，只读）全 complete。D-MC-0 选 A = graph 结构权威、**code 不上图**、D-MF-2 不推翻。MC3b/MC3c/MC1/MC2 deferred。
+**Module 收敛路线（2026-09-21 / 确认 2026-09-20）**：伞 [`fe-tools-module-convergence`](../actions/_archive/complete/fe-tools-module-convergence/README.md) **`complete`**。MC0（graph 正确性：`clearOutgoingEdges` + `removeNode` + `storeInfo` merge 后删 stale page/component node）+ MC3a（`deriveFromGraph` 函数：entry→graph→modules→code→[EmitModule]，只读）全 complete。D-MC-0 选 A = graph 结构权威、**code 不上图**、D-MF-2 不推翻。MC3c/MC1/MC2 deferred。
+
+**Emit 搬迁（MC3b → 独立 Action）**：[`fe-tools-emit-relocate`](../actions/fe-tools-emit-relocate/README.md) **`ready`**（2026-09-20）。emit 从 compile-worker 搬到 emit-worker；打破 streaming；主线程按结构化 **`emitBuckets`** 编排（同今日 `writeCompileRes` 分桶；`subs[].root` = `pages.subPages` key / `transSubDir` 形；禁止 path-prefix/closure 重归属）。D-ER-0..7 冻结。升 `in_progress` 另授。
 
 ## 已确认设计点（P1–P6 · 2026-09-12）
 
@@ -278,3 +280,4 @@ wxml/
 | 2026-09-21 | **伞 `fe-tools-module-centric` `complete`**：子门 M1+M2 全 complete 归档；MF0 文档门 pass；D-MF-1 封口（方案 A / logic-only / view·style 排除）。M0 emit W1 deferred（S 级纯重构，另门可独立先行）。 |
 | 2026-09-21 | **伞 `fe-tools-module-convergence` formalize `draft`**：承接 module-centric 伞 complete 后的半套资产收敛。原子门 MC1→MC2→MC3 已重构为 MC0（graph 正确性）→ MC3a（deriveFromGraph 只读函数）；MC3b/MC3c/MC1/MC2 deferred。D-MC-0..5 全冻结。升 **`ready`**。 |
 | 2026-09-20 | **确认 D-MC-0 持 A**：code 不上图；否决双字段上图候选；伞 `ready`；近端 MC0+MC3a |
+| 2026-09-20 | **指针 `fe-tools-emit-relocate` `ready`**：MC3b 独立立项；D-ER-0..7 冻结；D-ER-3 = 结构化 `emitBuckets`（禁 path-prefix/closure 重归属）；升 in_progress 另授 |
