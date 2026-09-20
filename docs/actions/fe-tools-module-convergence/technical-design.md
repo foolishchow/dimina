@@ -181,6 +181,73 @@ MC3（BuildModel 从 GraphNode 派生）要求：
 
 **MC3 须改变时序**：从 `worker 期间 emit → 返回后 merge` 改为 `worker 返回 → merge GraphNode → 从 GraphNode 派生 → emit`。这**打破 streaming emit 模式**——须缓冲全部 module，等 GraphNode merge 后再 emit。
 
+#### §0.6 补充审查发现（2026-09-21）
+
+##### F-SIM-1：三个 stage 并发跑
+
+```ts
+// build-pipeline.ts L192
+newListr(compileTasks, { concurrent: true })
+```
+
+view + logic + style worker **同时启动**，streaming emit（`BuildModel.add`）交错，graph merge 也交错（非确定性顺序，但同步调用无 race）。
+
+MC3 影响：emit 派生须在**全部 stage** merge 后（不是单 stage merge 后），因为 BuildModel 是跨 stage 的。
+
+##### F-SIM-2：worker 做 compile + emit 两件事
+
+```ts
+// logic/index.ts — logicCompile 内部
+compileJS(...) → CompileInfo[]           // compile
+writeCompileRes(compileRes) → emitEntry  // emit（含 mergeSourcemap + esbuild transform）
+  → sink.write → postMessage(output)     // streaming
+return { compileRes, logicDependencies }  // 返回 raw ModuleResult
+```
+
+worker 不只编译，还做 emit（transform + bundle）。MC3 如果要「从 GraphNode 派生 emit」，须把 emit（transform + bundle）从 worker 搬到主线程，或改 worker 协议为两阶段（compile → 返回 → emit 指令）。
+
+##### F-SIM-3：EmitEntry ≠ CompileInfo
+
+| streaming（onOutput） | final message（resolve） |
+| --- | --- |
+| `EmitEntry`（entry 级，已 bundle + transform） | `CompileInfo[]`（module 级，raw） |
+| `{ entryId, kind, files: [{path, code}], sourcemaps }` | `{ path, code, map, ... }[]` |
+
+两种数据**不同维度**——EmitEntry 是产物（已打包），CompileInfo 是模块（未打包）。MC3 派生须在主线程做 CompileInfo → EmitEntry 转换（即 `writeCompileRes` + `emitEntry` 逻辑搬主线程）。
+
+##### F-SIM-4：只有 logic 返回 compileRes
+
+| stage | 返回 compileRes？ | 返回 dependencyGraph？ | 更新 cache？ |
+| --- | --- | --- | --- |
+| logic | ✅ `{ compileRes, logicDependencies }` | ✅ `successPayload` | ✅ stage-channel 更新 |
+| view | ❌ `void` | ✅ `successPayload` | ❌ |
+| style | ❌ `void` | ❌ 无 `successPayload` | ❌ |
+
+ModuleResultCache 只被 logic 更新。view 有自己的 within-build `compileResCache`（不改 ModuleResultCache）。style 不碰 cache。
+
+MC3 影响：MC3 派生只涉及 logic（有 compileRes + cache）；view/style 不走 ModuleResultCache 路径，MC3 须分别处理或排除。
+
+##### F-SIM-5：watch 模式 storeInfo 重建 + merge
+
+```ts
+// env.ts storeInfo
+context.dependencyGraph = createInitialDependencyGraph()  // fresh（app.json 结构）
+if (options.dependencyGraph) {
+    context.dependencyGraph.merge(options.dependencyGraph)  // merge 旧 snapshot（含 transitive 边）
+}
+```
+
+fresh + merge → **stale node 可通过 merge 复活**（删了的 page 如果在旧 snapshot 有 node，merge 会加回来）。这是 MC0 stale node 的根因。
+
+##### MC3 影响汇总
+
+MC3 不只是「打破 streaming」——还要：
+
+1. 把 emit（transform + bundle）从 worker 搬到主线程（或改两阶段协议）
+2. 处理三 stage 并发（emit 派生须在全部 stage merge 后）
+3. 从 CompileInfo（module 级）→ EmitEntry（entry 级）的转换搬到主线程
+4. MC3 派生只涉及 logic（有 compileRes + cache）；view/style 须分别处理或排除
+
 这是 MC3 的核心架构约束，须在子门 TD 中明确。
 
 ## §1 继承
