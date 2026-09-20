@@ -27,3 +27,4 @@ Status: **draft（2026-09-21）**
 | --- | --- |
 | 2026-09-21 | 立项 `draft`：从 TODO A formalize；承接 module-centric 伞 complete 后的半套资产收敛。D-MC-1..4 待 review 冻结。 |
 | 2026-09-21 | 讨论对齐：page = entry（rollup/webpack 语义）；entry 动态变。graph 是小程序维度图（非 fs module）；graph 是 entry 的上级。R-MC0 graph 正确性作为前置子门 MC0 加入（stale edge/node + closure 一致）。 |
+| 2026-09-21 | 讨论对齐：watch 变化触发两类变更——graph 结构变化（app.json/page.json）与 fs module 内容变化（.js/.wxml），且交叉（require 变 → graph 边变）。TD §0 加「graph 与 fs module 职责边界」：两个维度 + watch 分流 + 当前职责混乱 + 职责边界方向（A/B/C）+ 目标态分流流程。D-MC-0 作为根本议题待冻结。D-MC-3 修正：view compileResCache 是 within-build cache，保留不动。 |

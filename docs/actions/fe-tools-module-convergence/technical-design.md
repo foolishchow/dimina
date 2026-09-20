@@ -4,6 +4,73 @@ Status: **draft（2026-09-21）** — D-MC-* 待定（需 review 冻结）。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
+## §0 Graph 与 fs module 职责边界
+
+### §0.1 两个维度
+
+| 维度 | 主体 | 管什么 | 现状 |
+| --- | --- | --- | --- |
+| **graph（小程序维度）** | `DependencyGraph` | entry 集（page/component/app）、声明 dep 边（usingComponents）、文件归属（addFile）、编译发现的 transitive dep 边（require/import） | 有结构 + 文件归属；**无 code** |
+| **fs module（文件维度）** | `CompileInfo` / `scriptRes` / `ModuleResultCache` | 源文件内容（.js/.ts/.wxml）、编译结果 code + sourcemap、require/import dep 列表 | 有 code + dep list；**游离于 graph** |
+
+### §0.2 watch 变化分流
+
+watch 变化触发两类变更，且互相交叉：
+
+| 变化类型 | 触发源 | 影响范围 | 例子 |
+| --- | --- | --- | --- |
+| **graph 结构变化** | `app.json` / `page.json` / `project.config.json` | entry 集（增删页）、声明 dep 边（usingComponents）、node 增删 | 新增 page → 新 node；删 component → 边断 |
+| **fs module 内容变化** | `.js` / `.ts` / `.wxml` / `.wxss` | module code 变、transitive dep 变（增删 require） | 改 `require('utils/b')` → dep 边变；改 code → cache 失效 |
+
+**交叉点：**
+
+- fs module 变化 → 可能触发 graph 变化（新增 `require` = 新 dep 边；删 `require` = stale edge）
+- graph 结构变化 → 可能触发 fs module 变化（新增 page = 新 module 要编译）
+
+### §0.3 当前职责混乱
+
+graph 和 fs module 的职责**没有清晰边界**：
+
+1. **dep 边归属不清**：`addDependency` 在 graph 上调（L310/332/357/382），但 dep 发现发生在 fs module 编译时（AST walk）。graph 持有 dep 边，但边的内容（require/import 路径）来自 fs module。
+2. **code 归属不清**：graph 有 node 但无 code；fs module 有 code 但无结构。给定 entry，无法从 graph 遍历到 module code——必须跨两个维度查。
+3. **stale 清理归属不清**：fs module 删了 `require`，但 graph 边不删（无 `removeDependency`）——graph 结构与 fs module 实际依赖不一致。
+4. **cache 归属不清**：`ModuleResultCache` 持有 `{ compileInfo, logicDependencies }`——code + dep list 都在 cache 里，但 cache 游离于 graph。cache hit 时 dep 发现用 `cached.logicDependencies`（M2 F15），不用 graph 边——graph 边在 cache hit 时已不可信。
+
+### §0.4 职责边界方向（待 review 冻结）
+
+**核心问题：code 要不要上图？**
+
+| 选项 | graph 职责 | 优点 | 缺点 |
+| --- | --- | --- | --- |
+| **A: graph = 结构权威** | node + edge + entry 集 + 文件归属；**不含 code** | graph 轻量；IPC 只传结构；code 由 fs module/cache 管 | 给定 entry 无法单从 graph 取 code → emit；两维度查询 |
+| **B: graph = 完整 module graph** | node + edge + code + sourcemap + deps | 单一维度：entry → 遍历 graph → code → emit | graph 重；IPC 传 code（体量大）；D-MF-2 推翻 |
+| **C: graph = 结构 + code 引用** | node + edge + `codeRef`（指向 cache/Store）；code 不内联 | graph 中量；IPC 传结构 + 引用；code 在 Store 侧 | code 仍跨维度查；引用一致性新问题 |
+
+**当前 M2 走的是 A**（cache 独立于 graph，D-MF-2 不推翻）。**convergence 伞原设计走 B**（GraphNode 加 code）。**C 是折中**。
+
+### §0.5 watch 变化分流流程（目标态）
+
+无论选 A/B/C，watch 变化后的分流流程须清晰：
+
+```text
+file change
+    │
+    ├─ app.json / page.json 变？
+    │   └─► graph 结构变化（storeInfo 重建 / merge diff）
+    │       └─► entry 集 / 声明 dep 变 → 影响哪些 entry 要编
+    │
+    ├─ .js / .ts 变？
+    │   └─► fs module 内容变化
+    │       ├─► code 变 → cache 失效 → 重编译
+    │       └─► require/import 变 → graph dep 边变（须同步清理 stale）
+    │
+    └─ .wxml / .wxss 变？
+        └─► view/style module 变
+            └─► 重编译（graph 结构不变）
+```
+
+**关键约束**：fs module 的 require/import 变化必须同步到 graph 边——这是 MC0 graph 正确性的核心。
+
 ## §1 继承
 
 来自 [`fe-tools-module-centric` technical-design](../_archive/complete/fe-tools-module-centric/technical-design.md) D-MF-1 / D-MF-2：
@@ -168,7 +235,8 @@ entry (entryId)
 
 | ID | 议题 | 选项 |
 | --- | --- | --- |
+| D-MC-0 | graph 与 fs module 职责边界：code 要不要上图？ | A: graph=结构权威（code 不上图，沿用 M2）/ B: graph=完整 module graph（code 上图，推翻 D-MF-2）/ C: graph=结构+code引用（折中） |
 | D-MC-1 | GraphNode 扩字段后 `toJSON()` 体量增大——是否 dirty-only snapshot？ | A: 全量（简单） / B: dirty-only（省 IPC） |
 | D-MC-2 | `ModuleResultCache` 是删除还是退化为覆盖层？ | A: 删除（图直接持有） / B: 退化为覆盖层（热路径 cache hit 不走 IPC） |
-| D-MC-3 | view `compileResCache` 有无消费方？需 source-audit。 | 待查 |
+| D-MC-3 | view `compileResCache` 是 within-build cache（非 cross-rebuild）；不能退化到 graph node | 保留不动（TD §2.3 已查实） |
 | D-MC-4 | `BuildModel.add` 散装 entries 是删除还是退居兼容？ | A: 删除 / B: 兼容（watch 直传保留） |
