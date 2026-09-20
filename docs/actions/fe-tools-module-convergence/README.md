@@ -57,7 +57,7 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 
 | 子门 | 内容 | 风险 | 对 Packer 的价值 |
 | --- | --- | --- | --- |
-| **MC0** | graph 正确性：补 `removeDependency` / `removeNode` / merge diff；增量 closure 一致 | 低 | Packer 前置：可靠图 |
+| **MC0** | graph 正确性：补 `clearOutgoingEdges` / `removeNode`；`storeInfo` merge 后删 stale page/component node；增量 closure 一致（D-MC-5） | 低 | Packer 前置：可靠图 |
 | **MC3a** | `deriveFromGraph(graph, cache, entryId)` 函数：entry → 遍历 GraphNode → 取 module 集 → 从 ModuleResult 取 code → 返回 `[EmitModule]`（只读，不碰 emit） | 低（纯新增函数） | **Packer 核心形状** |
 | ~~MC3b~~ | ~~搬 emit/transform/bundle 到主线程~~ → **deferred**（打破 streaming；行为 0 风险高） | 高 | Packer bundle/emit 步骤；等 MC3a 成熟 |
 | ~~MC3c~~ | ~~view/style 在派生路径中的处理~~ → **deferred** | 中 | Packer 多 kind 支持 |
@@ -91,4 +91,4 @@ module-centric 伞（complete）:  词汇 + D-MF-1 + 刀 2+3（半套资产）
 | 2026-09-20 | review findings：验收 ID→A-MC3a；R-MC0∥D-MC-5；A-MC1/P-MC01 pass |
 | 2026-09-20 | **确认持 D-MC-0 A**：code 不上图；明确否决双字段上图候选（与 D-MC-0 A 撞名澄清） |
 | 2026-09-21 | MC3 拆为 MC3a（deriveFromGraph 函数，低风险）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）。伞目标调整为「推进 Packer 形状」 |
-| 2026-09-21 | review 冻结 D-MC-0..5（F-REV-1..5 修正）；§1 D-MF-2 不推翻；§3 重写为 MC0+MC3a；§4 接口表更新；D-MC-4 deferred 到 MC3b；D-MC-5 冻结（clearOutgoingEdges + removeNode + merge diff）。升 **`ready`** |
+| 2026-09-21 | review 冻结 D-MC-0..5（F-REV-1..5 修正）；§1 D-MF-2 不推翻；§3 重写为 MC0+MC3a；§4 接口表更新；D-MC-4 deferred 到 MC3b；D-MC-5 冻结（clearOutgoingEdges + removeNode + storeInfo merge 后删 stale node）。升 **`ready`** |
