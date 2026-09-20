@@ -88,12 +88,12 @@ main (build-pipeline, worker 返回后):
        })),
        transform: {
          strategy: 'perModule',
-         minify: compileConfig.minify,               // 从 options.compileConfig 取
-         target: compileConfig.esTarget.logic,
+         minify: ctx.compileConfig.minify,               // 从 ctx.compileConfig 取（compile task 存入）
+         target: ctx.compileConfig.esTarget.logic,
          platform: 'neutral',
        },
-       sourcemap: !!options.sourcemap,               // 从 options.sourcemap 取
-       sourcemapTargetPath: options.sourcemapTargetPath,
+       sourcemap: !!ctx.sourcemap,                    // 从 ctx.sourcemap 取（compile task 存入）
+       sourcemapTargetPath: ctx.sourcemapTargetPath,   // 从 ctx.sourcemapTargetPath 取
        filename: 'logic',
        relPrefix: 'main',
        storeInfo: ctx.storeInfo,                      // 上下文（供 resetStoreInfo）
@@ -139,7 +139,7 @@ emit-worker:
 
 | 组件 | 变更 |
 | --- | --- |
-| `compiler/logic/index.ts` | 删 `writeCompileRes` 调用（L676-678）；worker 不再 emit |
+| `compiler/logic/index.ts` | 删 `writeCompileRes` 函数（L45-58）+ 调用（L678,680）；删 `sourcemapTargetPath` 模块变量（L25）——仅 writeCompileRes 读，删后无读者；删 `import { emitEntry }`（L17）——logic 不再用；`logicBuildConfig`（L647-651）可简化（不再算 sourcemapTargetPath）；worker 不再 emit |
 | `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（纯函数，`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
 | `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `resetStoreInfo` + `produceEntry` 返回 `{ entry }`；`buildConfig: () => ({})`（compile 不用 config）；`successPayload: () => ({})`（无 graph） |
 | `pipeline/emit-worker-entry.ts`（新增） | `runWorker(emitEngine)` |
