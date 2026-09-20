@@ -8,7 +8,7 @@ Status: **draft（2026-09-21）** — 伞级 MUST；子门细化自有 R-*。
 - **stale edge 清理**：`addDependency` 只增不删（M2 F15 已发现）；删了 `require` 后旧边残留——须补 `removeDependency` 或增量 rebuild 时清边。
 - **stale node 清理**：删了 page/component 后 watch merge 不删 node——须补 node 清理或 merge 时 diff。
 - **增量 closure 一致**：cache hit 跳过编译时，transitive dep 边不更新——须确保 cache hit 的模块仍用 cached dep list（M2 已用 `cached.logicDependencies` 解决 logic；graph 边须与之一致）。
-- graph 是小程序维度的图（page/component/usingComponents），不是 fs module 维度——本伞不改变此定位，但须确保两层（声明层 + 编译发现层）一致。
+- graph 是小程序维度的图（page/component/usingComponents），不是 fs module 维度——GraphNode 管结构，ModuleResult 管内容——本伞不改变此定位，但须确保两层（声明层 + 编译发现层）一致。
 
 ## R-MC1（MUST）继承 module-centric 伞资产
 

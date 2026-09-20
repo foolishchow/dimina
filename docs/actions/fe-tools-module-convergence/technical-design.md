@@ -4,14 +4,23 @@ Status: **draft（2026-09-21）** — D-MC-* 待定（需 review 冻结）。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
-## §0 Graph 与 fs module 职责边界
+## §0 Graph 与 ModuleResult 职责边界
+
+### §0.0 术语
+
+| 术语 | 定义 | 代码对应 | 管什么 |
+| --- | --- | --- | --- |
+| **GraphNode** | 结构表示（graph 侧） | `model/dependency-graph.ts: GraphNode` | node + edge + entry + files + type + packageRoot |
+| **ModuleResult** | 内容表示（cache/fs 侧） | `model/module-result-cache.ts: CachedModuleResult` | code + sourcemap + logicDependencies |
+
+一个「模块」（可变换单位，如 `utils/helper`）同时有 **GraphNode**（它在图里的结构身份）和 **ModuleResult**（它的编译内容）。两者是同一模块的两个视图。
 
 ### §0.1 两个维度
 
 | 维度 | 主体 | 管什么 | 现状 |
 | --- | --- | --- | --- |
-| **graph（小程序维度）** | `DependencyGraph` | entry 集（page/component/app）、声明 dep 边（usingComponents）、文件归属（addFile）、编译发现的 transitive dep 边（require/import） | 有结构 + 文件归属；**无 code** |
-| **fs module（文件维度）** | `CompileInfo` / `scriptRes` / `ModuleResultCache` | 源文件内容（.js/.ts/.wxml）、编译结果 code + sourcemap、require/import dep 列表 | 有 code + dep list；**游离于 graph** |
+| **GraphNode 维度**（小程序维度） | `DependencyGraph` | entry 集（page/component/app）、声明 dep 边（usingComponents）、文件归属（addFile）、编译发现的 transitive dep 边（require/import） | 有结构 + 文件归属；**无 code** |
+| **ModuleResult 维度**（文件维度） | `CompileInfo` / `scriptRes` / `ModuleResultCache` | 源文件内容（.js/.ts/.wxml）、编译结果 code + sourcemap、require/import dep 列表 | 有 code + dep list；**游离于 graph** |
 
 ### §0.2 watch 变化分流
 
@@ -19,22 +28,22 @@ watch 变化触发两类变更，且互相交叉：
 
 | 变化类型 | 触发源 | 影响范围 | 例子 |
 | --- | --- | --- | --- |
-| **graph 结构变化** | `app.json` / `page.json` / `project.config.json` | entry 集（增删页）、声明 dep 边（usingComponents）、node 增删 | 新增 page → 新 node；删 component → 边断 |
-| **fs module 内容变化** | `.js` / `.ts` / `.wxml` / `.wxss` | module code 变、transitive dep 变（增删 require） | 改 `require('utils/b')` → dep 边变；改 code → cache 失效 |
+| **GraphNode 结构变化** | `app.json` / `page.json` / `project.config.json` | entry 集（增删页）、声明 dep 边（usingComponents）、node 增删 | 新增 page → 新 node；删 component → 边断 |
+| **ModuleResult 内容变化** | `.js` / `.ts` / `.wxml` / `.wxss` | module code 变、transitive dep 变（增删 require） | 改 `require('utils/b')` → dep 边变；改 code → cache 失效 |
 
 **交叉点：**
 
-- fs module 变化 → 可能触发 graph 变化（新增 `require` = 新 dep 边；删 `require` = stale edge）
-- graph 结构变化 → 可能触发 fs module 变化（新增 page = 新 module 要编译）
+- ModuleResult 变化 → 可能触发 GraphNode 变化（新增 `require` = 新 dep 边；删 `require` = stale edge）
+- GraphNode 结构变化 → 可能触发 ModuleResult 变化（新增 page = 新 module 要编译）
 
 ### §0.3 当前职责混乱
 
-graph 和 fs module 的职责**没有清晰边界**：
+GraphNode 与 ModuleResult 的职责**没有清晰边界**：
 
-1. **dep 边归属不清**：`addDependency` 在 graph 上调（L310/332/357/382），但 dep 发现发生在 fs module 编译时（AST walk）。graph 持有 dep 边，但边的内容（require/import 路径）来自 fs module。
-2. **code 归属不清**：graph 有 node 但无 code；fs module 有 code 但无结构。给定 entry，无法从 graph 遍历到 module code——必须跨两个维度查。
-3. **stale 清理归属不清**：fs module 删了 `require`，但 graph 边不删（无 `removeDependency`）——graph 结构与 fs module 实际依赖不一致。
-4. **cache 归属不清**：`ModuleResultCache` 持有 `{ compileInfo, logicDependencies }`——code + dep list 都在 cache 里，但 cache 游离于 graph。cache hit 时 dep 发现用 `cached.logicDependencies`（M2 F15），不用 graph 边——graph 边在 cache hit 时已不可信。
+1. **dep 边归属不清**：`addDependency` 在 graph 上调（L310/332/357/382），但 dep 发现发生在 ModuleResult 编译时（AST walk）。GraphNode 持有 dep 边，但边的内容（require/import 路径）来自 fs module。
+2. **ModuleResult code 归属不清**：GraphNode 有 node 但无 code；ModuleResult 有 code 但无结构。给定 entry，无法从 GraphNode 遍历到 ModuleResult code——必须跨两个维度查。
+3. **stale 清理归属不清**：ModuleResult 删了 `require`，但 GraphNode 边不删（无 `removeDependency`）——GraphNode 结构与 ModuleResult 实际依赖不一致。
+4. **ModuleResult cache 归属不清**：`ModuleResultCache` 持有 `{ compileInfo, logicDependencies }`——code + dep list 都在 cache 里，但 cache 游离于 graph。ModuleResult cache hit 时 dep 发现用 `cached.logicDependencies`（M2 F15），不用 graph 边——GraphNode 边在 cache hit 时已不可信。
 
 ### §0.4 职责边界方向（待 review 冻结）
 
