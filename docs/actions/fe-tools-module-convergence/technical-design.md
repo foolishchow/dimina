@@ -95,22 +95,42 @@ file change
 
 ### §0.6 数据流向：build vs watch
 
+#### 关键事实：emit 是 streaming
+
+emit（`BuildModel.add`）通过 `onOutput` 回调发生——worker 执行**期间**（streaming via sink），在 worker 返回**之前**。GraphNode merge + ModuleResult cache update 发生在 worker 返回**之后**（`executeTask` resolve 后）。
+
+```text
+// executor.ts
+worker.on('message', (message) => {
+    if (message.type === 'output') → onOutput(entry) → BuildModel.add  // ← 期间（streaming）
+    if (message.success) → resolve({ dependencyGraph, compileRes, logicDependencies })  // ← 返回后
+})
+```
+
 #### Build 模式（单次编译，无 cache）
 
 ```text
 storeInfo → GraphNode 全量创建（fresh）
     │
     ▼
-worker 编译 → ModuleResult 全量产出（CompileInfo[]）
+worker 执行（streaming）
     │
-    ├──► worker 返回 dependencyGraph → merge GraphNode（补 transitive 边）
-    └──► emit 用 ModuleResult 直接 emit → BuildModel.add
-            │
-            ▼
-         materialize
+    ├── compile → ModuleResult（CompileInfo[]）
+    │       │
+    │       ▼
+    ├── emitEntry → sink → postMessage(output) ──► main: onOutput → BuildModel.add
+    │                                                      （streaming，期间）
+    │
+    ├── 编译完成 → postMessage(success, { dependencyGraph, compileRes, logicDependencies })
+    │
+    ▼
+main: resolve → merge GraphNode + update cache                    （返回后）
+    │
+    ▼
+materialize
 ```
 
-方向：**GraphNode 先建 → ModuleResult 后产 → emit 用 ModuleResult**。GraphNode 不参与 emit。
+方向：**GraphNode 先建 → worker 执行期间 emit（streaming）→ worker 返回后 merge GraphNode + update cache → materialize**
 
 #### Watch 模式（增量，有 cache）
 
@@ -121,41 +141,47 @@ file change
 查询 GraphNode（computeInvalidatedModules → dirty 集）
     │
     ▼
-worker 收到 cache snapshot + invalidatedModules
+worker 执行（streaming，带 cache snapshot + invalidatedModules）
     │
-    ├──► cache hit → 用 ModuleResult（cached.compileInfo + cached.logicDependencies）
-    └──► cache miss → 重编译 → 产出新 ModuleResult + addDependency（补 GraphNode 边）
+    ├── cache hit → 用 ModuleResult（cached.compileInfo + cached.logicDependencies）
+    ├── cache miss → 重编译 → 产出新 ModuleResult + addDependency
+    │       │
+    │       ▼
+    ├── emitEntry → sink → postMessage(output) ──► main: onOutput → BuildModel.add
+    │                                                      （streaming，期间）
+    │
+    ├── 编译完成 → postMessage(success, { dependencyGraph, compileRes, logicDependencies })
     │
     ▼
-worker 返回 { compileRes, logicDependencies, dependencyGraph }
+main: resolve → merge GraphNode（仅 dirty 边）+ update cache（仅 dirty ModuleResult） （返回后）
     │
-    ├──► merge GraphNode（仅 dirty 模块的边更新）
-    ├──► update cache（仅 dirty 模块的 ModuleResult 更新）
-    └──► emit 用 compileRes（ModuleResult）直接 emit → BuildModel.add
-            │
-            ▼
-         materialize
+    ▼
+materialize
 ```
 
-方向：**先查 GraphNode → 再产/取 ModuleResult → emit 用 ModuleResult → 最后 merge GraphNode**。
+方向：**查 GraphNode → worker 执行期间 emit（streaming，cache hit/dirty）→ worker 返回后 merge GraphNode + update cache → materialize**
 
 #### 对比
 
-| | GraphNode 参与 emit？ | ModuleResult 参与 emit？ | 更新顺序 |
-| --- | --- | --- | --- |
-| Build | ❌ 不参与 | ✅ 直接用 | GraphNode 先建 → ModuleResult 后产 → emit |
-| Watch | ❌ 不参与（只用于算 dirty） | ✅ 直接用 | 查 GraphNode → 产 ModuleResult → emit → merge GraphNode |
+| | emit 时机 | GraphNode 参与 emit？ | ModuleResult 参与 emit？ | merge/update 时机 |
+| --- | --- | --- | --- | --- |
+| Build | worker 期间（streaming） | ❌ 不参与 | ✅ compileRes → emitEntry → sink | worker 返回后 |
+| Watch | worker 期间（streaming） | ❌ 不参与（只用于算 dirty） | ✅ compileRes → emitEntry → sink | worker 返回后 |
 
-**emit 现在完全用 ModuleResult，不用 GraphNode。** GraphNode 在 build 里是「前置结构」，在 watch 里是「查询 + 后置更新」——两个模式里 GraphNode 和 emit 的时序关系不同。
+**emit 现在完全用 ModuleResult（streaming），不用 GraphNode。** 两个模式一致：emit 在前，merge/update 在后。
 
 #### 对 MC3 的影响
 
-MC3（BuildModel 从图派生）要求 emit 发生在 GraphNode merge **之后**——因为派生需要最新的 GraphNode 结构。
+MC3（BuildModel 从 GraphNode 派生）要求：
 
-- **Build 模式**：GraphNode 在 storeInfo 时全量创建，编译后 merge transitive 边。emit 须等 merge 完成。
-- **Watch 模式**：worker 返回后先 merge GraphNode（仅 dirty 模块边），再从 GraphNode 派生 → emit。当前 merge 和 emit 并行-ish（都在 worker 返回后）；MC3 要求串行化：`worker 返回 → merge GraphNode → 从 GraphNode 派生 → emit`。
+1. emit 发生在 GraphNode merge **之后**——因为派生需要最新的 GraphNode 结构
+2. 但当前 emit 是 **streaming**（worker 期间），merge 在 **worker 返回后**——emit 在 merge 之前
 
-这是 MC3 的时序约束，须在子门 TD 中明确。
+**矛盾**：streaming emit 依赖 ModuleResult（已有），不依赖 GraphNode；MC3 派生依赖 GraphNode（须先 merge）。
+
+**MC3 须改变时序**：从 `worker 期间 emit → 返回后 merge` 改为 `worker 返回 → merge GraphNode → 从 GraphNode 派生 → emit`。这**打破 streaming emit 模式**——须缓冲全部 module，等 GraphNode merge 后再 emit。
+
+这是 MC3 的核心架构约束，须在子门 TD 中明确。
 
 ## §1 继承
 
