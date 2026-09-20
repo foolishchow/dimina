@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-emit-relocate
 
-Status: **draft（2026-09-21）** — D-ER-0..3 已定；D-ER-4..6 待讨论。
+Status: **ready（2026-09-21）** — D-ER-0..7 全冻结。
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -91,14 +91,93 @@ emit-worker:
 | 组件 | 变更 |
 | --- | --- |
 | `compiler/logic/index.ts` | 删 `writeCompileRes` 调用（L676-678）；worker 不再 emit |
-| `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（纯函数）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
-| `pipeline/emit-worker.ts`（新增） | emit-worker 入口：接收 params → `produceEntry` → postMessage(EmitEntry) |
+| `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（纯函数，`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
+| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `produceEntry` 返回 `{ entry }` |
+| `pipeline/emit-worker-entry.ts`（新增） | `runWorker(emitEngine)` |
+| `compiler/worker-runtime/executor.ts` | 泛化 `executeTask`：`pages` 变可选；`ENTRY_PATH` 加 `'emit'`；resolve 透传 payload（strip protocol fields `success`/`type`/`completedTasks`/`outputCount`） |
 | `pipeline/build-pipeline.ts` | worker 返回后：分组 → 发 emit-worker → 收 EmitEntry → BuildModel.add |
 | `compiler/core/env.ts` | `getPages()` 等 API 供主线程取 page 列表 + packageRoot |
 | `model/dependency-graph.ts` | 不变（`getDependencyClosure` 已在 MC3a 交付） |
 | `model/convergence.ts` | 不变（`deriveFromGraph` 不接入——deferred） |
 
-## §3 行为 0 守卫
+## §3 emit-engine 设计（D-ER-4/5/6 冻结）
+
+### §3.1 emit-engine
+
+```ts
+// pipeline/emit-engine.ts（新增）
+import { defineEngine } from '../worker-runtime/define-engine.ts'
+import { produceEntry } from './emit.ts'
+
+export const emitEngine = defineEngine({
+    name: 'emit',
+    buildConfig: (msg) => ({ ...msg }),  // 透传
+    compile: async ({ msg }) => {
+        const params = msg as EmitEntryParams
+        const entry = await produceEntry(params)  // 纯函数 → EmitEntry
+        return { entry }  // 通过 compileResult 返回
+    },
+    successPayload: () => ({}),  // 无 graph
+    cleanup: () => {},
+})
+```
+
+### §3.2 emit-worker-entry
+
+```ts
+// pipeline/emit-worker-entry.ts（新增）
+import { emitEngine } from './emit-engine.ts'
+import { runWorker } from '../worker-runtime/runtime.ts'
+runWorker(emitEngine)
+```
+
+### §3.3 executeTask 泛化（D-ER-7）
+
+```ts
+// compiler/worker-runtime/executor.ts
+
+// 1. ENTRY_PATH 加 'emit'
+const ENTRY_PATH = { ..., emit: `../pipeline/emit-worker-entry${WORKER_EXT}` }
+
+// 2. input.pages 变可选
+interface ExecuteTaskInput {
+    pages?: { mainPages: Record<string, unknown>[] }  // 可选
+    stageTimeoutMs?: number
+    [key: string]: unknown
+}
+const totalTasks = input.pages ? Object.keys(input.pages.mainPages).length : 0
+
+// 3. resolve 透传 payload（strip protocol fields）
+if (message.success) {
+    const { success, type, completedTasks, outputCount, ...payload } = message
+    resolve(payload)  // 透传，现有 caller 解构自己需要的
+}
+```
+
+向后兼容：现有 compile-worker 传 `pages`，emit-worker 不传。现有 caller 解构 `{ dependencyGraph, compileRes, logicDependencies }`，多余字段无害。
+
+### §3.4 emitEntry 拆分（D-ER-5）
+
+```ts
+// pipeline/emit.ts
+
+// 纯函数：提取 strategy.apply
+export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> {
+    const strategy = strategies[params.transform.strategy as keyof typeof strategies]
+    if (!strategy) throw new Error(`produceEntry: 未知 transform 策略 ${params.transform.strategy}`)
+    const { entry } = await strategy.apply(params)
+    return entry
+}
+
+// 兼容 wrapper：produce + sink（view/style 仍用）
+export async function emitEntry(params: EmitEntryParams) {
+    const entry = await produceEntry(params)
+    const store = abilityContext.getStore() as { sink?: { write: (e: unknown) => void } } | undefined
+    store?.sink?.write(entry)
+}
+```
+
+## §4 行为 0 守卫
 
 - `compileRes` 顺序不变：`filter` 只筛不改序，组内顺序 = 编译顺序
 - `emitEntry` perModule 策略不变：modDefine + sourcemap rebase + mergeSourcemap + esbuild minify 逻辑全不动
@@ -113,8 +192,4 @@ MC3a 交付的 `getDependencyClosure(entryId)` 在本 Action 中首次接入 pro
 
 ## 待定议题
 
-| ID | 议题 | 状态 |
-| --- | --- | --- |
-| D-ER-4 | emit-worker 生命周期：per-task 新建 vs 常驻 pool | 待讨论 |
-| D-ER-5 | `emitEntry` 拆分方式：`produceEntry` 纯函数 + `emitEntry` 兼容 wrapper | 待定 |
-| D-ER-6 | config 传递：`activeCompileConfig`/`enableSourcemap`/`sourcemapTargetPath` 当前在 worker context，搬主线程后怎么传 emit-worker | 待定 |
+无。D-ER-0..7 全冻结。

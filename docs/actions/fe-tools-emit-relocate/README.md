@@ -1,7 +1,7 @@
 # FE Tools Emit Relocate
 
 - Action: `fe-tools-emit-relocate`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 前身：[`fe-tools-module-convergence`](../_archive/complete/fe-tools-module-convergence/README.md)（**complete 已归档**；MC3b deferred → 本 Action 独立立项）
@@ -42,14 +42,14 @@
 | D-ER-1 | streaming | **打破**（CLI 无所谓；dev server 延迟后续优化） |
 | D-ER-2 | scope | **先只做 logic**（view/style 仍走 streaming；MC3c deferred） |
 | D-ER-3 | 分组方式 | **B：主线程从 graph 推导**（不依赖 worker 返回分组） |
+| D-ER-4 | emit-worker 生命周期 | **复用 worker-runtime**（`defineEngine` + `runWorker` + `workerPool`）；per-task 新建+销毁；emit-engine 的 compile 调 `produceEntry` 返回 entry |
+| D-ER-5 | emitEntry 拆分 | `produceEntry(params) → EmitEntry` 纯函数（`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
+| D-ER-6 | config 传递 | emit-engine 的 buildConfig 透传 msg；主线程把 transform/sourcemap 等参数直接放在 msg里 |
+| D-ER-7 | executeTask 泛化 | **A：泛化 `executeTask`**——`pages` 变可选；resolve 透传 payload（strip protocol fields）；`ENTRY_PATH` 加 'emit'。向后兼容。 |
 
 ## 待定议题
 
-| ID | 议题 | 状态 |
-| --- | --- | --- |
-| D-ER-4 | emit-worker 生命周期：per-task 新建 vs 常驻 pool | 待讨论 |
-| D-ER-5 | `emitEntry` 拆分方式：`produceEntry` 纯函数 + `emitEntry` 兼容 wrapper | 待定 |
-| D-ER-6 | config 传递：`activeCompileConfig`/`enableSourcemap` 等当前在 worker context，搬主线程后怎么传 | 待定 |
+无。D-ER-0..7 全冻结。
 
 ## Non-goals
 

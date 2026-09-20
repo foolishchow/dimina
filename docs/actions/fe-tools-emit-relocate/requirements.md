@@ -1,6 +1,6 @@
 # Requirements — fe-tools-emit-relocate
 
-Status: **draft（2026-09-21）**
+Status: **ready（2026-09-21）**
 
 ## R-ER-1（MUST）打破 streaming
 

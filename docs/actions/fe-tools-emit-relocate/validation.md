@@ -1,6 +1,6 @@
 # Validation — fe-tools-emit-relocate
 
-Status: **draft（2026-09-21）**
+Status: **ready（2026-09-21）**
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -16,10 +16,11 @@ Status: **draft（2026-09-21）**
 - `deriveFromGraph` 接入 production（deferred——module 顺序问题）
 - view/style emit 搬迁（MC3c deferred）
 - HMR patch 产物（另门）
-- emit-worker 生命周期（D-ER-4 待讨论）
+- emit-worker 生命周期（D-ER-4 已冻结：复用 worker-runtime）
 
 ## Actual
 
 | When | What |
 | --- | --- |
 | 2026-09-21 | 立项 `draft`：MC3b 从 convergence 伞 deferred → 独立立项。D-ER-0..3 已定（新 emit-worker / 打破 streaming / 只 logic / 主线程分组 B）。D-ER-4..6 待讨论。 |
+| 2026-09-21 | 讨论冻结 D-ER-4..7：D-ER-4 复用 worker-runtime（defineEngine+runWorker+workerPool，per-task）；D-ER-5 produceEntry 纯函数+emitEntry 兼容 wrapper；D-ER-6 buildConfig 透传 msg；D-ER-7 泛化 executeTask（pages 可选+resolve 透传+ENTRY_PATH 加 emit）。升 **`ready`**。 |
