@@ -18,7 +18,6 @@ Status: **ready（2026-09-21）** — 伞级规划。改 src 仅经子门 `in_pr
 | 3 | MC3 拆为 MC3a（deriveFromGraph）+ MC3b（搬 emit，deferred）+ MC3c（view/style，deferred）；伞目标调整为「推进 Packer 形状」 | **done**（2026-09-21） |
 | 4 | review 冻结剩余 D-MC-* → 升 `ready`；确认持 A、否决双字段上图 | **done**（2026-09-21 / 确认 2026-09-20） |
 | 5 | formalize 子门 MC0（graph 正确性） | pending |
-| 5a | review findings：A-MC3a ID；R-MC0∥D-MC-5；A-MC1 pass | **done**（2026-09-20） |
 | 6 | MC0 实施 → complete | pending |
 | 7 | formalize 子门 MC3a（deriveFromGraph） | pending |
 | 8 | MC3a 实施 → complete | pending |

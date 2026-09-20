@@ -35,3 +35,4 @@ Status: **ready（2026-09-21）**
 | 2026-09-20 | **确认持 D-MC-0 A**：code 不上图；否决 `logicCode`/`viewCode` 双字段上图（与 D-MC-0 A 撞名澄清）。TD/README/plan/notes 对齐。 |
 | 2026-09-21 | **MC3 拆分**：MC3a（deriveFromGraph 函数，只读，低风险，Packer 核心形状）+ MC3b（搬 emit 到主线程，deferred）+ MC3c（view/style 派生，deferred）。伞目标调整为「推进 Packer 形状」。全文档同步重写。 |
 | 2026-09-21 | review 第 2 轮：F-REV-10..13 修正。F-REV-10: `getDependencyClosure(entryId)` 遍历所有 kind 边（'app'/'component' 目标也是 logic module）；F-REV-11: stale node diff 限定 entry 型（page/component），非 entry 模块节点保留；F-REV-12: R-MC0 对齐 D-MC-5（`clearOutgoingEdges`）；F-REV-13: `merge()` 保持纯加法，node diff 在 `storeInfo` 层。 |
+| 2026-09-21 | review 第 3 轮：F-REV-14..18 修正。F-REV-14: "entry 型" → `type: 'page'` 或 `type: 'component'`（component `entry: false`）；F-REV-15: `getDependencyClosure` 显式含 `entryId` 自身；F-REV-16: §0.5 "merge diff" → "storeInfo 重建 + stale entry node 清理"；F-REV-17: §0.6 "MC3" → "MC3b"；F-REV-18: impl-plan Step 5a 遗留项移除。 |

@@ -83,7 +83,7 @@ GraphNode 与 ModuleResult 的职责**没有清晰边界**：
 file change
     │
     ├─ app.json / page.json 变？
-    │   └─► graph 结构变化（storeInfo 重建 / merge diff）
+    │   └─► graph 结构变化（storeInfo 重建 + stale entry node 清理）
     │       └─► entry 集 / 声明 dep 变 → 影响哪些 entry 要编
     │
     ├─ .js / .ts 变？
@@ -175,16 +175,16 @@ materialize
 
 **emit 现在完全用 ModuleResult（streaming），不用 GraphNode。** 两个模式一致：emit 在前，merge/update 在后。
 
-#### 对 MC3 的影响
+#### 对 MC3b 的影响
 
-MC3（BuildModel 从 GraphNode 派生）要求：
+MC3b（搬 emit 到主线程；BuildModel 从 GraphNode 派生）要求：
 
 1. emit 发生在 GraphNode merge **之后**——因为派生需要最新的 GraphNode 结构
 2. 但当前 emit 是 **streaming**（worker 期间），merge 在 **worker 返回后**——emit 在 merge 之前
 
-**矛盾**：streaming emit 依赖 ModuleResult（已有），不依赖 GraphNode；MC3 派生依赖 GraphNode（须先 merge）。
+**矛盾**：streaming emit 依赖 ModuleResult（已有），不依赖 GraphNode；MC3b 派生依赖 GraphNode（须先 merge）。
 
-**MC3 须改变时序**：从 `worker 期间 emit → 返回后 merge` 改为 `worker 返回 → merge GraphNode → 从 GraphNode 派生 → emit`。这**打破 streaming emit 模式**——须缓冲全部 module，等 GraphNode merge 后再 emit。
+**MC3b 须改变时序**：从 `worker 期间 emit → 返回后 merge` 改为 `worker 返回 → merge GraphNode → 从 GraphNode 派生 → emit`。这**打破 streaming emit 模式**——须缓冲全部 module，等 GraphNode merge 后再 emit。
 
 #### §0.6 补充审查发现（2026-09-21）
 
@@ -244,18 +244,18 @@ if (options.dependencyGraph) {
 
 fresh + merge → **stale node 可通过 merge 复活**（删了的 page 如果在旧 snapshot 有 node，merge 会加回来）。这是 MC0 stale node 的根因。
 
-##### MC3 影响汇总
+##### MC3b 影响汇总
 
-MC3 不只是「打破 streaming」——还要：
+MC3b 不只是「打破 streaming」——还要：
 
 1. 把 emit（transform + bundle）从 worker 搬到主线程（或改两阶段协议）
 2. 处理三 stage 并发（emit 派生须在全部 stage merge 后）
 3. 从 CompileInfo（module 级）→ EmitEntry（entry 级）的转换搬到主线程
-4. MC3 派生只涉及 logic（有 compileRes + cache）；view/style 须分别处理或排除
+4. MC3b 派生只涉及 logic（有 compileRes + cache）；view/style 须分别处理或排除
 
-这是 MC3 的核心架构约束，须在子门 TD 中明确。
+这是 MC3b 的核心架构约束，须在子门 TD 中明确。
 
-> **注（2026-09-21）**：以上 F-SIM-1..5 + MC3 影响汇总描述的是 **MC3b**（搬 emit 到主线程）的约束，已 **deferred**。MC3a（deriveFromGraph 只读函数）无此约束——它只读 graph + cache，不碰 emit/transform/bundle，不打破 streaming。F-SIM-1..5 的审查发现是 MC3 拆分决策的依据。
+> **注（2026-09-21）**：以上 F-SIM-1..5 + MC3b 影响汇总描述的是 **MC3b**（搬 emit 到主线程）的约束，已 **deferred**。MC3a（deriveFromGraph 只读函数）无此约束——它只读 graph + cache，不碰 emit/transform/bundle，不打破 streaming。F-SIM-1..5 的审查发现是 MC3 拆分决策的依据。
 
 ## §1 继承
 
@@ -350,7 +350,7 @@ entries: Map<string, { entryId, kind, files: [{path, code}], sourcemaps?: [{path
 **D-MC-5 冻结：MC0 实施方式**
 
 - **stale edge**：dirty 模块 AST walk 前，清其 outgoing 'logic' 边，然后 walk 重新加。需补 `clearOutgoingEdges(id, kind?)` API。cache hit 模块的边不清（其 require 未变）。调用点在 worker 内 `logic/index.ts`（worker 的 graph 是 storeInfo snapshot）。
-- **stale node**：`storeInfo` merge 后，对比 `createInitialDependencyGraph()` 新建的 entry 集（page/component/app），删除旧 snapshot merge 回来但不在新建集中的 **entry 型** node（page/component）。非 entry 模块节点（如 `utils/helper`）保留——编译时重新发现/验证。需补 `removeNode(id)` API，须级联清理 `dependencies`/`dependents`/`fileOwners`/`fileKinds`。**不在 `merge()` 方法本身做 diff**——`merge()` 保持纯加法语义（主线程 merge worker 返回值时须保留新发现节点）。
+- **stale node**：`storeInfo` merge 后，对比 `createInitialDependencyGraph()` 新建的节点集（`type: 'page'` 或 `type: 'component'`），删除旧 snapshot merge 回来但不在新建集中的 **page 型 / component 型** node。注意：component 节点 `entry: false`（`env.ts:872` 只设 `type: 'component'`），不能用 `entry === true` 判断。非 entry 模块节点（`type: 'module'`，如 `utils/helper`）保留——编译时重新发现/验证。需补 `removeNode(id)` API，须级联清理 `dependencies`/`dependents`/`fileOwners`/`fileKinds`。**不在 `merge()` 方法本身做 diff**——`merge()` 保持纯加法语义（主线程 merge worker 返回值时须保留新发现节点）。
 - **closure 一致**：dirty 模块边清+重建 = fresh；cache hit 模块边不碰 = stale 但不影响正确性（cache hit 用 `cached.logicDependencies` 不用 graph 边）。`computeInvalidatedModules` 用 `getDirectDependents`（incoming 边）——incoming 边的 staleness 只影响 dirty 集是否 over-inclusive（安全）。
 
 ### §3.1 MC3a: deriveFromGraph 函数（Packer 核心形状）
@@ -387,7 +387,7 @@ function deriveFromGraph(
 
 - **只读**：不改 graph、不改 cache、不调 `emitEntry`、不做 transform/bundle。
 - **返回 `[EmitModule]`**：与 `pipeline/emit.ts` 的 `ModuleCollection` 契约一致。
-- **依赖 MC0**：`getDependencyClosure(entryId)` 须返回正确的依赖闭包（MC0 修复 stale edge 后才可靠）。遍历**所有 kind** outgoing 边（`'logic'` + `'app'` + `'component'`）——`'app'` 和 `'component'` 目标也有 `.js`（logic module），须包含。非 logic 模块由 `cache.get(id)` 自然过滤。
+- **依赖 MC0**：`getDependencyClosure(entryId)` 须返回正确的依赖闭包（MC0 修复 stale edge 后才可靠）。遍历**所有 kind** outgoing 边（`'logic'` + `'app'` + `'component'`）——`'app'` 和 `'component'` 目标也有 `.js`（logic module），须包含。非 logic 模块由 `cache.get(id)` 自然过滤。**闭包含 `entryId` 自身**——entry 的自有 code（如 `pages/index/index.js`）也是 logic module，须包含在返回结果中。
 - **不替代 streaming**：MC3a 是独立新增函数；streaming emit（worker 内 `writeCompileRes` → `emitEntry`）不动。MC3b（搬 emit 到主线程）deferred。
 - **用途**：提供「从 graph + cache 重建 module 集」的能力——Packer 形状。未来 MC3b 可用此函数替代 streaming。
 
@@ -421,4 +421,4 @@ function deriveFromGraph(
 | D-MC-2 | MC2 view 入图 | **deferred**：同 MC1 |
 | D-MC-3 | view `compileResCache` | **保留不动**：within-build cache（非 cross-rebuild），不退化到 graph node |
 | D-MC-4 | `BuildModel.add` 散装 entries | **deferred 到 MC3b**：MC3a 是只读函数，不碰 `BuildModel.add`。MC3b（搬 emit）时再评估 |
-| D-MC-5 | MC0 实施方式 | **已冻结**：dirty 模块 AST walk 前清 outgoing 'logic' 边（`clearOutgoingEdges`）；`storeInfo` merge 后删 stale entry 型 node（`removeNode`，级联清理 deps/dependents/fileOwners/fileKinds）；非 entry 模块节点保留；`merge()` 保持纯加法语义；cache hit 边不清（安全） |
+| D-MC-5 | MC0 实施方式 | **已冻结**：dirty 模块 AST walk 前清 outgoing 'logic' 边（`clearOutgoingEdges`）；`storeInfo` merge 后删 stale page 型 / component 型 node（`type: 'page'` 或 `type: 'component'`，非 `entry === true`——component `entry: false`）（`removeNode`，级联清理 deps/dependents/fileOwners/fileKinds）；非 entry 模块节点保留；`merge()` 保持纯加法语义；cache hit 边不清（安全） |
