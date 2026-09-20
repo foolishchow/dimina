@@ -349,8 +349,8 @@ entries: Map<string, { entryId, kind, files: [{path, code}], sourcemaps?: [{path
 
 **D-MC-5 冻结：MC0 实施方式**
 
-- **stale edge**：dirty 模块 AST walk 前，清其 outgoing 'logic' 边，然后 walk 重新加。需补 `clearOutgoingEdges(id, kind?)` API（或 `removeDependency(from, to, kind?)`）。cache hit 模块的边不清（其 require 未变）。
-- **stale node**：watch merge 时 diff node 集——新 snapshot 没有的 node 从图中删。需补 `removeNode(id)` API 或 merge 时做 diff。
+- **stale edge**：dirty 模块 AST walk 前，清其 outgoing 'logic' 边，然后 walk 重新加。需补 `clearOutgoingEdges(id, kind?)` API。cache hit 模块的边不清（其 require 未变）。调用点在 worker 内 `logic/index.ts`（worker 的 graph 是 storeInfo snapshot）。
+- **stale node**：`storeInfo` merge 后，对比 `createInitialDependencyGraph()` 新建的 entry 集（page/component/app），删除旧 snapshot merge 回来但不在新建集中的 **entry 型** node（page/component）。非 entry 模块节点（如 `utils/helper`）保留——编译时重新发现/验证。需补 `removeNode(id)` API，须级联清理 `dependencies`/`dependents`/`fileOwners`/`fileKinds`。**不在 `merge()` 方法本身做 diff**——`merge()` 保持纯加法语义（主线程 merge worker 返回值时须保留新发现节点）。
 - **closure 一致**：dirty 模块边清+重建 = fresh；cache hit 模块边不碰 = stale 但不影响正确性（cache hit 用 `cached.logicDependencies` 不用 graph 边）。`computeInvalidatedModules` 用 `getDirectDependents`（incoming 边）——incoming 边的 staleness 只影响 dirty 集是否 over-inclusive（安全）。
 
 ### §3.1 MC3a: deriveFromGraph 函数（Packer 核心形状）
@@ -365,13 +365,15 @@ function deriveFromGraph(
   cache: ModuleResultCache,
   entryId: string,
 ): EmitModule[] {
-  // 1. 从 entry node 出发，遍历 'logic' kind 依赖闭包
-  const moduleIds = graph.getDependencyClosure(entryId, 'logic')
+  // 1. 从 entry node 出发，遍历所有 kind outgoing 边的依赖闭包
+  //    不按 kind 过滤——'app' 和 'component' 边的目标也是 logic module（有 .js）
+  //    非 logic 模块（view/style）不在 ModuleResultCache 中，cache.get(id) 自然过滤
+  const moduleIds = graph.getDependencyClosure(entryId)
   // 2. 对每个 moduleId，从 ModuleResult 取 code + map
   const modules: EmitModule[] = []
   for (const id of moduleIds) {
     const cached = cache.get(id)
-    if (!cached) continue  // 未编译过的 module 不返回
+    if (!cached) continue  // 非 logic 模块（view/style）不在 cache → 跳过
     modules.push({
       moduleId: id,
       code: cached.compileInfo.code,
@@ -385,7 +387,7 @@ function deriveFromGraph(
 
 - **只读**：不改 graph、不改 cache、不调 `emitEntry`、不做 transform/bundle。
 - **返回 `[EmitModule]`**：与 `pipeline/emit.ts` 的 `ModuleCollection` 契约一致。
-- **依赖 MC0**：`getDependencyClosure(entryId, 'logic')` 须返回正确的依赖闭包（MC0 修复 stale edge 后才可靠）。
+- **依赖 MC0**：`getDependencyClosure(entryId)` 须返回正确的依赖闭包（MC0 修复 stale edge 后才可靠）。遍历**所有 kind** outgoing 边（`'logic'` + `'app'` + `'component'`）——`'app'` 和 `'component'` 目标也有 `.js`（logic module），须包含。非 logic 模块由 `cache.get(id)` 自然过滤。
 - **不替代 streaming**：MC3a 是独立新增函数；streaming emit（worker 内 `writeCompileRes` → `emitEntry`）不动。MC3b（搬 emit 到主线程）deferred。
 - **用途**：提供「从 graph + cache 重建 module 集」的能力——Packer 形状。未来 MC3b 可用此函数替代 streaming。
 
@@ -393,7 +395,7 @@ function deriveFromGraph(
 
 | 组件 | MC0 变更 | MC3a 变更 |
 | --- | --- | --- |
-| `dependency-graph.ts` | 补 `clearOutgoingEdges(id, kind?)` / `removeNode(id)`；merge 时 diff node 集 | 新增 `getDependencyClosure(entryId, kind?)`（遍历依赖闭包） |
+| `dependency-graph.ts` | 补 `clearOutgoingEdges(id, kind?)` / `removeNode(id)`；`storeInfo` merge 后清 stale entry node | 新增 `getDependencyClosure(entryId)`（遍历所有 kind outgoing 边闭包） |
 | `module-result-cache.ts` | 不变 | 不变（deriveFromGraph 只读 cache.get） |
 | `logic/index.ts` | dirty 模块 AST walk 前清 outgoing 'logic' 边 | 不变 |
 | `view/index.ts` | 不变 | 不变（MC3c deferred） |
@@ -419,4 +421,4 @@ function deriveFromGraph(
 | D-MC-2 | MC2 view 入图 | **deferred**：同 MC1 |
 | D-MC-3 | view `compileResCache` | **保留不动**：within-build cache（非 cross-rebuild），不退化到 graph node |
 | D-MC-4 | `BuildModel.add` 散装 entries | **deferred 到 MC3b**：MC3a 是只读函数，不碰 `BuildModel.add`。MC3b（搬 emit）时再评估 |
-| D-MC-5 | MC0 实施方式 | **已冻结**：dirty 模块 AST walk 前清 outgoing 'logic' 边（`clearOutgoingEdges`）；merge 时 diff node 集（`removeNode`）；cache hit 边不清（安全） |
+| D-MC-5 | MC0 实施方式 | **已冻结**：dirty 模块 AST walk 前清 outgoing 'logic' 边（`clearOutgoingEdges`）；`storeInfo` merge 后删 stale entry 型 node（`removeNode`，级联清理 deps/dependents/fileOwners/fileKinds）；非 entry 模块节点保留；`merge()` 保持纯加法语义；cache hit 边不清（安全） |
