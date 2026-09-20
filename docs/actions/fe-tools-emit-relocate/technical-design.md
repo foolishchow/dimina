@@ -70,7 +70,8 @@ main (build-pipeline, worker 返回后):
        let owner = null                                      // 默认 main
        for (const sub of subPkgs) {
          if (m.path.startsWith(sub.root + '/')) {
-           owner = transSubDir(sub.root.endsWith('/') ? sub.root : sub.root + '/')
+           // transSubDir 是 env.ts 私有函数，内联：sub_${root.replace(/\/$/, '')}
+           owner = `sub_${sub.root.replace(/\/$/, '')}`
            break
          }
        }
@@ -140,10 +141,11 @@ emit-worker:
 | --- | --- |
 | `compiler/logic/index.ts` | 删 `writeCompileRes` 调用（L676-678）；worker 不再 emit |
 | `pipeline/emit.ts` | 拆 `produceEntry(params) → EmitEntry`（纯函数，`strategy.apply` 提取）+ `emitEntry(params)`（produce + sink，兼容 view/style streaming） |
-| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `resetStoreInfo` + `produceEntry` 返回 `{ entry }` |
+| `pipeline/emit-engine.ts`（新增） | `defineEngine` 定义 emit-engine：compile 调 `resetStoreInfo` + `produceEntry` 返回 `{ entry }`；`buildConfig: () => ({})`（compile 不用 config）；`successPayload: () => ({})`（无 graph） |
 | `pipeline/emit-worker-entry.ts`（新增） | `runWorker(emitEngine)` |
 | `compiler/worker-runtime/executor.ts` | 泛化 `executeTask`：`pages` 变可选；`ENTRY_PATH` 加 `'emit'`；resolve 透传 payload（strip protocol fields `success`/`type`/`completedTasks`/`outputCount`） |
-| `pipeline/build-pipeline.ts` | 新增 (3.5) logic emit task（分组 → emit-worker → BuildModel.add）；worker 返回后编排 |
+| `pipeline/stage-channel.ts` | `runCompileStage` 存 `result.compileRes` 到 `ctx.logicCompileRes`（供 3.5 task 分组） |
+| `pipeline/build-pipeline.ts` | 新增 (3.5) logic emit task（分组 → emit-worker → BuildModel.add）；compile task 存 `compileConfig`/`sourcemap`/`sourcemapTargetPath` 到 `ctx`（供 3.5 task 取用）；worker 返回后编排 |
 | `compiler/core/env.ts` | `getPages()` 等 API 供主线程取 page 列表 + packageRoot |
 | `model/dependency-graph.ts` | 不变（`getDependencyClosure` 已在 MC3a 交付） |
 | `model/convergence.ts` | 不变（`deriveFromGraph` 不接入——deferred） |
@@ -170,6 +172,8 @@ runWorker(emitEngine)
 
 // 1. ENTRY_PATH 加 'emit'
 const ENTRY_PATH = { ..., emit: `../pipeline/emit-worker-entry${WORKER_EXT}` }
+// 注：script cast 类型也须扩 'emit'
+const script = engine.name as 'view' | 'logic' | 'style' | 'emit'
 
 // 2. input.pages 变可选
 interface ExecuteTaskInput {
@@ -180,7 +184,13 @@ interface ExecuteTaskInput {
 const totalTasks = input.pages ? Object.keys(input.pages.mainPages).length : 0
 
 // 3. resolve 透传 payload（strip protocol fields）
+//    guards 保留：isResolved + onOutput mismatch check 不变
 if (message.success) {
+    if (isResolved) return                                    // ← 保留
+    if (onOutput && message.outputCount !== receivedOutputCount) {  // ← 保留
+        await terminateWorker(); reject(new Error(`...`)); return
+    }
+    isResolved = true; await terminateWorker()
     const { success, type, completedTasks, outputCount, ...payload } = message
     resolve(payload)  // 透传，现有 caller 解构自己需要的
 }
@@ -228,7 +238,7 @@ import type { EmitEntryParams } from './emit.ts'
 
 export const emitEngine = defineEngine({
     name: 'emit',
-    buildConfig: (msg) => ({ ...msg }),
+    buildConfig: () => ({}),  // compile 不用 config
     compile: async ({ msg }) => {
         const params = msg as EmitEntryParams & { storeInfo: Parameters<typeof resetStoreInfo>[0] }
         resetStoreInfo(params.storeInfo)  // 搭建上下文（getWorkPath 等可用）
