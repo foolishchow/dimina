@@ -23,7 +23,7 @@ export interface EmitEntrySourcemap {
 }
 export interface EmitEntry {
 	entryId: string
-	kind: 'view' | 'logic'
+	kind: 'view' | 'logic' | 'style'
 	files: EmitEntryFile[]
 	sourcemaps?: EmitEntrySourcemap[]
 }

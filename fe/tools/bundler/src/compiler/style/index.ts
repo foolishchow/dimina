@@ -4,7 +4,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { compileStyle } from '@vue/compiler-sfc'
 import type { RawSourceMap } from 'source-map-js'
 import autoprefixer from 'autoprefixer'
-import { transform } from 'esbuild'
 import postcss from 'postcss'
 import type { Attribute as SelectorAttribute, AttributeOptions } from 'postcss-selector-parser'
 import selectorParser from 'postcss-selector-parser'
@@ -16,6 +15,7 @@ import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { EnhancedError, StyleCompileError } from '../../shared/utils.ts'
+import { emitStyle, minifyCss } from './emit.ts'
 const compileRes = new Map<string, { code: string; map: string | null }>()
 const builtInTagNames = new Set(tagWhiteList)
 const autoprefixerPlugin = autoprefixer({ overrideBrowserslist: ['cover 99.5%'] })
@@ -64,37 +64,16 @@ async function compileSS(pages: StyleModule[], root: string | null, progress: Pr
 	// page 样式
 	for (const page of pages) {
 		const result = await buildCompileCss(page, new Set(), options)
-		let code = result.code
 		const filename = `${page.path.replace(/\//g, '_')}`
-		const outputDir = root
-			? `${getTargetPath()}/${root}`
-			: `${getTargetPath()}/main`
 		// 相对发布根的物化路径前缀（D-P2）
 		const relPrefix = root ? `${root}` : 'main'
-		if (!fs.existsSync(outputDir)) {
-			fs.mkdirSync(outputDir, { recursive: true })
-		}
-		if (options.sourcemap) {
-			const mapFileName = `${filename}.css.map`
-			const map = JSON.parse(result.map!)
-			map.file = `${filename}.css`
-			code += `\n/*# sourceMappingURL=${mapFileName} */\n`
-			const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
-			sink.write({
-				entryId: page.path,
-				kind: 'style',
-				files: [{ path: `${relPrefix}/${filename}.css`, code }],
-				sourcemaps: [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }],
-			})
-		}
-		else {
-			const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
-			sink.write({
-				entryId: page.path,
-				kind: 'style',
-				files: [{ path: `${relPrefix}/${filename}.css`, code }],
-			})
-		}
+
+		const entry = await emitStyle(
+			[{ moduleId: page.path, code: result.code, map: result.map }],
+			{ entryId: page.path, filename, relPrefix, sourcemap: !!options.sourcemap, minify: options.minify !== false },
+		)
+		const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
+		sink.write(entry as unknown as Record<string, unknown>)
 
 		progress.completedTasks++
 	}
@@ -423,12 +402,10 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		}
 		else {
 			const prefixedResult = await postcss(postcssPlugins).process(scopedResult.code, { from: undefined })
+			// esbuild CSS minify per-module（行为 0：保留模块间 \n）
 			if (shouldMinify) {
-				const minifiedResult = await transform(prefixedResult.css, {
-					loader: 'css',
-					minify: true,
-				})
-				finalResult = { css: minifiedResult.code, map: null }
+				const minifiedCode = await minifyCss(prefixedResult.css)
+				finalResult = { css: minifiedCode, map: null }
 			}
 			else {
 				finalResult = { css: prefixedResult.css, map: null }
@@ -546,7 +523,7 @@ function processHostSelector(selector: string, moduleId: string): string {
 		.replace(/:host(?![\w-])/g, hostSelector)
 }
 
-export { boostExternalClassSelectors, compileSS, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath }
+export { buildCompileCss, boostExternalClassSelectors, compileSS, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath }
 
 // P-WR02: engine export（不动调度，F47）
 async function styleCompile({ msg, progress, config }: CompileOptions): Promise<void> {
