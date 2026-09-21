@@ -39,7 +39,7 @@
 
 - 前身 validation.md 3 条偏差：[`fe-tools-emit-transform-split/validation.md`](../_archive/complete/fe-tools-emit-transform-split/validation.md) V-ET-5/V-ET-7
 - logic 真抽出模板：`logic/parse-walk.ts`（406 行，自包含，无循环依赖）
-- W1 cycle-break 机制：`view/wxml/renderer/vue/live.ts`（`export let` + `bindVueToolsLive` 注入）
+- W1 cycle-break 机制（两套 shim）：`view/wxml/renderer/vue/live.ts`（`export let` + `bindVueToolsLive` 注入，12 binding）+ `view/wxml/load/orchestrator-live.ts`（`export let` + `bindTransformOrchestrator` 注入，3 binding）
 - 行为 0 纪律：nomap + sourcemap 产物 diff=0；全量 vitest 绿
 
 ## 交付物
@@ -53,9 +53,9 @@
 ## Requirements
 
 - R-PW-1 MUST `style/parse-walk.ts` 含 `enhanceCSS` + `buildCompileCss` + 所有 helpers（非 re-export）
-- R-PW-2 MUST `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + 表达式 helpers（非 re-export）
+- R-PW-2 MUST `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `transTagWxs` + 表达式 helpers（非 re-export）
 - R-PW-3 MUST `style/index.ts` 不含 `enhanceCSS` / `buildCompileCss` 定义（只 import + 编排）
-- R-PW-4 MUST `view/index.ts` 不含 `compileViewTree` / `compileModule` / `viewParseWalk` 定义（只 import + 编排）
+- R-PW-4 MUST `view/index.ts` 不含 `compileViewTree` / `compileModule` / `viewParseWalk` / `insertWxsToRenderResult` / `transTagWxs` 定义（只 import + 编排 + `bindVueToolsLive` + `bindTransformOrchestrator` 注入 + re-export from `tools.ts`/`include.ts`）
 - R-PW-5 MUST 无循环依赖（ESM import 单向：index.ts → parse-walk.ts）
 - R-PW-6 MUST 3 条 fallback 在 TD 中标注为正式决策
 - R-PW-7 MUST `collectAllWxsModules` 缓存泄漏在 TD 中定性记录

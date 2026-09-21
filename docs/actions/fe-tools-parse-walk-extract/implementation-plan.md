@@ -23,8 +23,8 @@ Status: **draft**（2026-09-21）。
 
 | 动作 | 文件 |
 | --- | --- |
-| `view/parse-walk.ts`：从 `index.ts` 搬入全部 parse+walk 代码（模块级变量 + 表达式 helpers + wxs helpers + `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `initWxsFilePathMap`/`scanWxsFiles`/`registerWxsModule`/`isRegisteredWxsModule`/`collectAllWxsModules`/`isWxsModuleByContent`/`extractWxsDependencies`/`loadWxsModule`/`processWxsContent`/`processWxsDependency`/`processIncludedFileWxsDependencies`/`transAsses`/`parseJs`/`getProgramCode`/`addOptionalChaining`/`parseSafeBraceExp`/`transformTextInterpolation`/`parseBraceExp`/`isWrappedByBraces`/`splitWithBraces`/`parseClassRules`/`parseForExp`/`getForItemName`/`getForIndexName`/`parseKeyExpression`/`parseTemplateDataExp`/`escapeQuotes`/`isStringLiteral`/`getStringLiteralRawValue`/`getSource`/`applyCodeReplacements` 等）。import 依赖跟着搬。export `viewParseWalk` + W1 `bindVueToolsLive` 需要的 12 个函数 + `compileResCache.clear()`/`templateRenderCache.clear()`/`wxsModuleRegistry.clear()`/`wxsFilePathMap.clear()`/`wxsScannedWorkPath` 清理函数。 | `view/parse-walk.ts`（重写） |
-| `view/index.ts`：删搬走的代码，import from `parse-walk.ts`。保留 `compileML`（编排）+ `bindVueToolsLive` 调用 + `viewCompile`/`viewSuccessPayload`/`viewEngine`。`viewCompile` 的清理调用改调 `parse-walk.ts` 导出的清理函数。 | `view/index.ts`（变薄） |
+| `view/parse-walk.ts`：从 `index.ts` 搬入全部 parse+walk 代码（模块级变量 + 表达式 helpers + wxs helpers + `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `initWxsFilePathMap`/`scanWxsFiles`/`registerWxsModule`/`isRegisteredWxsModule`/`collectAllWxsModules`/`isWxsModuleByContent`/`extractWxsDependencies`/`loadWxsModule`/`processWxsContent`/`processWxsDependency`/`processIncludedFileWxsDependencies`/`transAsses`/`transTagWxs`/`parseJs`/`getProgramCode`/`addOptionalChaining`/`parseSafeBraceExp`/`transformTextInterpolation`/`parseBraceExp`/`isWrappedByBraces`/`splitWithBraces`/`parseClassRules`/`parseForExp`/`getForItemName`/`getForIndexName`/`parseKeyExpression`/`parseTemplateDataExp`/`escapeQuotes`/`isStringLiteral`/`getStringLiteralRawValue`/`getSource`/`applyCodeReplacements` 等）。import `enableSourcemap` from `state.ts`。export `viewParseWalk` + W1 `bindVueToolsLive` 需要的 12 个函数 + W1 `bindTransformOrchestrator` 需要的 3 个函数（`transTagWxs`/`transAsses`/`processIncludedFileWxsDependencies`）+ `ensureWxsScan(workPath)` + `clearViewCaches()`。 | `view/parse-walk.ts`（重写） |
+| `view/index.ts`：删搬走的代码，import from `parse-walk.ts`。保留 `compileML`（编排）+ `bindVueToolsLive` 调用（12 fns）+ `bindTransformOrchestrator` 调用（3 fns）+ `viewCompile`/`viewSuccessPayload`/`viewEngine`。保留 re-export 块（`generateVModelTemplate`/`generateSlotDirective`/`normalizeTemplateSyntax` from `tools.ts`；`processIncludeConditionalAttrs` from `include.ts`）。`compileML` 调 `ensureWxsScan(workPath)` 替代直接读写 `wxsScannedWorkPath`；`viewCompile` 调 `clearViewCaches()` 替代逐个 cleanup。 | `view/index.ts`（变薄） |
 
 **验证**：`view/parse-walk.ts` 非 re-export；`view/index.ts` 不含 `compileViewTree`/`compileModule`/`viewParseWalk`/`insertWxsToRenderResult` 定义；W1 `bindVueToolsLive` 12 个 binding 全覆盖；tsc 0 错；vitest 绿；diff=0。
 
@@ -65,10 +65,14 @@ Status: **draft**（2026-09-21）。
 
 ### view
 
-- W1 `live.ts` 12 个 binding：`transformTextInterpolation` / `isWrappedByBraces` / `parseBraceExp` / `parseSafeBraceExp` / `parseForExp` / `getForItemName` / `getForIndexName` / `parseKeyExpression` / `parseClassRules` / `parseTemplateDataExp` / `escapeQuotes` / `insertWxsToRenderResult`——全部从 `parse-walk.ts` export，`index.ts` import 后注入。
-- `viewCompile` 清理：`compileResCache.clear()` / `templateRenderCache.clear()` / `wxsModuleRegistry.clear()` / `wxsFilePathMap.clear()` / `wxsScannedWorkPath = null` / `optionalChainingCache.clear()`——`parse-walk.ts` export 清理函数（如 `clearViewCaches()`）或逐个 export。
+- W1 `live.ts` 12 个 binding（shim 1）：`transformTextInterpolation` / `isWrappedByBraces` / `parseBraceExp` / `parseSafeBraceExp` / `parseForExp` / `getForItemName` / `getForIndexName` / `parseKeyExpression` / `parseClassRules` / `parseTemplateDataExp` / `escapeQuotes` / `insertWxsToRenderResult`——全部从 `parse-walk.ts` export，`index.ts` import 后注入。
+- W1 `orchestrator-live.ts` 3 个 binding（shim 2）：`transTagWxs` / `transAsses` / `processIncludedFileWxsDependencies`——同上，从 `parse-walk.ts` export，`index.ts` import 后注入。
+- `enableSourcemap` 来自 `state.ts`（非 `index.ts` 模块级变量）——`parse-walk.ts` 直接 import from `state.ts`（不需从 `index.ts` 过）。
+- `wxsScannedWorkPath` 是 `let` 变量——ESM live binding 不可从导入方赋值。`parse-walk.ts` export `ensureWxsScan(workPath)` 函数（封装 `wxsScannedWorkPath !== workPath` check + `initWxsFilePathMap` + 赋值）；`compileML` 调 `ensureWxsScan` 替代直接读写。
+- `viewCompile` 清理：`compileResCache.clear()` / `templateRenderCache.clear()` / `wxsModuleRegistry.clear()` / `wxsFilePathMap.clear()` / `wxsScannedWorkPath = null` / `optionalChainingCache.clear()`——`parse-walk.ts` export `clearViewCaches()` 封装全部，`viewCompile` 调 `clearViewCaches()`。
+- re-export 保留：`generateVModelTemplate` / `generateSlotDirective` / `normalizeTemplateSyntax`（from `tools.ts`）+ `processIncludeConditionalAttrs`（from `include.ts`）——这些不是 parse+walk 函数，不从 `parse-walk.ts` 搬，`index.ts` 继续 import + re-export。
 - `compileML` 调 `viewParseWalk` + `emitEntry`——`viewParseWalk` from `parse-walk.ts`，`emitEntry` from `pipeline/emit.ts`。
-- `compileML` 调 `initWxsFilePathMap` + 读 `wxsScannedWorkPath`——这些从 `parse-walk.ts` import。
+- `activeCompileConfig` 是 `let` 变量，仅 `compileML`（读）和 `viewCompile`（写）用——留在 `index.ts`，不搬。
 
 ## 验证矩阵
 

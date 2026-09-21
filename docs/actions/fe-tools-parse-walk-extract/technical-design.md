@@ -32,21 +32,24 @@ style/emit.ts (58 行):
 
 ```text
 view/index.ts (1476 行):
-  模块级变量: optionalChainingCache, compileResCache, wxsModuleRegistry, wxsFilePathMap, ...
+  模块级变量: optionalChainingCache, compileResCache, wxsModuleRegistry, wxsFilePathMap, wxsScannedWorkPath, ...
+  注: enableSourcemap 来自 state.ts（非 index.ts 模块级变量；index.ts import from state.ts）
   表达式 helpers: parseJs(), parseBraceExp(), parseSafeBraceExp(), transformTextInterpolation(), ...
-  wxs helpers: processWxsContent(), loadWxsModule(), collectAllWxsModules(), ...
+  wxs helpers: processWxsContent(), loadWxsModule(), collectAllWxsModules(), transTagWxs(), ...
   parse+walk: compileViewTree() → compileModule() → toCompileTemplate + compileTemplate + insertWxsToRenderResult
   编排: viewParseWalk() → compileViewTree + scriptRes→EmitModule[]
   engine入口: compileML() → viewParseWalk + emitEntry
   engine: viewCompile(), viewSuccessPayload(), viewEngine
+  re-export: generateVModelTemplate / generateSlotDirective / normalizeTemplateSyntax (from tools.ts) + processIncludeConditionalAttrs (from include.ts)
 
 view/parse-walk.ts (8 行):
   export { viewParseWalk } from './index.ts'   ← re-export 壳
 ```
 
-**循环依赖分析（关键）**：view 有 W1 cycle-break 机制：
+**循环依赖分析（关键）**：view 有**两套** W1 cycle-break 机制：
 
 ```text
+— shim 1: live.ts (12 个 binding) —
 view/wxml/renderer/vue/live.ts:
   export let insertWxsToRenderResult, parseBraceExp, ... (12 个 let bindings)
   export function bindVueToolsLive(deps) { 注入 }
@@ -54,16 +57,23 @@ view/wxml/renderer/vue/live.ts:
 view/wxml/renderer/vue/tools.ts:
   import { insertWxsToRenderResult, ... } from './live.ts'   ← 运行时用 binding
 
+— shim 2: orchestrator-live.ts (3 个 binding) —
+view/wxml/load/orchestrator-live.ts:
+  export let transTagWxs, transAsses, processIncludedFileWxsDependencies (3 个 let bindings)
+  export function bindTransformOrchestrator(deps) { 注入 }
+
 view/index.ts:
-  定义 insertWxsToRenderResult, parseBraceExp, ...
-  调 bindVueToolsLive({ insertWxsToRenderResult, ... })   ← 初始化时注入
+  定义 insertWxsToRenderResult, parseBraceExp, ... (shim 1)
+  定义 transTagWxs, transAsses, processIncludedFileWxsDependencies (shim 2)
+  调 bindVueToolsLive({ insertWxsToRenderResult, ... })         ← shim 1 注入
+  调 bindTransformOrchestrator({ transTagWxs, transAsses, ... })  ← shim 2 注入
 ```
 
-若 `insertWxsToRenderResult` + 表达式 helpers 搬到 `parse-walk.ts`：
+若上述 15 个函数（12 + 3）搬到 `parse-walk.ts`：
 - `parse-walk.ts` 定义它们 + export
-- `index.ts` import from `parse-walk.ts` + 调 `bindVueToolsLive({ ...fns })`（注入给 `live.ts`）
-- `tools.ts` 仍从 `live.ts` 用 binding（不变）
-- **无循环依赖**：`index.ts → parse-walk.ts`（单向）；`tools.ts → live.ts`（不变）
+- `index.ts` import from `parse-walk.ts` + 调 `bindVueToolsLive({ ...fns })` + 调 `bindTransformOrchestrator({ ...fns })`
+- `tools.ts` / orchestrator-live.ts 消费方仍从各自 shim 用 binding（不变）
+- **无循环依赖**：`index.ts → parse-walk.ts`（单向）；`tools.ts → live.ts`；`orchestrator-live.ts` 消费方不变
 
 ### §0.3 logic 模板（已真抽出，作参照）
 
@@ -109,20 +119,32 @@ style/index.ts:
 
 ```text
 view/parse-walk.ts:
-  模块级变量: optionalChainingCache, compileResCache, wxsModuleRegistry, wxsFilePathMap, ...
+  模块级变量: optionalChainingCache, compileResCache, wxsModuleRegistry, wxsFilePathMap, wxsScannedWorkPath
+  注: enableSourcemap 从 state.ts import（非 parse-walk.ts 定义）
   表达式 helpers: parseJs(), parseBraceExp(), ..., escapeQuotes()
-  wxs helpers: processWxsContent(), loadWxsModule(), collectAllWxsModules(), ...
+  wxs helpers: processWxsContent(), loadWxsModule(), collectAllWxsModules(), transTagWxs(), ...
   parse+walk: compileViewTree(), compileModule(), viewParseWalk()
   render后处理: insertWxsToRenderResult()
-  其他 helpers: initWxsFilePathMap(), scanWxsFiles(), ..., transAsses()
-  exports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., processWxsContent, ...
+  其他 helpers: initWxsFilePathMap(), scanWxsFiles(), transAsses(), processIncludedFileWxsDependencies()
+  exports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., processWxsContent, transTagWxs, transAsses, ...
+           ensureWxsScan(workPath) — 封装 wxsScannedWorkPath check + initWxsFilePathMap + 赋值
+           clearViewCaches() — 封装 compileResCache.clear() + wxsModuleRegistry.clear() + ...
 
 view/index.ts:
-  imports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ... from parse-walk.ts
-  编排: compileML() → viewParseWalk + emitEntry
-  W1 注入: 调 bindVueToolsLive({ insertWxsToRenderResult, ... })
+  imports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., transTagWxs, transAsses, processIncludedFileWxsDependencies, ensureWxsScan, clearViewCaches from parse-walk.ts
+  imports: enableSourcemap, setEnableSourcemap, templateRenderCache from state.ts
+  imports: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax from tools.ts; processIncludeConditionalAttrs from include.ts
+  模块级变量: activeCompileConfig
+  编排: compileML() → ensureWxsScan + viewParseWalk + emitEntry
+  W1 注入: 调 bindVueToolsLive({ 12 fns }) + 调 bindTransformOrchestrator({ transTagWxs, transAsses, processIncludedFileWxsDependencies })
+  re-export 保留: generateVModelTemplate / generateSlotDirective / normalizeTemplateSyntax (from tools.ts) + processIncludeConditionalAttrs (from include.ts)
   engine: viewCompile(), viewSuccessPayload(), viewEngine
 ```
+
+**`wxsScannedWorkPath` 处理**：该变量是 `let`，ESM live binding 不可从导入方赋值。
+`parse-walk.ts` export `ensureWxsScan(workPath): boolean`（封装 `wxsScannedWorkPath !== workPath` check + `initWxsFilePathMap` + 赋值）
+和 `clearViewCaches()`（封装全部 cleanup，含 `wxsScannedWorkPath = null`）。
+`compileML` 调 `ensureWxsScan(workPath)`；`viewCompile` 调 `clearViewCaches()`。
 
 ### §1.3 落点表
 
@@ -202,4 +224,4 @@ view/index.ts:
 | W1 `bindVueToolsLive` 注入遗漏函数 | 对照 `live.ts` 12 个 binding 逐一检查 |
 | style 模块级变量（`compileRes` 等）搬走后 `index.ts` 的 `styleCompile` 引用断裂 | `styleCompile` 调 `compileRes.clear()`——`parse-walk.ts` export `compileRes` 或 `clearCompileRes()` |
 | view 模块级变量（`compileResCache` 等）搬走后 `index.ts` 的 `viewCompile` 引用断裂 | `viewCompile` 调 `compileResCache.clear()` 等——`parse-walk.ts` export 清理函数或变量 |
-| ESM circular import（runtime call 虽可，但 tsc 可能报错） | 单向 import（`index.ts → parse-walk.ts`），无 circular |
+| 确认 `parse-walk.ts` 不 import `index.ts`（单向 import 验证） | 实施后 `grep -rn "from './index'" parse-walk.ts` = 0 |

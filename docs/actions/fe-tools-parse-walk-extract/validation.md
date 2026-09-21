@@ -38,14 +38,15 @@ grep -c 'export.*from.*index' src/compiler/view/parse-walk.ts  # = 0
 # style/index.ts 不含 parse+walk 函数定义
 grep -c 'function enhanceCSS\|function buildCompileCss' src/compiler/style/index.ts  # = 0
 
-# view/index.ts 不含 parse+walk 函数定义
-grep -c 'function compileViewTree\|function compileModule\|function viewParseWalk\|function insertWxsToRenderResult' src/compiler/view/index.ts  # = 0
+# view/index.ts 不含 parse+walk 函数定义（含 transTagWxs）
+grep -c 'function compileViewTree\|function compileModule\|function viewParseWalk\|function insertWxsToRenderResult\|function transTagWxs' src/compiler/view/index.ts  # = 0
 
 # 无循环依赖
 grep -rn "from './index'" src/compiler/style/parse-walk.ts src/compiler/view/parse-walk.ts  # = 0
 
-# W1 binding 全覆盖
+# W1 binding 全覆盖（两套 shim）
 grep -c 'bindVueToolsLive' src/compiler/view/index.ts  # ≥ 1
+grep -c 'bindTransformOrchestrator' src/compiler/view/index.ts  # ≥ 1
 ```
 
 ## V-PW-5 — validator

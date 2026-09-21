@@ -8,18 +8,20 @@
 
 ## A-PW-2 — view parse-walk 真抽出
 
-- [ ] `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + 表达式 helpers（非 re-export）
+- [ ] `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `transTagWxs` + 表达式 helpers（非 re-export）
 - [ ] `view/parse-walk.ts` 不含 `export.*from.*index`（`grep -c 'export.*from.*index' parse-walk.ts` = 0）
-- [ ] `view/index.ts` 不含 `compileViewTree` / `compileModule` / `viewParseWalk` / `insertWxsToRenderResult` 定义
+- [ ] `view/index.ts` 不含 `compileViewTree` / `compileModule` / `viewParseWalk` / `insertWxsToRenderResult` / `transTagWxs` 定义
+- [ ] `view/index.ts` 保留 re-export 块（`generateVModelTemplate` / `generateSlotDirective` / `normalizeTemplateSyntax` from `tools.ts`；`processIncludeConditionalAttrs` from `include.ts`）
 
 ## A-PW-3 — 无循环依赖
 
 - [ ] ESM import 单向（`index.ts → parse-walk.ts`）；`parse-walk.ts` 不 import from `index.ts`
 
-## A-PW-4 — W1 binding 全覆盖
+## A-PW-4 — W1 binding 全覆盖（两套 shim）
 
-- [ ] `view/index.ts` 调 `bindVueToolsLive` 传入 12 个函数（`transformTextInterpolation` / `isWrappedByBraces` / `parseBraceExp` / `parseSafeBraceExp` / `parseForExp` / `getForItemName` / `getForIndexName` / `parseKeyExpression` / `parseClassRules` / `parseTemplateDataExp` / `escapeQuotes` / `insertWxsToRenderResult`）
-- [ ] 全部 12 个函数从 `view/parse-walk.ts` import
+- [ ] `view/index.ts` 调 `bindVueToolsLive` 传入 12 个函数（shim 1：`transformTextInterpolation` / `isWrappedByBraces` / `parseBraceExp` / `parseSafeBraceExp` / `parseForExp` / `getForItemName` / `getForIndexName` / `parseKeyExpression` / `parseClassRules` / `parseTemplateDataExp` / `escapeQuotes` / `insertWxsToRenderResult`）
+- [ ] `view/index.ts` 调 `bindTransformOrchestrator` 传入 3 个函数（shim 2：`transTagWxs` / `transAsses` / `processIncludedFileWxsDependencies`）
+- [ ] 全部 15 个函数从 `view/parse-walk.ts` import
 
 ## A-PW-5 — TD 决策修正
 
