@@ -1,10 +1,10 @@
 # FE Tools Parse-Walk Extract
 
 - Action: `fe-tools-parse-walk-extract`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-21
-- Status authority: [Action Status](../STATUS.md)
-- 前身：[`fe-tools-emit-transform-split`](../_archive/complete/fe-tools-emit-transform-split/README.md)（**complete 已归档**；三段管线文件结构成立，但 view/style `parse-walk.ts` 是 re-export 壳；3 条 TD 假设走 fallback）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前身：[`fe-tools-emit-transform-split`](../fe-tools-emit-transform-split/README.md)（**complete 已归档**；三段管线文件结构成立，但 view/style `parse-walk.ts` 是 re-export 壳；3 条 TD 假设走 fallback）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 背景
@@ -37,7 +37,7 @@
 
 ## 设计输入
 
-- 前身 validation.md 3 条偏差：[`fe-tools-emit-transform-split/validation.md`](../_archive/complete/fe-tools-emit-transform-split/validation.md) V-ET-5/V-ET-7
+- 前身 validation.md 3 条偏差：[`fe-tools-emit-transform-split/validation.md`](../fe-tools-emit-transform-split/validation.md) V-ET-5/V-ET-7
 - logic 真抽出模板：`logic/parse-walk.ts`（406 行，自包含，无循环依赖）
 - W1 cycle-break 机制（两套 shim）：`view/wxml/renderer/vue/live.ts`（`export let` + `bindVueToolsLive` 注入，12 binding）+ `view/wxml/load/orchestrator-live.ts`（`export let` + `bindTransformOrchestrator` 注入，3 binding）
 - 行为 0 纪律：nomap + sourcemap 产物 diff=0；全量 vitest 绿

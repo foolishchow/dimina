@@ -2,7 +2,7 @@
 
 Status: **in_progress**（2026-09-21）。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md)
 
 ## §0 当前架构
 
