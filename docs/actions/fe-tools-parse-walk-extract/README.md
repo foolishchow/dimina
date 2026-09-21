@@ -22,8 +22,8 @@
 
 把"行为 0 通过但名不副实"升级为"真抽出 + 设计假设修正"：
 
-1. **style parse-walk 真抽出**：`enhanceCSS` + `buildCompileCss` + helpers 搬到 `style/parse-walk.ts`；`index.ts` 只留编排（`compileSS` + `emitStyle` 调用 + `styleEngine`）
-2. **view parse-walk 真抽出**：`compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + 表达式 helpers 搬到 `view/parse-walk.ts`；`index.ts` 只留编排（`compileML` + `bindVueToolsLive` + `viewEngine`）
+1. **style parse-walk 真抽出**：`enhanceCSS` + `buildCompileCss` + helpers 搬到 `style/parse-walk.ts`；`index.ts` 只留编排（`compileSS` + `emitStyle` 调用 + re-export from parse-walk.ts + `styleEngine`）
+2. **view parse-walk 真抽出**：`compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + 表达式 helpers 搬到 `view/parse-walk.ts`；`index.ts` 只留编排（`compileML` + `bindVueToolsLive` + `bindTransformOrchestrator` + re-export + `viewEngine`）
 3. **3 条 fallback → 正式决策**：在 TD 中明确标注为设计决策（非临时 fallback）
 4. **`collectAllWxsModules` 缓存泄漏定性**：记录为已知行为（behavior 0 约束下保留），标记为后续正确性修复候选
 
@@ -46,8 +46,8 @@
 
 - `style/parse-walk.ts`：从 8 行 re-export → 真抽出（`enhanceCSS` + `buildCompileCss` + helpers）
 - `view/parse-walk.ts`：从 8 行 re-export → 真抽出（`compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + 表达式 helpers）
-- `style/index.ts`：变薄（`compileSS` + `emitStyle` 调用 + `styleEngine`）
-- `view/index.ts`：变薄（`compileML` + `bindVueToolsLive` + `viewEngine`）
+- `style/index.ts`：变薄（`compileSS` + `emitStyle` 调用 + re-export from parse-walk.ts + `styleEngine`）
+- `view/index.ts`：变薄（`compileML` + `bindVueToolsLive` + `bindTransformOrchestrator` + re-export + `viewEngine`）
 - TD 修正：3 条 fallback → 正式决策
 
 ## Requirements
@@ -63,8 +63,8 @@
 
 ## Readiness gaps
 
-- 循环依赖解法已验证（logic 模板 + W1 live.ts 机制），无硬阻塞
-- 待 readiness review 确认落点表 + 行号精度
+- 循环依赖解法已验证（logic 模板 + 两套 W1 cycle-break shim），无硬阻塞
+- readiness review 已通过（6 轮，27 条 finding 修正）
 
 ## Closure conditions
 

@@ -5,6 +5,7 @@
 - [ ] `style/parse-walk.ts` 含 `enhanceCSS` + `buildCompileCss` + 全部 helpers + interfaces `StyleModule`/`StyleOptions`/`StyleCompileResult`（非 re-export）
 - [ ] `style/parse-walk.ts` 不含 `export.*from.*index`（`grep -c 'export.*from.*index' parse-walk.ts` = 0）
 - [ ] `style/parse-walk.ts` import `minifyCss` from `emit.ts`（`enhanceCSS` 用）
+- [ ] `style/parse-walk.ts` export `clearStyleCaches`（`styleCompile` cleanup 用）
 - [ ] `style/index.ts` 不含 `enhanceCSS` / `buildCompileCss` 定义（`grep -c 'function enhanceCSS\|function buildCompileCss' index.ts` = 0）
 - [ ] `style/index.ts` 不 import `minifyCss`（`grep -c 'minifyCss' index.ts` = 0；`noUnusedLocals: true`）
 - [ ] `style/index.ts` `import type { StyleModule, StyleOptions } from './parse-walk.ts'`
