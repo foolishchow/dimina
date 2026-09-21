@@ -473,6 +473,7 @@ async function orchestrate(
 // ── per-lane fixpoint（车道级）──
 // 每个车道内部有自己的 fixpoint：parse → walk → 发现 deps → 继续 walk
 // 现实：三车道的 parse-walk 各自实现这个
+// D-PCS-8：通用 worker——运行时收 kind，从内置 map 选实现
 async function runLane(
   kind: ModuleKind,
   entries: PackerEntry[],
@@ -481,29 +482,41 @@ async function runLane(
   orch: PackerOrchestrator,
   options: OrchestrateOptions,
 ): Promise<LaneResult> {
-  // D-PCS-5：从 registry 取 per-kind 实现
-  const loader = orch.loaderRegistry.get(kind)
-  const compiler = orch.compileRegistry.get(kind)
-  const emitter = orch.emitRegistry.get(kind)
+  // D-PCS-5：Orchestrator 用 registry 决定有哪些 kind、派发到 worker
+  // D-PCS-8：worker 是通用的——收 kind 后从内置 map 选实现
+  //   主线程 registry 和 worker 内置 map 是两套实例（不能跨线程传函数）
+  //   通过 kind 关联——两边注册一致的 kind → 实现映射
 
-  // ── Worker 内执行（现实：executeTask → postMessage → Worker）──
-  // Worker:
-  //   1. resetStoreInfo(storeInfo)  // 重建 ALS → PackerContext 可用
-  //      （graph 快照也通过 storeInfo 传入——D-PCS-3: Orchestrator 触发序列化）
-  //   2. load fixpoint:
-  //      frontier = entries.filter(e => e.kind === kind)
+  // ── 派发到通用 worker（executeTask → postMessage）──
+  // 消息: { kind, entries, storeInfo, graphSnapshot, cacheSnapshot, invalidatedModules }
+  //   storeInfo 含 PackerContext I/O + graph 快照（路径 B：graph 随 storeInfo 传入）
+
+  // ── Worker 内执行 ──
+  // Worker 内置 map（bundle 时绑定）:
+  //   const implementations: Record<ModuleKind, LaneImpl> = {
+  //     logic: { loader: new LogicLoader(), compiler: new LogicCompiler(), emitter: new LogicEmitter() },
+  //     view:  { loader: new ViewLoader(),  compiler: new ViewCompiler(),  emitter: new ViewEmitter() },
+  //     style: { loader: new StyleLoader(), compiler: new StyleCompiler(), emitter: new StyleEmitter() },
+  //   }
+  //
+  // Worker.onMessage({ kind, entries, storeInfo, ... }) =>
+  //   1. resetStoreInfo(storeInfo)   // 重建 ALS → PackerContext 可用
+  //      （graph 快照也在 storeInfo 里——路径 B）
+  //   2. const { loader, compiler, emitter } = implementations[kind]
+  //   3. load fixpoint:
+  //      frontier = entries
   //      while frontier:
   //        loaded = loader.load(input, ctx)   // parse + walk
   //        // F-5: 现实写本地 graph；target: 返回 deps delta
   //        frontier = loaded.dependencies - visited
-  //   3. compile:
+  //   4. compile:
   //      for moduleId in invalidatedModules ∩ lane:
   //        if cache hit → skip
   //        compiled = compiler.compile(loaded, ctx)
-  //   4. emit——根据 Emitter.strategy 派发（D-PCS-7）
+  //   5. emit——根据 emitter.strategy 派发（D-PCS-7）
   //      inline: emitter.emit → EmitEntry → onOutput 回传
   //      delayed: emitter.produceBuckets → EmitBucket[]（不直接 emit）
-  //   5. 返回 { compiled, graphDelta, emitBuckets, entries }
+  //   6. 返回 { compiled, graphDelta, emitBuckets, entries }
 
   // 主线程收到序列化结果后合并
   return { compiled: [], graphDelta: null, emitBuckets: null, entries: [] }
@@ -577,6 +590,10 @@ Packer API          loadModule/compileModule/         target: 3 registry 取代
                     emitEntry（switch(kind) 硬编码）    Loader/Compiler/Emitter（D-PCS-5）
                                                      Orchestrator 拥有 3 个 registry
 
+worker              per-lane worker（编译时绑定）      target: 通用 worker（D-PCS-8）
+                    三份 worker-entry                   运行时收 kind，从内置 map 选
+                                                     一个 worker-entry，内置所有 kind
+
 load                交织 compile（parse-walk）       分离：Loader.load 独立
                     写本地 graph（非纯函数）           target: 返回 deps delta（需重构）
 
@@ -641,3 +658,6 @@ CompiledModule      四车道各自表示                    target: 统一类�
     - **决策 D-PCS-5**：三个 registry 取代 Packer 单体接口。LoaderRegistry / CompileRegistry / EmitRegistry 映射 ModuleKind → per-kind 实现。Orchestrator 拥有三个 registry，用 registry 派发，不做 switch。加新 kind 只需注册，不改 Orchestrator。
 11. **emit 策略（inline vs delayed）该谁决定？**
     - **决策 D-PCS-7**：Emitter 封装自己的 emit 策略。`strategy: 'inline' | 'delayed'` 是 Emitter 的属性，不是 Orchestrator 的决策。delayed 的 Emitter 额外实现 `produceBuckets`——分桶逻辑封装在 Emitter 内部。Orchestrator 只查 `emitter.strategy` 决定调用路径，不需要知道哪个 kind 是 inline/delayed。
+12. **worker 是 per-lane 还是通用？**
+    - **决策 D-PCS-8**：通用 worker。worker 不分 lane——运行时收 `kind` 消息，从内置 map 选 Loader/Compiler/Emitter 实现。一个 worker-entry，内置所有 kind 的实现。主线程 registry 和 worker 内置 map 是两套实例（不能跨线程传函数），通过 kind 关联——两边注册一致的 kind → 实现映射。
+    - registry 的作用：Orchestrator 的派发配置（有哪些 kind、怎么派发），不是 worker 运行时查实现的机制。
