@@ -1,7 +1,7 @@
 # FE Tools Packer Core Shape
 
 - Action: `fe-tools-packer-core-shape`
-- Status: `draft`
+- Status: `in_progress`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/README.md)（**complete 已归档**；Packer 全流程生命周期审计——本形状定义的事实基础）
