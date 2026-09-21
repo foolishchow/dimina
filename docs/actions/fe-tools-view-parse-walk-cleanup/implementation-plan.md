@@ -45,8 +45,8 @@
 
 ### Step 5: 拆 `insertWxsToRenderResult`
 
-- 定义 `buildWxsDeclarations(scriptModule, scriptRes)` — 声明构建
-- 定义 `buildWxsReplacements(code, filename, wxsBindings, declarations)` — walk 替换 + 声明注入
+- 定义 `buildWxsDeclarations(scriptModule, scriptRes)` — 声明构建（返回 wxsBindings + declarations + renderBody）
+- 定义 `buildWxsReplacements(code, filename, wxsBindings, declarations, renderBody)` — walk 替换 + 声明注入
 - 定义 `applyWxsReplacements(code, codeReplacements, filename, inputMap)` — applyCodeReplacements + sourcemap
 - 重写 `insertWxsToRenderResult` 为薄编排（≤20 行）
 - **验证**：tsc 0 错 + vitest 608/608 + diff=0

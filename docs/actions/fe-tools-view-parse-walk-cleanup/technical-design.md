@@ -46,7 +46,7 @@ const compileResCache = new Map<string, unknown>()
 ```
 interface ModuleCompileCacheEntry {
 	code: string
-	instruction: Record<string, unknown>
+	instruction: { scriptModule?: Array<{ path: string; code: string }> } & Record<string, unknown>
 	map: string | null
 }
 
