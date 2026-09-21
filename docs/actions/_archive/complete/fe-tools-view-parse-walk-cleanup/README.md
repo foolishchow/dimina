@@ -1,10 +1,10 @@
 # FE Tools View Parse-Walk Cleanup
 
 - Action: `fe-tools-view-parse-walk-cleanup`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-21
-- Status authority: [Action Status](../STATUS.md)
-- 前身：[`fe-tools-parse-walk-extract`](../_archive/complete/fe-tools-parse-walk-extract/README.md)（**complete 已归档**；view/parse-walk.ts 从 8 行 re-export 壳真抽出至 1,368 行）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前身：[`fe-tools-parse-walk-extract`](../fe-tools-parse-walk-extract/README.md)（**complete 已归档**；view/parse-walk.ts 从 8 行 re-export 壳真抽出至 1,368 行）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 背景
@@ -45,7 +45,7 @@
 
 ## 设计输入
 
-- 前身归档：[`fe-tools-parse-walk-extract`](../_archive/complete/fe-tools-parse-walk-extract/README.md)
+- 前身归档：[`fe-tools-parse-walk-extract`](../fe-tools-parse-walk-extract/README.md)
 - 行为 0 纪律：nomap + sourcemap 产物 diff=0；全量 vitest 绿
 - tsconfig 约束：`noUnusedLocals: true` / `noUnusedParameters: true` / `strict: true` / `noUncheckedIndexedAccess: true`
 - 三车道隔离约束：logic/view 互不 import
