@@ -98,19 +98,20 @@ logic/index.ts (312 行):
 
 ```text
 style/parse-walk.ts:
+  imports: minifyCss from emit.ts (enhanceCSS 用)
   模块级变量: compileRes, autoprefixerPlugin, cssnanoLoader, lessLoader, sassLoader
   loaders: loadCssnano(), loadLess(), loadSass()
   interfaces: StyleModule, StyleOptions, StyleCompileResult
   parse+walk: buildCompileCss() → enhanceCSS() → less + postcss
   helpers: createExternalClassPlugin(), ..., processHostSelector()
-  exports: buildCompileCss, boostExternalClassSelectors, ..., resolveStyleImportPath
+  exports: buildCompileCss, boostExternalClassSelectors, ..., resolveStyleImportPath, clearStyleCaches
 
 style/emit.ts: (不变)
   minifyCss(), emitStyle()
 
 style/index.ts:
-  imports: buildCompileCss from parse-walk.ts; emitStyle, minifyCss from emit.ts
-  imports: clearStyleCaches() from parse-walk.ts (styleCompile cleanup)
+  imports: buildCompileCss, clearStyleCaches from parse-walk.ts; emitStyle from emit.ts
+  imports: import type { StyleModule, StyleOptions } from parse-walk.ts (compileSS 参数类型)
   interfaces: Progress
   编排: compileSS() → buildCompileCss + emitStyle + sink.write
   re-export from parse-walk.ts: buildCompileCss, boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath
@@ -127,7 +128,8 @@ style/index.ts:
 ```text
 view/parse-walk.ts:
   模块级变量: optionalChainingCache, compileResCache, wxsModuleRegistry, wxsFilePathMap, wxsScannedWorkPath
-  注: enableSourcemap 从 state.ts import（非 parse-walk.ts 定义）
+  interfaces: ViewModule, ViewParseWalkOptions, ErrorShape
+  注: enableSourcemap + templateRenderCache 从 state.ts import（非 parse-walk.ts 定义）
   表达式 helpers: parseJs(), parseBraceExp(), ..., escapeQuotes()
   wxs helpers: processWxsContent(), loadWxsModule(), collectAllWxsModules(), transTagWxs(), ...
   parse+walk: compileViewTree(), compileModule(), viewParseWalk()
@@ -135,14 +137,18 @@ view/parse-walk.ts:
   其他 helpers: initWxsFilePathMap(), scanWxsFiles(), transAsses(), processIncludedFileWxsDependencies()
   exports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., processWxsContent, transTagWxs, transAsses, ...
            ensureWxsScan(workPath) — 封装 wxsScannedWorkPath check + initWxsFilePathMap + 赋值
-           clearViewCaches() — 封装 compileResCache.clear() + wxsModuleRegistry.clear() + ...
+           resetWxsScan() — 设 wxsScannedWorkPath = null（viewCompile 编译循环前调用）
+           clearViewCaches() — 封装 compileResCache.clear() + templateRenderCache.clear() + wxsModuleRegistry.clear() + ...
 
 view/index.ts:
   imports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., transTagWxs, transAsses, processIncludedFileWxsDependencies, ensureWxsScan, clearViewCaches from parse-walk.ts
   imports: enableSourcemap, setEnableSourcemap, templateRenderCache from state.ts
   imports: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax from tools.ts; processIncludeConditionalAttrs from include.ts
   模块级变量: activeCompileConfig
+  interfaces: Progress
+  imports: import type { ViewModule } from parse-walk.ts (compileML/viewCompile 参数类型)
   编排: compileML() → ensureWxsScan + viewParseWalk + emitEntry
+  viewCompile() → resetWxsScan() (编译循环前) + clearViewCaches() (编译循环后)
   W1 注入: 调 bindVueToolsLive({ 12 fns }) + 调 bindTransformOrchestrator({ transTagWxs, transAsses, processIncludedFileWxsDependencies })
   re-export from parse-walk.ts: viewParseWalk, initWxsFilePathMap, loadWxsModule, parseBraceExp, parseClassRules, parseKeyExpression, parseTemplateDataExp, processWxsContent, splitWithBraces
   re-export from tools.ts: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax
@@ -153,9 +159,12 @@ view/index.ts:
 **view re-export 保留**：`__tests__/view-compiler.spec.js` L2 import `parseBraceExp` / `parseClassRules` / `parseKeyExpression` / `parseTemplateDataExp` / `processWxsContent` / `splitWithBraces` from `view/index.ts`；`__tests__/npm-view-script-custom-loading.spec.js` L6 import `initWxsFilePathMap` / `loadWxsModule`。这些搬到 `parse-walk.ts` 后，`index.ts` 必须 re-export 它们（行为 0：export 块不变）。
 
 **`wxsScannedWorkPath` 处理**：该变量是 `let`，ESM live binding 不可从导入方赋值。
-`parse-walk.ts` export `ensureWxsScan(workPath): boolean`（封装 `wxsScannedWorkPath !== workPath` check + `initWxsFilePathMap` + 赋值）
-和 `clearViewCaches()`（封装全部 cleanup，含 `wxsScannedWorkPath = null`）。
-`compileML` 调 `ensureWxsScan(workPath)`；`viewCompile` 调 `clearViewCaches()`。
+`parse-walk.ts` export 三个函数：
+- `ensureWxsScan(workPath): boolean`（封装 `wxsScannedWorkPath !== workPath` check + `initWxsFilePathMap` + 赋值）— `compileML` 调用
+- `resetWxsScan()`（设 `wxsScannedWorkPath = null`）— `viewCompile` 编译循环**前**调用（强制下次 `compileML` 重扫 WXS）
+- `clearViewCaches()`（封装全部 cleanup，含 `wxsScannedWorkPath = null` + `compileResCache.clear()` + `templateRenderCache.clear()` + `wxsModuleRegistry.clear()` + `wxsFilePathMap.clear()` + `optionalChainingCache.clear()`）— `viewCompile` 编译循环**后**调用
+
+`resetWxsScan()` 不可被 `clearViewCaches()` 替代——后者清空全部 cache（含 `compileResCache`），在编译前调会导致缓存丢失 = 行为变化。
 
 ### §1.3 落点表
 
@@ -236,5 +245,5 @@ view/index.ts:
 | --- | --- |
 | W1 两套 shim 注入遗漏函数 | 对照 `live.ts` 12 + `orchestrator-live.ts` 3 = 15 个 binding 逐一检查 |
 | style 模块级变量（`compileRes` 等）搬走后 `index.ts` 的 `styleCompile` 引用断裂 | `styleCompile` 调 `clearStyleCaches()`——`parse-walk.ts` export `clearStyleCaches()` 封装 cleanup（`compileRes` 是 const Map，也可直接 export + `.clear()`） |
-| view 模块级变量（`compileResCache` 等）搬走后 `index.ts` 的 `viewCompile` 引用断裂 | `viewCompile` 调 `clearViewCaches()`——`parse-walk.ts` export `clearViewCaches()` 封装全部 cleanup（`wxsScannedWorkPath` 是 `let`，不可外部赋值，必须封装） |
+| view 模块级变量（`compileResCache` 等）搬走后 `index.ts` 的 `viewCompile` 引用断裂 | `viewCompile` 调 `resetWxsScan()`（编译前）+ `clearViewCaches()`（编译后）——`parse-walk.ts` export 两者封装（`wxsScannedWorkPath` 是 `let`，不可外部赋值，必须封装） |
 | 确认 `parse-walk.ts` 不 import `index.ts`（单向 import 验证） | 实施后 `grep -rn "from './index'" parse-walk.ts` = 0 |

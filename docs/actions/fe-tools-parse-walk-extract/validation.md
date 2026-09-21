@@ -47,6 +47,18 @@ grep -c 'export.*buildCompileCss\|export.*boostExternalClassSelectors\|export.*e
 # view/index.ts export 块保留（compileML 留定义 + 9 re-export from parse-walk.ts + 3 from tools.ts + 1 from include.ts）
 grep -c 'export.*viewParseWalk\|export.*parseBraceExp\|export.*processWxsContent' src/compiler/view/index.ts  # ≥ 1
 
+# style/index.ts 不 import minifyCss（noUnusedLocals: true）
+grep -c 'minifyCss' src/compiler/style/index.ts  # = 0
+
+# style/index.ts import type { StyleModule, StyleOptions } from parse-walk.ts
+grep -c 'import type.*StyleModule.*parse-walk' src/compiler/style/index.ts  # ≥ 1
+
+# view/parse-walk.ts export ensureWxsScan + resetWxsScan + clearViewCaches
+grep -c 'ensureWxsScan\|resetWxsScan\|clearViewCaches' src/compiler/view/parse-walk.ts  # ≥ 3
+
+# view/index.ts import type { ViewModule } from parse-walk.ts
+grep -c 'import type.*ViewModule.*parse-walk' src/compiler/view/index.ts  # ≥ 1
+
 # 无循环依赖
 grep -rn "from './index'" src/compiler/style/parse-walk.ts src/compiler/view/parse-walk.ts  # = 0
 

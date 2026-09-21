@@ -2,16 +2,22 @@
 
 ## A-PW-1 — style parse-walk 真抽出
 
-- [ ] `style/parse-walk.ts` 含 `enhanceCSS` + `buildCompileCss` + 全部 helpers（非 re-export）
+- [ ] `style/parse-walk.ts` 含 `enhanceCSS` + `buildCompileCss` + 全部 helpers + interfaces `StyleModule`/`StyleOptions`/`StyleCompileResult`（非 re-export）
 - [ ] `style/parse-walk.ts` 不含 `export.*from.*index`（`grep -c 'export.*from.*index' parse-walk.ts` = 0）
+- [ ] `style/parse-walk.ts` import `minifyCss` from `emit.ts`（`enhanceCSS` 用）
 - [ ] `style/index.ts` 不含 `enhanceCSS` / `buildCompileCss` 定义（`grep -c 'function enhanceCSS\|function buildCompileCss' index.ts` = 0）
+- [ ] `style/index.ts` 不 import `minifyCss`（`grep -c 'minifyCss' index.ts` = 0；`noUnusedLocals: true`）
+- [ ] `style/index.ts` `import type { StyleModule, StyleOptions } from './parse-walk.ts'`
 - [ ] `style/index.ts` export 块保留（`compileSS` 留定义 + `buildCompileCss`/`boostExternalClassSelectors`/`ensureImportSemicolons`/`normalizeCssUrlValue`/`normalizeRootStyleImports`/`processHostSelector`/`resolveStyleImportPath` re-export from parse-walk.ts）
 
 ## A-PW-2 — view parse-walk 真抽出
 
-- [ ] `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `transTagWxs` + 表达式 helpers（非 re-export）
+- [ ] `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `transTagWxs` + 表达式 helpers + interfaces `ViewModule`/`ViewParseWalkOptions`/`ErrorShape`（非 re-export）
 - [ ] `view/parse-walk.ts` 不含 `export.*from.*index`（`grep -c 'export.*from.*index' parse-walk.ts` = 0）
+- [ ] `view/parse-walk.ts` import `enableSourcemap` + `templateRenderCache` from `state.ts`
+- [ ] `view/parse-walk.ts` export `ensureWxsScan` + `resetWxsScan` + `clearViewCaches`
 - [ ] `view/index.ts` 不含 `compileViewTree` / `compileModule` / `viewParseWalk` / `insertWxsToRenderResult` / `transTagWxs` 定义
+- [ ] `view/index.ts` `import type { ViewModule } from './parse-walk.ts'`
 - [ ] `view/index.ts` export 块保留（`compileML` 留定义 + 9 re-export from parse-walk.ts + 3 from tools.ts + 1 from include.ts）
 
 ## A-PW-3 — 无循环依赖
