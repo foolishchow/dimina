@@ -50,7 +50,7 @@ grep -c 'CompileRegistry' types.ts                            # ≥ 1
 grep -c 'EmitRegistry' types.ts                               # ≥ 1
 grep -c 'import type.*EmitEntry' types.ts                     # ≥ 1
 
-# A-PCS-4: Graph + OrchestratorState（D-PCS-2/3/4/6）
+# A-PCS-4: Graph + OrchestratorState（D-PCS-2, D-PCS-3, D-PCS-4, D-PCS-6, D-PCS-9）
 grep -c 'interface Graph' types.ts                            # ≥ 1
 grep -c 'buildFromProjectModel\|build(ctx\|\.build(' types.ts  # ≥ 0（build 方法）
 grep -c 'mergeDelta' types.ts                                 # ≥ 1
@@ -58,7 +58,7 @@ grep -c 'interface OrchestratorState' types.ts                # ≥ 1
 grep -c 'ModuleResultCache' types.ts                          # ≥ 1
 grep -c 'invalidatedModules' types.ts                         # ≥ 1
 
-# A-PCS-5: Orchestrator（D-PCS-5/8/9）
+# A-PCS-5: Orchestrator（D-PCS-5, D-PCS-8, D-PCS-9）
 grep -c 'interface PackerOrchestrator' types.ts              # ≥ 1
 grep -c 'orchestrate' types.ts                               # ≥ 1
 grep -c 'loaderRegistry' types.ts                            # ≥ 1

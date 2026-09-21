@@ -30,7 +30,7 @@
 - [ ] 复用现有 `EmitEntry` 类型（`import type` from `pipeline/emit.ts`）
 - [ ] `LoadInput` 含 `moduleId` + `kind` + `source`
 
-## A-PCS-4 — Graph + OrchestratorState 定义（D-PCS-2/3/4/6/9）
+## A-PCS-4 — Graph + OrchestratorState 定义（D-PCS-2, D-PCS-3, D-PCS-4, D-PCS-6, D-PCS-9）
 
 - [ ] `src/packer/types.ts` 含 `interface Graph`
 - [ ] Graph 含方法：`build(ctx)` / `reconcile(ctx)` / `mergeDelta(delta)` / `toJSON()`
@@ -39,7 +39,7 @@
 - [ ] OrchestratorState 含字段：`graph: Graph` / `moduleCache: ModuleResultCache` / `invalidatedModules: Set<string>`
 - [ ] `ModuleResultCache<V>` 泛型化
 
-## A-PCS-5 — PackerOrchestrator 定义（D-PCS-5/8/9）
+## A-PCS-5 — PackerOrchestrator 定义（D-PCS-5, D-PCS-8, D-PCS-9）
 
 - [ ] `src/packer/types.ts` 含 `interface PackerOrchestrator`
 - [ ] PackerOrchestrator 含属性：`loaderRegistry` / `compileRegistry` / `emitRegistry`

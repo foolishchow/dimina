@@ -35,18 +35,25 @@
 **3 个 registry（D-PCS-5）**：
 - `LoaderRegistry` / `CompileRegistry` / `EmitRegistry`
 
-**Graph（D-PCS-2/3/4）**：
+**Graph（D-PCS-2, D-PCS-3, D-PCS-4）**：
 - `Graph` interface（build / reconcile / mergeDelta / toJSON / 查询方法）
+  - `build(ctx)` — D-PCS-4: Graph 自己 bootstrap，从 ctx 读 app.json
+  - `reconcile(ctx)` — D-PCS-3: Orchestrator 触发重新 config fixpoint
+  - `mergeDelta(delta)` — D-PCS-3: Orchestrator 触发合并 source delta
+  - `toJSON()` — D-PCS-2: 跨线程序列化
 - `GraphSnapshot` type（序列化类型，引用现有 DependencyGraph.toJSON() 返回类型）
 
 **OrchestratorState（D-PCS-6, D-PCS-9）**：
 - `OrchestratorState` interface（graph / moduleCache / invalidatedModules）
 - `ModuleResultCache<V>` 泛型 interface
 
-**PackerOrchestrator（D-PCS-5/8/9）**：
+**PackerOrchestrator（D-PCS-5, D-PCS-8, D-PCS-9）**：
 - `OrchestrateOptions` interface（parallel / incremental / configChanged）
 - `PackerEntry` interface
 - `PackerOrchestrator` interface（loaderRegistry / compileRegistry / emitRegistry / orchestrate）
+  - D-PCS-5: 拥有 3 registry
+  - D-PCS-8: 通用 worker（运行时收 kind 从内置 map 选实现）
+  - D-PCS-9: OrchestratorState session-scoped
 
 **import type**：
 - `EmitEntry` / `EmitTransformConfig`（from `pipeline/emit.ts`）

@@ -39,11 +39,11 @@ Graph 有两层 fixpoint（D-PCS-2）：config fixpoint（graph.build 内部，�
 | # | 组件 | 性质 | 职责 | 决策 |
 |---|---|---|---|---|
 | 1 | **PackerContext** | 被动数据 | I/O 环境（paths + fileTypes + resolvers）。不含 graph/cache | D-PCS-1, D-PCS-6 |
-| 2 | **Graph** | 主动组件 | 自己 bootstrap（config fixpoint）+ mergeDelta（source fixpoint）+ 查询 | D-PCS-2/3/4 |
+| 2 | **Graph** | 主动组件 | 自己 bootstrap（config fixpoint）+ mergeDelta（source fixpoint）+ 查询 | D-PCS-2, D-PCS-3, D-PCS-4 |
 | 3 | **LoadedModule + CompiledModule** | 被动数据 | 两阶段模块类型。CompiledModule = discriminated union | D-PCS-10 |
 | 4 | **Loader / Compiler / Emitter + 3 registry** | 被动接口 | per-kind 契约 + kind→实现映射。Emitter 封装 emit 策略 | D-PCS-5, D-PCS-7 |
 | 5 | **OrchestratorState** | 被动状态 | graph + cache + invalidated。session-scoped | D-PCS-6, D-PCS-9 |
-| 6 | **PackerOrchestrator** | **主动** | 拥有 3 registry，触发 graph，驱动 load→compile→emit | D-PCS-5/8/9 |
+| 6 | **PackerOrchestrator** | **主动** | 拥有 3 registry，触发 graph，驱动 load→compile→emit | D-PCS-5, D-PCS-8, D-PCS-9 |
 
 **Orchestrator 是唯一主动组件**——它触发 Graph bootstrap、从 graph 查 entries、通过 registry 派发到通用 worker、合并 delta、驱动 compile → emit。
 

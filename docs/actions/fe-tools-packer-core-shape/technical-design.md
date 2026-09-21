@@ -247,9 +247,9 @@ registry 的作用是 **Orchestrator 的派发配置**（有哪些 kind、怎么
 
 inline vs delayed 是 Emitter 的属性（`strategy`），不是 Orchestrator 的决策。delayed 的 Emitter 额外实现 `produceBuckets`——分桶逻辑封装在 Emitter 内部。Orchestrator 只查 `emitter.strategy` 决定调用路径。
 
-## §5 Graph + OrchestratorState + Orchestrator（D-PCS-2/3/4/5/8/9）
+## §5 Graph + OrchestratorState + Orchestrator（D-PCS-2, D-PCS-3, D-PCS-4, D-PCS-5, D-PCS-8, D-PCS-9）
 
-### §5.1 Graph（D-PCS-2/3/4）
+### §5.1 Graph（D-PCS-2, D-PCS-3, D-PCS-4）
 
 ```typescript
 interface Graph {
