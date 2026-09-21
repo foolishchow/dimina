@@ -197,6 +197,7 @@ function tryModuleCache(module, scriptRes, instruction, sourceMapRes): Record<st
 
 function compileModuleRender(module, compileInstruction, scriptRes, sourceContext): { code: string; map: string | null }
 	// this.→_ctx. → compileTemplate → compileTemplateModuleRender → insertWxsToRenderResult
+	// sourceContext: { tpl: string; sourceInfo: { path: string; content: string }; origins: unknown[]; sourceContents: Map<string, string>; isComponent: boolean; allScriptModules?: Array<{ path: string; code: string; originalName?: string }> }
 	// ≤50 行
 
 function finalizeModule(module, compileInstruction, renderResult, scriptRes, sourceMapRes, templateModule): Record<string, unknown>
@@ -264,29 +265,35 @@ function replaceConstructor(node, wxsContent, replacements): void
 
 ```
 function insertWxsToRenderResult(code, scriptModule, scriptRes, filename, inputMap) {
-	const { wxsBindings, declarations } = buildWxsDeclarations(scriptModule, scriptRes)
-	const codeReplacements = buildWxsReplacements(code, filename, wxsBindings)
+	const { wxsBindings, declarations, renderBody } = buildWxsDeclarations(scriptModule, scriptRes)
+	const codeReplacements = buildWxsReplacements(code, filename, wxsBindings, declarations, renderBody)
 	if (codeReplacements.length === 0) {
 		return { code: getProgramCode(code, parseJs(code, filename)), map: inputMap }
 	}
-	const { transformed, map } = applyWxsReplacements(code, codeReplacements, filename, inputMap, declarations)
+	const { transformed, map } = applyWxsReplacements(code, codeReplacements, filename, inputMap)
 	return { code: getProgramCode(transformed, parseJs(transformed, filename)), map }
 }
 
-function buildWxsDeclarations(scriptModule, scriptRes): { wxsBindings: Array<...>; declarations: string[] }
-	// ≤20 行
+function buildWxsDeclarations(scriptModule, scriptRes): { wxsBindings: Array<...>; declarations: string[]; renderBody: { type?: string; start?: number } | null }
+	// ≤20 行；renderBody 从 AST 计算（L1247），返回供 buildWxsReplacements 使用
 
-function buildWxsReplacements(code, filename, wxsBindings): Array<Replacement>
+function buildWxsReplacements(code, filename, wxsBindings, declarations, renderBody): Array<Replacement>
 	// walk → _ctx.xxx 替换 + 保留字别名 → codeReplacements
-	// 含 declarations 注入到 render body
+	// 含 declarations 注入到 render body（需 renderBody.start）
 	// ≤40 行
 
-function applyWxsReplacements(code, codeReplacements, filename, inputMap, declarations): { transformed: string; map: unknown }
+function applyWxsReplacements(code, codeReplacements, filename, inputMap): { transformed: string; map: unknown }
 	// applyCodeReplacements + sourcemap 生成 + remap
 	// ≤30 行
+	// 注意：sourcemap 路径须复制 applyCodeReplacements 的 selection 算法
+	//   （按 range 大小排序 → 去重叠 → 按 start 降序），
+	//   或提取共享 selectReplacements(replacements) helper
 ```
 
-**注意**：`declarations` 的注入在现状代码中是 `codeReplacements` 的一部分（L1267-1273 push insert type replacement）。拆分时需确保 `buildWxsReplacements` 能访问 `declarations`——可通过 `buildWxsDeclarations` 先返回 declarations，再传给 `buildWxsReplacements`。
+**注意**：
+1. `declarations` 的注入在现状代码中是 `codeReplacements` 的一部分（L1267-1273 push insert type replacement）。拆分时 `buildWxsDeclarations` 先返回 declarations + renderBody，再传给 `buildWxsReplacements`。
+2. `renderBody`（L1247 从 AST 计算）用于构建 insert replacement（L1267 `renderBody.start! + 1`）。`buildWxsDeclarations` 计算 renderBody 并返回，`buildWxsReplacements` 消费。
+3. sourcemap 路径（L1303-1320）复制了 `applyCodeReplacements` 的 selection/sort 逻辑（L93-113）。`applyWxsReplacements` 须复制完全相同的 selection 算法（按 range 大小排序 → 去重叠 → 按 start 降序），否则 sourcemap 结果不同 = 行为 0 破坏。可提取共享 `selectReplacements(replacements)` helper。
 
 ### §1.6 W1 shim binding 不变
 
@@ -316,7 +323,8 @@ viewParseWalk → compileViewTree → compileModule → [tryModuleCache → comp
 | 旧格式兼容分支删除 | 若有旧格式缓存条目会丢失 | 拆分后 `moduleCompileCache.get()` 返回 `ModuleCompileCacheEntry \| undefined`，不可能是 `string`——旧格式分支（`typeof cacheData === 'string'`）是死代码，删除安全。`cacheKey`（`smName` 或 `wxsFilePath`）与 `module.path`（页面/组件路径）实践不碰撞，且拆分后不同 Map 隔离 |
 | `compileModule` 拆分后参数传递复杂化 | 子函数需要多个参数 | 使用 options 对象传参；`noUnusedParameters: true` 约束 |
 | `processWxsContent` walk 回调拆分后 `replacements` 数组共享 | 子函数需 push 到同一个 `replacements` 数组 | 传 `replacements` 引用 |
-| `insertWxsToRenderResult` declarations 与 replacements 依赖 | declarations 在 buildWxsDeclarations 构建，在 buildWxsReplacements 注入 | 顺序调用，先 declarations 后 replacements |
+| `insertWxsToRenderResult` declarations/replacements/renderBody 依赖 | declarations + renderBody 在 buildWxsDeclarations 构建，在 buildWxsReplacements 注入 | 顺序调用：buildWxsDeclarations 先返回 declarations + renderBody，再传给 buildWxsReplacements |
+| `insertWxsToRenderResult` sourcemap selection 逻辑复制 | `applyWxsReplacements` 须复制 `applyCodeReplacements` 的 selection 算法 | 提取共享 `selectReplacements(replacements)` helper 或精确复制 |
 | `noUnusedLocals: true` | 拆分后不可保留已搬走的 import | 每步 tsc 验证 |
 
 ## §4 替代方案
