@@ -59,10 +59,10 @@
 ## Readiness gaps
 
 - 无——审计已完成，文档已产出（`source-audit.md`）
-- 待 review 确认关键发现 F-1..F-6 的准确性
+- F-1..F-6 准确性已确认（5 轮 review pass）
 
 ## Closure conditions
 
 - R-PLA-1..9 全 passed
 - 关键发现 F-1..F-6 回流 `fe-tools-packer-core-shape` technical-design
-- 行为 0 守卫通过（diff=0 + vitest 全绿）
+- 行为 0 守卫通过（diff=0；vitest 不受影响）

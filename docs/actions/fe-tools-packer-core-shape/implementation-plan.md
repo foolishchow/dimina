@@ -55,7 +55,7 @@
 **验证**：`tsc --noEmit` 0 错
 对应：R-PCS-1 / R-PCS-2 / R-PCS-3 / R-PCS-4 / R-PCS-5
 
-### Step 2: 创建 `src/packer/README.md`
+### Step 2: 创建 `src/packer/README.md` + architecture-notes 回流
 
 - load → compile → emit 管线说明（3 环节 + graph build 前置）
 - 两个 fixpoint 说明（config fixpoint + source fixpoint）
@@ -70,8 +70,13 @@
 - D-PCS-1..10 决策摘要
 - TODO 清单（泛型 CompiledModule / 模块级增量 / NpmResolver）
 
+**architecture-notes 回流**：
+- `docs/fe-tools/architecture-notes.md` 加 Packer core 6 组件形状概要
+- 加 D-PCS-1..10 决策摘要
+- 加 graph build→load→compile→emit 管线说明
+
 **验证**：文档链接有效
-对应：R-PCS-6 / R-PCS-7
+对应：R-PCS-6 / R-PCS-7 / A-PCS-11
 
 ### Step 3: 验证
 

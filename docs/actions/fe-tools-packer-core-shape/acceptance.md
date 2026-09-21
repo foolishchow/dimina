@@ -79,3 +79,9 @@
 ## A-PCS-10 — 独立编译
 
 - [ ] `src/packer/types.ts` 可独立 `tsc --noEmit` 0 错
+
+## A-PCS-11 — architecture-notes 回流
+
+- [ ] `docs/fe-tools/architecture-notes.md` 含 Packer core 6 组件形状概要
+- [ ] architecture-notes 含 D-PCS-1..10 决策摘要
+- [ ] architecture-notes 含 graph build→load→compile→emit 管线说明
