@@ -342,6 +342,30 @@ type InvalidatedModules = Set<string>  // 全 kind，不按 'logic' 过滤
 
 三车道并行跑各自的 parse-walk fixpoint。不是全局串行 fixpoint。
 
+### 决策 D-PCS-9：OrchestratorState session-scoped，ALS pipeline-scoped
+
+OrchestratorState（graph + cache + invalidatedModules）是 **session-scoped**——session start 创建，跨 rebuild 持久。graph 不在 ALS 里（D-PCS-6），不靠 ALS 活着。
+
+PackerContext（ALS）是 **pipeline-scoped**——pipeline.run() 时创建，返回后销毁。ALS 只是 I/O 环境（workPath + fileTypes），pipeline.run 时可用就行。
+
+```
+session start:
+  → 创建 Orchestrator（注册 registries）
+  → 创建 OrchestratorState（graph 空 + cache 空 + invalidatedModules 空）
+
+pipeline.run() × N:
+  → runWithCompilerContext(() => ...)  ← ALS 创建（pipeline-scoped）
+  → ctx = getPackerContext()  ← 从 ALS 拿
+  → orchestrator.orchestrate(ctx, state, options)
+  → pipeline.run() 返回 → ALS 销毁
+  → state 还在（session-scoped）
+
+session end:
+  → OrchestratorState 销毁
+```
+
+graph.build(ctx) 时 ctx 是 ALS-backed——但 graph 持有的数据不依赖 ALS。graph 在 OrchestratorState 里，活过 pipeline.run()。
+
 ### 伪代码
 
 ```typescript
@@ -352,30 +376,37 @@ interface PackerEntry {
 }
 
 interface OrchestrateOptions {
-  parallel: boolean     // 三车道并行（现状 Listr concurrent: true）
+  parallel: boolean     // 各车道并行（现状 Listr concurrent: true）
   incremental: boolean  // watch 增量（affectedEntries + invalidatedModules）
+  configChanged: boolean  // .json 变了（触发 graph.reconcile）
 }
 
 // ── Orchestrator 是唯一主动组件 ──
-// 但不是"一个全局串行 fixpoint"——是三并行车道级 fixpoint + 合并
+// D-PCS-5: 拥有三个 registry
+// D-PCS-8: 通用 worker
+// D-PCS-9: OrchestratorState session-scoped
+// 但不是"一个全局串行 fixpoint"——是各车道级 fixpoint + 合并
 interface PackerOrchestrator {
+  loaderRegistry: LoaderRegistry
+  compileRegistry: CompileRegistry
+  emitRegistry: EmitRegistry
+
   orchestrate(
-    entries: PackerEntry[],
     ctx: PackerContext,
     state: OrchestratorState,
-    api: Packer,
     options: OrchestrateOptions,
   ): Promise<EmitEntry[]>
 }
 
-// ── 状态区——Orchestrator 独占（主线程）──
+// ── 状态区——session-scoped（D-PCS-9）──
 // D-PCS-2/D-PCS-3/D-PCS-4：graph 由 Orchestrator 触发，逻辑自包含，自己 bootstrap
 // D-PCS-6：拆出 PackerContext，graph/cache/invalidated 在 OrchestratorState
+// D-PCS-9：session-scoped，跨 rebuild 持久；ALS pipeline-scoped 不影响 state
 // F-2：graph/cache 的活引用只在主线程；worker 收快照
 interface OrchestratorState {
-  graph: Graph                        // 活图（Orchestrator 触发 build/reconcile/mergeDelta）
-  moduleCache: ModuleResultCache     // 活 cache（主线程）
-  invalidatedModules: Set<string>    // 失效集
+  graph: Graph                        // 活图（session-scoped，跨 rebuild 持久）
+  moduleCache: ModuleResultCache     // 活 cache（session-scoped）
+  invalidatedModules: Set<string>    // 失效集（per-rebuild 重算）
 }
 
 // ── Orchestrator 编排伪代码 ──
@@ -608,9 +639,12 @@ graph 创建          env.ts createInitialDependency    target: Graph 自己 boo
                     storePageConfig（bootstrap 内）      Orchestrator 触发（D-PCS-3）
                                                      没有 bootstrap 阶段
 
-graph 写权          env.ts 初始 + worker 本地写       target: Orchestrator 触发 mergeDelta
-                    + 主线程合并                      config fixpoint: Graph.build 内部
-                                                     现实: 快照+合并（线程边界必然）
+graph 生命周期      ephemeral（per pipeline.run）     target: session-scoped（D-PCS-9）
+                    storeInfo 重建                     OrchestratorState 跨 rebuild 持久
+                                                     ALS pipeline-scoped 不影响 state
+
+cache 生命周期      ephemeral（per pipeline.run）     target: session-scoped（D-PCS-9）
+                    重建                               同 graph
 
 cache 写权          主线程 stage-channel 写           target: Orchestrator 独占
                     worker 只读快照                   现实: 同（worker 不写 cache）
@@ -661,3 +695,5 @@ CompiledModule      四车道各自表示                    target: 统一类�
 12. **worker 是 per-lane 还是通用？**
     - **决策 D-PCS-8**：通用 worker。worker 不分 lane——运行时收 `kind` 消息，从内置 map 选 Loader/Compiler/Emitter 实现。一个 worker-entry，内置所有 kind 的实现。主线程 registry 和 worker 内置 map 是两套实例（不能跨线程传函数），通过 kind 关联——两边注册一致的 kind → 实现映射。
     - registry 的作用：Orchestrator 的派发配置（有哪些 kind、怎么派发），不是 worker 运行时查实现的机制。
+13. **OrchestratorState 生命周期？ALS 生命周期？**
+    - **决策 D-PCS-9**：OrchestratorState 是 session-scoped（session start 创建，跨 rebuild 持久）。ALS 是 pipeline-scoped（pipeline.run() 时创建，返回后销毁）。graph 不在 ALS 里（D-PCS-6），不靠 ALS 活着——graph 在 OrchestratorState 里，活过 pipeline.run()。graph.build(ctx) 时 ctx 是 ALS-backed，但 graph 持有的数据不依赖 ALS。
