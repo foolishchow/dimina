@@ -116,7 +116,24 @@ interface PackerModuleMetadata {
 
 ---
 
-## §3 Packer API — load → compile → emit 3 环节
+## §3 Packer API — 3 registry（load / compile / emit）
+
+### 决策 D-PCS-5：三个 registry 取代 Packer 单体接口
+
+现在 Packer API 的 `loadModule/compileModule/emitEntry` 三个方法内部 `switch(kind)` 硬编码派发。三车道逻辑差异极大（logic parse JS AST 找 require；view parse WXML 找 include/wxs；style parse WXSS 找 @import）。
+
+形状 target：三个 registry 取代单体 Packer 接口。每个 registry 映射 `ModuleKind → 实现`。Orchestrator 拥有三个 registry，用 registry 派发，不做 switch。
+
+好处：
+- 加新 kind 不改 Orchestrator——注册一个 Loader/Compiler/Emitter 就行
+- load/compile/emit 实现和 Orchestrator 解耦——Loader/Compiler/Emitter 是独立单元
+- 可测试——每个 per-kind 实现单独测
+
+### 决策 D-PCS-7：Emitter 封装 emit 策略
+
+inline vs delayed 不是 Orchestrator 的决策——是 Emitter 自己的特性。logic 按桶发射因为 JS 需要合并打包；view/style 按入口发射因为 WXML/WXSS 天然独立。
+
+Emitter 声明自己的 `strategy`，Orchestrator 只查 strategy 决定调用路径。delayed 的 Emitter 额外实现 `produceBuckets`——分桶逻辑（按 main/sub package）封装在 Emitter 内部，Orchestrator 不需要知道怎么分。
 
 ### 发现 F-4
 
@@ -130,7 +147,7 @@ interface LoadInput {
   moduleId: string
   kind: ModuleKind
   source: string
-  // Scheme 层预计算的 Dimina 专有数据（F-1 路径 A：不进 PackerContext）
+  // Scheme 层预计算的 Dimina 专有数据（不进 PackerContext）
   usingComponents?: Record<string, string>   // view 专有
   styleScopeId?: string                       // style 专有
 }
@@ -143,33 +160,77 @@ interface EmitOptions {
   relPrefix: string
 }
 
-// ── Packer API：3 环节 ──
-// 现实：load/compile 交织在 parse-walk 里；形状的目标是分离
-// 现实：这些方法跑在 Worker 里，通过 ALS 读 PackerContext
-interface Packer {
-  // load：parse + walk = 发现依赖
-  // F-5：现实 parse-walk 写本地 graph（非纯函数）
-  //      形状 target：返回 deps delta，Orchestrator 写 graph（需重构）
-  loadModule(input: LoadInput, ctx: PackerContext): Promise<LoadedModule>
+// ── 三个 per-kind 契约 ──
+interface Loader {
+  // load = parse + walk = 发现依赖
+  // F-5：现实 parse-walk 写本地 graph；形状 target：返回 LoadedModule.dependencies
+  load(input: LoadInput, ctx: PackerContext): Promise<LoadedModule>
+}
 
-  // compile：transform = 变换源码 → 产物
+interface Compiler {
+  // compile = transform = 变换源码 → 产物
   // 依赖已确定（LoadedModule.dependencies），不参与发现
-  compileModule(module: LoadedModule, ctx: PackerContext): Promise<CompiledModule>
+  compile(module: LoadedModule, ctx: PackerContext): Promise<CompiledModule>
+}
 
-  // emit：bundle = 装配
-  // F-4：logic 用 perModule 策略（按桶）；view 用 bundle 策略（按 entry）
-  emitEntry(
+interface Emitter {
+  // emit = bundle = 装配
+  // D-PCS-7：Emitter 封装自己的 emit 策略，Orchestrator 只查 strategy
+  readonly strategy: EmitStrategy
+
+  // inline: 直接 emit → EmitEntry
+  // delayed: 先调 produceBuckets 产分桶，等所有车道完成后统一 emit
+  emit(
     entryId: string,
     modules: CompiledModule[],
     ctx: PackerContext,
     options: EmitOptions,
   ): Promise<EmitEntry>   // EmitEntry from pipeline/emit.ts（不变）
+
+  // delayed 专有：产分桶（按 main/sub package 等）
+  // inline 的 Emitter 不实现这个
+  produceBuckets?(
+    compiled: CompiledModule[],
+    entries: string[],
+  ): EmitBucket[]
 }
 
-// ── per-lane dispatch ──
-// loadModule/compileModule 实现必然 switch(kind)
-// 三车道 load/compile 逻辑差异大，无法真正统一
-// Packer API 是接口契约，实现是 per-lane dispatch
+type EmitStrategy = 'inline' | 'delayed'
+
+interface EmitBucket {
+  kind: ModuleKind           // D-PCS-7: delayed emit 需要知道哪个 kind 的 bucket
+  entryId: string
+  modules: CompiledModule[]
+  emitOptions: EmitOptions
+}
+
+// ── 三个 registry ──
+// D-PCS-5: kind → 实现的映射，可插拔
+// D-PCS-7: Emitter 封装 emit 策略（strategy）
+interface LoaderRegistry {
+  get(kind: ModuleKind): Loader
+  register(kind: ModuleKind, loader: Loader): void
+  kinds(): ModuleKind[]
+}
+interface CompileRegistry {
+  get(kind: ModuleKind): Compiler
+  register(kind: ModuleKind, compiler: Compiler): void
+}
+interface EmitRegistry {
+  get(kind: ModuleKind): Emitter
+  register(kind: ModuleKind, emitter: Emitter): void
+}
+
+// ── 注册示例（session start 时）──
+// loaderRegistry.register('logic', new LogicLoader())    // parse JS → walk AST → require
+// loaderRegistry.register('view', new ViewLoader())      // parse WXML → walk → include/wxs
+// loaderRegistry.register('style', new StyleLoader())   // parse WXSS → walk → @import
+// compileRegistry.register('logic', new LogicCompiler()) // transformCjs
+// compileRegistry.register('view', new ViewCompiler())   // Vue compile
+// compileRegistry.register('style', new StyleCompiler()) // postcss
+// emitRegistry.register('logic', new LogicEmitter())     // strategy: 'delayed', produceBuckets
+// emitRegistry.register('view', new ViewEmitter())       // strategy: 'inline'
+// emitRegistry.register('style', new StyleEmitter())     // strategy: 'inline'
 ```
 
 ---
@@ -380,26 +441,28 @@ async function orchestrate(
     }
 
     // ── 收集 inline emit（即时，F-4）──
-    // D-PCS-5：非 logic 的 kind 的 inline emit
+    // D-PCS-5/D-PCS-7：从 registry 查 strategy=inline 的 kind 的 inline emit
     for (const result of laneResults) {
       if (result?.entries) {
         results.push(...result.entries)
       }
     }
 
-    // ── logic emit 推迟（F-4）──
+    // ── delayed emit 推迟（F-4）──
     // 现实：独立 stage，按桶（main + subs）
-    // D-PCS-5：从 emitRegistry 取 logic emitter
-    if (logicResult?.emitBuckets) {
-      const logicEmitter = orch.emitRegistry.get('logic')
-      for (const bucket of logicResult.emitBuckets) {
-        const entry = await logicEmitter.emit(
-          bucket.entryId,
-          bucket.modules,
-          ctx,
-          bucket.emitOptions,
-        )
-        results.push(entry)
+    // D-PCS-5/D-PCS-7：从 emitRegistry 查 strategy=delayed 的 kind
+    for (const result of laneResults) {
+      if (result?.emitBuckets) {
+        for (const bucket of result.emitBuckets) {
+          const emitter = orch.emitRegistry.get(bucket.kind)
+          const entry = await emitter.emit(
+            bucket.entryId,
+            bucket.modules,
+            ctx,
+            bucket.emitOptions,
+          )
+          results.push(entry)
+        }
       }
     }
   }
@@ -437,9 +500,9 @@ async function runLane(
   //      for moduleId in invalidatedModules ∩ lane:
   //        if cache hit → skip
   //        compiled = compiler.compile(loaded, ctx)
-  //   4. emit（view/style inline；logic 产 emitBuckets）
-  //      view/style: emitter.emit → EmitEntry → onOutput 回传
-  //      logic: 产 emitBuckets（不直接 emit）
+  //   4. emit——根据 Emitter.strategy 派发（D-PCS-7）
+  //      inline: emitter.emit → EmitEntry → onOutput 回传
+  //      delayed: emitter.produceBuckets → EmitBucket[]（不直接 emit）
   //   5. 返回 { compiled, graphDelta, emitBuckets, entries }
 
   // 主线程收到序列化结果后合并
@@ -449,15 +512,11 @@ async function runLane(
 interface LaneResult {
   compiled: CompiledModule[]
   graphDelta: unknown | null         // 序列化的 graph 增量
-  emitBuckets: EmitBucket[] | null   // logic 专有
-  entries: EmitEntry[]               // view/style inline emit
+  emitBuckets: EmitBucket[] | null   // delayed strategy 的 kind 专有
+  entries: EmitEntry[]               // inline strategy 的 kind 的 emit
 }
 
-interface EmitBucket {
-  entryId: string
-  modules: CompiledModule[]
-  emitOptions: EmitOptions
-}
+// EmitBucket 定义在 §3（D-PCS-7: 含 kind 字段）
 ```
 
 ---
@@ -523,8 +582,9 @@ load                交织 compile（parse-walk）       分离：Loader.load �
 
 compile             交织在 parse-walk 里              分离：Compiler.compile 独立
 
-emit                logic 推迟（独立 stage）          形状承认：emit 时机因车道
-                    view/style inline                Emitter.emit per-kind
+emit                logic 推迟（独立 stage）          Emitter 封装 strategy（D-PCS-7）
+                    view/style inline                inline: 直接 emit
+                                                     delayed: produceBuckets 后统一 emit
 
 graph 创建          env.ts createInitialDependency    target: Graph 自己 bootstrap（D-PCS-4）
                     Graph + storeAppConfig +              Graph.build(ctx) 直接读 app.json
@@ -579,3 +639,5 @@ CompiledModule      四车道各自表示                    target: 统一类�
    - **load 在 graph build 之后启动**：load 需要从 graph 拿 entries + file ownership + 快照。
 10. **Packer API 用单体接口还是 registry？**
     - **决策 D-PCS-5**：三个 registry 取代 Packer 单体接口。LoaderRegistry / CompileRegistry / EmitRegistry 映射 ModuleKind → per-kind 实现。Orchestrator 拥有三个 registry，用 registry 派发，不做 switch。加新 kind 只需注册，不改 Orchestrator。
+11. **emit 策略（inline vs delayed）该谁决定？**
+    - **决策 D-PCS-7**：Emitter 封装自己的 emit 策略。`strategy: 'inline' | 'delayed'` 是 Emitter 的属性，不是 Orchestrator 的决策。delayed 的 Emitter 额外实现 `produceBuckets`——分桶逻辑封装在 Emitter 内部。Orchestrator 只查 `emitter.strategy` 决定调用路径，不需要知道哪个 kind 是 inline/delayed。
