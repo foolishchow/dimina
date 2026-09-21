@@ -1,5 +1,7 @@
 # Technical Design — fe-tools-packer-core-shape
 
+> 本设计基于 draft.md 的 D-PCS-1..10 决策。draft.md 是伪代码草稿，本文档是正式设计。
+
 ## §0 设计输入
 
 ### §0.1 前身决策
@@ -9,39 +11,39 @@
 | W1 | emit.ts parameterize 可独立先行（S 级） | 本 Action 取代 W1——形状定义优先于单点参数化 |
 | W2 | logic/** 参数化需 L 级重构 | 不实施——只定义形状 |
 | W3 | env.ts 不拆（注入 context） | PackerContext 是接口，env.ts 是潜在实现 |
-| W4 | dependency-graph 不拆（限定 kind API） | PackerContext.graph 字段引用现有 DependencyGraph 类型 |
+| W4 | dependency-graph 不拆（限定 kind API） | Graph 引用现有 DependencyGraph 类型 |
 | D-MF-1 | 方案 A；刀 2 仅 logic；view/style 排除；规范形迁移另门 | 本 Action 定义的形状是"另门"的北星 |
-| D-ER-5 | produceEntry 从 emitEntry 提取 | Packer API.emitEntry 复用 produceEntry/emitEntry 签名 |
+| D-ER-5 | produceEntry 从 emitEntry 提取 | Emitter.emit 复用 produceEntry/emitEntry 签名 |
 | D-RC-1..3 | ModuleResultCache session-only；IPC 快照；dep 发现用 cached.logicDependencies | 模块生命周期形状复用 ModuleResultCache |
 | D-IV-1..6 | computeInvalidatedModules logic-only；闭包沿 kind=logic 边 | invalidatedModules 形状泛化到全 kind（形状定义，不实施） |
 
-### §0.2 env.ts 扇入扇出分析（本讨论产出）
+### §0.2 本 Action 决策（D-PCS-1..10）
 
-27 exports 分类：
-
-| 层 | 数量 | 函数 | Packer 需要 |
-|---|---|---|---|
-| 通用 I/O | 5 | getWorkPath / getTargetPath / getContentByPath / resolveAppAlias / getNpmResolver | ✅ PackerContext |
-| Dimina 专有 | 5 | getDependencyGraph / getComponent / getAppConfigInfo / getAppId / isMiniGame | ❌ SchemeContext 或预计算 |
-| 文件类型 | 5 | getStyleExts / getTemplateExts / getViewScriptExts / getViewScriptTags / getTemplateDirectivePrefixes | ✅ PackerContext.fileTypes |
-| 纯 Scheme | 6 | getPages / getPageConfigInfo / getAppStyleScopeId / getAppName / isTemporaryTargetPath / runWithCompilerContext | ❌ 不迁移 |
-| 生命周期 | 3 | resetStoreInfo / storeInfo / storeProjectConfig | ❌ 不迁移（storeInfo/resetStoreInfo 是 env.ts 内部） |
-| 死 export | 3 | getProjectConfig / getRuntimeType / storeProjectConfig | ❌ 仅测试用 |
-
-Packer 层直接调 16/27 exports。真正的 Packer 通用面是 5 个 I/O + 5 个文件类型 = 10 个。
+| 决策 | 内容 |
+|---|---|
+| D-PCS-1 | storeInfo 只剩 paths+fileTypes = PackerContext。读 app.json / 递归组件 / 建图 / runtimeType 全归 Graph |
+| D-PCS-2 | graph 推导逻辑自包含。config fixpoint + source fixpoint 都是 Graph 的两层发现 |
+| D-PCS-3 | graph 由 Orchestrator 触发，长期持有（per session/watch） |
+| D-PCS-4 | Graph 自己 bootstrap 自己。build(ctx) 直接读 app.json，没有 bootstrap 阶段 |
+| D-PCS-5 | 三个 registry 取代 Packer 单体接口 |
+| D-PCS-6 | PackerContext(I/O+fileTypes) + OrchestratorState(graph+cache+invalidated) 拆区 |
+| D-PCS-7 | Emitter 封装 emit 策略（strategy + produceBuckets） |
+| D-PCS-8 | 通用 worker，运行时收 kind 从内置 map 选实现 |
+| D-PCS-9 | OrchestratorState session-scoped，ALS pipeline-scoped |
+| D-PCS-10 | CompiledModule discriminated union |
 
 ### §0.3 现有碎片
 
 | 碎片 | 位置 | 对应 Packer 组件 |
 |---|---|---|
-| DependencyGraph | model/dependency-graph.ts | PackerContext.graph |
-| ModuleResultCache | model/module-result-cache.ts | 模块生命周期 |
-| computeInvalidatedModules | model/invalidation.ts | 模块生命周期 |
-| produceEntry / emitEntry | pipeline/emit.ts | Packer API.emitEntry |
+| DependencyGraph | model/dependency-graph.ts | Graph（D-PCS-2: 逻辑自包含） |
+| ModuleResultCache | model/module-result-cache.ts | OrchestratorState.moduleCache |
+| computeInvalidatedModules | model/invalidation.ts | OrchestratorState.invalidatedModules |
+| produceEntry / emitEntry | pipeline/emit.ts | Emitter.emit |
 | EmitModule / EmitEntry | pipeline/emit.ts | CompiledModule 子集 / EmitEntry |
 | deriveFromGraph | model/convergence.ts | Orchestrator 雏形（只读版） |
-| 三车道 parse-walk | logic/style/view parse-walk.ts | Packer API.loadModule |
-| transformCjs / Vue compile / postcss | logic/transform.ts / view / style | Packer API.compileModule |
+| 三车道 parse-walk | logic/style/view parse-walk.ts | Loader.load |
+| transformCjs / Vue compile / postcss | logic/transform.ts / view / style | Compiler.compile |
 | build-pipeline | pipeline/build-pipeline.ts | Orchestrator（stage 级） |
 | watch-plan | watch/watch-plan.ts | Orchestrator（entry 级） |
 | worker-pool | watch/worker-pool.ts | Executor（不归 Packer） |
@@ -53,38 +55,39 @@ Packer 层直接调 16/27 exports。真正的 Packer 通用面是 5 个 I/O + 5 
 Packer 管线是 3 个环节。**load**（parse + walk）是正式环节名——现有三车道 `parse-walk.ts` 即此环节的实现。
 
 ```
-load → compile → emit
+graph.build(ctx) → load → compile → emit
 ```
 
 | 环节 | 正式名 | 做什么 | 输入 | 输出 | 反馈循环 |
 |---|---|---|---|---|---|
-| 1 | **load** | parse + walk = 发现 | LoadInput（moduleId + kind + source）+ ctx | LoadedModule（source + dependencies + metadata） | ✅ dependencies 驱动下一轮 |
+| 0 | **graph build** | config fixpoint | PackerContext | graph 项目结构 | ✅ 递归发现组件 |
+| 1 | **load** | parse + walk = 发现 | LoadInput + ctx | LoadedModule（source + dependencies + metadata） | ✅ dependencies 驱动下一轮 |
 | 2 | **compile** | transform = 变换 | LoadedModule + ctx | CompiledModule（code + map） | ❌ 依赖已确定 |
 | 3 | **emit** | bundle = 装配 | CompiledModule[] + ctx + options | EmitEntry | ❌ 纯组装 |
 
-### §1.2 为什么 load 和 compile 可分离
+### §1.2 两个 fixpoint
 
-三车道现在 parse-walk 里交织了 load（发现）和 compile（变换），但概念上可分离：
+Graph 有两层 fixpoint（D-PCS-2）：
 
-**Logic**：
-- load: parse JS → walk require/import → 发现依赖 module IDs
-- compile: transformCjs（ESM→CJS）
+- **config fixpoint**（graph.build 内部）：读 app.json → 发现 pages → 读 page.json → 发现 components → 递归 → 扫文件 → 项目结构完成
+- **source fixpoint**（load 阶段）：parse 源码 → 发现 require/@import/wxs → mergeDelta → 继续直到稳定
 
-**View**：
-- load: parse WXML → walk DOM → 发现 usingComponents / wxs / includes
-- compile: Vue compileTemplate + wxs replacement（用 load 发现的 wxs 内容）
+两层都是 graph 在长——从不同输入长（JSON vs source）。Graph 是这两个 fixpoint 的共同 owner。
 
-**Style**：
-- load: parse WXSS → walk @import → 发现依赖 module IDs
-- compile: postcss/less → CSS + map
+### §1.3 load 在 graph build 之后启动
 
-关键：**wxs 的发现（load）和处理（compile）可分离**——load 阶段 parse WXML 发现 `<wxs>` 标签 + 提取内容 + 记录 module ID；compile 阶段用这些 wxs 内容做 replacement。现在它们在同一函数里交织，但不必须交织。
+load 需要从 graph 拿 3 样东西才能开始：
+- entry 集（graph.getEntries()）
+- file ownership（graph.getFileOwners()）
+- graph 快照（graph.toJSON()，传给 worker）
 
-### §1.3 跨车道依赖留在车内
+graph build 完成后交付这些给 Orchestrator，Orchestrator 才能启动 load。
 
-view 的 wxs 处理（view→logic 的跨车道依赖）留在 view 车道内部——load 发现 wxs，compile 处理 wxs。Orchestrator 不管跨车道。理由：wxs 的发现和处理交织太深，拆出来要重构 view parse-walk 核心逻辑，ROI 不明。这是形状定义接受的妥协——Packer 不是纯粹通用的打包器，view 车道知道怎么处理 wxs。
+### §1.4 跨车道依赖留在车内
 
-## §2 PackerContext
+view 的 wxs 处理（view→logic 的跨车道依赖）留在 view 车道内部——load 发现 wxs，compile 处理 wxs。Orchestrator 不管跨车道。
+
+## §2 PackerContext（D-PCS-1, D-PCS-6）
 
 ### §2.1 设计
 
@@ -95,21 +98,16 @@ interface PackerContext {
   targetPath: string
   readContent: (path: string) => string
 
-  // 模块解析（env.ts 层 1）
+  // 模块解析（D-PCS-1: deferred——讨论调度器时定是否保留）
   resolveAlias: (src: string) => string | null
   resolveNpm: (src: string, baseFile: string) => string
 
   // 文件类型（env.ts 层 4）
   fileTypes: PackerFileTypes
 
-  // 图（env.ts getDependencyGraph）
-  graph: DependencyGraph
-
-  // 缓存（M2 ModuleResultCache 泛型化）
-  moduleCache: ModuleResultCache<CompiledModule>
-
-  // 失效（M1 invalidatedModules 泛化）
-  invalidatedModules: Set<string>
+  // 注意：graph / moduleCache / invalidatedModules 不在 PackerContext
+  // D-PCS-6: 这些在 OrchestratorState（§5）
+  // D-PCS-4: Graph 自己从 ctx.workPath 读 app.json bootstrap
 }
 
 interface PackerFileTypes {
@@ -121,31 +119,15 @@ interface PackerFileTypes {
 }
 ```
 
-### §2.2 Dimina 专有字段不进 PackerContext
+### §2.2 PackerContext 是 I/O 环境，不是状态
 
-env.ts 层 2（`getComponent` / `getAppConfigInfo` / `getAppId` / `isMiniGame`）不进 PackerContext。两条路径：
+D-PCS-6 拆区：PackerContext 只含被动 I/O（paths + fileTypes + resolvers），不含 graph/cache/invalidated（那些在 OrchestratorState）。D-PCS-9: PackerContext 是 pipeline-scoped（ALS），OrchestratorState 是 session-scoped。
 
-**路径 A（预计算到 metadata）**：Scheme 层在发现阶段调 env.ts 拿到 component config / appId / runtimeType，嵌入 LoadedModule.metadata。Packer 编译时只读 metadata，不调 env.ts。
+### §2.3 Dimina 专有字段不进 PackerContext
 
-**路径 B（SchemeContext 注入 Orchestrator）**：Orchestrator 持有 `SchemeContext`（含 getComponent / getAppId / isMiniGame），在编排时调 Scheme 层查询，结果传给 Packer API。
+env.ts 的 `getComponent` / `getAppConfigInfo` / `getAppId` / `isMiniGame` 不进 PackerContext。D-PCS-4: Graph 自己读 app.json，runtimeType 在 Graph 内部判断。Scheme 层专有逻辑通过预计算到 module metadata 或由 Orchestrator 桥接。
 
-**本设计倾向路径 A**（预计算）——Packer 真正通用，不持有任何 Dimina 引用。路径 B 作为备选。
-
-### §2.3 与 packer-research 草案的差异
-
-packer-research 草案：
-```
-PackerContext { sourceRoot, outputRoot, moduleIdPrefix, runtimeType,
-  graphWriter{...}, resolver{content/npm/alias/component/appConfig}, stateRestore }
-```
-
-本设计差异：
-- `runtimeType` 移出（Dimina 专有 → 预计算或 SchemeContext）
-- `resolver{component/appConfig}` 移出（同上）
-- `graphWriter` 改为 `graph: DependencyGraph`（Packer 直接读现有图类型，不重新定义 writer 接口）
-- 加 `moduleCache` + `invalidatedModules`（packer-research 草案无——M1/M2 当时未 complete）
-
-## §3 LoadedModule + CompiledModule
+## §3 LoadedModule + CompiledModule（D-PCS-10）
 
 ### §3.1 设计
 
@@ -156,201 +138,202 @@ type ModuleKind = 'logic' | 'view' | 'style' | 'config'
 interface LoadedModule {
   moduleId: string
   kind: ModuleKind
-  source: string                    // 原始源码
-  dependencies: string[]            // load 发现的依赖 module ID 列表
-  metadata: PackerModuleMetadata    // load 提取的元数据
+  source: string
+  dependencies: string[]
+  metadata: PackerModuleMetadata
 }
 
-// compile 环节产出
-interface CompiledModule {
+// compile 环节产出——D-PCS-10: discriminated union
+interface CompiledModuleBase {
   moduleId: string
   kind: ModuleKind
-  code: string                      // 编译产物
+  code: string
   map: string | null
-  dependencies: string[]            // = LoadedModule 的，确认
-  extraInfoCode?: string
-  metadata: PackerModuleMetadata    // 透传 + compile 补充
+  dependencies: string[]
 }
+
+interface LogicCompiledModule extends CompiledModuleBase {
+  kind: 'logic'
+  extraInfoCode?: string
+}
+
+interface ViewCompiledModule extends CompiledModuleBase {
+  kind: 'view'
+  renderBody?: { start: number; end: number }
+  wxsBindings?: WxsBinding[]
+}
+
+interface StyleCompiledModule extends CompiledModuleBase {
+  kind: 'style'
+  styleScopeId?: string
+}
+
+type CompiledModule = LogicCompiledModule | ViewCompiledModule | StyleCompiledModule
 
 interface PackerModuleMetadata {
   sourcePath: string
-  // View-specific（load 阶段发现，compile 阶段消费）
-  wxsBindings?: WxsBinding[]
-  renderBody?: { start: number; end: number }
-  // Style-specific
-  styleScopeId?: string
-  // 允许 lane-specific 扩展
-  [key: string]: unknown
 }
 ```
 
-### §3.2 与现有类型的映射
+### §3.2 为什么 discriminated union（D-PCS-10）
 
-| 现有类型 | 字段 | → 阶段类型 |
-|---|---|---|
-| `EmitModule` | moduleId, code, map, extraInfoCode | CompiledModule 子集（emit 只用这些） |
-| `CompileInfo` | path, code, map, extraInfoCode | CompiledModule（moduleId=path） |
-| `ModuleCompileCacheEntry` | instruction.scriptModule | LoadedModule.metadata.wxsBindings 等 |
-| `CachedModuleResult` | compileInfo, logicDependencies | CompiledModule + dependencies |
-| parse-walk 内部 source | 源码字符串 | LoadedModule.source |
+每个 kind 只有自己需要的字段。`kind` 是判别字段，TS narrowing 自动生效。registry 边界不丢类型——`registry.get('logic')` 返回 Compiler，产出的 CompiledModule 在消费方通过 `module.kind === 'logic'` 窄化。
 
-### §3.3 metadata 形状决策
+替代方案（胖接口 + `[key: string]: unknown` 索引签名）否决——索引签名是 `any` 的伪装，允许无效组合。
 
-采用 `[key: string]: unknown` 索引签名 + 文档化 lane-specific 字段，不用 kind 判别联合。理由：
-- 判别联合会让 compileModule 的类型签名复杂化（需 narrow kind）
-- 现有 view parse-walk 的 metadata 字段动态性高
-- 索引签名允许渐进类型化（先文档化，后续可收紧）
+TODO: 后续考虑泛型方案（`CompiledModule<M extends PackerModuleMetadata>`）——泛型可以让 metadata 类型安全穿透 registry 边界，但泛型参数穿透所有 API，复杂度高。当前 discriminated union 简单且足够。
 
-## §4 Packer API
+### §3.3 与现有类型的映射
+
+| 现有类型 | → 形状类型 |
+|---|---|
+| `EmitModule`（moduleId, code, map, extraInfoCode） | CompiledModule 子集（emit 只用这些） |
+| `CompileInfo`（path, code, map, extraInfoCode） | LogicCompiledModule |
+| `scriptRes` / `renderRes`（view） | ViewCompiledModule |
+| `compileRes`（style） | StyleCompiledModule |
+
+## §4 Packer API → 3 registry（D-PCS-5, D-PCS-7）
 
 ### §4.1 设计
 
 ```typescript
-interface LoadInput {
-  moduleId: string
+// ── 3 个 per-kind 契约 ──
+interface Loader {
+  load(input: LoadInput, ctx: PackerContext): Promise<LoadedModule>
+}
+
+interface Compiler {
+  compile(module: LoadedModule, ctx: PackerContext): Promise<CompiledModule>
+}
+
+interface Emitter {
+  readonly strategy: EmitStrategy  // D-PCS-7
+  emit(entryId: string, modules: CompiledModule[], ctx: PackerContext, options: EmitOptions): Promise<EmitEntry>
+  produceBuckets?(compiled: CompiledModule[], entries: string[]): EmitBucket[]  // delayed 专有
+}
+
+type EmitStrategy = 'inline' | 'delayed'
+
+interface EmitBucket {
   kind: ModuleKind
-  source: string
-}
-
-interface Packer {
-  // load 环节：parse + walk = 发现
-  loadModule(input: LoadInput, ctx: PackerContext): Promise<LoadedModule>
-
-  // compile 环节：transform = 变换
-  compileModule(module: LoadedModule, ctx: PackerContext): Promise<CompiledModule>
-
-  // emit 环节：bundle = 装配
-  emitEntry(entryId: string, modules: CompiledModule[], ctx: PackerContext, options: EmitOptions): Promise<EmitEntry>
-}
-
-interface EmitOptions {
-  transform: EmitTransformConfig & { strategy: string }
-  sourcemap: boolean
-  sourcemapTargetPath: string | null
-  filename: string
-  relPrefix: string
-}
-```
-
-### §4.2 为什么 3 环节细粒度
-
-选择 load + compile + emit 细粒度，不选黑盒 `pack(entries)`。理由：
-- 黑盒无法支持增量（watch 需要只调 loadModule/compileModule 跳过未失效的）
-- 黑盒无法支持 HMR（HMR 需要只调 emitEntry 发一个 entry 的 patch）
-- load 和 compile 分离让反馈循环归 load——compile 不参与发现，依赖已确定
-- 细粒度让 Orchestrator 有编排空间
-
-### §4.3 与现有 API 的关系
-
-- `loadModule` ≈ 现有三车道 `parse-walk` 的 load 部分（parse + walk 依赖发现）
-- `compileModule` ≈ 现有三车道 parse-walk 的 compile 部分 + `transformCjs`（logic）/ Vue compile（view）/ postcss（style）
-- `emitEntry` ≈ 现有 `produceEntry` / `emitEntry`（from emit.ts），签名兼容
-
-### §4.4 per-lane dispatch
-
-`loadModule` / `compileModule` 的实现必然 per-kind dispatch（`switch(module.kind)`）。三车道 load/compile 逻辑差异大（JS AST walk vs WXML DOM walk vs CSS @import walk），无法真正统一。形状定义承认这一点——Packer API 是接口契约，实现是 per-lane dispatch。
-
-## §5 模块生命周期
-
-### §5.1 设计
-
-```typescript
-// M2 已有，泛型化形状
-interface ModuleResultCache<V = CompiledModule> {
-  get(moduleId: string): { module: V; dependencies: string[] } | undefined
-  set(moduleId: string, result: { module: V; dependencies: string[] }): void
-  has(moduleId: string): boolean
-  delete(moduleId: string): void
-  clear(dirtyIds: Iterable<string>): void
-  size(): number
-}
-
-// M1 已有，泛化形状（不再 kind='logic' 过滤）
-type InvalidatedModules = Set<string>
-```
-
-### §5.2 缓存 key 策略
-
-**cache key = moduleId**（不含 fingerprint）。理由：
-- M1 invalidatedModules 负责脏标记——cache 只存有效结果
-- fingerprint 下沉到 invalidation 层（M1 的 `computeInvalidatedModules` 按 changed files 推导脏集）
-- cache 不做 fingerprint 比对——那是 invalidation 的职责
-
-### §5.3 缓存范围（待定）
-
-LoadedModule 是否缓存？CompiledModule 缓存？——讨论中。选项：
-
-- **只缓存 CompiledModule**（现状 M2）：load 每次重做——load 便宜（parse + walk），重做可接受。
-- **缓存 LoadedModule + CompiledModule**：两阶段都增量跳过，但缓存粒度更细，复杂度更高。
-
-形状定义阶段只文档化选项，不拍板。
-
-### §5.4 泛型化决策
-
-现有 `ModuleResultCache` 硬绑 `CompileInfo`（logic-specific）。形状定义泛型化到 `V`——三车道各实例化 `ModuleResultCache<CompiledModule>`。形状定义只写 interface，不改现有类。
-
-## §6 PackerOrchestrator
-
-### §6.1 设计
-
-```typescript
-interface PackerEntry {
   entryId: string
-  kind: ModuleKind
-  moduleIds: string[]
+  modules: CompiledModule[]
+  emitOptions: EmitOptions
+}
+
+// ── 3 个 registry ──
+interface LoaderRegistry {
+  get(kind: ModuleKind): Loader
+  register(kind: ModuleKind, loader: Loader): void
+  kinds(): ModuleKind[]
+}
+interface CompileRegistry {
+  get(kind: ModuleKind): Compiler
+  register(kind: ModuleKind, compiler: Compiler): void
+}
+interface EmitRegistry {
+  get(kind: ModuleKind): Emitter
+  register(kind: ModuleKind, emitter: Emitter): void
+}
+```
+
+### §4.2 为什么 registry 取代单体 Packer（D-PCS-5）
+
+单体 Packer 的 `loadModule/compileModule/emitEntry` 内部 `switch(kind)` 硬编码派发。registry 把派发解耦——加新 kind 只需注册，不改 Orchestrator。
+
+registry 的作用是 **Orchestrator 的派发配置**（有哪些 kind、怎么派发），不是 worker 运行时查实现的机制。worker 内置实现 map（D-PCS-8），通过 kind 关联。
+
+### §4.3 Emitter 封装 emit 策略（D-PCS-7）
+
+inline vs delayed 是 Emitter 的属性（`strategy`），不是 Orchestrator 的决策。delayed 的 Emitter 额外实现 `produceBuckets`——分桶逻辑封装在 Emitter 内部。Orchestrator 只查 `emitter.strategy` 决定调用路径。
+
+## §5 Graph + OrchestratorState + Orchestrator（D-PCS-2/3/4/5/8/9）
+
+### §5.1 Graph（D-PCS-2/3/4）
+
+```typescript
+interface Graph {
+  build(ctx: PackerContext): void           // config fixpoint（读 app.json → 递归 → 扫文件）
+  reconcile(ctx: PackerContext): void        // 配置变更时重新 config fixpoint
+  mergeDelta(delta: GraphSnapshot): void     // source delta（worker parse 发现）
+  toJSON(): GraphSnapshot                    // 跨线程
+  getEntries(): string[]
+  getFileOwners(moduleId: string): string[]
+  getAffectedEntries(file: string): string[]
+  getInvalidatedModules(file: string): string[]
+  hasFile(file: string): boolean
+  getFileKinds(file: string): string[]
+}
+```
+
+Graph 自己 bootstrap 自己（D-PCS-4）：`build(ctx)` 直接从 `ctx.workPath` 读 app.json，做 config fixpoint。没有 bootstrap 阶段，没有 ProjectModel 中间数据。
+
+### §5.2 OrchestratorState（D-PCS-6, D-PCS-9）
+
+```typescript
+interface OrchestratorState {
+  graph: Graph                        // session-scoped，跨 rebuild 持久
+  moduleCache: ModuleResultCache      // session-scoped
+  invalidatedModules: Set<string>    // per-rebuild 重算
+}
+```
+
+session start 创建，跨 rebuild 持久。ALS（PackerContext）是 pipeline-scoped——pipeline.run() 时创建，返回后销毁。graph 不在 ALS 里，不靠 ALS 活着。
+
+### §5.3 Orchestrator（D-PCS-5）
+
+```typescript
+interface PackerOrchestrator {
+  loaderRegistry: LoaderRegistry
+  compileRegistry: CompileRegistry
+  emitRegistry: EmitRegistry
+
+  orchestrate(ctx: PackerContext, state: OrchestratorState, options: OrchestrateOptions): Promise<EmitEntry[]>
 }
 
 interface OrchestrateOptions {
   parallel: boolean
   incremental: boolean
-}
-
-interface PackerOrchestrator {
-  orchestrate(
-    entries: PackerEntry[],
-    ctx: PackerContext,
-    api: Packer,
-    options: OrchestrateOptions,
-  ): Promise<EmitEntry[]>
+  configChanged: boolean
 }
 ```
 
-### §6.2 编排职责——load 反馈循环
+Orchestrator 是唯一主动组件。编排流程：
+1. 触发 `state.graph.build(ctx)` 或 `reconcile(ctx)`（config fixpoint）
+2. 从 `state.graph.getEntries()` 查 entries
+3. 对 `loaderRegistry.kinds()` 每个 kind 派发到 worker（并行）
+4. worker 内：从内置 map 选 loader/compiler/emitter → load fixpoint → compile → emit
+5. 合并 graph delta（`state.graph.mergeDelta`）+ 写 cache
+6. inline emit 直接收集；delayed emit 等所有车道完成后统一调 `emitter.emit`
 
-Orchestrator 是**唯一主动组件**。核心是 **load 阶段的反馈循环**（fixpoint computation）：
+### §5.4 通用 worker（D-PCS-8）
 
-1. **load 反馈循环**：
-   ```
-   frontier = initial entries
-   while frontier not empty:
-     loaded = load(frontier)                  // parse + walk → 发现依赖
-     new_deps = loaded.dependencies           // 从结果提取新依赖
-     frontier = new_deps - already_visited    // 新依赖减已编
-   // 依赖集稳定（fixpoint）→ 所有模块 loaded
-   ```
-2. **增量过滤**：查 `ctx.moduleCache` + `ctx.invalidatedModules`，跳过未失效模块（load 和/或 compile 阶段跳过）
-3. **compile**：对每个 loaded 模块调 `api.compileModule(loaded, ctx)`
-4. **emit**：对每个 entry 收集编译结果，调 `api.emitEntry(entryId, compiled, ctx, options)`
+worker 不分 lane——运行时收 `kind` 消息，从内置 map 选实现。一个 worker-entry，内置所有 kind 的 Loader/Compiler/Emitter。主线程 registry 和 worker 内置 map 是两套实例（不能跨线程传函数），通过 kind 关联。
 
-**反馈循环在 load 环节**——不是 compile。compile 的输入 dependencies 已在 load 确定。
+### §5.5 与现有编排的关系
 
-### §6.3 与现有编排的关系
+| 现有编排 | → Orchestrator |
+|---|---|
+| build-pipeline（stage 级） | Orchestrator 统一——模块级依赖驱动 |
+| watch-plan（entry 级） | Orchestrator 增量过滤——模块级 |
+| stage-channel | Orchestrator 合并 graph delta + 写 cache |
+| worker-pool | Executor 层（不归 Packer） |
 
-| 现有编排 | 级别 | → Orchestrator |
-|---|---|---|
-| build-pipeline | stage 级（logic→view→style 线性） | Orchestrator 是模块级（依赖驱动，非线性） |
-| watch-plan | entry 级（affected entries） | Orchestrator 增量过滤是模块级 |
-| 各 lane parse-walk | 模块级（lane-internal） | Orchestrator 统一三车道 load |
-| worker-pool | 线程级（worker 分配） | 不归 Orchestrator——Executor 层 |
+## §6 缓存 + 失效
 
-**Orchestrator 不是新概念——是把现有 stage 级编排下沉到模块级，从车道线性变依赖驱动。**
+### §6.1 缓存策略
 
-### §6.4 Orchestrator 是函数还是 class
+- **LoadedModule 不缓存**：graph 是 LoadedModule.dependencies 的天然缓存
+- **CompiledModule 缓存**：key = moduleId（不含 fingerprint）
+- **EmitEntry 不缓存**：emit 便宜
 
-**倾向 interface（函数契约）**，不倾向 class。理由：
-- interface 更灵活——不同实现可注入（eager / lazy / parallel）
-- class 持有状态会让编排逻辑和状态管理耦合
-- Orchestrator 的状态（cache / graph）来自 PackerContext，不需要自持
+### §6.2 cache key = moduleId
+
+M1 invalidatedModules 负责脏标记——cache 只存有效结果。fingerprint 下沉到 invalidation 层。
+
+### §6.3 模块级增量（TODO）
+
+现实：logic 有 M1+M2 模块级增量；view/style 无。形状 target：三车道统一。前提：M1 泛化全 kind + view/style 接入 moduleCache。另开 Action 实施。
 
 ## §7 文件落点
 
@@ -358,63 +341,65 @@ Orchestrator 是**唯一主动组件**。核心是 **load 阶段的反馈循环*
 
 ```
 src/packer/
-  types.ts      — 5 组件 interface 声明（PackerContext / LoadedModule+CompiledModule / Packer / ModuleResultCache / PackerOrchestrator）
-  README.md     — Packer/Scheme 边界 + 现有代码映射表 + load→compile→emit 管线说明
+  types.ts      — 全部形状 interface 声明
+  README.md     — Packer/Scheme 边界 + 现有代码映射表
 ```
 
 ### §7.2 不改的文件
 
-- `pipeline/emit.ts`（EmitEntry / EmitModule / produceEntry 不变——Packer API 引用它们）
-- `model/dependency-graph.ts`（DependencyGraph 不变——PackerContext.graph 引用它）
-- `model/module-result-cache.ts`（现有类不变——形状定义的泛型 interface 是"目标"，现有类是"当前"）
+- `pipeline/emit.ts`（EmitEntry / EmitModule / produceEntry 不变）
+- `model/dependency-graph.ts`（DependencyGraph 不变）
+- `model/module-result-cache.ts`（现有类不变）
 - `model/invalidation.ts`（现有函数不变）
-- `model/convergence.ts`（deriveFromGraph 不变——它已经是 Orchestrator 的只读雏形）
-- `core/env.ts`（W3 决策：不拆）
-- 三车道 parse-walk / index.ts（load 环节的现有实现，不改）
+- `model/convergence.ts`（deriveFromGraph 不变）
+- `core/env.ts`（W3: 不拆）
+- 三车道 parse-walk / index.ts
 
 ### §7.3 tsconfig
 
-`src/packer/types.ts` 须在 tsconfig include 范围内。现有 tsconfig include 是 `src/**/*`——新目录自动包含。
+`src/packer/types.ts` 须在 tsconfig include 范围内（现有 `src/**/*` 自动包含）。
 
 ## §8 风险表
 
 | 风险 | 影响 | 缓解 |
 |---|---|---|
-| 形状定义后现有代码不 conform | 新类型是"北星"，现有代码不 wire——不 conform 是预期 | README 映射表明确标注"现状 vs 目标" |
-| `PackerModuleMetadata` 索引签名太松 | 类型安全不足 | 文档化 lane-specific 字段；后续 Action 可收紧为判别联合 |
-| Orchestrator 形状与现有 build-pipeline 差异大 | 实施时迁移路径长 | 形状定义是北星——迁移分多步，每步行为 0 |
-| PackerContext 不含 Dimina 专有 → parse-walk 无法直接 conform | parse-walk 调 getComponent 等无法映射到 PackerContext | 路径 A（预计算到 metadata）或路径 B（SchemeContext 注入 Orchestrator）——实施时选 |
-| 新类型引用现有类型导致循环 import | types.ts import emit.ts / dependency-graph.ts | `import type` 纯类型引用，tsc 擦除，无运行时循环 |
-| load 和 compile 分离后，view 的 wxs 交织需重构 | view parse-walk 的 wxs 发现+处理目前交织 | 形状定义只定目标；实施时拆分——load 提取 wxs 内容，compile 做 replacement |
+| 形状定义后现有代码不 conform | 新类型是"北星"，现有代码不 wire | README 映射表标注"现状 vs 目标" |
+| Graph 推导逻辑自包含需重构 env.ts | storeInfo 的 config fixpoint 逻辑要搬到 Graph | 形状只定 interface；实施时分步迁移 |
+| registry + worker 内置 map 两套实例 | 维护一致性需约定 | 通过 kind 关联；session start 时双注册 |
+| discriminated union 后 emit 需 narrow | Emitter 按 kind 窄化 | Emitter 从 registry 来，kind 已知 |
+| 新类型引用现有类型导致循环 import | types.ts import emit.ts / dependency-graph.ts | `import type` 纯类型引用，tsc 擦除 |
+| load 和 compile 分离后 view wxs 交织需重构 | view parse-walk 的 wxs 发现+处理交织 | 形状只定目标；实施时拆分 |
 
 ## §9 替代方案
 
 ### §9.1 PackerContext 含 Dimina 专有（否决）
 
-packer-research 草案路径：PackerContext 含 `runtimeType` + `resolver{component/appConfig}`。
+否决理由：Packer 不通用。D-PCS-4: Graph 自己读 app.json，runtimeType 在 Graph 内部判断。
 
-**否决理由**：Packer 不通用——知道 Dimina 组件和运行时类型。但保留为备选（若路径 A 预计算成本过高，路径 B 的 SchemeContext 可让 Orchestrator 持有 Dimina 专有引用）。
+### §9.2 CompiledModule 胖接口 + 索引签名（否决）
 
-### §9.2 PackerModule 用 kind 判别联合（否决）
+否决理由：`[key: string]: unknown` 是 `any` 的伪装，允许无效组合。D-PCS-10: 用 discriminated union 代替。TODO: 后续考虑泛型方案。
 
-```typescript
-type LoadedModule = LogicModule | ViewModule | StyleModule | ConfigModule
-```
+### §9.3 Packer 单体接口（否决）
 
-**否决理由**：compileModule 签名复杂（需 narrow kind）；现有 parse-walk 产出动态性高；索引签名 + 文档化更渐进友好。保留为后续收紧选项。
+否决理由：`loadModule/compileModule/emitEntry` 内部 `switch(kind)` 硬编码。D-PCS-5: 3 registry 取代——加新 kind 不改 Orchestrator。
 
-### §9.3 Packer API 黑盒 pack()（否决）
+### §9.4 Packer API 黑盒 pack()（否决）
 
-```typescript
-interface Packer {
-  pack(entries: PackerEntry[], ctx: PackerContext): Promise<EmitEntry[]>
-}
-```
+否决理由：无法支持增量和 HMR；load 和 compile 混在一起，反馈循环归属不清。
 
-**否决理由**：无法支持增量（loadModule/compileModule 不可单独调）和 HMR（emitEntry 不可单独调）；load 和 compile 混在一起，反馈循环无法归 load。细粒度 3 环节 API 更灵活。
+### §9.5 load 和 compile 不分离（否决）
 
-### §9.4 load 和 compile 不分离（否决）
+否决理由：发现和变换交织——反馈循环归属不清；缓存粒度不清。
 
-维持现有 `compileModule(module) → module` 签名（load + compile 混在一起）。
+### §9.6 bootstrap 独立阶段（否决）
 
-**否决理由**：发现和变换交织——反馈循环归属不清（在 compile 还是 load？）；缓存粒度不清（缓存 compile 结果还是 load+compile？）；现有 parse-walk 名字不反映"load"这个环节的独立地位。
+否决理由：读 app.json 和从 app.json 发现 pages 是同一个动作。D-PCS-4: Graph 自己 bootstrap 自己，没有独立 bootstrap 阶段。
+
+### §9.7 per-lane worker（否决）
+
+否决理由：三份 worker-entry 维护成本高。D-PCS-8: 通用 worker，一个 worker-entry 内置所有 kind。
+
+### §9.8 graph 在 PackerContext / ALS 里（否决）
+
+否决理由：graph 生命周期和 ALS 绑定——ephemeral。D-PCS-6/D-PCS-9: graph 在 OrchestratorState（session-scoped），不靠 ALS 活着。
