@@ -1,12 +1,12 @@
 # FE Tools Packer Lifecycle Audit
 
 - Action: `fe-tools-packer-lifecycle-audit`
-- Status: `draft`
+- Status: `complete`
 - Updated: 2026-09-21
-- Status authority: [Action Status](../STATUS.md)
-- 后继：[`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（`draft`；形状定义——本审计是其事实基础）
-- 前身：[`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，结论"不值得立即抽取"）
-- 工作分支：`feature/fe-tools-sidecar`
+- Status authority: [Action Status](../../../STATUS.md)
+- 后继：[`fe-tools-packer-core-shape`](../../../fe-tools-packer-core-shape/README.md)（`draft`；形状定义——本审计是其事实基础）
+- 前身：[`fe-tools-packer-research`](../fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，结论"不值得立即抽取"）
+- Closure: `complete` — A-PLA-1..9 全 pass，F-1..F-6 回流 fe-tools-packer-core-shape，research only 零产品代码变更
 
 ## 背景
 
@@ -30,12 +30,12 @@
 
 ## 设计输入
 
-- [`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md) — 4 焊点方法级审计 + PackerContext 草案
-- [`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md) — Packer core 形状定义（draft；本审计是其前置。审计时 5 组件，core-shape 后续演化为 6+ 组件）
-- [`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic）
-- [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) — M1：computeInvalidatedModules
-- [`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md) — M2：ModuleResultCache
-- [`fe-tools-emit-relocate`](../_archive/complete/fe-tools-emit-relocate/README.md) — D-ER-5：produceEntry
+- [`fe-tools-packer-research`](../fe-tools-packer-research/README.md) — 4 焊点方法级审计 + PackerContext 草案
+- [`fe-tools-packer-core-shape`](../../../fe-tools-packer-core-shape/README.md) — Packer core 形状定义（draft；本审计是其前置。审计时 5 组件，core-shape 后续演化为 6+ 组件）
+- [`fe-tools-module-centric`](../fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic）
+- [`fe-tools-module-invalidation`](../fe-tools-module-invalidation/README.md) — M1：computeInvalidatedModules
+- [`fe-tools-module-result-cache`](../fe-tools-module-result-cache/README.md) — M2：ModuleResultCache
+- [`fe-tools-emit-relocate`](../fe-tools-emit-relocate/README.md) — D-ER-5：produceEntry
 - 现有代码：`session/index.ts` / `session/runner.ts` / `index.ts` / `pipeline/build-pipeline.ts` / `pipeline/stage-channel.ts` / `model/project-store.ts` / `watch/watch-runner.ts` / `watch/watch-plan.ts` / `core/env.ts`
 
 ## 交付物
