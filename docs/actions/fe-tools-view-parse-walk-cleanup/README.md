@@ -1,7 +1,7 @@
 # FE Tools View Parse-Walk Cleanup
 
 - Action: `fe-tools-view-parse-walk-cleanup`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 前身：[`fe-tools-parse-walk-extract`](../_archive/complete/fe-tools-parse-walk-extract/README.md)（**complete 已归档**；view/parse-walk.ts 从 8 行 re-export 壳真抽出至 1,368 行）
