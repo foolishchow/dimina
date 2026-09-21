@@ -669,7 +669,8 @@ fixpoint            三车道并行 per-lane fixpoint      形状承认：per-la
                     非全局串行                        不强求全局串行
 
 模块级增量          logic only（M1+M2）              target: 三车道统一
-                    view/style 无                     前提: M1 泛化全 kind
+                    view/style 无                     TODO: M1 泛化全 kind + view/style
+                                                     接入 moduleCache → 另开 Action
 
 CompiledModule      四车道各自表示                    target: discriminated union（D-PCS-10）
                     EmitModule / CompileInfo /         LogicCompiledModule | ViewCompiledModule
@@ -689,6 +690,7 @@ CompiledModule      四车道各自表示                    target: discriminat
    - **讨论结论**：只定 interface——统一实现是实施 Action
 4. **view/style 模块级增量何时做？** 是 core-shape 一起做？还是另开 Action？
    - **讨论结论**：另开 Action——形状定 target，实施另做
+   - **TODO**：M1 invalidatedModules 泛化到全 kind（不只 logic）+ view/style 接入 moduleCache → 模块级跳过。另开 Action 实施。
 5. **logic emit 推迟 vs view/style 即时——形状怎么统一？** 是承认差异（per-lane emit 策略）？还是统一为"全部推迟"？
    - **讨论结论**：承认差异——per-lane emit 策略
 6. **PackerContext 拆 I/O 区 + 状态区？** 还是保持一个 interface？
