@@ -30,7 +30,7 @@
 - 重写 `compileModule` 为薄编排（≤30 行）
 - **验证**：tsc 0 错 + vitest 608/608 + diff=0
 - 对应：R-VC-4
-- 前置：Step 1 + Step 2
+- 前置：Step 1 + Step 2（Step 2 必须先完成——去重后 `compileModule` 函数体变小，Step 3 拆分更容易）
 
 ### Step 4: 拆 `processWxsContent`
 

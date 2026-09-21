@@ -77,6 +77,8 @@ const wxsContentCache = new Map<string, string>()
 
 **`clearViewCaches` 更新**（L1361-1368）：
 
+现状清 6 个缓存（1 `compileResCache.clear()` + 5 其他：`templateRenderCache` / `wxsModuleRegistry` / `wxsFilePathMap` / `wxsScannedWorkPath = null` / `optionalChainingCache`）。拆分后 `compileResCache.clear()` 变 3 行，总 clear = 8 行（3 新 Map + 5 不变）。
+
 ```
 // 现状
 compileResCache.clear()
@@ -256,6 +258,8 @@ function replaceConstructor(node, wxsContent, replacements): void
 ```
 
 **落点**：模块私有函数（不 export），定义在 `processWxsContent` 附近。
+
+**注意**：require 分支内 npm 组件路径（L660-678）与普通路径（L679-696）仅变量名不同（`moduleName` vs `depModuleName`），逻辑完全相同。可合并为单一路径统一用 `depModuleName`（局部 `const`，改名行为 0 安全）。合并后 `replaceWxsRequire` 更容易达到 ≤40 行。
 
 ### §1.5 拆 `insertWxsToRenderResult`（R-VC-6）
 
