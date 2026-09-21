@@ -209,7 +209,16 @@ interface ErrorShape {
 	[key: string]: unknown
 }
 
-const compileResCache = new Map<string, unknown>()
+// Step 1: compileResCache 拆分为 3 个独立 Map（R-VC-1 + R-VC-2）
+interface ModuleCompileCacheEntry {
+	code: string
+	instruction: { scriptModule?: Array<{ path: string; code: string }> } & Record<string, unknown>
+	map: string | null
+}
+
+const moduleCompileCache = new Map<string, ModuleCompileCacheEntry>()
+const moduleFailureCache = new Map<string, ErrorShape>()
+const wxsContentCache = new Map<string, string>()
 
 // wxs 模块注册表，用于记录确定的 wxs 模块
 const wxsModuleRegistry = new Set()
@@ -289,7 +298,7 @@ function scanWxsFiles(dir: string, workPath: string): void {
 			} else if (stat.isFile() && getViewScriptExts().some(ext => item.endsWith(ext))) {
 				// 处理 wxs 文件
 				const relativePath = stripViewScriptExt(fullPath.replace(workPath, ''))
-				const moduleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
+				const moduleName = relativePath.replace(/[\/\@\-]/g, '_').replace(/^_/, '')
 
 				// 建立模块名到文件路径的映射
 				wxsFilePathMap.set(moduleName, fullPath)
@@ -337,17 +346,14 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 	}
 	catch (error) {
 		const err = error as EnhancedError
-		compileResCache.set(module.path, {
-			failed: true,
-			errorShape: {
-				message: err.message,
-				stack: err.stack,
-				name: err.name,
-				file: err.file,
-				line: err.line,
-				column: err.column,
-				stage: err.stage,
-			},
+		moduleFailureCache.set(module.path, {
+			message: err.message,
+			stack: err.stack,
+			name: err.name,
+			file: err.file as string | undefined,
+			line: err.line as number | undefined,
+			column: err.column as number | undefined,
+			stage: err.stage as string | undefined,
 		})
 		throw error
 	}
@@ -408,6 +414,179 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 	return { scriptModule: allScriptModules, templateModule: currentInstruction?.templateModule || [] }
 }
 
+// Step 2: 提取 mergeWxsModules 公共逻辑（R-VC-3）
+/**
+ * 收集 scriptRes 中的 wxs 模块并合并到 instruction.scriptModule。
+ * 返回原始收集结果（调用方按需使用）。
+ */
+function mergeWxsModules(
+	instruction: { scriptModule?: Array<{ path: string; code: string; originalName?: string }> },
+	scriptRes: Map<string, string>,
+	scriptModuleSeed: object[],
+): Array<{ path: string; code: string }> {
+	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), scriptModuleSeed)
+	if (allWxsModules.length > 0) {
+		const existingModules = instruction.scriptModule || []
+		const mergedModules = [...existingModules]
+		for (const wxsModule of allWxsModules) {
+			if (!mergedModules.find(existing => (existing as { path: string }).path === wxsModule.path)) {
+				mergedModules.push(wxsModule)
+			}
+		}
+		instruction.scriptModule = mergedModules
+	}
+	return allWxsModules
+}
+
+// Step 3: 拆 compileModule 为缓存命中/编译/包装三段（R-VC-4）
+
+/**
+ * 尝试从缓存获取模块编译结果。
+ * 返回 instruction（缓存命中）或 null（需编译）。
+ */
+function tryModuleCache(
+	module: ViewModule,
+	scriptRes: Map<string, string>,
+	instruction: Record<string, unknown>,
+	sourceMapRes: Map<string, string>,
+	canUseCache: boolean,
+): { code: string; instruction: Record<string, unknown> } | null {
+	if (!canUseCache || scriptRes.has(module.path)) {
+		return null
+	}
+
+	// MC1/R-MC3：失败缓存——同模块上次编译失败，直接重抛等价错误
+	const failure = moduleFailureCache.get(module.path)
+	if (failure) {
+		const err = new Error(failure.message || 'module compilation failed (cached)') as EnhancedError
+		if (failure.name) err.name = failure.name
+		if (failure.stack) err.stack = failure.stack
+		if (failure.file) err.file = failure.file
+		if (failure.line != null) err.line = failure.line
+		if (failure.column != null) err.column = failure.column
+		if (failure.stage) err.stage = failure.stage
+		throw err
+	}
+
+	const cached = moduleCompileCache.get(module.path)
+	if (!cached || !cached.code || !cached.instruction) {
+		return null
+	}
+
+	const cachedCode = cached.code
+	for (const sm of cached.instruction.scriptModule || []) {
+		if (!scriptRes.has(sm.path)) {
+			scriptRes.set(sm.path, sm.code)
+		}
+	}
+
+	scriptRes.set(module.path, cachedCode)
+	const cachedMap = cached.map
+	if (enableSourcemap && cachedMap) {
+		sourceMapRes.set(module.path, cachedMap)
+	}
+
+	mergeWxsModules(instruction as { scriptModule?: Array<{ path: string; code: string; originalName?: string }> }, scriptRes, instruction.scriptModule as object[] || [])
+
+	return {
+		code: cachedCode,
+		instruction: { ...instruction, scriptModule: collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as object[] || []) },
+	}
+}
+
+interface SourceContext {
+	tpl: string
+	sourceInfo: { path: string; content: string }
+	origins: unknown[]
+	sourceContents: Map<string, string>
+	isComponent: boolean
+	allScriptModules?: Array<{ path: string; code: string; originalName?: string }>
+}
+
+/**
+ * Vue compileTemplate 编译段：this.→_ctx. → compileTemplate → compileTemplateModuleRender → insertWxsToRenderResult
+ */
+function compileModuleRender(
+	module: ViewModule,
+	compileInstruction: Record<string, unknown>,
+	scriptRes: Map<string, string>,
+	ctx: SourceContext,
+): { renderResult: { code: string; map: unknown }; templateResults: Array<{ path: string }>; code: string; map: unknown } {
+	const processedTpl = ctx.tpl.replace(/\bthis\./g, '_ctx.')
+	const tplCode = compileTemplate({
+		source: processedTpl,
+		filename: module.path,
+		id: `data-v-${module.id}`,
+		scoped: true,
+		inMap: enableSourcemap
+			? (ctx.isComponent || !ctx.allScriptModules
+				? (((ctx.origins as unknown[]) || []).length
+					? createOriginsSourcemap(ctx.origins as Array<{ source: string; line: number }>, ctx.sourceContents)
+					: createLineSourcemap(processedTpl, ctx.sourceInfo.path, ctx.sourceInfo.content))
+				: createLineSourcemap(processedTpl, ctx.sourceInfo.path, ctx.sourceInfo.content))
+			: undefined,
+		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
+	})
+
+	const templateResults = []
+	for (const tm of (compileInstruction.templateModule as Array<{ path: string }>) || []) {
+		templateResults.push(compileTemplateModuleRender(tm as { path: string; tpl: string; sourceInfo?: { path: string; content: string; startLine?: number } | null }, module.id, compileInstruction.scriptModule as Array<{ path: string; code: string; originalName?: string }>, scriptRes))
+	}
+	const renderResult = insertWxsToRenderResult(tplCode.code, compileInstruction.scriptModule as unknown[], scriptRes, module.path, tplCode.map)
+
+	const moduleChunks = [`Module({
+		path: '${module.path}',
+		id: '${module.id}',
+		appStyleScopeId: ${JSON.stringify(module.appStyleScopeId || null)},
+		sharedStyleScopeIds: ${JSON.stringify(module.sharedStyleScopeIds || [])},
+		styleIsolation: ${JSON.stringify(module.styleIsolation || 'isolated')},
+		render: `, renderResult, `,
+		usingComponents: ${JSON.stringify(module.usingComponents)},
+		componentPlaceholder: ${JSON.stringify(module.componentPlaceholder || {})},
+		customTabBar: ${JSON.stringify(module.customTabBar || null)},
+		tplComponents: {`]
+	for (const templateResult of templateResults) {
+		moduleChunks.push(`'${templateResult.path}':`, templateResult, ',')
+	}
+	moduleChunks.push('},\n\t\t});')
+	const { code, sourcemap: moduleMap } = concatSourcemap(moduleChunks, module.path)
+
+	return { renderResult, templateResults, code, map: moduleMap }
+}
+
+/**
+ * 包装段：mergeWxsModules → 缓存写入 → scriptRes.set → 返回
+ */
+function finalizeModule(
+	module: ViewModule,
+	compileInstruction: Record<string, unknown>,
+	renderResult: { code: string; map: unknown },
+	scriptRes: Map<string, string>,
+	sourceMapRes: Map<string, string>,
+	templateModule: unknown[],
+	canUseCache: boolean,
+): Record<string, unknown> {
+	mergeWxsModules(compileInstruction as { scriptModule?: Array<{ path: string; code: string; originalName?: string }> }, scriptRes, compileInstruction.scriptModule as object[] || [])
+
+	const cacheData: ModuleCompileCacheEntry = {
+		code: renderResult.code,
+		instruction: compileInstruction as { scriptModule?: Array<{ path: string; code: string }> } & Record<string, unknown>,
+		map: enableSourcemap ? renderResult.map as string : null,
+	}
+	if (canUseCache) {
+		moduleCompileCache.set(module.path, cacheData)
+	}
+	scriptRes.set(module.path, renderResult.code)
+	if (enableSourcemap) {
+		sourceMapRes.set(module.path, renderResult.map as string)
+	}
+
+	return {
+		...compileInstruction,
+		templateModule,
+	}
+}
+
 /**
  * 编译页面及自定义组件，自定义组件可认为是特殊的页面
  * https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/
@@ -428,157 +607,89 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		scriptModule: options.allScriptModules || instruction.scriptModule,
 	}
 
-	// 检查是否有缓存的模板编译结果
-	let useCache = false
-	let cachedCode = null
 	const canUseCache = (skipTemplatePaths as Set<string>).size === 0
 
-	if (canUseCache && !scriptRes.has(module.path) && compileResCache.has(module.path)) {
-		const cacheData = compileResCache.get(module.path) as (Record<string, unknown> & { errorShape?: ErrorShape; code?: string; instruction?: { scriptModule?: Array<{ path: string; code: string }> }; map?: string; failed?: boolean }) | undefined
-		// MC1/R-MC3：失败缓存——同模块上次编译失败，直接重抛等价错误（避免同 stage 内重复失败编译）
-		// F1：重建完整字段（含 file/line/column/stage，供上层 stage-channel 错误重建消费）
-		if (cacheData && cacheData.failed) {
-			const err = new Error(cacheData.errorShape?.message || 'module compilation failed (cached)') as EnhancedError
-			if (cacheData.errorShape?.name) err.name = cacheData.errorShape.name
-			if (cacheData.errorShape?.stack) err.stack = cacheData.errorShape.stack
-			if (cacheData.errorShape?.file) err.file = cacheData.errorShape.file
-			if (cacheData.errorShape?.line != null) err.line = cacheData.errorShape.line
-			if (cacheData.errorShape?.column != null) err.column = cacheData.errorShape.column
-			if (cacheData.errorShape?.stage) err.stage = cacheData.errorShape.stage
-			throw err
-		}
-		// 如果缓存数据包含完整的编译信息，则使用缓存
-		if (cacheData && typeof cacheData === 'object' && cacheData.code && cacheData.instruction) {
-			cachedCode = cacheData.code!
-			useCache = true
-			// 将缓存的 wxs 模块添加到当前页面的 scriptRes 中
-			for (const sm of cacheData.instruction!.scriptModule!) {
-				if (!scriptRes.has((sm as { path: string }).path)) {
-					scriptRes.set((sm as { path: string }).path, (sm as { code: string }).code)
-				}
-			}
-		} else if (typeof cacheData === 'string') {
-			// 兼容旧的缓存格式（只有代码字符串）
-			cachedCode = cacheData
-			useCache = true
-		}
+	// 1. 缓存命中分派
+	const cached = tryModuleCache(module, scriptRes, instruction, sourceMapRes, canUseCache)
+	if (cached) {
+		return cached.instruction
 	}
 
-	if (useCache && cachedCode) {
-		scriptRes.set(module.path, cachedCode)
-		const cachedMap = (compileResCache.get(module.path) as { map?: string } | undefined)?.map
-		if (enableSourcemap && cachedMap) {
-			sourceMapRes.set(module.path, cachedMap!)
-		}
-
-		// 即使使用缓存，也需要确保返回的 instruction 包含最新的 wxs 模块信息
-		// 收集所有在 scriptRes 中的 wxs 模块（包括依赖模块）
-		const allWxsModules = collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as object[] || [])
-
-		// 将收集到的 wxs 模块添加到 instruction 中
-		if (allWxsModules.length > 0) {
-			// 合并现有的 scriptModule 和新收集的 wxs 模块
-			const existingModules = instruction.scriptModule || []
-			const mergedModules = [...existingModules]
-
-			for (const wxsModule of allWxsModules) {
-				// 避免重复添加相同的模块
-				if (!mergedModules.find(existing => (existing as { path: string }).path === (wxsModule as { path: string }).path)) {
-					mergedModules.push(wxsModule)
-				}
-			}
-
-			instruction.scriptModule = mergedModules
-		}
-
-		// 返回更新后的 instruction，包含所有 wxs 模块
-		return {
-			...instruction,
-			scriptModule: allWxsModules
-		}
-	}
-
-	// 在编译前预处理模板，将 this. 替换为 _ctx.
-	const processedTpl = tpl.replace(/\bthis\./g, '_ctx.')
-	// https://play.vuejs.org/
-	const tplCode = compileTemplate({
-		source: processedTpl,
-		filename: module.path, // 用于错误提示
-		id: `data-v-${module.id}`,
-		scoped: true,
-		inMap: enableSourcemap
-			? (isComponent || !options.allScriptModules
-				? (((origins as unknown[]) || []).length
-					? createOriginsSourcemap(origins as Array<{ source: string; line: number }>, sourceContents as Map<string, string>)
-					: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content))
-				: createLineSourcemap(processedTpl, sourceInfo.path, sourceInfo.content))
-			: undefined,
-		compilerOptions: getTemplateCompilerOptions(`data-v-${module.id}`),
+	// 2. 编译
+	const renderResult = compileModuleRender(module, compileInstruction, scriptRes, {
+		tpl, sourceInfo, origins: origins as unknown[], sourceContents: sourceContents as Map<string, string>, isComponent, allScriptModules: options.allScriptModules,
 	})
 
-	const templateResults = []
-	for (const tm of compileInstruction.templateModule) {
-		templateResults.push(compileTemplateModuleRender(tm as { path: string; tpl: string; sourceInfo?: { path: string; content: string; startLine?: number } | null }, module.id, compileInstruction.scriptModule as Array<{ path: string; code: string; originalName?: string }>, scriptRes))
-	}
-	const renderResult = insertWxsToRenderResult(tplCode.code, compileInstruction.scriptModule as unknown[], scriptRes, module.path, tplCode.map)
+	// 3. 包装 + 缓存写入
+	return finalizeModule(module, compileInstruction, renderResult, scriptRes, sourceMapRes, templateModule, canUseCache)
+}
 
-	// 通过 component 字段标记该页面 以 Component 形式进行渲染或着以 Page 形式进行渲染
-	// https://developers.weixin.qq.com/miniprogram/dev/framework/app-service/page.html
-	// https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/component.html
-	const moduleChunks = [`Module({
-		path: '${module.path}',
-		id: '${module.id}',
-		appStyleScopeId: ${JSON.stringify(module.appStyleScopeId || null)},
-		sharedStyleScopeIds: ${JSON.stringify(module.sharedStyleScopeIds || [])},
-		styleIsolation: ${JSON.stringify(module.styleIsolation || 'isolated')},
-		render: `, renderResult, `,
-		usingComponents: ${JSON.stringify(module.usingComponents)},
-		componentPlaceholder: ${JSON.stringify(module.componentPlaceholder || {})},
-		customTabBar: ${JSON.stringify(module.customTabBar || null)},
-		tplComponents: {`]
-	for (const templateResult of templateResults) {
-		moduleChunks.push(`'${templateResult.path}':`, templateResult, ',')
-	}
-	moduleChunks.push('},\n\t\t});')
-	const { code, sourcemap: moduleMap } = concatSourcemap(moduleChunks, module.path)
+// Step 4: 拆 processWxsContent 按转换类型分函数（R-VC-5）
 
-	// 收集所有在 scriptRes 中的 wxs 模块（包括依赖模块）
-	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), compileInstruction.scriptModule as object[] || [])
-
-	// 将收集到的 wxs 模块添加到 instruction 中
-	if (allWxsModules.length > 0) {
-		// 合并现有的 scriptModule 和新收集的 wxs 模块
-		const existingModules = compileInstruction.scriptModule || []
-		const mergedModules = [...existingModules]
-
-		for (const wxsModule of allWxsModules) {
-			// 避免重复添加相同的模块
-			if (!mergedModules.find(existing => (existing as { path: string }).path === (wxsModule as { path: string }).path)) {
-				mergedModules.push(wxsModule)
-			}
-		}
-
-		compileInstruction.scriptModule = mergedModules
+/**
+ * getRegExp → 正则字面量或 new RegExp()
+ */
+function replaceGetRegExp(node: { arguments: unknown[]; start: number; end: number }, wxsContent: string, replacements: Array<{ start: number; end: number; value: string }>): void {
+	const args = node.arguments
+	if (args.length === 0) return
+	if (isStringLiteral(args[0]) && (!args[1] || isStringLiteral(args[1]))) {
+		const pattern = getStringLiteralRawValue(args[0])
+		const flags = args.length > 1 ? getStringLiteralRawValue(args[1]) : ''
+		replacements.push({ start: node.start, end: node.end, value: `/${pattern}/${flags}` })
 	}
+	else {
+		const newRegExpArgs = args.map(arg => getSource(wxsContent, arg as { start: number; end: number })).join(', ')
+		replacements.push({ start: node.start, end: node.end, value: `new RegExp(${newRegExpArgs})` })
+	}
+}
 
-	// 缓存编译结果，包含代码和更新后的指令信息
-	const cacheData = {
-		code,
-		instruction: compileInstruction,
-		map: enableSourcemap ? moduleMap : null,
-	}
-	if (canUseCache) {
-		compileResCache.set(module.path, cacheData)
-	}
-	scriptRes.set(module.path, code)
-	if (enableSourcemap) {
-		sourceMapRes.set(module.path, moduleMap!)
-	}
+/**
+ * getDate → new Date()
+ */
+function replaceGetDate(node: { arguments: Array<{ start: number; end: number }>; start: number; end: number }, wxsContent: string, replacements: Array<{ start: number; end: number; value: string }>): void {
+	const args = node.arguments.map(arg => getSource(wxsContent, arg)).join(', ')
+	replacements.push({ start: node.start, end: node.end, value: `new Date(${args})` })
+}
 
-	return {
-		...compileInstruction,
-		templateModule,
-	}
+/**
+ * require → 路径重写 + 递归处理依赖（npm 组件路径与普通路径合并为单一路径）
+ */
+function replaceWxsRequire(
+	node: { arguments: Array<{ value: string; start: number; end: number }> },
+	wxsFilePath: string,
+	scriptModule: unknown[],
+	workPath: string,
+	filePath: string,
+	graphOwnerPath: string,
+	replacements: Array<{ start: number; end: number; value: string }>,
+): void {
+	const requirePath = node.arguments[0]!.value
+	if (!requirePath || typeof requirePath !== 'string') return
+
+	const currentWxsDir = path.dirname(wxsFilePath)
+	const resolvedWxsPath = path.resolve(currentWxsDir, requirePath)
+	const relativePath = stripViewScriptExt(resolvedWxsPath.replace(workPath, ''))
+	const depModuleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
+
+	processWxsDependency(resolvedWxsPath, depModuleName, scriptModule, workPath, filePath, graphOwnerPath)
+
+	replacements.push({
+		start: node.arguments[0]!.start,
+		end: node.arguments[0]!.end,
+		value: JSON.stringify(depModuleName),
+	})
+}
+
+/**
+ * .constructor → Object.prototype.toString.call().slice(8, -1)
+ */
+function replaceConstructor(node: { object: { start: number; end: number }; start: number; end: number }, wxsContent: string, replacements: Array<{ start: number; end: number; value: string }>): void {
+	const objectCode = getSource(wxsContent, node.object)
+	replacements.push({
+		start: node.start,
+		end: node.end,
+		value: `Object.prototype.toString.call(${objectCode}).slice(8, -1)`,
+	})
 }
 
 /**
@@ -599,119 +710,33 @@ export function processWxsContent(wxsContent: string, wxsFilePath: string, scrip
 		wxsAst = parseJs(wxsContent, wxsFilePath || 'inline.wxs', 'script')
 	} catch (error) {
 		console.error(`[view] 解析 wxs 文件失败: ${wxsFilePath}`, errorMessage(error))
-		return wxsContent // 返回原始内容
+		return wxsContent
 	}
 	const replacements: Array<{ start: number; end: number; value: string }> = []
 
-	// 遍历并处理各种转换
 	walk(wxsAst, {
 		enter(node) {
 			if (node.type === 'CallExpression') {
 				const calleeName = (node.callee as { name?: string })?.name
-
-				// https://developers.weixin.qq.com/miniprogram/dev/reference/wxs/06datatype.html#regexp
-				// getRegExp -> 正则表达式字面量或 new RegExp 调用
 				if (calleeName === 'getRegExp') {
-					const args = node.arguments
-
-					if (args.length > 0) {
-						// 如果参数都是字符串字面量，直接转换为正则表达式字面量
-						if (isStringLiteral(args[0]) && (!args[1] || isStringLiteral(args[1]))) {
-							const pattern = getStringLiteralRawValue(args[0])
-							const flags = args.length > 1 ? getStringLiteralRawValue(args[1]) : ''
-
-							replacements.push({
-								start: node.start,
-								end: node.end,
-								value: `/${pattern}/${flags}`,
-							})
-						}
-						else {
-							// 对于变量参数，转换为 new RegExp(pattern, flags) 调用
-							const newRegExpArgs = args.map(arg => getSource(wxsContent, arg)).join(', ')
-							replacements.push({
-								start: node.start,
-								end: node.end,
-								value: `new RegExp(${newRegExpArgs})`,
-							})
-						}
-					}
+					replaceGetRegExp(node as { arguments: unknown[]; start: number; end: number }, wxsContent, replacements)
 				}
 				else if (calleeName === 'getDate') {
-					// getDate -> new Date
-					const args = node.arguments.map(arg => getSource(wxsContent, arg)).join(', ')
-					replacements.push({
-						start: node.start,
-						end: node.end,
-						value: `new Date(${args})`,
-					})
+					replaceGetDate(node as { arguments: Array<{ start: number; end: number }>; start: number; end: number }, wxsContent, replacements)
 				}
-				// 处理 wxs 文件内部的 require 调用（仅对外部文件）
 				else if (calleeName === 'require' && node.arguments.length > 0 && wxsFilePath) {
-					const requirePath = (node.arguments[0] as { value: string }).value
-
-					if (requirePath && typeof requirePath === 'string') {
-						// 解析 wxs 内部的相对路径 require
-						let resolvedWxsPath
-
-						if (filePath && filePath.includes('/miniprogram_npm/')) {
-							// 对于 npm 组件中的 wxs，需要特殊处理相对路径
-							const currentWxsDir = path.dirname(wxsFilePath)
-							resolvedWxsPath = path.resolve(currentWxsDir, requirePath)
-
-							// 转换为相对于工作目录的路径，并移除视图脚本扩展名
-							const relativePath = stripViewScriptExt(resolvedWxsPath.replace(workPath, ''))
-
-							// 生成唯一的模块名（移除特殊字符）
-							const moduleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
-
-							// 递归处理依赖的 wxs 文件
-							processWxsDependency(resolvedWxsPath, moduleName, scriptModule, workPath, filePath, graphOwnerPath)
-
-							// 替换 require 路径
-							replacements.push({
-								start: node.arguments[0]!.start,
-								end: node.arguments[0]!.end,
-								value: JSON.stringify(moduleName),
-							})
-						}
-						else {
-							// 对于普通组件，使用原有逻辑
-							const currentWxsDir = path.dirname(wxsFilePath)
-							resolvedWxsPath = path.resolve(currentWxsDir, requirePath)
-							const relativePath = stripViewScriptExt(resolvedWxsPath.replace(workPath, ''))
-							const depModuleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
-
-							// 递归处理依赖
-							processWxsDependency(resolvedWxsPath, depModuleName, scriptModule, workPath, filePath, graphOwnerPath)
-
-							// 替换 require 路径
-							replacements.push({
-								start: node.arguments[0]!.start,
-								end: node.arguments[0]!.end,
-								value: JSON.stringify(depModuleName),
-							})
-						}
-					}
+					replaceWxsRequire(node as { arguments: Array<{ value: string; start: number; end: number }> }, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath, replacements)
 				}
 			}
-
 			if (node.type === 'MemberExpression') {
-				// 处理 constructor 属性访问，模拟微信小程序 wxs 中 constructor 返回字符串的行为
 				if ((node.property as { name?: string })?.name === 'constructor' && !node.computed) {
-					const objectCode = getSource(wxsContent, node.object)
-					replacements.push({
-						start: node.start,
-						end: node.end,
-						value: `Object.prototype.toString.call(${objectCode}).slice(8, -1)`,
-					})
+					replaceConstructor(node as { object: { start: number; end: number }; start: number; end: number }, wxsContent, replacements)
 				}
 			}
-		}
+		},
 	})
 	return applyCodeReplacements(wxsContent, replacements)
 }
-
 // 递归处理 wxs 依赖
 function processWxsDependency(wxsFilePath: string, moduleName: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath): void {
 	if (!fs.existsSync(wxsFilePath)) {
@@ -1079,8 +1104,8 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 				}
 			}
 
-			if (compileResCache.has(cacheKey)) {
-				wxsContent = compileResCache.get(cacheKey)
+			if (wxsContentCache.has(cacheKey)) {
+				wxsContent = wxsContentCache.get(cacheKey)
 			}
 			else {
 				if (src && wxsFilePath) {
@@ -1100,9 +1125,9 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 				}
 
 				// 使用公共的处理函数
-				wxsContent = processWxsContent(wxsContent, wxsFilePath!, scriptModule, workPath, filePath, graphOwnerPath)
+				wxsContent = processWxsContent(wxsContent, wxsFilePath!, scriptModule, workPath, filePath, graphOwnerPath) as string
 
-				compileResCache.set(cacheKey, wxsContent)
+				wxsContentCache.set(cacheKey, wxsContent)
 			}
 			if (wxsContent) {
 				// 注册为 wxs 模块（因为这是从 wxs 节点加载的，一定是 wxs 脚本）
@@ -1118,7 +1143,6 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 	}
 	removeAll(wxsNodes)
 }
-
 /**
  * 尝试从文件系统加载 wxs 模块
  * @param {string} modulePath - 模块路径
@@ -1236,32 +1260,52 @@ function extractWxsDependencies(moduleCode: string): string[] {
 	return dependencies
 }
 
-export function insertWxsToRenderResult(code: string, scriptModule: unknown[], scriptRes: Map<string, string>, filename = 'render.js', inputMap: unknown = null): { code: string; map: unknown } {
-	const wxsBindings: Array<Record<string, unknown>> = []
-	const codeReplacements = []
+// Step 5: 拆 insertWxsToRenderResult 为三段（R-VC-6）
+
+interface WxsBinding {
+	localIdentifier: string
+	templatePropertyName: string
+}
+
+interface RenderBody {
+	type?: string
+	start?: number
+}
+
+/**
+ * 构建 wxs 声明：遍历 scriptModule，生成 wxsBindings + declarations + renderBody
+ */
+function buildWxsDeclarations(scriptModule: unknown[], scriptRes: Map<string, string>, code: string, filename: string): { wxsBindings: WxsBinding[]; declarations: string[]; renderBody: RenderBody | null; ast: Program } {
+	const wxsBindings: WxsBinding[] = []
+	const declarations: string[] = []
 	const ast = parseJs(code, filename)
 	const statement = ast.body?.[0]
 	const renderExpression = statement?.type === 'ExpressionStatement' ? statement.expression : null
-	const renderBody = (renderExpression as { body?: { type?: string; start?: number } })?.body
-	const declarations = []
+	const renderBody = (renderExpression as { body?: RenderBody })?.body ?? null
 
 	for (const [index, sm] of scriptModule.entries()) {
 		if (!scriptRes.has((sm as { path: string }).path)) {
 			scriptRes.set((sm as { path: string }).path, (sm as { code: string }).code)
 		}
 
-		// 使用原始模块名作为模板中的属性名，唯一模块名作为 require 的参数
 		const templatePropertyName = (sm as { originalName?: string; path: string }).originalName || (sm as { path: string }).path
 		const requireModuleName = (sm as { path: string }).path
 		const localIdentifier = `__wxs_${index}`
 
-		wxsBindings.push({
-			localIdentifier,
-			templatePropertyName,
-		})
-
+		wxsBindings.push({ localIdentifier, templatePropertyName })
 		declarations.push(`const ${localIdentifier} = require(${JSON.stringify(requireModuleName)});`)
 	}
+
+	return { wxsBindings, declarations, renderBody, ast }
+}
+
+type CodeReplacement = { start: number; end: number; newValue?: string; value?: string; type?: string }
+
+/**
+ * 构建 codeReplacements：declarations 注入 + walk _ctx.xxx 替换
+ */
+function buildWxsReplacements(ast: Program, wxsBindings: WxsBinding[], declarations: string[], renderBody: RenderBody | null): CodeReplacement[] {
+	const codeReplacements: CodeReplacement[] = []
 
 	if (wxsBindings.length > 0 && renderBody?.type === 'BlockStatement') {
 		codeReplacements.push({
@@ -1302,15 +1346,19 @@ export function insertWxsToRenderResult(code: string, scriptModule: unknown[], s
 			}
 		},
 	})
-	if (codeReplacements.length === 0) {
-		return { code: getProgramCode(code, ast), map: inputMap }
-	}
 
+	return codeReplacements
+}
+
+/**
+ * 应用替换 + sourcemap 生成 + remap
+ */
+function applyWxsReplacements(code: string, codeReplacements: CodeReplacement[], filename: string, inputMap: unknown): { transformed: string; map: unknown } {
 	const transformed = applyCodeReplacements(code, codeReplacements)
 	let map = inputMap
 	if (enableSourcemap) {
 		const generatedMap = new MagicString(code)
-		const selected: Array<{ start: number; end: number; newValue?: string; value?: string; type?: string }> = []
+		const selected: CodeReplacement[] = []
 		for (const replacement of [...codeReplacements].sort((a, b) => (b.end - b.start) - (a.end - a.start))) {
 			if (!selected.some(item => replacement.start < item.end && item.start < replacement.end)) {
 				selected.push(replacement)
@@ -1332,11 +1380,19 @@ export function insertWxsToRenderResult(code: string, scriptModule: unknown[], s
 		}).toString()
 		map = inputMap ? remapSourcemap(wxsTransformMap, inputMap) : wxsTransformMap
 	}
+	return { transformed, map }
+}
+
+export function insertWxsToRenderResult(code: string, scriptModule: unknown[], scriptRes: Map<string, string>, filename = 'render.js', inputMap: unknown = null): { code: string; map: unknown } {
+	const { wxsBindings, declarations, renderBody, ast } = buildWxsDeclarations(scriptModule, scriptRes, code, filename)
+	const codeReplacements = buildWxsReplacements(ast, wxsBindings, declarations, renderBody)
+	if (codeReplacements.length === 0) {
+		return { code: getProgramCode(code, ast), map: inputMap }
+	}
+	const { transformed, map } = applyWxsReplacements(code, codeReplacements, filename, inputMap)
 	const transformedAst = parseJs(transformed, filename)
 	return { code: getProgramCode(transformed, transformedAst), map }
 }
-
-
 /**
  * 确保 WXS 扫描：若 workPath 与上次不同则重新扫描。
  * 封装 wxsScannedWorkPath check + initWxsFilePathMap + 赋值（let 变量不可外部赋值）。
@@ -1359,7 +1415,9 @@ export function resetWxsScan(): void {
  * 清理全部 view parse+walk 缓存（viewCompile 编译循环后调用）。
  */
 export function clearViewCaches(): void {
-	compileResCache.clear()
+	moduleCompileCache.clear()
+	moduleFailureCache.clear()
+	wxsContentCache.clear()
 	templateRenderCache.clear()
 	wxsModuleRegistry.clear()
 	wxsFilePathMap.clear()
