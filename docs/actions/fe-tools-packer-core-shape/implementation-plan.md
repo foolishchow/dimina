@@ -4,27 +4,32 @@
 
 ### Step 1: 创建 `src/packer/types.ts`
 
-- 定义 `ModuleKind` type
+- 定义 `ModuleKind` type（`'logic' | 'view' | 'style' | 'config'`）
 - 定义 `PackerFileTypes` interface
 - 定义 `PackerContext` interface
 - 定义 `PackerModuleMetadata` interface
-- 定义 `PackerModule` interface
+- 定义 `LoadedModule` interface（load 环节产出：source + dependencies + metadata）
+- 定义 `CompiledModule` interface（compile 环节产出：code + map + dependencies + extraInfoCode + metadata）
+- 定义 `LoadInput` interface（最小输入：moduleId + kind + source）
 - 定义 `EmitOptions` interface
-- 定义 `Packer` API interface
+- 定义 `Packer` API interface（3 环节：loadModule / compileModule / emitEntry）
 - 定义 `ModuleResultCache<V>` 泛型 interface（形状，不实施）
 - 定义 `PackerEntry` interface
 - 定义 `OrchestrateOptions` interface
-- 定义 `PackerOrchestrator` interface
+- 定义 `PackerOrchestrator` interface（orchestrate 方法 + load 反馈循环语义文档化）
 - 用 `import type` 引用现有类型：`EmitEntry` / `EmitTransformConfig`（from `pipeline/emit.ts`）/ `DependencyGraph`（from `model/dependency-graph.ts`）
 - **验证**：`tsc --noEmit` 0 错（types.ts 独立编译通过）
 - 对应：R-PCS-1 / R-PCS-2 / R-PCS-3 / R-PCS-4 / R-PCS-5
 
 ### Step 2: 创建 `src/packer/README.md`
 
+- load → compile → emit 管线说明（3 环节职责 + 反馈循环归属）
 - Packer/Scheme 边界文档（§6 边界定义）
 - env.ts 27 exports → PackerContext / SchemeContext / 不迁移 映射表
-- 现有 module 类型 → PackerModule 映射表
-- 现有 API → Packer API 映射表
+- 现有 module 类型 → LoadedModule / CompiledModule 映射表
+- 现有 parse-walk → load 环节（Packer API.loadModule）映射表
+- 现有 transform → compile 环节（Packer API.compileModule）映射表
+- 现有 emit → emit 环节（Packer API.emitEntry）映射表
 - 现有 lifecycle → 模块生命周期映射表
 - 现有编排 → PackerOrchestrator 映射表
 - **验证**：文档链接有效

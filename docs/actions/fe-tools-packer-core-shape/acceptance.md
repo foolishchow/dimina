@@ -6,17 +6,20 @@
 - [ ] PackerContext 含字段：`workPath` / `targetPath` / `readContent` / `resolveAlias` / `resolveNpm` / `fileTypes` / `graph` / `moduleCache` / `invalidatedModules`
 - [ ] PackerContext 不含 Dimina 专有字段（`getComponent` / `getAppId` / `isMiniGame` / `getAppConfigInfo`）
 
-## A-PCS-2 — PackerModule 定义
+## A-PCS-2 — LoadedModule + CompiledModule 定义
 
-- [ ] `src/packer/types.ts` 含 `interface PackerModule`
-- [ ] PackerModule 含字段：`moduleId` / `kind` / `code` / `map` / `dependencies` / `extraInfoCode?` / `metadata`
+- [ ] `src/packer/types.ts` 含 `interface LoadedModule`
+- [ ] LoadedModule 含字段：`moduleId` / `kind` / `source` / `dependencies` / `metadata`
+- [ ] `src/packer/types.ts` 含 `interface CompiledModule`
+- [ ] CompiledModule 含字段：`moduleId` / `kind` / `code` / `map` / `dependencies` / `extraInfoCode?` / `metadata`
 - [ ] `ModuleKind` type = `'logic' | 'view' | 'style' | 'config'`
 
-## A-PCS-3 — Packer API 定义
+## A-PCS-3 — Packer API 定义（3 环节）
 
 - [ ] `src/packer/types.ts` 含 `interface Packer`
-- [ ] Packer 含方法：`compileModule(module, ctx)` / `emitEntry(entryId, modules, ctx, options)`
+- [ ] Packer 含方法：`loadModule(input, ctx)` / `compileModule(module, ctx)` / `emitEntry(entryId, modules, ctx, options)`
 - [ ] Packer API 复用现有 `EmitEntry` 类型（`import type` from `pipeline/emit.ts`）
+- [ ] `LoadInput` 含 `moduleId` + `kind` + `source`
 
 ## A-PCS-4 — 模块生命周期定义
 
@@ -28,19 +31,22 @@
 
 - [ ] `src/packer/types.ts` 含 `interface PackerOrchestrator`
 - [ ] PackerOrchestrator 含方法：`orchestrate(entries, ctx, api, options)`
-- [ ] 编排 5 职责文档化：发现 → 增量过滤 → 排序 → 编译 → 发射
+- [ ] 编排职责文档化：load 反馈循环（fixpoint）→ compile → emit
 
 ## A-PCS-6 — Packer/Scheme 边界文档
 
+- [ ] `src/packer/README.md` 含 load → compile → emit 管线说明
 - [ ] `src/packer/README.md` 含 Packer（通用）职责列表
 - [ ] `src/packer/README.md` 含 Scheme（Dimina 专有）职责列表
-- [ ] `src/packer/README.md` 含边界定义：Scheme 产 PackerEntry[] + PackerContext + metadata；Packer 消费产出 EmitEntry[]
+- [ ] `src/packer/README.md` 含边界定义：Scheme 产 PackerEntry[] + PackerContext + 预计算 metadata；Packer 消费产出 EmitEntry[]
 
 ## A-PCS-7 — 现有代码映射表
 
 - [ ] `src/packer/README.md` 含 env.ts 27 exports → PackerContext / SchemeContext / 不迁移 映射表
-- [ ] `src/packer/README.md` 含现有 module 类型 → PackerModule 映射表
-- [ ] `src/packer/README.md` 含现有 API → Packer API 映射表
+- [ ] `src/packer/README.md` 含现有 module 类型 → LoadedModule / CompiledModule 映射表
+- [ ] `src/packer/README.md` 含现有 parse-walk → load 环节映射表
+- [ ] `src/packer/README.md` 含现有 transform → compile 环节映射表
+- [ ] `src/packer/README.md` 含现有 emit → emit 环节映射表
 - [ ] `src/packer/README.md` 含现有 lifecycle → 模块生命周期映射表
 - [ ] `src/packer/README.md` 含现有编排 → PackerOrchestrator 映射表
 
