@@ -141,8 +141,9 @@ view/parse-walk.ts:
            clearViewCaches() — 封装 compileResCache.clear() + templateRenderCache.clear() + wxsModuleRegistry.clear() + ...
 
 view/index.ts:
-  imports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., transTagWxs, transAsses, processIncludedFileWxsDependencies, ensureWxsScan, clearViewCaches from parse-walk.ts
-  imports: enableSourcemap, setEnableSourcemap, templateRenderCache from state.ts
+  imports: viewParseWalk, insertWxsToRenderResult, parseBraceExp, ..., transTagWxs, transAsses, processIncludedFileWxsDependencies, ensureWxsScan, resetWxsScan, clearViewCaches from parse-walk.ts
+  imports: enableSourcemap, setEnableSourcemap from state.ts（templateRenderCache 不需——clearViewCaches 在 parse-walk.ts 内处理）
+  imports: bindVueToolsLive from live.ts; bindTransformOrchestrator from orchestrator-live.ts
   imports: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax from tools.ts; processIncludeConditionalAttrs from include.ts
   模块级变量: activeCompileConfig
   interfaces: Progress
@@ -153,7 +154,7 @@ view/index.ts:
   re-export from parse-walk.ts: viewParseWalk, initWxsFilePathMap, loadWxsModule, parseBraceExp, parseClassRules, parseKeyExpression, parseTemplateDataExp, processWxsContent, splitWithBraces
   re-export from tools.ts: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax
   re-export from include.ts: processIncludeConditionalAttrs
-  engine: viewCompile() → clearViewCaches(), viewSuccessPayload(), viewEngine
+  engine: viewCompile() → resetWxsScan() (循环前) + clearViewCaches() (循环后), viewSuccessPayload(), viewEngine
 ```
 
 **view re-export 保留**：`__tests__/view-compiler.spec.js` L2 import `parseBraceExp` / `parseClassRules` / `parseKeyExpression` / `parseTemplateDataExp` / `processWxsContent` / `splitWithBraces` from `view/index.ts`；`__tests__/npm-view-script-custom-loading.spec.js` L6 import `initWxsFilePathMap` / `loadWxsModule`。这些搬到 `parse-walk.ts` 后，`index.ts` 必须 re-export 它们（行为 0：export 块不变）。
