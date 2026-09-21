@@ -75,6 +75,13 @@ grep -c 'Packer.*通用' README.md                             # ≥ 1
 grep -c 'Scheme.*Dimina' README.md                           # ≥ 1
 grep -c 'env.ts' README.md                                   # ≥ 1
 grep -c 'parse-walk.*load\|Loader' README.md                 # ≥ 1
+
+# A-PCS-11: architecture-notes 回流
+if [ -f ../../../../../docs/fe-tools/architecture-notes.md ]; then
+  grep -c 'Packer core' ../../../../../docs/fe-tools/architecture-notes.md        # ≥ 1
+  grep -c 'D-PCS' ../../../../../docs/fe-tools/architecture-notes.md               # ≥ 1
+  grep -c 'graph.*build.*load\|load.*compile.*emit' ../../../../../docs/fe-tools/architecture-notes.md  # ≥ 1
+fi
 ```
 
 ## V-PCS-5 — validator

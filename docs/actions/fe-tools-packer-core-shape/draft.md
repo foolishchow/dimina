@@ -339,10 +339,10 @@ interface ModuleResultCache<V = CompiledModule> {
 // ── cache key = moduleId（不含 fingerprint）──
 // M1 invalidatedModules 负责驱逐——cache 只存有效结果
 
-// ── 缓存范围（待定）──
-// 只缓存 CompiledModule（现状 M2）：load 每次重做——load 便宜，可接受
-// 缓存 LoadedModule + CompiledModule：两阶段都跳过——复杂度翻倍
-// 倾向：只缓存 CompiledModule。graph 是 LoadedModule.dependencies 的天然缓存。
+// ── 缓存范围（已定）──
+// 只缓存 CompiledModule：load 每次重做——load 便宜，可接受
+// 不缓存 LoadedModule：graph 是 LoadedModule.dependencies 的天然缓存
+// 不缓存 EmitEntry：emit 便宜
 
 // ── invalidatedModules 全 kind（形状 target）──
 // 现实：computeInvalidatedModules 只沿 kind=logic 边（logic-only）
@@ -680,7 +680,7 @@ CompiledModule      四车道各自表示                    target: discriminat
 
 ---
 
-## §8 未决问题（待讨论）
+## §8 问题与决策（Q-8 deferred）
 
 1. **load 纯函数化是否值得？** 现实 parse-walk 写本地 graph。target 是返回 deps delta。重构 parse-walk 成本？ROI？
    - **讨论结论**：不强制纯函数化——返回 dependencies 即可，写本地 graph 是实现细节（线程边界封装副作用）
