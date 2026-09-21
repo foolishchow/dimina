@@ -61,7 +61,7 @@ const wxsContentCache = new Map<string, string>()
 
 | 现状 | 目标 |
 |---|---|
-| L340: `compileResCache.set(module.path, { failed: true, errorShape: {...} })` | `moduleFailureCache.set(module.path, { message, stack, name, file, line, column, stage })` |
+| L340: `compileResCache.set(module.path, { failed: true, errorShape: {...} })`（在 `compileViewTree` catch 块内，非 `compileModule`） | `moduleFailureCache.set(module.path, { message, stack, name, file, line, column, stage })`（改动位置同 L340，在 `compileViewTree` 内） |
 | L571: `compileResCache.set(module.path, { code, instruction, map })` | `moduleCompileCache.set(module.path, { code, instruction, map })` |
 | L1105: `compileResCache.set(cacheKey, wxsContent)` | `wxsContentCache.set(cacheKey, wxsContent)` |
 
@@ -313,7 +313,7 @@ viewParseWalk → compileViewTree → compileModule → [tryModuleCache → comp
 | 风险 | 影响 | 缓解 |
 |---|---|---|
 | 缓存 key 碰撞（module.path vs wxsFilePath） | 拆分后三 Map 隔离，不可能碰撞 | 拆分本身消除风险 |
-| 旧格式兼容分支删除 | 若有旧格式缓存条目会丢失 | readiness review 验证：旧格式分支（`typeof cacheData === 'string'`）仅在 `compileResCache` 混用时可能触发；拆分后 WXS 内容走 `wxsContentCache`（string），模块编译走 `moduleCompileCache`（typed）——不可能混淆 |
+| 旧格式兼容分支删除 | 若有旧格式缓存条目会丢失 | 拆分后 `moduleCompileCache.get()` 返回 `ModuleCompileCacheEntry \| undefined`，不可能是 `string`——旧格式分支（`typeof cacheData === 'string'`）是死代码，删除安全。`cacheKey`（`smName` 或 `wxsFilePath`）与 `module.path`（页面/组件路径）实践不碰撞，且拆分后不同 Map 隔离 |
 | `compileModule` 拆分后参数传递复杂化 | 子函数需要多个参数 | 使用 options 对象传参；`noUnusedParameters: true` 约束 |
 | `processWxsContent` walk 回调拆分后 `replacements` 数组共享 | 子函数需 push 到同一个 `replacements` 数组 | 传 `replacements` 引用 |
 | `insertWxsToRenderResult` declarations 与 replacements 依赖 | declarations 在 buildWxsDeclarations 构建，在 buildWxsReplacements 注入 | 顺序调用，先 declarations 后 replacements |
