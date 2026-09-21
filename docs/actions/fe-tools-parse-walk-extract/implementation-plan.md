@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-parse-walk-extract
 
-Status: **ready**（2026-09-21）。
+Status: **in_progress**（2026-09-21）。
 
 ## 纪律
 

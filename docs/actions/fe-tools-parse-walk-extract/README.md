@@ -1,7 +1,7 @@
 # FE Tools Parse-Walk Extract
 
 - Action: `fe-tools-parse-walk-extract`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 前身：[`fe-tools-emit-transform-split`](../_archive/complete/fe-tools-emit-transform-split/README.md)（**complete 已归档**；三段管线文件结构成立，但 view/style `parse-walk.ts` 是 re-export 壳；3 条 TD 假设走 fallback）
