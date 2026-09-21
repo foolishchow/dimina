@@ -323,7 +323,7 @@ interface OrchestratorState {
 async function orchestrate(
   ctx: PackerContext,
   state: OrchestratorState,
-  api: Packer,
+  orch: PackerOrchestrator,
   options: OrchestrateOptions,
 ): Promise<EmitEntry[]> {
   const results: EmitEntry[] = []
@@ -348,20 +348,21 @@ async function orchestrate(
     moduleIds: [],
   }))
 
-  // ── 阶段 2：三车道并行 compile ──
-  // F-3：不是全局 fixpoint，是三车道各自 fixpoint + 合并
+  // ── 阶段 2：并行 compile（从 registry 查有哪些 kind）──
+  // F-3：不是全局 fixpoint，是各车道各自 fixpoint + 合并
+  // D-PCS-5：从 loaderRegistry.kinds() 自动派发
   // 现实：Listr concurrent: true，三车道独立 worker
   if (options.parallel) {
-    const [logicResult, viewResult, styleResult] = await Promise.all([
-      runLane('logic', entries, ctx, state, api, options),
-      runLane('view', entries, ctx, state, api, options),
-      runLane('style', entries, ctx, state, api, options),
-    ])
+    const kinds = orch.loaderRegistry.kinds()  // ['logic', 'view', 'style']
+    const laneResults = await Promise.all(
+      kinds.map(kind => runLane(kind, entries, ctx, state, orch, options))
+    )
+    const [logicResult, viewResult, styleResult] = laneResults
 
     // ── 合并 graph delta（F-2）──
     // D-PCS-2/D-PCS-3：Orchestrator 触发 graph.mergeDelta（source fixpoint）
     // 现实：ctx.dependencyGraph.merge(result.dependencyGraph)
-    for (const result of [logicResult, viewResult, styleResult]) {
+    for (const result of laneResults) {
       if (result?.graphDelta) {
         state.graph.mergeDelta(result.graphDelta)
       }
@@ -369,7 +370,7 @@ async function orchestrate(
 
     // ── 写 cache（F-2）──
     // 现实：stage-channel 从 worker 返回值写 cache
-    for (const result of [logicResult, viewResult, styleResult]) {
+    for (const result of laneResults) {
       for (const compiled of result?.compiled ?? []) {
         state.moduleCache.set(compiled.moduleId, {
           module: compiled,
@@ -378,14 +379,21 @@ async function orchestrate(
       }
     }
 
-    // ── 收集 view/style emit（即时，F-4）──
-    results.push(...viewResult.entries, ...styleResult.entries)
+    // ── 收集 inline emit（即时，F-4）──
+    // D-PCS-5：非 logic 的 kind 的 inline emit
+    for (const result of laneResults) {
+      if (result?.entries) {
+        results.push(...result.entries)
+      }
+    }
 
     // ── logic emit 推迟（F-4）──
     // 现实：独立 stage，按桶（main + subs）
+    // D-PCS-5：从 emitRegistry 取 logic emitter
     if (logicResult?.emitBuckets) {
+      const logicEmitter = orch.emitRegistry.get('logic')
       for (const bucket of logicResult.emitBuckets) {
-        const entry = await api.emitEntry(
+        const entry = await logicEmitter.emit(
           bucket.entryId,
           bucket.modules,
           ctx,
@@ -407,9 +415,14 @@ async function runLane(
   entries: PackerEntry[],
   ctx: PackerContext,
   state: OrchestratorState,
-  api: Packer,
+  orch: PackerOrchestrator,
   options: OrchestrateOptions,
 ): Promise<LaneResult> {
+  // D-PCS-5：从 registry 取 per-kind 实现
+  const loader = orch.loaderRegistry.get(kind)
+  const compiler = orch.compileRegistry.get(kind)
+  const emitter = orch.emitRegistry.get(kind)
+
   // ── Worker 内执行（现实：executeTask → postMessage → Worker）──
   // Worker:
   //   1. resetStoreInfo(storeInfo)  // 重建 ALS → PackerContext 可用
@@ -417,15 +430,15 @@ async function runLane(
   //   2. load fixpoint:
   //      frontier = entries.filter(e => e.kind === kind)
   //      while frontier:
-  //        loaded = api.loadModule(input, ctx)   // parse + walk
+  //        loaded = loader.load(input, ctx)   // parse + walk
   //        // F-5: 现实写本地 graph；target: 返回 deps delta
   //        frontier = loaded.dependencies - visited
   //   3. compile:
   //      for moduleId in invalidatedModules ∩ lane:
   //        if cache hit → skip
-  //        compiled = api.compileModule(loaded, ctx)
+  //        compiled = compiler.compile(loaded, ctx)
   //   4. emit（view/style inline；logic 产 emitBuckets）
-  //      view/style: api.emitEntry → EmitEntry → onOutput 回传
+  //      view/style: emitter.emit → EmitEntry → onOutput 回传
   //      logic: 产 emitBuckets（不直接 emit）
   //   5. 返回 { compiled, graphDelta, emitBuckets, entries }
 
@@ -478,7 +491,7 @@ async function watchRebuild(
   await orchestrate(
     ctx,
     state,
-    packerApi,
+    orch,
     { parallel: true, incremental: true, configChanged },
   )
 
@@ -501,13 +514,17 @@ PackerContext       ALS-backed（env.ts）             interface 契约（ALS �
                     worker 从 storeInfo 重建          D-PCS-6: 只含 I/O+fileTypes
                                                      graph/cache 在 OrchestratorState
 
-load                交织 compile（parse-walk）       分离：loadModule 独立
+Packer API          loadModule/compileModule/         target: 3 registry 取代
+                    emitEntry（switch(kind) 硬编码）    Loader/Compiler/Emitter（D-PCS-5）
+                                                     Orchestrator 拥有 3 个 registry
+
+load                交织 compile（parse-walk）       分离：Loader.load 独立
                     写本地 graph（非纯函数）           target: 返回 deps delta（需重构）
 
-compile             交织在 parse-walk 里              分离：compileModule 独立
+compile             交织在 parse-walk 里              分离：Compiler.compile 独立
 
 emit                logic 推迟（独立 stage）          形状承认：emit 时机因车道
-                    view/style inline                同
+                    view/style inline                Emitter.emit per-kind
 
 graph 创建          env.ts createInitialDependency    target: Graph 自己 bootstrap（D-PCS-4）
                     Graph + storeAppConfig +              Graph.build(ctx) 直接读 app.json
@@ -560,3 +577,5 @@ CompiledModule      四车道各自表示                    target: 统一类�
    - **graph 有两层内容**：项目结构层（app.json 推导，config fixpoint）+ 源码依赖层（parse-walk 发现，source fixpoint）。两层在同一 graph，变化触发条件不同。
    - **graph build 是 fixpoint**（config-level），不是 one-shot。Graph 内部递归发现组件树。
    - **load 在 graph build 之后启动**：load 需要从 graph 拿 entries + file ownership + 快照。
+10. **Packer API 用单体接口还是 registry？**
+    - **决策 D-PCS-5**：三个 registry 取代 Packer 单体接口。LoaderRegistry / CompileRegistry / EmitRegistry 映射 ModuleKind → per-kind 实现。Orchestrator 拥有三个 registry，用 registry 派发，不做 switch。加新 kind 只需注册，不改 Orchestrator。
