@@ -10,7 +10,7 @@
 
 ## 背景
 
-`fe-tools-packer-core-shape`（draft）试图定义 Packer core 的 5 组件形状（PackerContext / LoadedModule+CompiledModule / Packer API / 模块生命周期 / Orchestrator）。但形状设计在抽象层面推理时，多处假设被实际代码推翻——PackerContext 是 ALS-backed 不是 plain object、graph/cache 跨线程写权分叉、fixpoint 是 per-lane 并行不是全局串行、emit 时机因车道而异。
+`fe-tools-packer-core-shape`（draft）试图定义 Packer core 形状（审计时为 5 组件；core-shape 后续演化为 6+ 组件：Graph / PackerContext / Loader+Compiler+Emitter+registry / OrchestratorState / Orchestrator）。但形状设计在抽象层面推理时，多处假设被实际代码推翻——PackerContext 是 ALS-backed 不是 plain object、graph/cache 跨线程写权分叉、fixpoint 是 per-lane 并行不是全局串行、emit 时机因车道而异。
 
 形状定义不能凭抽象推理——需要有事实基础。本 Action 就是这个事实基础：从 Packer（= 整个 bundler = session 完整生命周期）的创建点开始，逐环节梳理到产物输出 + watch rebuild 循环，每步标注读什么、写什么、碰 graph 还是 cache。
 
@@ -31,7 +31,7 @@
 ## 设计输入
 
 - [`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md) — 4 焊点方法级审计 + PackerContext 草案
-- [`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md) — Packer core 5 组件形状定义（draft；本审计是其前置）
+- [`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md) — Packer core 形状定义（draft；本审计是其前置。审计时 5 组件，core-shape 后续演化为 6+ 组件）
 - [`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic）
 - [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) — M1：computeInvalidatedModules
 - [`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md) — M2：ModuleResultCache
@@ -52,7 +52,7 @@
 - R-PLA-4 MUST 梳理 watch rebuild 流程（chokidar → watch-plan → 增量数据流）
 - R-PLA-5 MUST 梳理 graph 生命周期（创建/变异/合并 + 写权分布）
 - R-PLA-6 MUST 梳理 cache 生命周期（创建/读/写 + 写权分布）
-- R-PLA-7 MUST 文档化 5 组件映射现状（形状假设 vs 现实 gap）
+- R-PLA-7 MUST 文档化组件映射现状（形状假设 vs 现实 gap。审计时为 5 组件，core-shape 后续演化为 6+）
 - R-PLA-8 MUST 总结关键发现（F-1..F-6）回流 core-shape
 - R-PLA-9 MUST 不改产品代码（research only，diff=0）
 

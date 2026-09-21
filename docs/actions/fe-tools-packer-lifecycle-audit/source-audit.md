@@ -1,6 +1,8 @@
-# Source Audit — fe-tools-packer-core-shape
+# Source Audit — fe-tools-packer-lifecycle-audit
 
-> Packer（= 整个 bundler）全流程生命周期梳理。从 session 创建到产物输出 + watch rebuild 循环。每环节标注读什么、写什么、碰 graph 还是 cache、映射到 5 组件。
+> Packer（= 整个 bundler）全流程生命周期梳理。从 session 创建到产物输出 + watch rebuild 循环。每环节标注读什么、写什么、碰 graph 还是 cache、映射到组件。
+>
+> 注：审计时 core-shape 形状为 5 组件；后续讨论演化为 6+ 组件（Graph / PackerContext / Loader+Compiler+Emitter+registry / OrchestratorState / Orchestrator）。本审计的 F-1..F-6 发现描述代码行为，不受形状演化影响。
 
 ## §1 入口
 
@@ -350,7 +352,7 @@ watch start:
 
 ---
 
-## §7 Packer 5 组件映射现状
+## §7 组件映射现状（审计时 5 组件，core-shape 后续演化为 6+）
 
 ### §7.1 映射表
 
