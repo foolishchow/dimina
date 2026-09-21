@@ -72,8 +72,12 @@
 
 ## Readiness gaps
 
-- 无设计门阻塞——6 个改进点已有清晰依赖顺序
-- 待 readiness review 验证：缓存 key 不冲突（module.path vs wxsFilePath vs cacheKey）、函数拆分后 W1 shim binding 不变、`collectAllWxsModules` 公共函数签名
+- 已验证：5 轮 readiness review pass（12 findings 全修正）
+  - 缓存 key 不冲突（F-002 验证：拆分后 Map 隔离）
+  - 函数拆分后 W1 shim binding 不变（V-VC-4 grep 验证 22 个 export）
+  - `collectAllWxsModules` 公共函数签名（TD §1.2 `mergeWxsModules`）
+  - `ModuleCompileCacheEntry.instruction` 类型兼容（F-009 修正）
+  - `buildWxsReplacements` renderBody 依赖（F-003/F-010 修正）
 
 ## Closure conditions
 

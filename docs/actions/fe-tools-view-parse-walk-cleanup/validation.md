@@ -62,12 +62,26 @@ grep -c ': any\b\|as any\b\|@ts-nocheck' view/parse-walk.ts          # = 0
 # A-VC-10: 不新增文件
 git diff --name-only -- src/compiler/view/                           # 仅 view/parse-walk.ts
 
-# W1 shim binding 不变（15 个 export 函数）
+# W1 shim binding + 其他 export 不变（全部 22 个）
 grep -c 'export function viewParseWalk' view/parse-walk.ts            # = 1
+grep -c 'export function transformTextInterpolation' view/parse-walk.ts  # = 1
+grep -c 'export function isWrappedByBraces' view/parse-walk.ts       # = 1
+grep -c 'export function parseBraceExp' view/parse-walk.ts            # = 1
+grep -c 'export function parseSafeBraceExp' view/parse-walk.ts       # = 1
+grep -c 'export function parseForExp' view/parse-walk.ts             # = 1
+grep -c 'export function getForItemName' view/parse-walk.ts           # = 1
+grep -c 'export function getForIndexName' view/parse-walk.ts          # = 1
+grep -c 'export function parseKeyExpression' view/parse-walk.ts      # = 1
+grep -c 'export function parseClassRules' view/parse-walk.ts         # = 1
+grep -c 'export function parseTemplateDataExp' view/parse-walk.ts    # = 1
+grep -c 'export function escapeQuotes' view/parse-walk.ts            # = 1
 grep -c 'export function insertWxsToRenderResult' view/parse-walk.ts  # = 1
 grep -c 'export function transTagWxs' view/parse-walk.ts              # = 1
 grep -c 'export function transAsses' view/parse-walk.ts               # = 1
 grep -c 'export function processIncludedFileWxsDependencies' view/parse-walk.ts  # = 1
+grep -c 'export function processWxsContent' view/parse-walk.ts        # = 1
+grep -c 'export function initWxsFilePathMap' view/parse-walk.ts       # = 1
+grep -c 'export function loadWxsModule' view/parse-walk.ts            # = 1
 grep -c 'export function ensureWxsScan' view/parse-walk.ts           # = 1
 grep -c 'export function resetWxsScan' view/parse-walk.ts             # = 1
 grep -c 'export function clearViewCaches' view/parse-walk.ts          # = 1
