@@ -26,7 +26,7 @@ style/emit.ts (58 行):
   emitStyle() (packaging)
 ```
 
-**循环依赖分析**：`createStyleTransformPlugin`（在 `enhanceCSS` 内）调 `buildCompileCss`（`@import` 处理）。两者都在 `index.ts` → 无循环。若 `enhanceCSS` + `buildCompileCss` 都搬到 `parse-walk.ts` → 仍在同一文件 → 无循环。`index.ts` 只需 import `buildCompileCss` from `parse-walk.ts`（单向）。
+**循环依赖分析**：`createStyleTransformPlugin`（在 `enhanceCSS` 内）调 `buildCompileCss`（`@import` 处理）。两者都在 `index.ts` → 无循环。若 `enhanceCSS` + `buildCompileCss` 都搬到 `parse-walk.ts` → 仍在同一文件 → 无循环。`index.ts` import `buildCompileCss` + `clearStyleCaches` from `parse-walk.ts`（单向）。
 
 ### §0.2 view 现状
 
@@ -154,7 +154,7 @@ view/index.ts:
   re-export from parse-walk.ts: viewParseWalk, initWxsFilePathMap, loadWxsModule, parseBraceExp, parseClassRules, parseKeyExpression, parseTemplateDataExp, processWxsContent, splitWithBraces
   re-export from tools.ts: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax
   re-export from include.ts: processIncludeConditionalAttrs
-  engine: viewCompile() → resetWxsScan() (循环前) + clearViewCaches() (循环后), viewSuccessPayload(), viewEngine
+  engine: viewCompile() → resetWxsScan() (循环前) + clearViewCaches() (循环后), viewSuccessPayload(), viewBuildConfig(), viewEngine
 ```
 
 **view re-export 保留**：`__tests__/view-compiler.spec.js` L2 import `parseBraceExp` / `parseClassRules` / `parseKeyExpression` / `parseTemplateDataExp` / `processWxsContent` / `splitWithBraces` from `view/index.ts`；`__tests__/npm-view-script-custom-loading.spec.js` L6 import `initWxsFilePathMap` / `loadWxsModule`。这些搬到 `parse-walk.ts` 后，`index.ts` 必须 re-export 它们（行为 0：export 块不变）。
@@ -187,7 +187,7 @@ view/index.ts:
 | `logic/parse-walk.ts` / `logic/transform.ts` / `logic/index.ts` | 已真抽出 |
 | `pipeline/emit.ts` | emit 层不变 |
 | `worker-runtime/*` | 不变 |
-| `view/wxml/renderer/vue/state.ts` | `enableSourcemap` / `templateRenderCache` 共享状态（parse-walk.ts + index.ts 都 import） |
+| `view/wxml/renderer/vue/state.ts` | `enableSourcemap` / `templateRenderCache` / `setEnableSourcemap` 共享状态（parse-walk.ts import `enableSourcemap` + `templateRenderCache`；index.ts import `enableSourcemap` + `setEnableSourcemap`） |
 
 ## §2 设计决策
 

@@ -69,7 +69,8 @@ Status: **draft**（2026-09-21）。
 
 - W1 `live.ts` 12 个 binding（shim 1）：`transformTextInterpolation` / `isWrappedByBraces` / `parseBraceExp` / `parseSafeBraceExp` / `parseForExp` / `getForItemName` / `getForIndexName` / `parseKeyExpression` / `parseClassRules` / `parseTemplateDataExp` / `escapeQuotes` / `insertWxsToRenderResult`——全部从 `parse-walk.ts` export，`index.ts` import 后注入。
 - W1 `orchestrator-live.ts` 3 个 binding（shim 2）：`transTagWxs` / `transAsses` / `processIncludedFileWxsDependencies`——同上，从 `parse-walk.ts` export，`index.ts` import 后注入。
-- `enableSourcemap` + `templateRenderCache` 来自 `state.ts`（非 `index.ts` 模块级变量）——`parse-walk.ts` 直接 import from `state.ts`（不需从 `index.ts` 过）。`clearViewCaches()` 需调 `templateRenderCache.clear()`。
+- `enableSourcemap` + `templateRenderCache` 来自 `state.ts`（非 `index.ts` 模块级变量）——`parse-walk.ts` 直接 import from `state.ts`（不需从 `index.ts` 过）。`clearViewCaches()` 需调 `templateRenderCache.clear()`。`index.ts` 只 import `enableSourcemap` + `setEnableSourcemap`（不 import `templateRenderCache`——`noUnusedLocals: true`）。
+- L230 注释 `// enableSourcemap / templateRenderCache: see wxml/renderer/vue/state.js` 需更新为 `// enableSourcemap: see wxml/renderer/vue/state.ts`（删 `templateRenderCache`——已不在 `index.ts`）。
 - `wxsScannedWorkPath` 是 `let` 变量——ESM live binding 不可从导入方赋值。`parse-walk.ts` export 三个函数：
   - `ensureWxsScan(workPath)`（封装 `wxsScannedWorkPath !== workPath` check + `initWxsFilePathMap` + 赋值）——`compileML` 调。
   - `resetWxsScan()`（设 `wxsScannedWorkPath = null`）——`viewCompile` 编译循环前调（L1438 位）。

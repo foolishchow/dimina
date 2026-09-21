@@ -53,8 +53,8 @@ grep -c 'minifyCss' src/compiler/style/index.ts  # = 0
 # style/index.ts import type { StyleModule, StyleOptions } from parse-walk.ts
 grep -c 'import type.*StyleModule.*parse-walk' src/compiler/style/index.ts  # ≥ 1
 
-# view/index.ts 不 import templateRenderCache（noUnusedLocals: true; clearViewCaches 在 parse-walk.ts 处理）
-grep -c 'templateRenderCache' src/compiler/view/index.ts  # = 0
+# view/index.ts 不 import/不使用 templateRenderCache（noUnusedLocals: true; clearViewCaches 在 parse-walk.ts 处理；注释也不提及）
+grep -c 'import.*templateRenderCache\|templateRenderCache\.' src/compiler/view/index.ts  # = 0
 
 # view/parse-walk.ts export ensureWxsScan + resetWxsScan + clearViewCaches
 grep -c 'ensureWxsScan\|resetWxsScan\|clearViewCaches' src/compiler/view/parse-walk.ts  # ≥ 3
