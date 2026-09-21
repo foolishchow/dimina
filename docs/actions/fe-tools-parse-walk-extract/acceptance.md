@@ -5,13 +5,14 @@
 - [ ] `style/parse-walk.ts` 含 `enhanceCSS` + `buildCompileCss` + 全部 helpers（非 re-export）
 - [ ] `style/parse-walk.ts` 不含 `export.*from.*index`（`grep -c 'export.*from.*index' parse-walk.ts` = 0）
 - [ ] `style/index.ts` 不含 `enhanceCSS` / `buildCompileCss` 定义（`grep -c 'function enhanceCSS\|function buildCompileCss' index.ts` = 0）
+- [ ] `style/index.ts` export 块保留（`compileSS` 留定义 + `buildCompileCss`/`boostExternalClassSelectors`/`ensureImportSemicolons`/`normalizeCssUrlValue`/`normalizeRootStyleImports`/`processHostSelector`/`resolveStyleImportPath` re-export from parse-walk.ts）
 
 ## A-PW-2 — view parse-walk 真抽出
 
 - [ ] `view/parse-walk.ts` 含 `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + `transTagWxs` + 表达式 helpers（非 re-export）
 - [ ] `view/parse-walk.ts` 不含 `export.*from.*index`（`grep -c 'export.*from.*index' parse-walk.ts` = 0）
 - [ ] `view/index.ts` 不含 `compileViewTree` / `compileModule` / `viewParseWalk` / `insertWxsToRenderResult` / `transTagWxs` 定义
-- [ ] `view/index.ts` 保留 re-export 块（`generateVModelTemplate` / `generateSlotDirective` / `normalizeTemplateSyntax` from `tools.ts`；`processIncludeConditionalAttrs` from `include.ts`）
+- [ ] `view/index.ts` export 块保留（`compileML` 留定义 + 9 re-export from parse-walk.ts + 3 from tools.ts + 1 from include.ts）
 
 ## A-PW-3 — 无循环依赖
 

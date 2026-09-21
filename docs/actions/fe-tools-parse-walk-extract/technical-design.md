@@ -110,10 +110,17 @@ style/emit.ts: (不变)
 
 style/index.ts:
   imports: buildCompileCss from parse-walk.ts; emitStyle, minifyCss from emit.ts
+  imports: clearStyleCaches() from parse-walk.ts (styleCompile cleanup)
   interfaces: Progress
   编排: compileSS() → buildCompileCss + emitStyle + sink.write
-  engine: styleCompile(), styleNormalizeError(), styleEngine
+  re-export from parse-walk.ts: buildCompileCss, boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath
+  re-export from index.ts (defined here): compileSS
+  engine: styleCompile() → clearStyleCaches(), styleNormalizeError(), styleEngine
 ```
+
+**style re-export 保留**：`__tests__/style-compiler.spec.js` L5 import `boostExternalClassSelectors` / `ensureImportSemicolons` / `normalizeCssUrlValue` / `normalizeRootStyleImports` / `resolveStyleImportPath` from `style/index.ts`。这些搬到 `parse-walk.ts` 后，`index.ts` 必须 re-export 它们（行为 0：export 块不变）。
+
+**style `compileRes` 处理**：`compileRes` 是 `const` Map（非 `let`）——可 export 后导入方调 `.clear()`（mutate object 非 reassign binding）。`parse-walk.ts` export `compileRes` 或 `clearStyleCaches()` 封装；`styleCompile` 调之。
 
 ### §1.2 view 目标
 
@@ -137,9 +144,13 @@ view/index.ts:
   模块级变量: activeCompileConfig
   编排: compileML() → ensureWxsScan + viewParseWalk + emitEntry
   W1 注入: 调 bindVueToolsLive({ 12 fns }) + 调 bindTransformOrchestrator({ transTagWxs, transAsses, processIncludedFileWxsDependencies })
-  re-export 保留: generateVModelTemplate / generateSlotDirective / normalizeTemplateSyntax (from tools.ts) + processIncludeConditionalAttrs (from include.ts)
-  engine: viewCompile(), viewSuccessPayload(), viewEngine
+  re-export from parse-walk.ts: viewParseWalk, initWxsFilePathMap, loadWxsModule, parseBraceExp, parseClassRules, parseKeyExpression, parseTemplateDataExp, processWxsContent, splitWithBraces
+  re-export from tools.ts: generateVModelTemplate, generateSlotDirective, normalizeTemplateSyntax
+  re-export from include.ts: processIncludeConditionalAttrs
+  engine: viewCompile() → clearViewCaches(), viewSuccessPayload(), viewEngine
 ```
+
+**view re-export 保留**：`__tests__/view-compiler.spec.js` L2 import `parseBraceExp` / `parseClassRules` / `parseKeyExpression` / `parseTemplateDataExp` / `processWxsContent` / `splitWithBraces` from `view/index.ts`；`__tests__/npm-view-script-custom-loading.spec.js` L6 import `initWxsFilePathMap` / `loadWxsModule`。这些搬到 `parse-walk.ts` 后，`index.ts` 必须 re-export 它们（行为 0：export 块不变）。
 
 **`wxsScannedWorkPath` 处理**：该变量是 `let`，ESM live binding 不可从导入方赋值。
 `parse-walk.ts` export `ensureWxsScan(workPath): boolean`（封装 `wxsScannedWorkPath !== workPath` check + `initWxsFilePathMap` + 赋值）
@@ -152,11 +163,12 @@ view/index.ts:
 | --- | --- | --- |
 | `style/parse-walk.ts` | 重写（8 行 → 真抽出） | `enhanceCSS` + `buildCompileCss` + 全部 helpers + 模块级变量 |
 | `view/parse-walk.ts` | 重写（8 行 → 真抽出） | `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult` + 表达式/wxs helpers + 模块级变量 |
-| `style/index.ts` | 变薄（551 → ~100 行） | `compileSS` + `emitStyle` 调用 + `styleEngine` |
-| `view/index.ts` | 变薄（1476 → ~100 行） | `compileML` + `bindVueToolsLive` + `viewEngine` |
+| `style/index.ts` | 变薄（551 → ~100 行） | `compileSS` + `emitStyle` 调用 + re-export from parse-walk.ts + `styleEngine` |
+| `view/index.ts` | 变薄（1476 → ~100 行） | `compileML` + `bindVueToolsLive` + `bindTransformOrchestrator` + re-export + `viewEngine` |
 | `style/emit.ts` | 不变 | `minifyCss` + `emitStyle` |
-| `view/wxml/renderer/vue/live.ts` | 不变 | W1 cycle-break shim |
+| `view/wxml/renderer/vue/live.ts` | 不变 | W1 cycle-break shim 1（12 binding） |
 | `view/wxml/renderer/vue/tools.ts` | 不变 | 从 `live.ts` 用 binding |
+| `view/wxml/load/orchestrator-live.ts` | 不变 | W1 cycle-break shim 2（3 binding） |
 
 ### §1.4 不变文件
 
@@ -165,12 +177,13 @@ view/index.ts:
 | `logic/parse-walk.ts` / `logic/transform.ts` / `logic/index.ts` | 已真抽出 |
 | `pipeline/emit.ts` | emit 层不变 |
 | `worker-runtime/*` | 不变 |
+| `view/wxml/renderer/vue/state.ts` | `enableSourcemap` / `templateRenderCache` 共享状态（parse-walk.ts + index.ts 都 import） |
 
 ## §2 设计决策
 
 ### D-PW-1：style parse-walk 自包含
 
-`style/parse-walk.ts` 自包含：模块级变量 + loaders + interfaces + `enhanceCSS` + `buildCompileCss` + 全部 helpers。`index.ts` 只 import `buildCompileCss`（+ export 的 helpers）。
+`style/parse-walk.ts` 自包含：模块级变量 + loaders + interfaces + `enhanceCSS` + `buildCompileCss` + 全部 helpers。`index.ts` import `buildCompileCss`（+ re-export 搬走的 helpers 给测试消费）。
 
 **循环依赖**：`createStyleTransformPlugin`（在 `enhanceCSS` 内）调 `buildCompileCss`——两者同在 `parse-walk.ts` → 内部调用，无循环。
 
@@ -178,7 +191,7 @@ view/index.ts:
 
 `view/parse-walk.ts` 自包含：模块级变量 + 表达式 helpers + wxs helpers + `compileViewTree` + `compileModule` + `viewParseWalk` + `insertWxsToRenderResult`。
 
-**循环依赖**：W1 `live.ts` cycle-break 机制——`index.ts` import from `parse-walk.ts` + 调 `bindVueToolsLive` 注入。`tools.ts` 仍从 `live.ts` 用 binding。单向 `index.ts → parse-walk.ts`。
+**循环依赖**：W1 两套 cycle-break 机制——shim 1（`live.ts`，12 binding）`index.ts` import from `parse-walk.ts` + 调 `bindVueToolsLive` 注入；shim 2（`orchestrator-live.ts`，3 binding）`index.ts` import from `parse-walk.ts` + 调 `bindTransformOrchestrator` 注入。`tools.ts` 仍从 `live.ts` 用 binding。单向 `index.ts → parse-walk.ts`。
 
 ### D-PW-3：`collectAllWxsModules` 保留（正式决策）
 
@@ -212,7 +225,7 @@ view/index.ts:
 
 - 真抽出是纯机械搬代码：函数定义从 `index.ts` 搬到 `parse-walk.ts`，不改函数体、不改签名、不改调用逻辑。
 - import 路径从同文件调用变为跨文件 import——但函数行为不变。
-- W1 `bindVueToolsLive` 注入机制不变——`index.ts` 从 `parse-walk.ts` import 后注入，`tools.ts` 仍从 `live.ts` 用 binding。
+- W1 两套注入机制不变——shim 1 `bindVueToolsLive`（12 fns）+ shim 2 `bindTransformOrchestrator`（3 fns）：`index.ts` 从 `parse-walk.ts` import 后注入，`tools.ts` / orchestrator-live.ts 消费方仍从各自 shim 用 binding。
 - **diff=0 保证**：产物字节不变（代码逻辑不变，只是文件位置变）。
 - **vitest 保证**：608/608 不变。
 - **tsc 保证**：0 错（import 路径修正后）。
@@ -221,7 +234,7 @@ view/index.ts:
 
 | 风险 | 缓解 |
 | --- | --- |
-| W1 `bindVueToolsLive` 注入遗漏函数 | 对照 `live.ts` 12 个 binding 逐一检查 |
-| style 模块级变量（`compileRes` 等）搬走后 `index.ts` 的 `styleCompile` 引用断裂 | `styleCompile` 调 `compileRes.clear()`——`parse-walk.ts` export `compileRes` 或 `clearCompileRes()` |
-| view 模块级变量（`compileResCache` 等）搬走后 `index.ts` 的 `viewCompile` 引用断裂 | `viewCompile` 调 `compileResCache.clear()` 等——`parse-walk.ts` export 清理函数或变量 |
+| W1 两套 shim 注入遗漏函数 | 对照 `live.ts` 12 + `orchestrator-live.ts` 3 = 15 个 binding 逐一检查 |
+| style 模块级变量（`compileRes` 等）搬走后 `index.ts` 的 `styleCompile` 引用断裂 | `styleCompile` 调 `clearStyleCaches()`——`parse-walk.ts` export `clearStyleCaches()` 封装 cleanup（`compileRes` 是 const Map，也可直接 export + `.clear()`） |
+| view 模块级变量（`compileResCache` 等）搬走后 `index.ts` 的 `viewCompile` 引用断裂 | `viewCompile` 调 `clearViewCaches()`——`parse-walk.ts` export `clearViewCaches()` 封装全部 cleanup（`wxsScannedWorkPath` 是 `let`，不可外部赋值，必须封装） |
 | 确认 `parse-walk.ts` 不 import `index.ts`（单向 import 验证） | 实施后 `grep -rn "from './index'" parse-walk.ts` = 0 |

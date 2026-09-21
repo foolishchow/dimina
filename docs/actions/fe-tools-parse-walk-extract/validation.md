@@ -41,6 +41,12 @@ grep -c 'function enhanceCSS\|function buildCompileCss' src/compiler/style/index
 # view/index.ts 不含 parse+walk 函数定义（含 transTagWxs）
 grep -c 'function compileViewTree\|function compileModule\|function viewParseWalk\|function insertWxsToRenderResult\|function transTagWxs' src/compiler/view/index.ts  # = 0
 
+# style/index.ts export 块保留（compileSS 留定义 + 7 re-export from parse-walk.ts）
+grep -c 'export.*buildCompileCss\|export.*boostExternalClassSelectors\|export.*ensureImportSemicolons' src/compiler/style/index.ts  # ≥ 1
+
+# view/index.ts export 块保留（compileML 留定义 + 9 re-export from parse-walk.ts + 3 from tools.ts + 1 from include.ts）
+grep -c 'export.*viewParseWalk\|export.*parseBraceExp\|export.*processWxsContent' src/compiler/view/index.ts  # ≥ 1
+
 # 无循环依赖
 grep -rn "from './index'" src/compiler/style/parse-walk.ts src/compiler/view/parse-walk.ts  # = 0
 
