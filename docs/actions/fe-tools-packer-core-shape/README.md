@@ -115,7 +115,7 @@ TODO 清单：
 
 ## Closure conditions
 
-- R-PCS-1..10 全 passed
+- R-PCS-1..11 全 passed（含 SHOULD）
 - A-PCS-11 architecture-notes 回流
 - `src/packer/types.ts` tsc 0 错
 - 行为 0 守卫通过（diff=0 + vitest 全绿）

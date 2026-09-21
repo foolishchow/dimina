@@ -694,7 +694,7 @@ CompiledModule      四车道各自表示                    target: discriminat
 5. **logic emit 推迟 vs view/style 即时——形状怎么统一？** 是承认差异（per-lane emit 策略）？还是统一为"全部推迟"？
    - **讨论结论**：承认差异——per-lane emit 策略
 6. **PackerContext 拆 I/O 区 + 状态区？** 还是保持一个 interface？
-   - **讨论结论**：拆——PackerContext(I/O+fileTypes) + OrchestratorState(graph+cache)
+   - **决策 D-PCS-6**：拆——PackerContext(I/O+fileTypes) + OrchestratorState(graph+cache)
 7. **storeInfo / bootstrap 迁移？** storeInfo 现在做 6 件事，3-6 全归 Graph。
    - **决策 D-PCS-1**（收紧）：storeInfo 只剩 paths + fileTypes = PackerContext（I/O 环境）。读 app.json / 递归组件 / 建图 / runtimeType 全归 Graph。
    - **决策 D-PCS-4**：Graph 自己 bootstrap 自己。没有独立 bootstrap 阶段。PackerContext 是环境就绪，Graph.build(ctx) 直接读 app.json 开始。
