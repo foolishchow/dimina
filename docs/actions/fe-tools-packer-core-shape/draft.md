@@ -170,18 +170,85 @@ interface Packer {
 
 ---
 
-## §4 模块生命周期 — graph + cache（跨线程快照 + 合并）
+## §4 模块生命周期 — graph + cache
 
 ### 发现 F-2
 
 graph 和 cache 跨线程——快照 + 合并。写权在 worker（本地副本）和主线程（合并）之间分叉。
 
+### 决策 D-PCS-2：graph 逻辑自包含，Orchestrator 触发
+
+graph 不是被动数据结构——是**有自己推导逻辑的组件**。现在 `createInitialDependencyGraph` 的逻辑散在 env.ts，和读配置、扫文件混在一起。形状 target：推导逻辑搬进 graph 自身，自包含。
+
+将来 graph 可能做成**插件**——不同项目类型（WeChat / DingTalk / ...）可换不同 graph 实现。逻辑不自包含就没法换实现。
+
+三层分离：
+- **bootstrap**：读配置 + 扫文件 → 产 ProjectModel（纯数据）
+- **Orchestrator**：触发 graph（什么时候 build / reconcile / merge）
+- **Graph**：推导逻辑（怎么从 model 建图 / reconcile / merge）——被 Orchestrator 触发
+
+### 决策 D-PCS-3：graph 由 Orchestrator 触发，不在 bootstrap
+
+graph 是从 app.json 推导的派生状态。app.json 会变——graph 的项目结构层需要重新推导。Orchestrator 负责 graph 的全部生命周期：
+- 首次：从 ProjectModel 建图
+- rebuild 配置没变：只合并 worker 的 source-level delta
+- rebuild 配置变了：重新推导 + reconcile（加新 / 删旧 / 保不变）
+
+现在 graph 在 `storeInfo`（bootstrap）里创建，ephemeral（per pipeline.run）。Orchestrator 触发后 graph 变长期持有（per session/watch）。
+
+graph 有两层内容，来源不同，变化条件不同：
+
+| 层 | 来源 | 变化条件 | 谁产 |
+|---|---|---|---|
+| 项目结构（entries + files + component edges） | app.json 推导 | .json 变更 | bootstrap 产 ProjectModel，Graph 从中推导 |
+| 源码依赖（require / @import / wxs edges） | parse-walk | 源码变更 | worker 发现，Orchestrator 触发 merge |
+
 ### 伪代码
 
 ```typescript
+// ── Graph 是有自己逻辑的组件，不是被动数据结构 ──
+// D-PCS-2：推导逻辑自包含
+// D-PCS-3：Orchestrator 触发
+interface Graph {
+  // 推导逻辑（从 ProjectModel 建图）——自包含
+  buildFromProjectModel(model: ProjectModel): void
+
+  // 配置变更时重新推导——自包含
+  reconcile(newModel: ProjectModel): void
+
+  // 合并 worker 发现的 source-level delta
+  mergeDelta(delta: GraphSnapshot): void
+
+  // 跨线程（F-2）
+  toJSON(): GraphSnapshot
+
+  // 查询（现有 API）
+  getAffectedEntries(file: string): string[]
+  getInvalidatedModules(file: string): string[]
+  hasFile(file: string): boolean
+  getFileKinds(file: string): string[]
+}
+
+// ── 将来的插件接口 ──
+// 不同项目类型 → 不同 Graph 实现
+interface GraphPlugin {
+  name: string                    // 'wechat-miniprogram' | 'dingtalk' | ...
+  createGraph(): Graph
+}
+
+// ── bootstrap 产出（纯数据，不建图）──
+interface ProjectModel {
+  runtimeType: string
+  app: { files: FileEntry[]; tabBarAssets: string[] }
+  components: ComponentEntry[]
+  pages: { mainPages: PageEntry[]; subPages: SubPackageEntry[] }
+}
+
+interface FileEntry { path: string; kind: string }
+interface PageEntry { path: string; usingComponents: Record<string, string>; files: FileEntry[]; packageRoot: string | null }
+interface ComponentEntry { path: string; usingComponents: Record<string, string>; files: FileEntry[] }
+
 // ── ModuleResultCache 泛型化（M2 已有，泛型形状）──
-// 现实：硬绑 CompileInfo（logic-specific）
-// 形状：泛型 V，三车道各实例化
 interface ModuleResultCache<V = CompiledModule> {
   get(moduleId: string): { module: V; dependencies: string[] } | undefined
   set(moduleId: string, result: { module: V; dependencies: string[] }): void
@@ -196,11 +263,6 @@ interface ModuleResultCache<V = CompiledModule> {
 
 // ── cache key = moduleId（不含 fingerprint）──
 // M1 invalidatedModules 负责驱逐——cache 只存有效结果
-// fingerprint 下沉到 invalidation 层（computeInvalidatedModules 按 changed files 推导脏集）
-
-// ── graph 跨线程（F-2）──
-// 现实：DependencyGraph 已有 toJSON() / merge()
-// 形状：确认这两个方法为 PackerContext.graph 的契约
 
 // ── 缓存范围（待定）──
 // 只缓存 CompiledModule（现状 M2）：load 每次重做——load 便宜，可接受
@@ -210,7 +272,6 @@ interface ModuleResultCache<V = CompiledModule> {
 // ── invalidatedModules 全 kind（形状 target）──
 // 现实：computeInvalidatedModules 只沿 kind=logic 边（logic-only）
 // 形状：泛化到全 kind——M1 闭包须覆盖全 kind 边
-// 前提条件：cache key = moduleId 在 M1 闭包正确的前提下安全
 type InvalidatedModules = Set<string>  // 全 kind，不按 'logic' 过滤
 ```
 
@@ -249,9 +310,10 @@ interface PackerOrchestrator {
 }
 
 // ── 状态区——Orchestrator 独占（主线程）──
+// D-PCS-2/D-PCS-3：graph 由 Orchestrator 触发 + 逻辑自包含
 // F-2：graph/cache 的活引用只在主线程；worker 收快照
 interface OrchestratorState {
-  graph: DependencyGraph              // 活图（主线程）
+  graph: Graph                        // 活图（Orchestrator 触发，逻辑自包含）
   moduleCache: ModuleResultCache     // 活 cache（主线程）
   invalidatedModules: Set<string>    // 失效集
 }
@@ -268,11 +330,12 @@ async function orchestrate(
 ): Promise<EmitEntry[]> {
   const results: EmitEntry[] = []
 
-  // ── 阶段 1：Packer 创建（storeInfo / resetStoreInfo）──
-  // 现实：store.load(workPath) = env.ts storeInfo()
-  // 这一步在 pipeline.run 里，不在 Orchestrator 里
-  // 但形状要承认：PackerContext 在这里诞生
-  // ctx 已通过 ALS 恢复——Orchestrator 假设 ctx 可用
+  // ── 阶段 0：bootstrap 已完成（storeInfo）──
+  // D-PCS-1：storeInfo 不进 Packer 形状
+  // D-PCS-3：graph 由 Orchestrator 触发，不在 bootstrap 建
+  //   → bootstrap 产 ProjectModel（纯数据）
+  //   → Orchestrator 调 state.graph.buildFromProjectModel(model)
+  //   → ctx 已通过 ALS 恢复——Orchestrator 假设 ctx 可用
 
   // ── 阶段 2：三车道并行 compile ──
   // F-3：不是全局 fixpoint，是三车道各自 fixpoint + 合并
@@ -285,10 +348,11 @@ async function orchestrate(
     ])
 
     // ── 合并 graph delta（F-2）──
+    // D-PCS-2/D-PCS-3：Orchestrator 触发 graph.mergeDelta
     // 现实：ctx.dependencyGraph.merge(result.dependencyGraph)
     for (const result of [logicResult, viewResult, styleResult]) {
       if (result?.graphDelta) {
-        state.graph.merge(result.graphDelta)
+        state.graph.mergeDelta(result.graphDelta)
       }
     }
 
@@ -434,7 +498,11 @@ compile             交织在 parse-walk 里              分离：compileModule
 emit                logic 推迟（独立 stage）          形状承认：emit 时机因车道
                     view/style inline                同
 
-graph 写权          env.ts 初始 + worker 本地写       target: Orchestrator 独占
+graph 创建          env.ts createInitialDependency    target: Orchestrator 触发
+                    Graph（bootstrap 内）              graph 逻辑自包含（D-PCS-2/D-PCS-3）
+                                                     插件化路径：GraphPlugin
+
+graph 写权          env.ts 初始 + worker 本地写       target: Orchestrator 触发 mergeDelta
                     + 主线程合并                      现实: 快照+合并（线程边界必然）
 
 cache 写权          主线程 stage-channel 写           target: Orchestrator 独占
@@ -467,7 +535,11 @@ CompiledModule      四车道各自表示                    target: 统一类�
    - **讨论结论**：承认差异——per-lane emit 策略
 6. **PackerContext 拆 I/O 区 + 状态区？** 还是保持一个 interface？
    - **讨论结论**：拆——PackerContext(I/O+fileTypes) + OrchestratorState(graph+cache)
-7. **storeInfo / bootstrap 迁移？** storeInfo 是 Scheme 层 bootstrap，不进 Packer 形状。后续迁移（Scheme → Packer）另开 Action。
-   - **决策 D-PCS-1**：storeInfo 不进 Packer core 形状。Packer 假设 PackerContext + graph + project model 已由 bootstrap 产出。
+7. **storeInfo / bootstrap 迁移？** storeInfo 是 Scheme 层 bootstrap，不进 Packer 形状。
+   - **决策 D-PCS-1**：storeInfo 不进 Packer core 形状。Packer 假设 PackerContext + ProjectModel 已由 bootstrap 产出。
 8. **NpmResolver / resolveAlias 是否进 PackerContext？** 后续讨论调度器时再定。
    - **deferred**
+9. **graph 谁触发？逻辑在哪？**
+   - **决策 D-PCS-2**：graph 逻辑自包含（buildFromProjectModel / reconcile / mergeDelta）。推导逻辑从 env.ts 搬进 Graph 自身。将来可做插件（GraphPlugin）。
+   - **决策 D-PCS-3**：graph 由 Orchestrator 触发，不在 bootstrap 建。bootstrap 产 ProjectModel（纯数据），Orchestrator 触发 graph.buildFromProjectModel(model)。graph 变长期持有（per session/watch），不再 ephemeral。
+   - **graph 有两层内容**：项目结构层（app.json 推导，.json 变更时 reconcile）+ 源码依赖层（parse-walk 发现，worker 返回 delta）。两层在同一 graph，变化触发条件不同。
