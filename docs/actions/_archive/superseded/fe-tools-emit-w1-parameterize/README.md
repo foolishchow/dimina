@@ -1,10 +1,11 @@
 # FE Tools Emit W1 Parameterize
 
 - Action: `fe-tools-emit-w1-parameterize`
-- Status: `draft`
+- Status: `superseded`
 - Updated: 2026-09-21
-- Status authority: [Action Status](../STATUS.md)
-- 前身：[`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，W1 emit.ts parameterize 可独立先行）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前身：[`fe-tools-packer-research`](../../complete/fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，W1 emit.ts parameterize 可独立先行）
+- 接替：[`fe-tools-packer-core-shape`](../../../fe-tools-packer-core-shape/README.md)（`draft`；讨论后判断 W1 单点参数化价值不足——1/16 耦合点，无用户价值。由 Packer core 5 组件形状定义取代。）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 背景
@@ -43,7 +44,7 @@ emit-worker（emit-engine.ts）已经先 `resetStoreInfo(storeInfo)` 搭建上�
 
 ## 设计输入
 
-- 前身归档：[`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md)
+- 前身归档：[`fe-tools-packer-research`](../../complete/fe-tools-packer-research/README.md)
 - `PackerContext` 草案：`PackerContext { sourceRoot, outputRoot, moduleIdPrefix, runtimeType, graphWriter{...}, resolver{...}, stateRestore }`
 - emit.ts 现状：233 行，1 处 env.ts import
 - emit-engine.ts 现状：`resetStoreInfo` + `produceEntry`
