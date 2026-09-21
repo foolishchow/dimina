@@ -89,29 +89,45 @@ interface LoadedModule {
 
 // ── compile 环节产出（transform = 变换）──
 // 持久化：存入 moduleCache（跨 rebuild 复用）
-interface CompiledModule {
+// D-PCS-10: discriminated union——kind 是判别字段，TS narrowing 自动生效
+interface CompiledModuleBase {
   moduleId: string
   kind: ModuleKind
   code: string                      // 编译产物
   map: string | null
   dependencies: string[]            // = LoadedModule 的，确认
-  extraInfoCode?: string
-  metadata: PackerModuleMetadata    // 透传 + compile 补充
 }
+
+interface LogicCompiledModule extends CompiledModuleBase {
+  kind: 'logic'
+  extraInfoCode?: string
+}
+
+interface ViewCompiledModule extends CompiledModuleBase {
+  kind: 'view'
+  renderBody?: { start: number; end: number }
+  wxsBindings?: WxsBinding[]
+}
+
+interface StyleCompiledModule extends CompiledModuleBase {
+  kind: 'style'
+  styleScopeId?: string
+}
+
+type CompiledModule = LogicCompiledModule | ViewCompiledModule | StyleCompiledModule
 
 interface PackerModuleMetadata {
   sourcePath: string
-  // View-specific（load 发现，compile 消费）
-  wxsBindings?: WxsBinding[]
-  renderBody?: { start: number; end: number }
-  // Style-specific
-  styleScopeId?: string
-  // 索引签名——允许 lane-specific 扩展，渐进类型化
-  [key: string]: unknown
 }
 
+// TODO D-PCS-10: 后续考虑泛型方案（CompiledModule<M extends PackerModuleMetadata>）
+// 泛型可以让 metadata 类型安全穿透 Compiler → registry 边界
+// 但泛型参数会穿透所有 API，复杂度高
+// 当前用 discriminated union（A），简单且 TS narrowing 天然支持
+// registry 边界不丢类型（kind 字段自动判别）
+
 // EmitModule = CompiledModule 子集（emit 只用 moduleId + code + map + extraInfoCode）
-// 现有 emit.ts 的 EmitModule interface 不变——Packer API 引用它
+// 现有 emit.ts 的 EmitModule interface 不变
 ```
 
 ---
@@ -655,9 +671,10 @@ fixpoint            三车道并行 per-lane fixpoint      形状承认：per-la
 模块级增量          logic only（M1+M2）              target: 三车道统一
                     view/style 无                     前提: M1 泛化全 kind
 
-CompiledModule      四车道各自表示                    target: 统一类型
-                    EmitModule / CompileInfo /         PackerModule（需收敛）
-                    scriptRes / compileRes
+CompiledModule      四车道各自表示                    target: discriminated union（D-PCS-10）
+                    EmitModule / CompileInfo /         LogicCompiledModule | ViewCompiledModule
+                    scriptRes / compileRes             | StyleCompiledModule
+                                                     TODO: 后续考虑泛型方案
 ```
 
 ---
@@ -697,3 +714,6 @@ CompiledModule      四车道各自表示                    target: 统一类�
     - registry 的作用：Orchestrator 的派发配置（有哪些 kind、怎么派发），不是 worker 运行时查实现的机制。
 13. **OrchestratorState 生命周期？ALS 生命周期？**
     - **决策 D-PCS-9**：OrchestratorState 是 session-scoped（session start 创建，跨 rebuild 持久）。ALS 是 pipeline-scoped（pipeline.run() 时创建，返回后销毁）。graph 不在 ALS 里（D-PCS-6），不靠 ALS 活着——graph 在 OrchestratorState 里，活过 pipeline.run()。graph.build(ctx) 时 ctx 是 ALS-backed，但 graph 持有的数据不依赖 ALS。
+14. **CompiledModule 类型怎么收敛？**
+    - **决策 D-PCS-10**：discriminated union。`CompiledModule = LogicCompiledModule | ViewCompiledModule | StyleCompiledModule`，`kind` 是判别字段。每个 variant 只有自己需要的字段，TS narrowing 自动生效。registry 边界不丢类型。
+    - **TODO**：后续考虑泛型方案（`CompiledModule<M extends PackerModuleMetadata>`）——泛型可以让 metadata 类型安全穿透 Compiler → registry 边界，但泛型参数穿透所有 API，复杂度高。当前用 A（discriminated union），简单且足够。
