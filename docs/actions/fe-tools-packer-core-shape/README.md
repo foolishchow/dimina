@@ -4,6 +4,7 @@
 - Status: `draft`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
+- 前置：[`fe-tools-packer-lifecycle-audit`](../fe-tools-packer-lifecycle-audit/README.md)（`draft`；Packer 全流程生命周期审计——本形状定义的事实基础）
 - 前身：[`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，结论"不值得立即抽取"，PackerContext 草案已回流）
 - 接替：[`fe-tools-emit-w1-parameterize`](../_archive/superseded/fe-tools-emit-w1-parameterize/README.md)（`superseded`；讨论后判断 W1 单点参数化价值不足，由本 Action 的形状定义取代）
 - 工作分支：`feature/fe-tools-sidecar`
@@ -60,6 +61,7 @@ Packer 管线是 **3 个环节**：
 
 ## 设计输入
 
+- [`fe-tools-packer-lifecycle-audit`](../fe-tools-packer-lifecycle-audit/README.md) — Packer 全流程生命周期审计（本形状定义的事实基础；F-1..F-6 关键发现）
 - [`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md) — 4 焊点方法级审计 + PackerContext 草案 + W1-W4 决策
 - [`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic；view/style 排除；规范形迁移另门）
 - [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) — M1：`computeInvalidatedModules`（logic-only）
