@@ -1,13 +1,13 @@
 # FE Tools Packer Core Shape
 
 - Action: `fe-tools-packer-core-shape`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-21
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/README.md)（**complete 已归档**；Packer 全流程生命周期审计——本形状定义的事实基础）
-- 前身：[`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，结论"不值得立即抽取"，PackerContext 草案已回流）
-- 接替：[`fe-tools-emit-w1-parameterize`](../_archive/superseded/fe-tools-emit-w1-parameterize/README.md)（`superseded`；讨论后判断 W1 单点参数化价值不足，由本 Action 的形状定义取代）
-- 工作分支：`feature/fe-tools-sidecar`
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-packer-lifecycle-audit`](../fe-tools-packer-lifecycle-audit/README.md)（**complete 已归档**；Packer 全流程生命周期审计——本形状定义的事实基础）
+- 前身：[`fe-tools-packer-research`](../fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，结论"不值得立即抽取"，PackerContext 草案已回流）
+- 接替：[`fe-tools-emit-w1-parameterize`](../../superseded/fe-tools-emit-w1-parameterize/README.md)（`superseded`；讨论后判断 W1 单点参数化价值不足，由本 Action 的形状定义取代）
+- Closure: `complete` — A-PCS-1..11 全 pass。产出 `src/packer/types.ts`（6 组件 interface 声明）+ `src/packer/README.md`（边界+映射表）+ architecture-notes 回流。tsc 0 错；vitest 608/608；行为 0（无现有代码改动）。24 轮 review pass。
 
 ## 背景
 
@@ -75,12 +75,12 @@ Graph 有两层 fixpoint（D-PCS-2）：config fixpoint（graph.build 内部，�
 
 ## 设计输入
 
-- [`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/README.md) — Packer 全流程生命周期审计（F-1..F-6 关键发现）
-- [`fe-tools-packer-research`](../_archive/complete/fe-tools-packer-research/README.md) — 4 焊点审计 + PackerContext 草案 + W1-W4 决策
-- [`fe-tools-module-centric`](../_archive/complete/fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic）
-- [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) — M1：`computeInvalidatedModules`（logic-only）
-- [`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md) — M2：`ModuleResultCache`（logic-only）
-- [`fe-tools-emit-relocate`](../_archive/complete/fe-tools-emit-relocate/README.md) — D-ER-5：`produceEntry` API
+- [`fe-tools-packer-lifecycle-audit`](../fe-tools-packer-lifecycle-audit/README.md) — Packer 全流程生命周期审计（F-1..F-6 关键发现）
+- [`fe-tools-packer-research`](../fe-tools-packer-research/README.md) — 4 焊点审计 + PackerContext 草案 + W1-W4 决策
+- [`fe-tools-module-centric`](../fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic）
+- [`fe-tools-module-invalidation`](../fe-tools-module-invalidation/README.md) — M1：`computeInvalidatedModules`（logic-only）
+- [`fe-tools-module-result-cache`](../fe-tools-module-result-cache/README.md) — M2：`ModuleResultCache`（logic-only）
+- [`fe-tools-emit-relocate`](../fe-tools-emit-relocate/README.md) — D-ER-5：`produceEntry` API
 - env.ts 扇入扇出分析：27 exports 分类
 - tsconfig 约束：`noUnusedLocals: true` / `strict: true` / `module: NodeNext`
 

@@ -3,7 +3,7 @@
 > **北星契约**（D-PCS-1..10）。定义目标形状，不实施物理抽取。
 > 现有代码不 wire 这些类型；实施 Action 逐步迁移。
 >
- * 前身：[`fe-tools-packer-lifecycle-audit`](../../../docs/actions/_archive/complete/fe-tools-packer-lifecycle-audit/README.md)（complete 已归档；F-1..F-6 关键发现）
+ * 前身：[`fe-tools-packer-lifecycle-audit`](../../../../../docs/actions/_archive/complete/fe-tools-packer-lifecycle-audit/README.md)（complete 已归档；F-1..F-6 关键发现）
 
 ## 管线：graph.build → load → compile → emit
 

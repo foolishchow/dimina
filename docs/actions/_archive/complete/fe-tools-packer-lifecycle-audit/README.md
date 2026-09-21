@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-09-21
 - Status authority: [Action Status](../../../STATUS.md)
-- 后继：[`fe-tools-packer-core-shape`](../../../fe-tools-packer-core-shape/README.md)（`draft`；形状定义——本审计是其事实基础）
+- 后继：[`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（**complete 已归档**；形状定义——本审计是其事实基础）
 - 前身：[`fe-tools-packer-research`](../fe-tools-packer-research/README.md)（**complete 已归档**；4 焊点方法级审计，结论"不值得立即抽取"）
 - Closure: `complete` — A-PLA-1..9 全 pass，F-1..F-6 回流 fe-tools-packer-core-shape，research only 零产品代码变更
 
@@ -31,7 +31,7 @@
 ## 设计输入
 
 - [`fe-tools-packer-research`](../fe-tools-packer-research/README.md) — 4 焊点方法级审计 + PackerContext 草案
-- [`fe-tools-packer-core-shape`](../../../fe-tools-packer-core-shape/README.md) — Packer core 形状定义（draft；本审计是其前置。审计时 5 组件，core-shape 后续演化为 6+ 组件）
+- [`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md) — Packer core 形状定义（complete 已归档；本审计是其前置。审计时 5 组件，core-shape 后续演化为 6+ 组件）
 - [`fe-tools-module-centric`](../fe-tools-module-centric/README.md) — D-MF-1（方案 A；刀 2 仅 logic）
 - [`fe-tools-module-invalidation`](../fe-tools-module-invalidation/README.md) — M1：computeInvalidatedModules
 - [`fe-tools-module-result-cache`](../fe-tools-module-result-cache/README.md) — M2：ModuleResultCache
