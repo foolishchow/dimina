@@ -12,15 +12,21 @@
 Worker 不接收 PackerContext 参数——接收 `storeInfo` 快照，调 `resetStoreInfo` 重建 ALS。
 load/compile/emit 通过 ALS 隐式获取上下文。
 
-### 决策 D-PCS-1：storeInfo 不进 Packer 形状
+### 决策 D-PCS-1：storeInfo 大部分归 Graph，不进 Packer 形状
 
-storeInfo 是 **Scheme 层的 bootstrap**——读配置文件（app.json/page.json/component.json）、扫文件系统、建初始 graph。它是 **per-pipeline-run** 的（每次 `pipeline.run()` 重读重扫），不是长期持有。
+storeInfo 现在做 6 件事：
+1. storePathInfo（paths）
+2. normalizeFileTypes（file type mapping）
+3. storeAppConfig（读 app.json）
+4. storePageConfig（递归发现组件树，读 page.json / component.json）
+5. createInitialDependencyGraph（建图）
+6. normalizeRuntimeType（读 project.config.json 判 miniProgram vs game）
 
-storeInfo 不属于 Packer 的 `load → compile → emit` 管线——它是管线**启动前**的一次性初始化，产出 Packer 管线的输入（PackerContext + initial graph + project model）。
+3-6 **全是 Graph 的逻辑**（D-PCS-2/D-PCS-3/D-PCS-4）。Graph 自己读 app.json、判断 runtimeType、递归发现组件、扫文件、建图。
 
-**storeInfo / bootstrap 不进 Packer core 形状。记录为后续迁移（Scheme → Packer）。**
+storeInfo 只剩 1-2（paths + fileTypes）——这就是 **PackerContext**（I/O 环境），不是独立阶段。
 
-Packer 形状描述的是 bootstrap **之后**的管线。PackerContext、graph、project model 是 bootstrap 产出的**输入**，不是 Packer 自己创建的。
+**bootstrap 作为独立阶段不存在了。** PackerContext 是环境就绪，Graph 自己 bootstrap 自己。
 
 ### 伪代码
 
@@ -30,24 +36,22 @@ Packer 形状描述的是 bootstrap **之后**的管线。PackerContext、graph�
 // 形状：定义 interface 让 ALS 的隐式获取有类型契约
 
 interface PackerContext {
-  // ── I/O 区（load/compile/emit 读）──
+  // ── I/O 区（load/compile/emit 读；Graph build 读 app.json）──
   workPath: string
   targetPath: string
   readContent: (path: string) => string
 
   // ── 解析区 ──
-  // 后续迁移：NpmResolver / resolveAlias 是否进 PackerContext 待讨论（§8 Q-6）
+  // 后续迁移：NpmResolver / resolveAlias 是否进 PackerContext 待讨论（§8 Q-8）
   resolveAlias: (src: string) => string | null
   resolveNpm: (src: string, baseFile: string) => string
 
   // ── 文件类型区 ──
   fileTypes: PackerFileTypes
 
-  // ── 状态区（Orchestrator 独占写；worker 只读快照）──
-  // 现实：worker 通过 ALS 读 graph/cache，本地写副本，返回 delta
-  graph: DependencyGraph              // 活图引用（主线程）/ 快照副本（worker）
-  moduleCache: ModuleResultCache     // 活 cache（主线程）/ 快照（worker）
-  invalidatedModules: Set<string>    // 失效集（watch 增量）
+  // ── 注意：graph / moduleCache / invalidatedModules 不在 PackerContext ──
+  // D-PCS-6：拆到 OrchestratorState（§5）
+  // graph 是 Graph 组件（§4），由 Orchestrator 触发 build/mergeDelta
 }
 
 interface PackerFileTypes {
@@ -178,75 +182,69 @@ graph 和 cache 跨线程——快照 + 合并。写权在 worker（本地副本
 
 ### 决策 D-PCS-2：graph 逻辑自包含，Orchestrator 触发
 
-graph 不是被动数据结构——是**有自己推导逻辑的组件**。现在 `createInitialDependencyGraph` 的逻辑散在 env.ts，和读配置、扫文件混在一起。形状 target：推导逻辑搬进 graph 自身，自包含。
+graph 不是被动数据结构——是**有自己推导逻辑的组件**。现在 `createInitialDependencyGraph` + `storePageConfig` + `storeAppConfig` 的逻辑散在 env.ts，和读配置、扫文件混在一起。形状 target：全部推导逻辑搬进 Graph 自身，自包含。
 
-将来 graph 可能做成**插件**——不同项目类型（WeChat / DingTalk / ...）可换不同 graph 实现。逻辑不自包含就没法换实现。
+config fixpoint（递归组件发现）和 source fixpoint（parse-walk）都是 Graph 的两层发现：
+- **config fixpoint**：读 app.json → 发现 pages → 读 page.json → 发现 components → 递归 → 扫文件 → 项目结构完成
+- **source fixpoint**：parse 源码 → 发现 require/@import/wxs → mergeDelta → 继续直到稳定
 
-三层分离：
-- **bootstrap**：读配置 + 扫文件 → 产 ProjectModel（纯数据）
-- **Orchestrator**：触发 graph（什么时候 build / reconcile / merge）
-- **Graph**：推导逻辑（怎么从 model 建图 / reconcile / merge）——被 Orchestrator 触发
+两层都是 graph 在长——从不同输入长（JSON vs source）。Graph 是这两个 fixpoint 的共同 owner。
 
 ### 决策 D-PCS-3：graph 由 Orchestrator 触发，不在 bootstrap
 
 graph 是从 app.json 推导的派生状态。app.json 会变——graph 的项目结构层需要重新推导。Orchestrator 负责 graph 的全部生命周期：
-- 首次：从 ProjectModel 建图
+- 首次：graph.build(ctx) — Graph 自己读 app.json，做 config fixpoint
 - rebuild 配置没变：只合并 worker 的 source-level delta
-- rebuild 配置变了：重新推导 + reconcile（加新 / 删旧 / 保不变）
+- rebuild 配置变了：graph.reconcile(ctx) — 重新 config fixpoint + reconcile（加新 / 删旧 / 保不变）
 
 现在 graph 在 `storeInfo`（bootstrap）里创建，ephemeral（per pipeline.run）。Orchestrator 触发后 graph 变长期持有（per session/watch）。
+
+### 决策 D-PCS-4：Graph 自己 bootstrap 自己，没有独立 bootstrap 阶段
+
+读 app.json 这一步也是 Graph 的——不能把"读 app.json"和"从 app.json 发现 pages"拆开，它们是同一个动作。
+
+storeInfo 的 6 步中，3-6（读 app.json / 递归组件 / 建图 / runtimeType）全是 Graph 逻辑。只剩 1-2（paths + fileTypes）= PackerContext（I/O 环境）。
+
+**bootstrap 作为独立阶段不存在了。** PackerContext 是环境就绪，Graph 自己从 ctx.workPath 读 app.json 开始 bootstrap。
 
 graph 有两层内容，来源不同，变化条件不同：
 
 | 层 | 来源 | 变化条件 | 谁产 |
 |---|---|---|---|
-| 项目结构（entries + files + component edges） | app.json 推导 | .json 变更 | bootstrap 产 ProjectModel，Graph 从中推导 |
-| 源码依赖（require / @import / wxs edges） | parse-walk | 源码变更 | worker 发现，Orchestrator 触发 merge |
+| 项目结构（entries + files + component edges） | app.json 推导（config fixpoint） | .json 变更 | Graph 自己读 app.json + 递归 |
+| 源码依赖（require / @import / wxs edges） | parse-walk（source fixpoint） | 源码变更 | worker 发现，Orchestrator 触发 mergeDelta |
 
 ### 伪代码
 
 ```typescript
 // ── Graph 是有自己逻辑的组件，不是被动数据结构 ──
-// D-PCS-2：推导逻辑自包含
+// D-PCS-2：推导逻辑自包含（config fixpoint + source delta merge）
 // D-PCS-3：Orchestrator 触发
+// D-PCS-4：Graph 自己 bootstrap 自己——build(ctx) 直接读 app.json
 interface Graph {
-  // 推导逻辑（从 ProjectModel 建图）——自包含
-  buildFromProjectModel(model: ProjectModel): void
+  // config fixpoint——从 ctx.workPath 读 app.json 开始
+  // 内部：读 project.config.json 判 runtimeType → 读 app.json → 发现 pages
+  //       → 读 page.json → 发现 components → 递归 → 扫文件
+  //       → 项目结构完成
+  build(ctx: PackerContext): void
 
-  // 配置变更时重新推导——自包含
-  reconcile(newModel: ProjectModel): void
+  // 配置变了——重新 config fixpoint + reconcile（加新 / 删旧 / 保不变）
+  reconcile(ctx: PackerContext): void
 
-  // 合并 worker 发现的 source-level delta
+  // source delta——worker parse 源码发现的 require/@import/wxs → 合并
   mergeDelta(delta: GraphSnapshot): void
 
-  // 跨线程（F-2）
+  // 跨线程（F-2）——worker 从快照重建本地副本
   toJSON(): GraphSnapshot
 
-  // 查询（现有 API）
+  // 查询（现有 API + 新增）
+  getEntries(): string[]               // entry 集（Orchestrator 查要编哪些）
+  getFileOwners(moduleId: string): string[]  // file ownership（Orchestrator 查要 parse 哪些文件）
   getAffectedEntries(file: string): string[]
   getInvalidatedModules(file: string): string[]
   hasFile(file: string): boolean
   getFileKinds(file: string): string[]
 }
-
-// ── 将来的插件接口 ──
-// 不同项目类型 → 不同 Graph 实现
-interface GraphPlugin {
-  name: string                    // 'wechat-miniprogram' | 'dingtalk' | ...
-  createGraph(): Graph
-}
-
-// ── bootstrap 产出（纯数据，不建图）──
-interface ProjectModel {
-  runtimeType: string
-  app: { files: FileEntry[]; tabBarAssets: string[] }
-  components: ComponentEntry[]
-  pages: { mainPages: PageEntry[]; subPages: SubPackageEntry[] }
-}
-
-interface FileEntry { path: string; kind: string }
-interface PageEntry { path: string; usingComponents: Record<string, string>; files: FileEntry[]; packageRoot: string | null }
-interface ComponentEntry { path: string; usingComponents: Record<string, string>; files: FileEntry[] }
 
 // ── ModuleResultCache 泛型化（M2 已有，泛型形状）──
 interface ModuleResultCache<V = CompiledModule> {
@@ -310,10 +308,11 @@ interface PackerOrchestrator {
 }
 
 // ── 状态区——Orchestrator 独占（主线程）──
-// D-PCS-2/D-PCS-3：graph 由 Orchestrator 触发 + 逻辑自包含
+// D-PCS-2/D-PCS-3/D-PCS-4：graph 由 Orchestrator 触发，逻辑自包含，自己 bootstrap
+// D-PCS-6：拆出 PackerContext，graph/cache/invalidated 在 OrchestratorState
 // F-2：graph/cache 的活引用只在主线程；worker 收快照
 interface OrchestratorState {
-  graph: Graph                        // 活图（Orchestrator 触发，逻辑自包含）
+  graph: Graph                        // 活图（Orchestrator 触发 build/reconcile/mergeDelta）
   moduleCache: ModuleResultCache     // 活 cache（主线程）
   invalidatedModules: Set<string>    // 失效集
 }
@@ -322,7 +321,6 @@ interface OrchestratorState {
 // 反映现实流程（source-audit §2-§4），不是抽象设计
 
 async function orchestrate(
-  entries: PackerEntry[],
   ctx: PackerContext,
   state: OrchestratorState,
   api: Packer,
@@ -330,12 +328,25 @@ async function orchestrate(
 ): Promise<EmitEntry[]> {
   const results: EmitEntry[] = []
 
-  // ── 阶段 0：bootstrap 已完成（storeInfo）──
-  // D-PCS-1：storeInfo 不进 Packer 形状
-  // D-PCS-3：graph 由 Orchestrator 触发，不在 bootstrap 建
-  //   → bootstrap 产 ProjectModel（纯数据）
-  //   → Orchestrator 调 state.graph.buildFromProjectModel(model)
-  //   → ctx 已通过 ALS 恢复——Orchestrator 假设 ctx 可用
+  // ── 阶段 0：Graph bootstrap（config fixpoint）──
+  // D-PCS-4：Graph 自己 bootstrap 自己——从 ctx 读 app.json
+  // D-PCS-3：Orchestrator 触发 graph.build(ctx)
+  //   → Graph 内部：读 app.json → 发现 pages → 读 page.json → 发现 components
+  //     → 递归 → 扫文件 → 项目结构完成
+  //   → 交付给 Orchestrator：entry 集 + file ownership + 查询能力
+  if (!options.incremental) {
+    state.graph.build(ctx)           // 首次：config fixpoint
+  } else if (options.configChanged) {
+    state.graph.reconcile(ctx)       // .json 变了：重新 config fixpoint + reconcile
+  }
+  // else：增量，graph 项目结构不变，只等 source delta
+
+  // ── 从 graph 查 entries ──
+  const entries: PackerEntry[] = state.graph.getEntries().map(id => ({
+    entryId: id,
+    kind: deriveKind(id),
+    moduleIds: [],
+  }))
 
   // ── 阶段 2：三车道并行 compile ──
   // F-3：不是全局 fixpoint，是三车道各自 fixpoint + 合并
@@ -348,7 +359,7 @@ async function orchestrate(
     ])
 
     // ── 合并 graph delta（F-2）──
-    // D-PCS-2/D-PCS-3：Orchestrator 触发 graph.mergeDelta
+    // D-PCS-2/D-PCS-3：Orchestrator 触发 graph.mergeDelta（source fixpoint）
     // 现实：ctx.dependencyGraph.merge(result.dependencyGraph)
     for (const result of [logicResult, viewResult, styleResult]) {
       if (result?.graphDelta) {
@@ -402,6 +413,7 @@ async function runLane(
   // ── Worker 内执行（现实：executeTask → postMessage → Worker）──
   // Worker:
   //   1. resetStoreInfo(storeInfo)  // 重建 ALS → PackerContext 可用
+  //      （graph 快照也通过 storeInfo 传入——D-PCS-3: Orchestrator 触发序列化）
   //   2. load fixpoint:
   //      frontier = entries.filter(e => e.kind === kind)
   //      while frontier:
@@ -453,10 +465,9 @@ async function watchRebuild(
   const invalidatedModules = computeInvalidatedModules(state.graph, changedFiles)
   const stages = computeStagesForFiles(state.graph, changedFiles)
 
-  // .json 变更 → 全量（config 影响 graph 结构）
-  if (changedFiles.some(f => f.endsWith('.json'))) {
-    return fullRebuild(ctx, state)
-  }
+  // .json 变更 → graph.reconcile（重新 config fixpoint）
+  // D-PCS-3/D-PCS-4：Graph 自己重新读 app.json，reconcile 项目结构
+  const configChanged = changedFiles.some(f => f.endsWith('.json'))
   // 未追踪文件 → 全量
   if (changedFiles.some(f => !state.graph.hasFile(f))) {
     return fullRebuild(ctx, state)
@@ -465,11 +476,10 @@ async function watchRebuild(
   // ── 增量 build ──
   // 现实：build(..., { affectedEntries, stages, invalidatedModules, seedPath, ... })
   await orchestrate(
-    affectedEntries.map(id => ({ entryId: id, kind: deriveKind(id), moduleIds: [] })),
     ctx,
     state,
     packerApi,
-    { parallel: true, incremental: true },
+    { parallel: true, incremental: true, configChanged },
   )
 
   // ── 增量路径的差异（F-6）──
@@ -488,7 +498,8 @@ async function watchRebuild(
                     现实（source-audit）              形状 target
                     ──────────────────              ────────────
 PackerContext       ALS-backed（env.ts）             interface 契约（ALS 是实现）
-                    worker 从 storeInfo 重建          同——形状不改 ALS 机制
+                    worker 从 storeInfo 重建          D-PCS-6: 只含 I/O+fileTypes
+                                                     graph/cache 在 OrchestratorState
 
 load                交织 compile（parse-walk）       分离：loadModule 独立
                     写本地 graph（非纯函数）           target: 返回 deps delta（需重构）
@@ -498,12 +509,14 @@ compile             交织在 parse-walk 里              分离：compileModule
 emit                logic 推迟（独立 stage）          形状承认：emit 时机因车道
                     view/style inline                同
 
-graph 创建          env.ts createInitialDependency    target: Orchestrator 触发
-                    Graph（bootstrap 内）              graph 逻辑自包含（D-PCS-2/D-PCS-3）
-                                                     插件化路径：GraphPlugin
+graph 创建          env.ts createInitialDependency    target: Graph 自己 bootstrap（D-PCS-4）
+                    Graph + storeAppConfig +              Graph.build(ctx) 直接读 app.json
+                    storePageConfig（bootstrap 内）      Orchestrator 触发（D-PCS-3）
+                                                     没有 bootstrap 阶段
 
 graph 写权          env.ts 初始 + worker 本地写       target: Orchestrator 触发 mergeDelta
-                    + 主线程合并                      现实: 快照+合并（线程边界必然）
+                    + 主线程合并                      config fixpoint: Graph.build 内部
+                                                     现实: 快照+合并（线程边界必然）
 
 cache 写权          主线程 stage-channel 写           target: Orchestrator 独占
                     worker 只读快照                   现实: 同（worker 不写 cache）
@@ -535,11 +548,15 @@ CompiledModule      四车道各自表示                    target: 统一类�
    - **讨论结论**：承认差异——per-lane emit 策略
 6. **PackerContext 拆 I/O 区 + 状态区？** 还是保持一个 interface？
    - **讨论结论**：拆——PackerContext(I/O+fileTypes) + OrchestratorState(graph+cache)
-7. **storeInfo / bootstrap 迁移？** storeInfo 是 Scheme 层 bootstrap，不进 Packer 形状。
-   - **决策 D-PCS-1**：storeInfo 不进 Packer core 形状。Packer 假设 PackerContext + ProjectModel 已由 bootstrap 产出。
+7. **storeInfo / bootstrap 迁移？** storeInfo 现在做 6 件事，3-6 全归 Graph。
+   - **决策 D-PCS-1**（收紧）：storeInfo 只剩 paths + fileTypes = PackerContext（I/O 环境）。读 app.json / 递归组件 / 建图 / runtimeType 全归 Graph。
+   - **决策 D-PCS-4**：Graph 自己 bootstrap 自己。没有独立 bootstrap 阶段。PackerContext 是环境就绪，Graph.build(ctx) 直接读 app.json 开始。
 8. **NpmResolver / resolveAlias 是否进 PackerContext？** 后续讨论调度器时再定。
    - **deferred**
-9. **graph 谁触发？逻辑在哪？**
-   - **决策 D-PCS-2**：graph 逻辑自包含（buildFromProjectModel / reconcile / mergeDelta）。推导逻辑从 env.ts 搬进 Graph 自身。将来可做插件（GraphPlugin）。
-   - **决策 D-PCS-3**：graph 由 Orchestrator 触发，不在 bootstrap 建。bootstrap 产 ProjectModel（纯数据），Orchestrator 触发 graph.buildFromProjectModel(model)。graph 变长期持有（per session/watch），不再 ephemeral。
-   - **graph 有两层内容**：项目结构层（app.json 推导，.json 变更时 reconcile）+ 源码依赖层（parse-walk 发现，worker 返回 delta）。两层在同一 graph，变化触发条件不同。
+9. **graph 谁触发？逻辑在哪？config fixpoint 归谁？**
+   - **决策 D-PCS-2**：graph 推导逻辑自包含（build / reconcile / mergeDelta）。config fixpoint（读 app.json + 递归组件）和 source fixpoint（parse-walk）都是 Graph 的两层发现。推导逻辑从 env.ts 搬进 Graph 自身。
+   - **决策 D-PCS-3**：graph 由 Orchestrator 触发，不在 bootstrap 建。Graph 变长期持有（per session/watch），不再 ephemeral。
+   - **决策 D-PCS-4**：Graph 自己 bootstrap 自己。build(ctx) 直接从 ctx.workPath 读 app.json，不需要 ProjectModel/ProjectBootstrap 中间数据。
+   - **graph 有两层内容**：项目结构层（app.json 推导，config fixpoint）+ 源码依赖层（parse-walk 发现，source fixpoint）。两层在同一 graph，变化触发条件不同。
+   - **graph build 是 fixpoint**（config-level），不是 one-shot。Graph 内部递归发现组件树。
+   - **load 在 graph build 之后启动**：load 需要从 graph 拿 entries + file ownership + 快照。
