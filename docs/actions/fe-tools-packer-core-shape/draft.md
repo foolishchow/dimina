@@ -12,11 +12,21 @@
 Worker 不接收 PackerContext 参数——接收 `storeInfo` 快照，调 `resetStoreInfo` 重建 ALS。
 load/compile/emit 通过 ALS 隐式获取上下文。
 
+### 决策 D-PCS-1：storeInfo 不进 Packer 形状
+
+storeInfo 是 **Scheme 层的 bootstrap**——读配置文件（app.json/page.json/component.json）、扫文件系统、建初始 graph。它是 **per-pipeline-run** 的（每次 `pipeline.run()` 重读重扫），不是长期持有。
+
+storeInfo 不属于 Packer 的 `load → compile → emit` 管线——它是管线**启动前**的一次性初始化，产出 Packer 管线的输入（PackerContext + initial graph + project model）。
+
+**storeInfo / bootstrap 不进 Packer core 形状。记录为后续迁移（Scheme → Packer）。**
+
+Packer 形状描述的是 bootstrap **之后**的管线。PackerContext、graph、project model 是 bootstrap 产出的**输入**，不是 Packer 自己创建的。
+
 ### 伪代码
 
 ```typescript
 // ── PackerContext 是 ALS-backed 的上下文，不是传参的 plain object ──
-// 现实：env.ts 的 storeInfo / resetStoreInfo 就是它的实现
+// 现实：env.ts 的 storeInfo / resetStoreInfo 是 bootstrap，产出 PackerContext
 // 形状：定义 interface 让 ALS 的隐式获取有类型契约
 
 interface PackerContext {
@@ -26,6 +36,7 @@ interface PackerContext {
   readContent: (path: string) => string
 
   // ── 解析区 ──
+  // 后续迁移：NpmResolver / resolveAlias 是否进 PackerContext 待讨论（§8 Q-6）
   resolveAlias: (src: string) => string | null
   resolveNpm: (src: string, baseFile: string) => string
 
@@ -445,8 +456,18 @@ CompiledModule      四车道各自表示                    target: 统一类�
 ## §8 未决问题（待讨论）
 
 1. **load 纯函数化是否值得？** 现实 parse-walk 写本地 graph。target 是返回 deps delta。重构 parse-walk 成本？ROI？
+   - **讨论结论**：不强制纯函数化——返回 dependencies 即可，写本地 graph 是实现细节（线程边界封装副作用）
 2. **PackerContext 保留 ALS 还是参数化？** 现实是 ALS。形状要不要保留？还是定义参数化 target？
+   - **讨论结论**：保留 ALS——形状是 interface，ALS 是实现。storeInfo 是 Scheme 层 bootstrap，不进 Packer 形状（D-PCS-1）
 3. **Orchestrator 是真实组件还是抽象层？** 现实是 build-pipeline + stage-channel + watch-plan 三碎片。形状要不要定义真实 Orchestrator 实现？还是只定 interface？
+   - **讨论结论**：只定 interface——统一实现是实施 Action
 4. **view/style 模块级增量何时做？** 是 core-shape 一起做？还是另开 Action？
+   - **讨论结论**：另开 Action——形状定 target，实施另做
 5. **logic emit 推迟 vs view/style 即时——形状怎么统一？** 是承认差异（per-lane emit 策略）？还是统一为"全部推迟"？
+   - **讨论结论**：承认差异——per-lane emit 策略
 6. **PackerContext 拆 I/O 区 + 状态区？** 还是保持一个 interface？
+   - **讨论结论**：拆——PackerContext(I/O+fileTypes) + OrchestratorState(graph+cache)
+7. **storeInfo / bootstrap 迁移？** storeInfo 是 Scheme 层 bootstrap，不进 Packer 形状。后续迁移（Scheme → Packer）另开 Action。
+   - **决策 D-PCS-1**：storeInfo 不进 Packer core 形状。Packer 假设 PackerContext + graph + project model 已由 bootstrap 产出。
+8. **NpmResolver / resolveAlias 是否进 PackerContext？** 后续讨论调度器时再定。
+   - **deferred**
