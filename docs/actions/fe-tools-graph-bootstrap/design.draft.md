@@ -95,35 +95,77 @@ export class PackerGraph implements Graph {
 }
 ```
 
-## §3 讨论
+## §3 决策（已拍板）
 
-### Q-1: configInfo 归属
+### D-GB-1: configInfo 归属——Graph 持有，ALS 持 Graph 引用（路 1 过渡态）
 
-storeAppConfig/storePageConfig 写 configInfo（ALS 全局状态）。Graph.build 也要写 configInfo 吗？还是 Graph 内部持有？
+Graph 内部持有 configData（appInfo / pageInfo / componentInfo / runtimeType）。ALS context 持 Graph 引用（不再存原始 configInfo）。
 
-**倾向**：Graph 内部持有 `configData`（appInfo / pageInfo / componentInfo / runtimeType）。ALS getter（getComponent 等）改为从 Graph 读。但 ALS context 是 per-pipeline 的，Graph 是 session-scoped——生命周期不匹配。
+```typescript
+// ALS context 变化：
+// 现在: { pathInfo, configInfo, compilerOptions, dependencyGraph, npmResolver }
+// 改后: { pathInfo, compilerOptions, npmResolver, graph: PackerGraph }
+//
+// D-PCS-6 说 graph 不在 PackerContext——接口契约层不违反。
+// 实现层 ALS 持引用是过渡态（路 1），后续路 2（显式传参）是终极。
+```
 
-**问题**：ALS getter 在 worker 内也调（worker 从 storeInfo 快照重建 ALS）。Graph 在主线程持有，worker 没有 Graph 实例。
+行为 0：getter 返回值不变，数据源从 ALS configInfo 变成 Graph。
 
-**倾向**：storeInfo 瘦身后仍把 configData 快照写入 ALS（给 worker 用），但 config fixpoint 逻辑在 Graph 里。storeInfo = PackerContext + configData 快照（从 Graph 取）。
+### D-GB-2: getter 读取——全局 getter 委托 Graph，签名不变
 
-### Q-2: getter 从哪读
+```typescript
+// env.ts — getter 实现改，签名不变
+function getComponent(path: string) {
+  return packerALS.get().graph.getComponent(path)
+}
+function getDependencyGraph() {
+  return packerALS.get().graph.getInnerGraph()  // 返回 DependencyGraph
+}
+function getAppConfigInfo() {
+  return packerALS.get().graph.getAppConfigInfo()
+}
+function getRuntimeType() {
+  return packerALS.get().graph.getRuntimeType()
+}
+function isMiniGame() {
+  return packerALS.get().graph.isMiniGame()
+}
+```
 
-getComponent / getAppConfigInfo / isMiniGame 从 ALS 读 configInfo。Graph 持有 configData 后，这些 getter 从哪读？
+调用方不改——签名全不变。Worker：resetStoreInfo 重建 PackerGraph（从快照），getter 委托到本地 Graph。
 
-**倾向**：ALS context 加 `graphConfigData` 字段。storeInfo 从 Graph 取 configData 写入 ALS。getter 从 ALS 读（不变）。worker 从 storeInfo 快照恢复 ALS（不变）。
+### D-GB-3: watch graph merge——搬入 PackerGraph.reconcile(ctx)
 
-### Q-3: watch graph merge
+现有 storeInfo 的 merge 逻辑（记录 fresh entries → merge old graph → 删除 stale entries）搬入 reconcile：
 
-watch rebuild 的 graph merge 逻辑（storeInfo 内 `options.dependencyGraph` 合并 + 删旧 entry）搬到哪里？
+```typescript
+// PackerGraph
+reconcile(ctx: PackerContext): void {
+  // 1. 重做 config fixpoint → freshGraph（读 app.json → 递归 → 建图）
+  // 2. merge old source-level edges（从 this.graph 合入 freshGraph）
+  // 3. 删除 stale entries（不在新 config 里的旧 entry）
+  // 4. this.graph = freshGraph
+}
+```
 
-**倾向**：搬入 `reconcile(ctx)`。reconcile 做：重做 config fixpoint + merge old source edges + 删旧 entry。
+storeInfo 不再做 merge——只调 `graph.reconcile(ctx)` 或 `graph.build(ctx)`。
 
-### Q-4: createInitialDependencyGraph 自洽
+### D-GB-4: build 自洽——内部先读 config 建 configData，再从 configData 建图
 
-createInitialDependencyGraph 读 configInfo.componentInfo 建 graph。Graph 自己持有 configInfo 后，build 内部自洽？
+```typescript
+// PackerGraph
+build(ctx: PackerContext): void {
+  // 步 3: 读 project.config.json → runtimeType
+  // 步 4: 读 app.json → configData.appInfo
+  // 步 5: 递归发现组件 → configData.pageInfo + componentInfo
+  // 步 6: 从 configData 建图（不再从 ALS configInfo 读）
+  this.configData = this.readConfig(ctx.workPath)    // 步 3-5
+  this.graph = this.buildGraph(ctx, this.configData)  // 步 6
+}
+```
 
-**倾向**：是的。build 内部先读 app.json → 发现组件 → 再建图——configData 和 graph 都在 Graph 内部，不依赖 ALS。
+不依赖 ALS configInfo 预填——build 从 ctx.workPath 读文件。configData 是 Graph 内部状态。D-PCS-4 满足。
 
 ## §4 伪代码
 

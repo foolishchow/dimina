@@ -70,10 +70,16 @@
 
 ## Readiness gaps
 
-- Q-1: storeAppConfig/storePageConfig 写 configInfo（ALS 全局状态）。Graph.build 也要写 configInfo 吗？还是 Graph 内部持有 configInfo？
-- Q-2: getComponent / getAppConfigInfo / isMiniGame 等 getter 从 ALS 读 configInfo。Graph 持有 configInfo 后，这些 getter 从哪读？
-- Q-3: watch rebuild 的 graph merge 逻辑（storeInfo 内 `options.dependencyGraph` 合并）搬到哪里？
-- Q-4: `createInitialDependencyGraph` 读 `configInfo.componentInfo` 建 graph。Graph 自己持有 configInfo 后，build 内部自洽？
+- 无——Q-1..4 已拍板（见 design.draft.md §3）
+
+## 决策汇总
+
+| 决策 | 内容 |
+|---|---|
+| D-GB-1 | configInfo 归属：Graph 内部持有 configData，ALS 持 Graph 引用（路 1 过渡态）|
+| D-GB-2 | getter 读取：全局 getter 委托 Graph，签名不变 |
+| D-GB-3 | watch merge：搬入 PackerGraph.reconcile(ctx) |
+| D-GB-4 | build 自洽：内部先读 config 建 configData，再从 configData 建图 |
 
 ## Closure conditions
 
