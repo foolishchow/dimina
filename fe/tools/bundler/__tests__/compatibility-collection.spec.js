@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { abilityContext } from '../src/compiler/worker-runtime/context.ts'
+import { abilityALS } from '../src/compiler/worker-runtime/context.ts'
 import { BufferingLogger } from '../src/compiler/worker-runtime/loggers.ts'
 
 const {
@@ -17,7 +17,7 @@ describe('worker compatibility diagnostics', () => {
 		const logger = new BufferingLogger()
 
 		// P-WR07: warnOnce 从 getStore 拿 logger（BufferingLogger 缓冲，不 console.warn）
-		abilityContext.run({ logger }, () => {
+		abilityALS.run({ logger }, () => {
 			warnUnsupportedWxApi('getUserProfile', '/pages/index/index.js', 2)
 			warnUnsupportedWxApi('getUserProfile', '/pages/index/index.js', 2)
 			checkTemplateCompatibility('<unknown-element />', '/pages/index/index.wxml')

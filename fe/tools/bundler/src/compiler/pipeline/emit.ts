@@ -3,7 +3,7 @@ import { relative, resolve, sep } from 'node:path'
 import { getWorkPath } from '../core/env.ts'
 import { mergeSourcemap } from '../core/sourcemap.ts'
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
-import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore
+import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03：收敛点 tryGet
 
 export interface EmitModule {
 	moduleId: string
@@ -213,7 +213,7 @@ export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> 
 /**
  * emitEntry —— D-E-9 废弃 return number（D-WR-11 fire-and-forget）。
  * D-E-1 契约 / D-E-2 策略注入 / D-E-12 rebase 留策略。
- * P-WR03：从 abilityContext.getStore() 拿 sink（不收 outputEnv 第二参数）。
+ * P-WR03：从 abilityALS.tryGet() 拿 sink（不收 outputEnv 第二参数）。
  * @param {object} params
  * @param {string} params.entryId
  * @param {string} params.kind
@@ -227,7 +227,6 @@ export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> 
  */
 export async function emitEntry(params: EmitEntryParams) {
 	const entry = await produceEntry(params)
-	const store = abilityContext.getStore() as { sink?: { write: (entry: unknown) => void } } | undefined
-	const { sink } = store ?? {}  // 收敛点 getStore（不兜底——产物必须 sink，F55）
+	const sink = abilityALS.tryGet()?.sink  // 收敛点 tryGet（不兜底——产物必须 sink，F55）
 	sink?.write(entry)
 }

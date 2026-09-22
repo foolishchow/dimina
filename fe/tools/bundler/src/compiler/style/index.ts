@@ -1,7 +1,7 @@
 import { resetStoreInfo } from '../core/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
-import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03
+import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03
 import type { EnhancedError } from '../../shared/utils.ts'
 import { emitStyle } from './emit.ts'
 import { buildCompileCss, clearStyleCaches } from './parse-walk.ts'
@@ -23,8 +23,8 @@ async function compileSS(pages: StyleModule[], root: string | null, progress: Pr
 			[{ moduleId: page.path, code: result.code, map: result.map }],
 			{ entryId: page.path, filename, relPrefix, sourcemap: !!options.sourcemap, minify: options.minify !== false },
 		)
-		const { sink } = abilityContext.getStore() as { sink: { write: (data: Record<string, unknown>) => void } }
-		sink.write(entry as unknown as Record<string, unknown>)
+		const { sink } = abilityALS.get()
+		sink.write(entry)
 
 		progress.completedTasks++
 	}

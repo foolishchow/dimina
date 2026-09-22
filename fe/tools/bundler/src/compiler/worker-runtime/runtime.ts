@@ -1,5 +1,5 @@
 import { isMainThread, parentPort } from 'node:worker_threads'
-import { abilityContext } from './context.ts'
+import { abilityALS } from './context.ts'
 import type { Engine } from './define-engine.ts'
 import { PostMessageSink } from './sinks.ts'
 import { BufferingLogger } from './loggers.ts'
@@ -20,7 +20,7 @@ export function runWorker(engine: Engine): void {
 	const sink = new PostMessageSink(parentPort!)
 	const logger = new BufferingLogger()
 	parentPort!.on('message', async (msg: unknown) => {
-		abilityContext.run({ sink, logger }, async () => {
+		abilityALS.run({ sink, logger }, async () => {
 			try {
 				const config = engine.buildConfig(msg as Record<string, unknown>)
 				const compileResult = await engine.compile({ msg, progress: makeProgress(parentPort!), config })

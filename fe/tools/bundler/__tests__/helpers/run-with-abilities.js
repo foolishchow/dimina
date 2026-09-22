@@ -1,4 +1,4 @@
-import { abilityContext } from '../../src/compiler/worker-runtime/context.ts'
+import { abilityALS } from '../../src/compiler/worker-runtime/context.ts'
 import { FileSink } from '../../src/compiler/worker-runtime/sinks.ts'
 import { ConsoleLogger } from '../../src/compiler/worker-runtime/loggers.ts'
 
@@ -11,7 +11,7 @@ import { ConsoleLogger } from '../../src/compiler/worker-runtime/loggers.ts'
  * @returns {Promise<*>} fn 的返回值
  */
 export function runWithAbilities(writeDir, fn) {
-	return abilityContext.run(
+	return abilityALS.run(
 		{ sink: new FileSink(writeDir), logger: new ConsoleLogger() },
 		fn,
 	)

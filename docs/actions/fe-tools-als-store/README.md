@@ -1,7 +1,7 @@
 # FE Tools ALS Store
 
 - Action: `fe-tools-als-store`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-22
 - Status authority: [Action Status](../STATUS.md)
 - 工作分支：`feature/fe-tools-sidecar`

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
-import { AsyncLocalStorage } from 'node:async_hooks'
+import { AsyncContextStore } from '../worker-runtime/async-context-store.ts'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
 import { resolveMiniProgramPath, toMiniProgramModuleId } from '../../shared/path-utils.ts'
@@ -11,7 +11,7 @@ import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from '../../model/dependency-graph.ts'
 import { errorMessage } from '../../shared/utils.ts'
 
-const compilerContextStorage = new AsyncLocalStorage<CompilerContext>()
+const packerALS = new AsyncContextStore<CompilerContext>({ name: 'packer' })
 let defaultCompilerContext: CompilerContext | undefined
 
 type CompilerContext = {
@@ -34,7 +34,7 @@ function createCompilerContext(): CompilerContext {
 
 function getCompilerContext(): CompilerContext {
 	defaultCompilerContext ||= createCompilerContext()
-	return compilerContextStorage.getStore() || defaultCompilerContext
+	return packerALS.tryGet() ?? defaultCompilerContext
 }
 
 // 将现有属性访问路由到当前异步构建上下文。直接调用 storeInfo() 的测试和
@@ -236,7 +236,7 @@ function resetStoreInfo(opts: { pathInfo: PathInfo; configInfo: ConfigInfo; comp
 }
 
 function runWithCompilerContext<T>(callback: () => T): T {
-	return compilerContextStorage.run(createCompilerContext(), callback)
+	return packerALS.run(createCompilerContext(), callback)
 }
 
 function getTemplateExts() {

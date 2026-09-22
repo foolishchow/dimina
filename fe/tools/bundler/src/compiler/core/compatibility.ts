@@ -4,7 +4,7 @@ import { isHTMLTag } from '@vue/shared'
 import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.ts'
 import { supportedBuiltinComponents, supportedWxApis } from './compatibility-reference.ts'
 import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.ts'
-import { abilityContext } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore
+import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore
 import { consoleFallback } from '../worker-runtime/loggers.ts'  // P-WR03：D-WR-4 兜底
 
 let cachedReference: { supportedBuiltinComponents: Set<string>; supportedWxApis: Set<string> } | null = null
@@ -307,8 +307,7 @@ function warnOnce(type: string, name: string, location: string, message: string)
 		return
 	}
 	warnedItems.add(key)
-	const store = abilityContext.getStore() as { logger?: { warn: (msg: string) => void } } | undefined
-	const logger = store?.logger ?? consoleFallback  // D-WR-4 兜底
+	const logger = abilityALS.tryGet()?.logger ?? consoleFallback  // D-WR-4 兜底
 	logger.warn(message)
 }
 
