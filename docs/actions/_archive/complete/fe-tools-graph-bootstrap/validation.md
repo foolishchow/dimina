@@ -20,20 +20,35 @@ cd fe/tools/bundler && node /Users/foolishchow/.cache/node/corepack/v1/pnpm/12.2
 
 ## V-GB-3 — 行为 0（diff=0）
 
+全量验证：7 个 examples/miniprogram/* 项目逐一构建 baseline vs new，逐个 diff -r。
+
 ```bash
-# baseline build (stash changes → rebuild dist → build)
-rm -rf /tmp/graph-baseline
-node /tmp/build-baseline.mjs   # import build from dist; build to /tmp/graph-baseline
+# baseline: checkout parent commit env.ts (无 graph.ts) → rebuild dist → build all
+# new:      current HEAD (PackerGraph) → rebuild dist → build all
 
-# new build (unstash → rebuild dist → build)
-rm -rf /tmp/graph-new
-node /tmp/build-new.mjs         # import build from dist; build to /tmp/graph-new
-
-diff -r /tmp/graph-baseline /tmp/graph-new
+for proj in air-battle base mpx-demo subpackages taro-todo vant weui; do
+  rm -rf /tmp/gb-baseline-$proj /tmp/gb-new-$proj
+  node /tmp/gb-build-baseline-$proj.mjs   # build to /tmp/gb-baseline-$proj
+  node /tmp/gb-build-$proj.mjs            # build to /tmp/gb-new-$proj
+  diff -r /tmp/gb-baseline-$proj /tmp/gb-new-$proj
+  echo "$proj: $?"
+done
 ```
-预期：empty（无改动）。
+预期：全部 diff=0。
 
-**结果**：✅ `diff -r /tmp/graph-baseline /tmp/graph-new` = 0（examples/miniprogram/base 产物完全一致）
+**结果**：✅ 7/7 项目全 diff=0（共 896 个产物文件）
+
+| 项目 | 产物文件数 | diff |
+|---|---|---|
+| air-battle | 2 | ✅ 0 |
+| base | 94 | ✅ 0 |
+| mpx-demo | 5 | ✅ 0 |
+| subpackages | 166 | ✅ 0 |
+| taro-todo | 5 | ✅ 0 |
+| vant | 495 | ✅ 0 |
+| weui | 129 | ✅ 0 |
+
+baseline = parent commit `20b125af`（旧 storeInfo，无 graph.ts）；new = `960a5dd7`（PackerGraph 路 1 过渡态）。
 
 ## V-GB-4 — 类型约束 grep
 

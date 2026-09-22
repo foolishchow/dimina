@@ -103,3 +103,19 @@ Service 与 Render 运行在不同线程或执行环境中，JavaScript 微任�
 ## 11. FE tools 旁路与 packages 同构
 
 私有 toolchain 落在 `fe/tools/*`；`fe/packages/*` 与已对齐的 `origin/main`（didi）保持同构，禁止长期私有 improve。上游同步先 merge 进工作分支的 packages，再按需 port 到 tools 副本。操作清单与可检查句见 `docs/fe-tools/sync-rhythm.md`。
+
+## 12. 行为 0 验证：全量 examples 覆盖
+
+重构 bundler 核心逻辑（env.ts / storeInfo / build-pipeline / dependency-graph 等影响全量构建的路径）时，行为 0 验证不能只跑单个 example。必须覆盖 `examples/miniprogram/*` 下**全部**项目逐一 `diff -r`：
+
+```
+air-battle  base  mpx-demo  subpackages  taro-todo  vant  weui
+```
+
+- **baseline** = 变更前 commit（checkout parent env.ts → rebuild dist → build）
+- **new** = 变更后 commit（rebuild dist → build）
+- 逐项目 `diff -r /tmp/gb-baseline-$proj /tmp/gb-new-$proj`，exit 0 = pass
+
+单一项目 diff=0 不代表全量通过——不同项目覆盖不同 code path（小游戏路由、子包、自定义组件、第三方库等）。改动范围越大，覆盖面必须越宽。仅改单个子系统（如仅 style emit）时，至少跑 2-3 个相关项目；改 env.ts / storeInfo / graph 等全局路径时，**必须全量 7 项目**。
+
+vitest 全绿 + tsc 0 errors + 全量 examples diff=0 = 行为 0 三件套。
