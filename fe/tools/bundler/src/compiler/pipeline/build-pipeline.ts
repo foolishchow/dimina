@@ -1,351 +1,70 @@
 /**
- * BuildPipeline — 编译承载面（build-pipeline BP1）。
+ * build-pipeline — dead shim（D-OR-5 P2）。
  *
- * 把今日 runBuild 的过程体（init → concurrent compile → publish）
- * 抽为可指认的 Pipeline 对象：阶段可注入 ProjectStore、行为 0 变化。
- *
- * 不是 session、不做跨 watch 活图、不做 chokidar/dev-server/插件总线/会话管理。
- *
- * Session（唯一会话管理者）按次调用 Pipeline.run；Pipeline 不长活挂 session。
+ * 编排脑已迁入 `src/packer/orchestrator.ts`。本文件仅兼容旧 import，
+ * **零**过程体 / Listr / 写权。新代码请用 `createPackerOrchestrator`。
  */
-
-import path from 'node:path'
-import process from 'node:process'
-import { Listr, PRESET_TIMER } from 'listr2'
-import type { ListrTask, ListrBaseClassOptions } from 'listr2'
-import { createLifecycle, LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
-import { getRenderer, registerRenderer } from '../core/renderers.ts'
-import { createCompileTarget, deriveStagePlan, readLoadBindings, STAGE_TITLES } from './compile-target.ts'
-import type { PagesInfo, LoadBindings } from './compile-target.types.ts'
-import { createDist, publishToDist } from './publish.ts'
+import { createPackerOrchestrator, type OrchestrateRequest } from '../../packer/orchestrator.ts'
 import { PackerSessionState } from '../../packer/session-state.ts'
-import { artCode, resetAssetCache } from '../../shared/utils.ts'
-import { NpmBuilder } from '../core/npm-builder.ts'
-import compileConfig from './config-compiler.ts'
-import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from '../core/env.ts'
-import { executeTask } from '../worker-runtime/executor.ts'
-import { emitEngine } from './emit-engine.ts'
-import { runCompileStage } from './stage-channel.ts'
-import { BuildModel, materialize } from '../../model/build-model.ts'
-import { createProjectStore } from '../../model/project-store.ts'
-
-interface RendererAdapter {
-	runViewStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
-	runStyleStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
-}
-
-let isPrinted = false
-const previousCompatibilityWarnings = new Map<string, Set<string>>()
-const MAX_WARNING_PROJECTS = 32
 
 /**
- * webview renderer 阶段级薄适配（A4 P-002）。
+ * @deprecated 使用 createPackerOrchestrator().orchestrate
  */
-const webviewRenderer = {
-	name: 'webview',
-	runViewStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
-	runStyleStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
-}
-if (!getRenderer('webview')) {
-	registerRenderer(webviewRenderer)
-}
-
-export function createBuildPipeline({ store: providedStore, lifecycle: pipelineLifecycle }: { store?: unknown; lifecycle?: { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] } } = {}): { run: (options: Record<string, unknown>) => Promise<Record<string, unknown>> } {
-	/**
-	 * @param {object} runOptions
-	 * @param {string} runOptions.targetPath
-	 * @param {string} runOptions.workPath
-	 * @param {boolean} runOptions.useAppIdDir
-	 * @param {object} [runOptions] 其余编译选项（fileTypes/stages/seedPath/...）
-	 * @returns {Promise<object>} buildResult
-	 */
-	async function run(runOptions: Record<string, unknown>): Promise<Record<string, unknown>> {
-		return runWithCompilerContext(() => _runBuild(runOptions))
-	}
-
-	async function _runBuild(runOptions: Record<string, unknown>): Promise<Record<string, unknown>> {
-		const {
-			targetPath,
-			workPath,
-			useAppIdDir = true,
-			fileTypes,
-			affectedEntries,
-			seedPath,
-			dependencyGraph,
-			prepareConfig = true,
-			prepareNpm = true,
-			store: runStore,
-			lifecycle: runLifecycle,
-			cache,
-			invalidatedModules,
-			skipMaterialize,
-			state,
-		} = runOptions as {
-			targetPath: string
-			workPath: string
-			useAppIdDir?: boolean
-			fileTypes?: unknown
-			affectedEntries?: string[]
-			seedPath?: string
-			dependencyGraph?: unknown
-			prepareConfig?: boolean
-			prepareNpm?: boolean
-			store?: unknown
-			lifecycle?: { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
-			cache?: unknown
-			invalidatedModules?: string[]
-			skipMaterialize?: boolean
-			state?: PackerSessionState
-		}
-		const store = (runStore ?? providedStore ?? createProjectStore()) as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => { addFile: (n: string, f: string, k: string) => void; toJSON: () => unknown } }
-		// T1：C1 / renderer 校验 / stages 白名单改道 createCompileTarget（消息不变）
-		const compileTarget = createCompileTarget(runOptions)
-		const lifecycle = runLifecycle || pipelineLifecycle || createLifecycle()
-		// T2：阶段组装侧 bindings；BUILD_END appId 复用（避免二次 env 读取）
-		let loadBindings: { pages?: unknown; appId?: string } | null = null
-
-		const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, store: _storeRef, state: _stateRef, targetPath: _t, workPath: _w, useAppIdDir: _u, ...serializableOptions } = runOptions
-		try {
-			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_START, {
-				workPath,
-				targetPath,
-				useAppIdDir,
-				options: serializableOptions,
-			})
-
-			const shouldPrepareConfig = !seedPath || prepareConfig
-			const shouldPrepareNpm = !seedPath || prepareNpm
-			resetAssetCache()
-
-			if (!isPrinted) {
-				artCode()
-				isPrinted = true
-			}
-
-			const initPhases = [
-				{
-					title: '收集配置信息',
-					task: async (ctx: Record<string, unknown>) => {
-						(ctx as { buildModel: unknown }).buildModel = new BuildModel()
-						const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
-						(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, dependencyGraph, graph: state?.graph });
-						(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
-						if (cache) (ctx as { cache: unknown }).cache = cache
-						if (invalidatedModules) (ctx as { invalidatedModules: string[] }).invalidatedModules = invalidatedModules
-						const allPages = getPages()
-						await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
-							fileTypes: ((ctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),
-							pagesCount: allPages.mainPages.length
-								+ Object.values(allPages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0),
-							miniGame: isMiniGame(),
-						})
-					},
-				},
-				{
-					title: '准备产物目录',
-					task: async () => {
-						createDist(seedPath)
-						await lifecycle.emit(LIFECYCLE_EVENTS.DIST_PREPARED, { seedPath })
-					},
-				},
-				...(shouldPrepareConfig ? [{
-					title: '编译配置信息',
-					task: async () => {
-						compileConfig()
-						await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COMPILED, {})
-					},
-				}] : []),
-				...(shouldPrepareNpm ? [{
-					title: '构建 npm 包',
-					task: async (ctx: Record<string, unknown>) => {
-						const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), (ctx as { dependencyGraph?: { addFile: (n: string, f: string, k: string) => void } }).dependencyGraph ?? null)
-						await npmBuilder.buildNpmPackages()
-						await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
-					},
-				}] : []),
-			]
-
-			const tasks = new Listr(([				
-					{
-						title: '初始化项目',
-						task: (_: unknown, task: { newListr: (p: unknown[], o: unknown) => unknown }) => task.newListr(initPhases, { concurrent: false }),
-					},
-					{
-						title: `编译项目 · ${path.basename(path.resolve(workPath))}`,
-						task: (ctx: Record<string, unknown>, task: unknown): unknown => {
-							// T2：阶段组装侧唯一读取 + 纯派生；闭包内不再散算形态条件
-							loadBindings = readLoadBindings() as { pages: unknown; appId: string } | null
-							(ctx as { allPages: unknown }).allPages = (loadBindings as { pages?: unknown } | null)?.pages as unknown
-							(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings = new Set<string>()
-
-							const plan = deriveStagePlan(compileTarget, loadBindings as LoadBindings, {
-								cwd: process.cwd(),
-								affectedEntries,
-							})
-							;(ctx as { pages: unknown }).pages = (plan as { filteredPages: PagesInfo }).filteredPages
-						// D-ER-3：存 logic workerOptions 到 ctx（供 3.5 Logic emit task 取用）
-						const logicOpts = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown> }> }).stageSpecs.logic?.workerOptions
-						if (logicOpts) {
-							(ctx as { compileConfig?: unknown }).compileConfig = logicOpts.compileConfig as unknown
-							(ctx as { sourcemap?: boolean }).sourcemap = logicOpts.sourcemap as boolean | undefined
-							(ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath = logicOpts.sourcemapTargetPath as string | undefined
-						}
-							const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
-								const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]!
-								return createStageTask(
-									stage,
-									STAGE_TITLES[stage]!,
-									lifecycle,
-									spec.workerOptions,
-									spec.renderer as RendererAdapter | null,
-								)
-							})
-
-							if (compileTasks.length > 0) {
-								return ((task as { newListr: (p: unknown[], o: unknown) => unknown }).newListr)(compileTasks, { concurrent: true })
-							}
-						return undefined
-					},
-				},
-				{
-					title: 'Logic emit',
-					task: async (ctx: Record<string, unknown>) => {
-						const emitBuckets = (ctx as { emitBuckets?: { main: Array<{ path: string; code: string; map?: string | null; extraInfoCode?: string }>; subs: { root: string; modules: Array<{ path: string; code: string; map?: string | null; extraInfoCode?: string }> }[] } }).emitBuckets
-						if (!emitBuckets) return
-						const buildModel = ctx.buildModel as BuildModel
-						const storeInfo = ctx.storeInfo
-						const compileConfig = (ctx as { compileConfig?: { minify: boolean; esTarget: { logic: string } } }).compileConfig!
-						const sourcemap = !!(ctx as { sourcemap?: boolean }).sourcemap
-						const sourcemapTargetPath = (ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath!
-						const toEmitModule = (m: { path: string; code: string; map?: string | null; extraInfoCode?: string }) => ({
-							moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode,
-						})
-						const transform = { strategy: 'perModule', minify: compileConfig.minify, target: compileConfig.esTarget.logic, platform: 'neutral' }
-						try {
-							for (const { root, modules } of emitBuckets.subs) {
-								const { entry } = await executeTask({ engine: emitEngine, input: {
-									entryId: 'logic:' + root, kind: 'logic' as const, modules: modules.map(toEmitModule),
-									transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: root, storeInfo,
-								} }) as { entry: Parameters<typeof buildModel.add>[0] }
-								buildModel.add(entry)
-							}
-							const { entry } = await executeTask({ engine: emitEngine, input: {
-								entryId: 'logic', kind: 'logic' as const, modules: emitBuckets.main.map(toEmitModule),
-								transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: 'main', storeInfo,
-							} }) as { entry: Parameters<typeof buildModel.add>[0] }
-							buildModel.add(entry)
-						} catch (error) {
-							await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage: 'logic', error })
-							throw error
-						}
-					},
-				},
-				{
-					title: '写入编译产物',
-						task: async (ctx: Record<string, unknown>) => {
-							if (!skipMaterialize) {
-							materialize(ctx.buildModel as BuildModel, getTargetPath())
-						}
-							publishToDist(targetPath, useAppIdDir)
-							await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
-						},
-					},
-				] as ListrTask<Record<string, unknown>>[]),
-				{
-					concurrent: false,
-					rendererOptions: {
-						collapseSubtasks: true,
-						formatOutput: 'truncate',
-						timer: PRESET_TIMER,
-					},
-					fallbackRendererOptions: { timer: PRESET_TIMER },
-				} as ListrBaseClassOptions,
-			)
-
-			const context = await tasks.run()
-			printCompatibilityWarnings(workPath, (context as { compatibilityWarnings?: Set<string> }).compatibilityWarnings)
-			const result = {
-				appId: (loadBindings as { appId?: string } | null)?.appId,
-				name: getAppName(),
-				path: getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
-				dependencyGraph: ((context as { dependencyGraph?: { toJSON: () => unknown } }).dependencyGraph?.toJSON()),
-				buildModel: (context as { buildModel?: BuildModel }).buildModel,
-			}
-			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_END, {
-				result,
-				isolatedListenerErrors: lifecycle.isolatedListenerErrors.length,
-			})
-			return result
-		}
-		catch (error) {
-			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_ERROR, { error, stage: (error as { stage?: string | null })?.stage ?? null })
-			throw error
-		}
-	}
-
-	return { run }
-}
-
-// --- 以下为 pipeline 内部 helper（从 index.js 搬入） ---
-
-function createStageTask(stage: string, title: string, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }, workerOptions: Record<string, unknown> = {}, rendererAdapter: RendererAdapter | null = null) {
+export function createBuildPipeline({
+	store: providedStore,
+	lifecycle: pipelineLifecycle,
+}: {
+	store?: unknown
+	lifecycle?: { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
+} = {}): { run: (options: Record<string, unknown>) => Promise<Record<string, unknown>> } {
+	const orch = createPackerOrchestrator({ store: providedStore, lifecycle: pipelineLifecycle })
 	return {
-		title,
-		rendererOptions: { outputBar: true, persistentOutput: false },
-		task: async (ctx: Record<string, unknown>, task: unknown) => {
-			const pages = workerOptions.pages || ctx.pages
-			await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_BEFORE, {
-				stage,
-				pages,
-				sourcemap: !!workerOptions.sourcemap,
+		async run(runOptions: Record<string, unknown>) {
+			const state = (runOptions.state as PackerSessionState | undefined) ?? new PackerSessionState()
+			const {
+				targetPath,
+				workPath,
+				useAppIdDir = true,
+				store,
+				lifecycle,
+				fileTypes,
+				stages,
+				affectedEntries,
+				seedPath,
+				prepareConfig,
+				prepareNpm,
+				skipMaterialize,
+				invalidatedModules,
+				incremental,
+				configChanged,
+				parallel,
+				state: _state,
+				cache: _cache,
+				dependencyGraph: _dg,
+				...compileOptions
+			} = runOptions as OrchestrateRequest & Record<string, unknown>
+
+			return orch.orchestrate({
+				targetPath: targetPath as string,
+				workPath: workPath as string,
+				useAppIdDir: useAppIdDir as boolean,
+				state,
+				store: store ?? providedStore,
+				lifecycle: (lifecycle as OrchestrateRequest['lifecycle']) ?? pipelineLifecycle,
+				fileTypes,
+				compileOptions,
+				parallel: parallel !== false,
+				incremental: incremental === true
+					|| (Array.isArray(affectedEntries) && (affectedEntries as string[]).length > 0),
+				configChanged: configChanged === true,
+				affectedEntries: affectedEntries as string[] | undefined,
+				stages: stages as string[] | undefined,
+				invalidatedModules: invalidatedModules as string[] | undefined,
+				seedPath: seedPath as string | undefined,
+				prepareConfig: prepareConfig as boolean | undefined,
+				prepareNpm: prepareNpm as boolean | undefined,
+				skipMaterialize: skipMaterialize as boolean | undefined,
 			})
-			const warningsBefore = new Set((ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings ?? new Set())
-			const startedAt = Date.now()
-			// T1：renderer 对象已由 createCompileTarget 校验；此处不再字符串反查
-			const runStage = stage === 'view' || stage === 'style'
-				? (rendererAdapter as { runViewStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void>; runStyleStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void> })?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
-				: null
-			try {
-				if (runStage) {
-					await runStage(ctx, task, workerOptions, lifecycle)
-				}
-				else {
-					await runCompileStage({ script: stage, ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) })
-				}
-				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
-					stage,
-					compatibilityWarnings: [...(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings ?? new Set()].filter(warning =>
-						!warningsBefore.has(warning)),
-					durationMs: Date.now() - startedAt,
-				})
-			}
-			catch (error) {
-				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage, error })
-				throw error
-			}
 		},
 	}
-}
-
-function printCompatibilityWarnings(workPath: string, warnings: Set<string> = new Set()): void {
-	const projectPath = path.resolve(workPath)
-	const hasPreviousResult = previousCompatibilityWarnings.has(projectPath)
-	const previousWarnings = previousCompatibilityWarnings.get(projectPath) || new Set()
-
-	const newWarnings = [...warnings].filter(warning => !previousWarnings.has(warning))
-	if (newWarnings.length === 0 && hasPreviousResult) {
-		return
-	}
-
-	console.log(`\n[compat] ${newWarnings.length} compatibility warnings`)
-	for (const warning of newWarnings.slice(0, MAX_WARNING_PROJECTS)) {
-		console.log(`  - ${warning}`)
-	}
-	if (newWarnings.length > MAX_WARNING_PROJECTS) {
-		console.log(`  - …and ${newWarnings.length - MAX_WARNING_PROJECTS} more`)
-	}
-
-	previousCompatibilityWarnings.set(projectPath, new Set(warnings))
 }

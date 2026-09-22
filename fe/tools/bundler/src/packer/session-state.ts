@@ -2,7 +2,7 @@
  * PackerSessionState — session-scoped 状态收敛（D-OS-5, D-PCS-3, D-PCS-9）。
  *
  * 持有活 graph + 活 cache + invalidated 集，跨 rebuild 持久。
- * watch-runner 创建（可注入），通过 options.state 传入 build-pipeline。
+ * watch-runner 创建（可注入），经入口适配器传入 PackerOrchestrator.orchestrate。
  *
  * 注意：不写 `implements OrchestratorState`——现有 ModuleResultCache class
  * 的 get/set 返回 CachedModuleResult（非 { module, dependencies }），

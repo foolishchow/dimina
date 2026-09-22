@@ -102,14 +102,26 @@ describe('compiler watch scheduler', () => {
 			dependencyGraph: graph,
 			workPath,
 			publishedPath: '/dist/app',
-		})).toEqual({ skip: false, incremental: false, options: {}, fingerprints: expect.anything() })
+		})).toEqual({
+			skip: false,
+			incremental: false,
+			configChanged: true,
+			options: { incremental: false, configChanged: true },
+			fingerprints: expect.anything(),
+		})
 		// 未被图追踪 → 全量（新文件/README 等未知文件不 skip，正确触发全量 rebuild）
 		expect(createWatchBuildPlan({
 			changedFiles: ['/project/README.md'],
 			dependencyGraph: graph,
 			workPath,
 			publishedPath: '/dist/app',
-		})).toEqual({ skip: false, incremental: false, options: {}, fingerprints: expect.anything() })
+		})).toEqual({
+			skip: false,
+			incremental: false,
+			configChanged: false,
+			options: { incremental: false, configChanged: false },
+			fingerprints: expect.anything(),
+		})
 
 		// M2（D-BM-3 / R-BM4）：合并事件不再退全量——多文件统一 scan+closure
 		const merged = createWatchBuildPlan({

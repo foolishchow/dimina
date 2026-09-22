@@ -7,7 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 // 副作用：注册 webview renderer（与管线启动路径一致）
-import '../src/compiler/pipeline/build-pipeline.ts'
+import '../src/packer/orchestrator.ts'
 import {
 	COMPILE_STAGE_ORDER,
 	createCompileTarget,
@@ -15,7 +15,9 @@ import {
 	readLoadBindings,
 } from '../src/compiler/pipeline/compile-target.ts'
 
-const sourceRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/compiler')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const sourceRoot = path.join(__dirname, '../src/compiler')
+const repoRoot = path.join(__dirname, '..')
 
 describe('createCompileTarget (T1)', () => {
 	let workPath
@@ -245,12 +247,12 @@ describe('deriveStagePlan (T2)', () => {
 	})
 })
 
-describe('P-CT05 ②T1 — structural anchors (build-pipeline)', () => {
-	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.ts'), 'utf8')
+describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
+	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
 
 	it('rewires _runBuild top through createCompileTarget', () => {
-		expect(pipelineSrc).toContain("from './compile-target.ts'")
+		expect(pipelineSrc).toContain("from '../compiler/pipeline/compile-target.ts'")
 		expect(pipelineSrc).toContain('createCompileTarget(runOptions)')
 		expect(targetSrc).toContain('export function createCompileTarget')
 	})
@@ -277,7 +279,7 @@ describe('P-CT05 ②T1 — structural anchors (build-pipeline)', () => {
 })
 
 describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
-	const pipelineSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/build-pipeline.ts'), 'utf8')
+	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + deriveStagePlan', () => {

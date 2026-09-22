@@ -99,7 +99,7 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 
 	// json 变化 → 全量（配置重扫，保守正确）——用绝对路径检查
 	if (changedFiles.some((abs) => path.extname(abs).toLowerCase() === '.json')) {
-		return { skip: false, incremental: false, options: {}, fingerprints: new Map() }
+		return { skip: false, incremental: false, configChanged: true, options: { incremental: false, configChanged: true }, fingerprints: new Map() }
 	}
 
 	// 被图追踪的文件 → 增量；未被追踪 → 全量（新文件/未知文件不应 skip）
@@ -107,17 +107,17 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 	const untracked = changedFiles.filter((abs) => !dependencyGraph.hasFile(abs))
 	if (untracked.length > 0) {
 		// add 事件（新文件）或未知文件 → 全量 rebuild
-		return { skip: false, incremental: false, options: {}, fingerprints: new Map() }
+		return { skip: false, incremental: false, configChanged: false, options: { incremental: false, configChanged: false }, fingerprints: new Map() }
 	}
 	if (tracked.length === 0) {
-		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
+		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints: new Map() }
 	}
 
 	// closure：变更文件 → 受影响 entry 集
 	const affectedSet = computeAffectedEntries(dependencyGraph, tracked)
 	const affectedEntries = [...affectedSet]
 	if (affectedEntries.length === 0) {
-		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
+		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints: new Map() }
 	}
 
 	// M2 D-RC-4：computeInvalidatedModules — dirty moduleId 集
@@ -126,18 +126,20 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 	// stages：变更文件的 kind → 需要跑的编译阶段
 	const stages = computeStagesForFiles(dependencyGraph, tracked)
 	if (stages.size === 0) {
-		return { skip: false, incremental: false, options: {}, fingerprints: new Map() }
+		return { skip: false, incremental: false, configChanged: false, options: { incremental: false, configChanged: false }, fingerprints: new Map() }
 	}
 
 	return {
 		skip: false,
 		incremental: true,
+		configChanged: false,
 		options: {
+			incremental: true,
+			configChanged: false,
 			affectedEntries,
 			stages: [...stages],
 			invalidatedModules,
 			seedPath: publishedPath,
-			dependencyGraph: dependencyGraph.toJSON(),
 			prepareConfig: false,
 			prepareNpm: changedFiles.some((abs) => isNpmPackageFile(abs)),
 		},

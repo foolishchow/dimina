@@ -88,7 +88,7 @@ export function createBuildWatcher({
 		const activeStore = store ?? createProjectStore()
 		// D-OS-1: session-scoped state（可注入；未传入时内部创建）
 		const sessionState = state ?? new PackerSessionState()
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, cache: sessionState.moduleCache, state: sessionState }) as { appId: string; [key: string]: unknown }
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, state: sessionState }) as { appId: string; [key: string]: unknown }
 		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId))
 
 		scheduler = createWatchRebuildScheduler({
@@ -113,10 +113,10 @@ export function createBuildWatcher({
 						appId: buildResult!.appId,
 					})
 				}
+				// D-OR-6/8：plan.options → OrchestrateOptions；不传 cache / dependencyGraph 快照
 				const result = await build(targetPath, workPath, useAppIdDir, {
 					...options,
 					store: activeStore,
-					cache: sessionState.moduleCache,
 					state: sessionState,
 					...plan.options,
 				})

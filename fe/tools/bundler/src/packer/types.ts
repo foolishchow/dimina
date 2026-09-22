@@ -343,12 +343,24 @@ export interface PackerEntry {
 
 /** 编排选项。 */
 export interface OrchestrateOptions {
-	/** 各车道并行（现状 Listr concurrent: true）。 */
+	/** 各车道并行（现状 Listr concurrent: true）。默认 true。 */
 	parallel: boolean
 	/** watch 增量（affectedEntries + invalidatedModules）。 */
 	incremental: boolean
-	/** .json 变了（触发 graph.reconcile）。 */
+	/** .json 变了（触发 graph.reconcile / 全量）。 */
 	configChanged: boolean
+	/** 受影响 entry（增量）。 */
+	affectedEntries?: string[]
+	/** 要跑的车道（view/logic/style）。 */
+	stages?: string[]
+	/** logic moduleCache 失效集。 */
+	invalidatedModules?: string[]
+	/** 增量复制旧产物根。 */
+	seedPath?: string
+	prepareConfig?: boolean
+	prepareNpm?: boolean
+	/** .dev：跳过 materialize。 */
+	skipMaterialize?: boolean
 }
 
 /**
