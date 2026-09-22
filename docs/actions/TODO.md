@@ -229,7 +229,7 @@
 
 | 顺序 | Action | 做什么 | 状态 |
 | --- | --- | --- | --- |
-| 1 | [`fe-tools-als-store`](fe-tools-als-store/README.md) | 通用 ALS 工具类 `AsyncContextStore<T>`——统一 worker-runtime abilityContext + env.ts compilerContextStorage | `draft` ready |
+| 1 | [`fe-tools-als-store`](_archive/complete/fe-tools-als-store/README.md) | 通用 ALS 工具类 `AsyncContextStore<T>`——统一 worker-runtime abilityContext + env.ts compilerContextStorage | `complete` 已归档 |
 | 2 | [`fe-tools-graph-bootstrap`](fe-tools-graph-bootstrap/README.md) | storeInfo config fixpoint 迁入 PackerGraph（D-GB-1..4） | `draft` ready |
 | ↘ | [`fe-tools-incremental-unify`](fe-tools-incremental-unify/README.md) | view/style 模块级增量（D-IU-1..5） | `draft` ready |
 
