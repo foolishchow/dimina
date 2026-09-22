@@ -1,7 +1,7 @@
 # FE Tools Graph Bootstrap
 
 - Action: `fe-tools-graph-bootstrap`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-22
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——Graph interface 契约）

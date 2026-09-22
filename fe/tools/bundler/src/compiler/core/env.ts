@@ -10,6 +10,8 @@ import { isObjectEmpty, resolveAssetSourcePath, uuid } from '../../shared/utils.
 import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from '../../model/dependency-graph.ts'
 import { errorMessage } from '../../shared/utils.ts'
+import { PackerGraph } from '../../packer/graph.ts'
+import type { PackerContext } from '../../packer/types.ts'
 
 const packerALS = new AsyncContextStore<CompilerContext>({ name: 'packer' })
 let defaultCompilerContext: CompilerContext | undefined
@@ -20,6 +22,7 @@ type CompilerContext = {
 	npmResolver: NpmResolver | null
 	dependencyGraph: DependencyGraph
 	compilerOptions: ReturnType<typeof normalizeFileTypes>
+	graph?: PackerGraph
 }
 
 function createCompilerContext(): CompilerContext {
@@ -53,14 +56,14 @@ const pathInfo: PathInfo = new Proxy({}, {
 		return true
 	},
 })
-interface PageConfig {
+export interface PageConfig {
 	usingComponents?: Record<string, string>
 	componentPlaceholder?: Record<string, unknown>
 	customTabBar?: unknown
 	[key: string]: unknown
 }
 
-interface ComponentConfig {
+export interface ComponentConfig {
 	path?: string
 	id?: string
 	styleIsolation?: string
@@ -191,33 +194,32 @@ function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: str
 interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }
 function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: PathInfo; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
 	const context = getCompilerContext()
-	// 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
+	// Step 1: 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
 	context.compilerOptions = normalizeFileTypes(options.fileTypes)
+	// Step 2: 存储路径信息
 	storePathInfo(workPath)
-	storeProjectConfig()
-	storeAppConfig()
-	storePageConfig()
-	context.dependencyGraph = createInitialDependencyGraph()
+
+	// Steps 3-6: 委托 PackerGraph 做 config fixpoint
+	const graph = new PackerGraph()
 	if (options.dependencyGraph) {
-		const freshEntryIds = new Set<string>()
-		for (const [id, node] of context.dependencyGraph.nodes) {
-			if (node.type === 'page' || node.type === 'component') {
-				freshEntryIds.add(id)
-			}
-		}
-		context.dependencyGraph.merge(options.dependencyGraph)
-		for (const [id, node] of context.dependencyGraph.nodes) {
-			if ((node.type === 'page' || node.type === 'component') && !freshEntryIds.has(id)) {
-				context.dependencyGraph.removeNode(id)
-			}
-		}
+		// Watch rebuild: 先恢复旧图，再 reconcile（build + merge old + remove stale）
+		graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
+		graph.reconcile(toPackerContext(context))
+	} else {
+		// First build: build fresh
+		graph.build(toPackerContext(context))
 	}
+
+	// 将 PackerGraph 结果复制回 ALS context
+	context.graph = graph
+	context.configInfo = graph.getConfigData() as ConfigInfo
+	context.dependencyGraph = graph.getInnerGraph()
 
 	return {
 		pathInfo: context.pathInfo,
 		configInfo: context.configInfo,
 		compilerOptions: context.compilerOptions,
-		dependencyGraph: context.dependencyGraph.toJSON(),
+		dependencyGraph: graph.toJSON() as ReturnType<DependencyGraph['toJSON']>,
 	}
 }
 
@@ -227,7 +229,12 @@ function resetStoreInfo(opts: { pathInfo: PathInfo; configInfo: ConfigInfo; comp
 	context.configInfo = opts.configInfo
 	// Worker 恢复上下文时使用主线程生成的自定义文件类型配置，缺省时回退到内置配置。
 	context.compilerOptions = opts.compilerOptions || normalizeFileTypes()
-	context.dependencyGraph = new DependencyGraph(opts.dependencyGraph)
+
+	// 从快照重建 PackerGraph
+	const graph = new PackerGraph()
+	graph.restoreFromSnapshot(opts.configInfo, opts.dependencyGraph)
+	context.graph = graph
+	context.dependencyGraph = graph.getInnerGraph()
 
 	// 重新初始化 npm 解析器
 	if (pathInfo.workPath) {
@@ -237,6 +244,29 @@ function resetStoreInfo(opts: { pathInfo: PathInfo; configInfo: ConfigInfo; comp
 
 function runWithCompilerContext<T>(callback: () => T): T {
 	return packerALS.run(createCompilerContext(), callback)
+}
+
+/**
+ * CompilerContext → PackerContext 适配器（D-GB build-pipeline / watch-plan 共用）。
+ * 字段映射: compilerOptions.templateDirectivePrefixes → fileTypes.directivePrefixes
+ * D-PCS-1: resolveAlias / resolveNpm 为 deferred stub（讨论调度器时定）。
+ */
+function toPackerContext(ctx: CompilerContext): PackerContext {
+	return {
+		workPath: ctx.pathInfo.workPath!,
+		targetPath: ctx.pathInfo.targetPath!,
+		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
+		// D-PCS-1: deferred stub — NpmResolver integration TBD
+		resolveAlias: (_src: string) => null,
+		resolveNpm: (src: string, _baseFile: string) => src,
+		fileTypes: {
+			templateExts: ctx.compilerOptions.templateExts,
+			styleExts: ctx.compilerOptions.styleExts,
+			viewScriptExts: ctx.compilerOptions.viewScriptExts,
+			viewScriptTags: ctx.compilerOptions.viewScriptTags,
+			directivePrefixes: ctx.compilerOptions.templateDirectivePrefixes,
+		},
+	}
 }
 
 function getTemplateExts() {
@@ -262,7 +292,7 @@ function getViewScriptTags() {
 }
 
 function getDependencyGraph() {
-	return getCompilerContext().dependencyGraph
+	return getCompilerContext().graph?.getInnerGraph() ?? getCompilerContext().dependencyGraph
 }
 
 function storePathInfo(workPath: string): void {
@@ -382,7 +412,7 @@ function detectRuntimeType(): string {
 }
 
 function getRuntimeType(): string {
-	return configInfo.runtimeType || MINI_PROGRAM_RUNTIME_TYPE
+	return getCompilerContext().graph?.getRuntimeType() ?? (configInfo.runtimeType || MINI_PROGRAM_RUNTIME_TYPE)
 }
 
 function isMiniGame(): boolean {
@@ -705,6 +735,8 @@ function getTargetPath(): string {
 }
 
 function getComponent(src: string): unknown {
+	const graph = getCompilerContext().graph
+	if (graph) return graph.getComponent(src)
 	return (configInfo.componentInfo!)[src]
 }
 
@@ -713,6 +745,8 @@ function getPageConfigInfo(): Record<string, PageConfig> {
 }
 
 function getAppConfigInfo(): Record<string, unknown> {
+	const graph = getCompilerContext().graph
+	if (graph) return graph.getAppConfigInfo()
 	return configInfo.appInfo!
 }
 
@@ -947,6 +981,7 @@ function isTemporaryTargetPath(): boolean {
 }
 
 export {
+	getCompilerContext,
 	getAppConfigInfo,
 	getDependencyGraph,
 	getAppId,
@@ -971,6 +1006,11 @@ export {
 	resetStoreInfo,
 	resolveAppAlias,
 	runWithCompilerContext,
-	storeInfo,
+	storeAppConfig,
+	storePageConfig,
+	storePathInfo,
 	storeProjectConfig,
+	storeInfo,
+	createInitialDependencyGraph,
+	toPackerContext,
 }
