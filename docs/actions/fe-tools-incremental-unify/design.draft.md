@@ -177,6 +177,8 @@ cache hit 时 worker 从 cache 取 ViewCompiledModule，直接 emit（跳过 com
 
 推荐方案 1（compile 时产出）——避免跨模块查询，保持 worker 自包含。`kind: 'view'` 硬编码。
 
+**dependencies 双存说明**：cache 层 `{ module: ViewCompiledModule; dependencies: string[] }` 和 ViewCompiledModule 自身的 `dependencies: string[]` 是同一数据。cache 层 `dependencies` 用于 invalidation 查询（watch-runner 查哪些 module 依赖变了）；ViewCompiledModule.`dependencies` 用于 interface conformance（CompiledModuleBase 契约）。同一数据两处用途，不引入不一致。
+
 ### D-IU-3: cache 不泛型化——view/style 各建独立 cache
 
 不泛型化现有 ModuleResultCache class。view/style 各建独立 cache 实例，value 类型不同：

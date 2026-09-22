@@ -121,7 +121,7 @@ function getCompilerContext(): CompilerContext {
 | 改动 | 行为变化？ |
 |---|---|
 | `abilityContext` → `abilityALS` | API 相同（run/get），类型从 unknown → AbilityContext。运行时行为不变。 |
-| `compilerContextStorage` → `packerALS` | API 相同（run/get），加 globalThis 兜底。运行时行为不变（单例仍复用）。 |
+| `compilerContextStorage` → `packerALS` | API 相同（run/get），加 globalThis 兜底。production 行为不变（单例 no-op）。vitest 新行为：原 `compilerContextStorage` 无 globalThis 兜底，vitest 多实例化时每次新建 ALS；加兜底后复用单例。由 V-AS-2 vitest 验证兜底。 |
 | globalThis key 从 `__abilityContext` → `__als_ability` | key 变了但 legacyKey 兼容查找——vitest 重实例化时先查旧 key `__abilityContext`，找到旧 ALS 实例复用。新 key 写入供后续查找。 |
 
 行为 0 风险低——只改封装方式，不改数据流。
