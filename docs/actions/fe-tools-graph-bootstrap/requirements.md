@@ -88,6 +88,7 @@ MUST PackerGraph 提供 `getConfigData()` 方法，供 storeInfo 取 configData 
 MUST 现有 ALS getter（`getComponent` / `getAppConfigInfo` / `getRuntimeType` / `isMiniGame` 等）不改签名。
 MUST 这些 getter 的调用方不改。
 MUST `resetStoreInfo` 实现变更为重建 PackerGraph（从 configInfo + dependencyGraph 快照），签名不变——调用方（emit-engine.ts）不改。
+MUST PackerGraph 提供 `restoreFromSnapshot(configData, graphSnapshot)` 方法供 worker 重建（不调 build，不重读 app.json）。
 
 ### R-GB-6 行为 0
 

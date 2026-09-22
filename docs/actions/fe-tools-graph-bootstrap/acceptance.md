@@ -30,6 +30,7 @@
 - [ ] getComponent / getAppConfigInfo / getRuntimeType / isMiniGame 签名不变
 - [ ] 这些 getter 的调用方不改
 - [ ] `resetStoreInfo` 重建 PackerGraph（从快照），签名不变
+- [ ] PackerGraph 提供 `restoreFromSnapshot()` 方法
 
 ## A-GB-6 — 行为 0（R-GB-6）
 

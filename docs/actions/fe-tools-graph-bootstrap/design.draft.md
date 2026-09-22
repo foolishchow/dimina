@@ -92,6 +92,12 @@ export class PackerGraph implements Graph {
   getAppConfigInfo() { return this.configData.appInfo }
   getRuntimeType() { return this.configData.runtimeType }
   isMiniGame() { return this.configData.runtimeType === MINI_GAME }
+
+  // worker 从快照重建（resetStoreInfo 调）——不调 build，不重读 app.json
+  restoreFromSnapshot(configData: GraphConfigData, graphSnapshot: GraphSnapshot): void {
+    this.configData = configData
+    this.graph = new DependencyGraph(graphSnapshot)
+  }
 }
 ```
 
@@ -102,9 +108,10 @@ export class PackerGraph implements Graph {
 Graph 内部持有 configData（appInfo / pageInfo / componentInfo / runtimeType）。ALS context 持 Graph 引用（不再存原始 configInfo）。
 
 ```typescript
-// ALS context 变化：
+// ALS context 变化（路 1 过渡态）：
 // 现在: { pathInfo, configInfo, compilerOptions, dependencyGraph, npmResolver }
-// 改后: { pathInfo, compilerOptions, npmResolver, graph: PackerGraph }
+// 过渡: { pathInfo, configInfo, compilerOptions, dependencyGraph, npmResolver, graph: PackerGraph }
+// 终态(路 2): { pathInfo, compilerOptions, npmResolver, graph: PackerGraph }（显式传参，不再 ALS）
 //
 // D-PCS-6 说 graph 不在 PackerContext——接口契约层不违反。
 // 实现层 ALS 持引用是过渡态（路 1），后续路 2（显式传参）是终极。
@@ -220,8 +227,7 @@ function resetStoreInfo(opts: { pathInfo, configInfo, compilerOptions?, dependen
   context.compilerOptions = opts.compilerOptions || normalizeFileTypes()
   // 重建 PackerGraph（从快照——不调 build，worker 不重读 app.json）
   const graph = new PackerGraph()
-  graph.configData = opts.configInfo          // 从快照恢复 configData
-  graph.graph = new DependencyGraph(opts.dependencyGraph)  // 从快照恢复图
+  graph.restoreFromSnapshot(opts.configInfo, opts.dependencyGraph)  // 类内部设 private 字段
   context.dependencyGraph = graph             // ALS 持 graph 引用
   if (opts.pathInfo.workPath) {
     context.npmResolver = new NpmResolver(opts.pathInfo.workPath)
