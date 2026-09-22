@@ -204,12 +204,16 @@ build(ctx: PackerContext): void {
 // build-pipeline.ts _runBuild
 // 现状: ctx.storeInfo = store.load(workPath, { fileTypes, dependencyGraph })
 // target:
-const graph = state.graph  // OrchestratorState.session.graph
+// 注：state.graph 是前向引用——OrchestratorState 未实现（非目标）。
+// 实际实现用 module-level 变量或 session 对象过渡（Orchestrator 落地前）。
+const graph = state.graph  // OrchestratorState.session.graph（过渡：module-level PackerGraph 变量）
 
 // CompilerContext (ALS) → PackerContext adapter
 // CompilerContext 有 pathInfo.workPath / compilerOptions (fileTypes);
 // PackerContext 需直接 workPath / targetPath / fileTypes / readContent / resolveAlias / resolveNpm。
 // 用 adapter 桥接——tsc 签名匹配 Graph interface。
+// adapter 需提取为共享函数 toPackerContext(ctx)（build-pipeline + watch-plan 共用）——
+// 放 env.ts 或 build-pipeline.ts 导出，避免重复内联。
 const packerCtx: PackerContext = {
   workPath: ctx.pathInfo.workPath!,
   targetPath: ctx.pathInfo.targetPath!,
