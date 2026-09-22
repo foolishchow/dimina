@@ -7,6 +7,7 @@
 - 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——Graph interface 契约）
 - 前身：[`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/README.md)（**complete 已归档**；F-1..F-6 关键发现）
 - 工作分支：`feature/fe-tools-sidecar`
+- 相关：[`fe-tools-als-store`](../fe-tools-als-store/README.md)（`draft`；通用 ALS 工具类——独立 refactor，非硬前置。本 Action 用现有 ALS，als-store 完成后可自然统一）
 
 ## 背景
 

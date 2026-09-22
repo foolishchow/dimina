@@ -27,8 +27,8 @@ export class AsyncContextStore<T> {
     g[key] = this.als
   }
 
-  run(context: T, callback: () => void): void {
-    this.als.run(context, callback)
+  run<R>(context: T, callback: () => R): R {
+    return this.als.run(context, callback)
   }
 
   get(): T {
@@ -68,6 +68,8 @@ export const abilityALS = new AsyncContextStore<AbilityContext>({ name: 'ability
 // 兼容旧 API（runtime.ts 用 abilityContext.run / .getStore）
 // 方案 A: 导出 abilityALS，runtime.ts 改用 abilityALS
 // 方案 B: 导出 abilityContext 包装（转发到 abilityALS）
+//
+// run<R> 支持泛型返回值——AsyncLocalStorage.run 本身返回 callback 返回值，直接透传
 ```
 
 倾向方案 A——`runtime.ts` 直接改用 `abilityALS.run()` / `abilityALS.get()`。改动小（一处）。
@@ -95,9 +97,7 @@ import { AsyncContextStore } from '../worker-runtime/async-context-store.ts'
 const packerALS = new AsyncContextStore<CompilerContext>({ name: 'packer' })
 
 function runWithCompilerContext<T>(callback: () => T): T {
-  return packerALS.run(createCompilerContext(), callback) as T
-  // 注意：AsyncContextStore.run 签名是 () => void，现有是 () => T
-  // 需要泛型 run<T>(callback: () => T): T
+  return packerALS.run(createCompilerContext(), callback)
 }
 
 function getCompilerContext(): CompilerContext {
@@ -105,24 +105,7 @@ function getCompilerContext(): CompilerContext {
 }
 ```
 
-注意：现有 `runWithCompilerContext<T>` 返回 `T`。`AsyncContextStore.run` 需要支持泛型返回值。
-
-### §3 run 泛型返回值
-
-现有 `runWithCompilerContext<T>(callback: () => T): T` 返回 callback 的返回值。
-`AsyncContext.run(context, callback)` 也返回 callback 的返回值。
-
-设计修正：
-
-```typescript
-run<R>(context: T, callback: () => R): R {
-  return this.als.run(context, callback)
-}
-```
-
-`AsyncLocalStorage.run` 本身返回 callback 返回值，直接透传。
-
-## §4 行为 0 分析
+## §3 行为 0 分析
 
 | 改动 | 行为变化？ |
 |---|---|
@@ -132,12 +115,12 @@ run<R>(context: T, callback: () => R): R {
 
 行为 0 风险低——只改封装方式，不改数据流。
 
-## §5 替代方案
+## §4 替代方案
 
-### §5.1 直接用 AsyncLocalStorage（否决）
+### §4.1 直接用 AsyncLocalStorage（否决）
 
 否决理由：两处重复，无类型安全，globalThis 兜底散在调用方。
 
-### §5.2 工具类管序列化/快照（否决）
+### §4.2 工具类管序列化/快照（否决）
 
 否决理由：函数不能 structured clone，每个消费方重建逻辑不同。通用工具不该知道消费方的序列化逻辑。以后有需要再考虑。

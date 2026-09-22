@@ -55,7 +55,7 @@ function getCompilerContext(): CompilerContext {
 MUST 创建 `src/compiler/worker-runtime/async-context-store.ts`，`export class AsyncContextStore<T>`。
 
 MUST 实现：
-- `run(context: T, callback: () => void): void` — 启动 ALS 上下文
+- `run<R>(context: T, callback: () => R): R` — 启动 ALS 上下文（泛型返回值，透传 callback 返回值）
 - `get(): T` — 获取当前上下文（无上下文时 throw）
 - `tryGet(): T | undefined` — 尝试获取（无上下文返回 undefined）
 - `readonly name: string` — 上下文名称（错误信息可读）

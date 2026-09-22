@@ -5,6 +5,7 @@
 - Updated: 2026-09-21
 - Status authority: [Action Status](../STATUS.md)
 - 工作分支：`feature/fe-tools-sidecar`
+- 后继：[`fe-tools-graph-bootstrap`](../fe-tools-graph-bootstrap/README.md)（`draft`；PackerGraph 自包含——用本工具的 PackerContext 作 ctx）
 
 ## 背景
 
