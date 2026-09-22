@@ -5,33 +5,33 @@
 ```bash
 cd fe/tools/bundler && npx tsc --noEmit --pretty
 ```
-预期：0 errors。
+结果：**0 errors**（commit ec7f8353）。
 
 ## V-OS-2 — vitest 全量
 
 ```bash
 cd fe/tools/bundler && node /Users/foolishchow/.cache/node/corepack/v1/pnpm/12.2.0/bin/pnpm.mjs test
 ```
-预期：全绿（608+ tests）。含 watch-runner.spec.js（mock 测例需更新：注入 mock state 替代 mock store.getDependencyGraph）。
+结果：**608/608 pass**（82 files）。watch-runner.spec.js PS2 测例更新：注入 mock state.graph（替代 mock store.getDependencyGraph），验证 D-OS-3 plan 从 sessionState.graph 读活图。
 
 ## V-OS-3 — 行为 0：单次 build（7 examples diff=0）
 
-```bash
-# baseline = parent commit (graph-bootstrap complete)
-# new = current commit (OrchestratorState)
-for proj in air-battle base mpx-demo subpackages taro-todo vant weui; do
-  rm -rf /tmp/os-baseline-$proj /tmp/os-new-$proj
-  node /tmp/os-build-baseline-$proj.mjs
-  node /tmp/os-build-$proj.mjs
-  diff -r /tmp/os-baseline-$proj /tmp/os-new-$proj
-  echo "$proj: $?"
-done
-```
-预期：7/7 diff=0。
+baseline = parent commit（graph-bootstrap complete，stash implementation）；new = current commit（OrchestratorState implementation，rebuild dist）。
+
+| 项目 | diff | 文件数 |
+|---|---|---|
+| air-battle | 0 | 2 |
+| base | 0 | 94 |
+| mpx-demo | 0 | 5 |
+| subpackages | 0 | 166 |
+| taro-todo | 0 | 5 |
+| vant | 0 | 495 |
+| weui | 0 | 129 |
+| **合计** | **7/7 = 0** | **896** |
 
 ## V-OS-4 — 行为 0：watch rebuild 产物一致
 
-**方案**：用 `examples/miniprogram/base`，先 full build 保存产物，再用 watch 模式触发 rebuild，比对接收产物。
+结果：**diff=0**。用 `examples/miniprogram/base/pages/form/index.js`（content-identical write）触发增量 rebuild。full build 产物 vs watch rebuild 产物完全一致。
 
 ```bash
 # 1. Full build → 保存 baseline
@@ -80,30 +80,15 @@ echo "watch rebuild diff: $?"
 
 ## V-OS-5 — 类型约束 grep
 
-覆盖全部 4 个交付物（R-OS-7 适用范围）。新文件必须是 0；已有文件不得新增。
-
-```bash
-# 1. 新文件 session-state.ts：必须 = 0
-cd fe/tools/bundler/src/packer
-grep -c ': any\b\|as any\b\|@ts-nocheck' session-state.ts    # = 0
-grep -c '\[key: string\]' session-state.ts                   # = 0
-
-# 2. 已有文件：不新增（baseline vs current，diff 必须 = 0）
-for f in \
-  src/compiler/core/env.ts \
-  src/compiler/pipeline/build-pipeline.ts \
-  src/watch/watch-runner.ts; do
-  base=$(git show HEAD~1:"fe/tools/bundler/$f" 2>/dev/null | grep -c ': any\b\|as any\b\|@ts-nocheck\|\[key: string\]' || echo 0)
-  curr=$(grep -c ': any\b\|as any\b\|@ts-nocheck\|\[key: string\]' "fe/tools/bundler/$f" || echo 0)
-  echo "$f: baseline=$base current=$curr"
-  [ "$base" = "$curr" ] || echo "  ⚠ MISMATCH — new instances introduced"
-done
-```
-预期：session-state.ts 全 0；已有文件 baseline = current（不新增）。
+结果：
+- `session-state.ts`：**0** violations（new file）
+- `env.ts`：baseline=6 current=6（不新增）
+- `build-pipeline.ts`：baseline=0 current=0（不新增）
+- `watch-runner.ts`：baseline=3 current=3（不新增）
 
 ## V-OS-6 — validator
 
 ```bash
 python3 /Users/foolishchow/.pi/agent/skills/manage-actions/scripts/validate_action.py --repo . --all
 ```
-预期：0 errors, 0 warnings。
+结果：**0 errors, 0 warnings**。

@@ -232,9 +232,9 @@
 | 1 | [`fe-tools-als-store`](_archive/complete/fe-tools-als-store/README.md) | 通用 ALS 工具类 `AsyncContextStore<T>`——统一 worker-runtime abilityContext + env.ts compilerContextStorage | `complete` 已归档 |
 | 2 | [`fe-tools-graph-bootstrap`](_archive/complete/fe-tools-graph-bootstrap/README.md) | storeInfo config fixpoint 迁入 PackerGraph（D-GB-1..4） | `complete` |
 | ↘ | [`fe-tools-incremental-unify`](_archive/deferred/fe-tools-incremental-unify/README.md) | view/style 模块级增量（D-IU-1..5） | `deferred` — 等 Packer Orchestrator 落地后统一规划 |
-| 3 | [`fe-tools-orchestrator-state`](fe-tools-orchestrator-state/README.md) | graph + cache + invalidated 收敛为 session-scoped OrchestratorState（D-OS-1..5） | `in_progress` |
+| 3 | [`fe-tools-orchestrator-state`](_archive/complete/fe-tools-orchestrator-state/README.md) | graph + cache + invalidated 收敛为 session-scoped OrchestratorState（D-OS-1..5） | `complete` 已归档 |
 
-als-store 和 graph-bootstrap 都改 env.ts——als-store 先落地（改 ALS 机制），graph-bootstrap 基于更新后的 env.ts（改 storeInfo 逻辑）。incremental-unify deferred——等 Packer Orchestrator 落地后统一规划。orchestrator-state 是 graph-bootstrap 的直接续接——D-PCS-3（graph session-scoped）。
+als-store 和 graph-bootstrap 都改 env.ts——als-store 先落地（改 ALS 机制），graph-bootstrap 基于更新后的 env.ts（改 storeInfo 逻辑）。incremental-unify deferred——等 Packer Orchestrator 落地后统一规划。orchestrator-state 是 graph-bootstrap 的直接续接——D-PCS-3（graph session-scoped）。implemented：PackerSessionState 落地，watch rebuild 增量路径生效（修复空 defaultCompilerContext）。
 
 后续未 formalize 的候选：
 - PackerContext 落地（用 ALS 工具封装 compiler context + 显式传参）

@@ -1,12 +1,12 @@
 # FE Tools Orchestrator State
 
 - Action: `fe-tools-orchestrator-state`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-22
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-graph-bootstrap`](../_archive/complete/fe-tools-graph-bootstrap/README.md)（**complete 已归档**；PackerGraph 落地——config fixpoint 路 1 过渡态）
-- 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；OrchestratorState 形状契约 §7）
-- 前身：[`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md)（**complete 已归档**；M2 ModuleResultCache logic-only）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-graph-bootstrap`](../fe-tools-graph-bootstrap/README.md)（**complete 已归档**；PackerGraph 落地——config fixpoint 路 1 过渡态）
+- 前置：[`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（**complete 已归档**；OrchestratorState 形状契约 §7）
+- 前身：[`fe-tools-module-result-cache`](../fe-tools-module-result-cache/README.md)（**complete 已归档**；M2 ModuleResultCache logic-only）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 背景
