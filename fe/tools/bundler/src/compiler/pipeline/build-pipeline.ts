@@ -18,6 +18,7 @@ import { getRenderer, registerRenderer } from '../core/renderers.ts'
 import { createCompileTarget, deriveStagePlan, readLoadBindings, STAGE_TITLES } from './compile-target.ts'
 import type { PagesInfo, LoadBindings } from './compile-target.types.ts'
 import { createDist, publishToDist } from './publish.ts'
+import { PackerSessionState } from '../../packer/session-state.ts'
 import { artCode, resetAssetCache } from '../../shared/utils.ts'
 import { NpmBuilder } from '../core/npm-builder.ts'
 import compileConfig from './config-compiler.ts'
@@ -80,6 +81,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			cache,
 			invalidatedModules,
 			skipMaterialize,
+			state,
 		} = runOptions as {
 			targetPath: string
 			workPath: string
@@ -95,6 +97,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 			cache?: unknown
 			invalidatedModules?: string[]
 			skipMaterialize?: boolean
+			state?: PackerSessionState
 		}
 		const store = (runStore ?? providedStore ?? createProjectStore()) as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => { addFile: (n: string, f: string, k: string) => void; toJSON: () => unknown } }
 		// T1：C1 / renderer 校验 / stages 白名单改道 createCompileTarget（消息不变）
@@ -103,7 +106,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 		// T2：阶段组装侧 bindings；BUILD_END appId 复用（避免二次 env 读取）
 		let loadBindings: { pages?: unknown; appId?: string } | null = null
 
-		const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, store: _storeRef, targetPath: _t, workPath: _w, useAppIdDir: _u, ...serializableOptions } = runOptions
+		const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, store: _storeRef, state: _stateRef, targetPath: _t, workPath: _w, useAppIdDir: _u, ...serializableOptions } = runOptions
 		try {
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_START, {
 				workPath,
@@ -127,7 +130,7 @@ export function createBuildPipeline({ store: providedStore, lifecycle: pipelineL
 					task: async (ctx: Record<string, unknown>) => {
 						(ctx as { buildModel: unknown }).buildModel = new BuildModel()
 						const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
-						(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, dependencyGraph });
+						(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, dependencyGraph, graph: state?.graph });
 						(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
 						if (cache) (ctx as { cache: unknown }).cache = cache
 						if (invalidatedModules) (ctx as { invalidatedModules: string[] }).invalidatedModules = invalidatedModules

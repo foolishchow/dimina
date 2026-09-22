@@ -191,7 +191,7 @@ function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: str
 	}
 }
 
-interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0] }
+interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0]; graph?: PackerGraph }
 function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: PathInfo; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
 	const context = getCompilerContext()
 	// Step 1: 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
@@ -200,10 +200,15 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	storePathInfo(workPath)
 
 	// Steps 3-6: 委托 PackerGraph 做 config fixpoint
-	const graph = new PackerGraph()
+	// D-OS-2: options.graph 传入时用传入实例（不新建），跳过 restoreFromSnapshot
+	const graph = options.graph ?? new PackerGraph()
 	if (options.dependencyGraph) {
-		// Watch rebuild: 先恢复旧图，再 reconcile（build + merge old + remove stale）
-		graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
+		// Watch rebuild
+		if (!options.graph) {
+			// 旧路径（无 state）：从快照重建旧图
+			graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
+		}
+		// state 路径：graph 已有数据（含 worker delta），跳过 restore
 		graph.reconcile(toPackerContext(context))
 	} else {
 		// First build: build fresh

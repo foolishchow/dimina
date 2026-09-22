@@ -188,20 +188,25 @@ describe('createBuildWatcher', () => {
 		expect(typeof buildOptions.store.getDependencyGraph).toBe('function')
 	})
 
-	it('PS2: rebuild plan reads the live graph from the injected store (not a closure mirror)', async () => {
+	it('PS2: rebuild plan reads the live graph from sessionState.graph (D-OS-3)', async () => {
 		const fsWatcher = createFakeWatcher()
 		chokidarWatch.mockReturnValue(fsWatcher)
 
-		const graph = {
+		const mockGraph = {
 			hasFile: () => true,
 			getAffectedEntries: () => ['pages/index/index'],
 			getFileKinds: () => ['logic'],
 			getInvalidatedModules: () => ['pages/index/index'],
 			toJSON: () => ({ nodes: [], edges: [], fileEdges: [] }),
 		}
+		const state = {
+			graph: mockGraph,
+			moduleCache: { toJSON: () => [] },
+			invalidatedModules: new Set(),
+		}
 		const store = {
 			load: vi.fn().mockReturnValue({ compilerOptions: {} }),
-			getDependencyGraph: vi.fn().mockReturnValue(graph),
+			getDependencyGraph: vi.fn(),
 		}
 		const beforeBuild = vi.fn()
 		const watcher = createBuildWatcher({
@@ -209,17 +214,18 @@ describe('createBuildWatcher', () => {
 			workPath: '/project',
 			useAppIdDir: true,
 			store,
+			state,
 			beforeBuild,
 		})
 
 		await watcher.start()
-		store.getDependencyGraph.mockClear()
 
-		// change 事件：tracked（hasFile=true）→ 增量路径 → plan 读 store 活图
+		// change 事件：tracked（hasFile=true）→ 增量路径 → plan 读 state.graph
 		fsWatcher.emit('all', 'change', path.resolve('/project/pages/index/index.js'))
 		await watcher.waitForIdle()
 
-		expect(store.getDependencyGraph).toHaveBeenCalled()
+		// D-OS-3: plan 从 sessionState.graph 读活图，不再调 activeStore.getDependencyGraph()
+		expect(store.getDependencyGraph).not.toHaveBeenCalled()
 		const plan = beforeBuild.mock.calls[0][0].plan
 		expect(plan.skip).toBe(false)
 	})

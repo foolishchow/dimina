@@ -1,7 +1,7 @@
 import chokidar from 'chokidar'
 import build from '../index.ts'
 import { createProjectStore } from '../model/project-store.ts'
-import { ModuleResultCache } from '../model/module-result-cache.ts'
+import { PackerSessionState } from '../packer/session-state.ts'
 import {
 	createIgnoredPathMatcher,
 	createWatchBuildPlan,
@@ -27,6 +27,7 @@ export function createBuildWatcher({
 	workPath,
 	useAppIdDir,
 	store,
+	state,
 	options = {},
 	autoListen = true,
 	onRebuild = () => {},
@@ -37,6 +38,7 @@ export function createBuildWatcher({
 	workPath: string
 	useAppIdDir: boolean
 	store: ReturnType<typeof createProjectStore> | undefined
+	state?: PackerSessionState
 	options: Record<string, unknown>
 	autoListen?: boolean
 	onRebuild?: (change: { event: string; filePath: string; count: number }) => void
@@ -84,9 +86,9 @@ export function createBuildWatcher({
 		// PS2：活图唯一权威为 ProjectStore——无注入时临时 create 并持有（W2），
 		// 不再维护闭包 dependencyGraph 镜像（W3 删除）。
 		const activeStore = store ?? createProjectStore()
-		// M2 D-RC-2：session-only cache 实例（随 watch session 存活）
-		const cache = new ModuleResultCache()
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, cache }) as { appId: string; [key: string]: unknown }
+		// D-OS-1: session-scoped state（可注入；未传入时内部创建）
+		const sessionState = state ?? new PackerSessionState()
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, cache: sessionState.moduleCache, state: sessionState }) as { appId: string; [key: string]: unknown }
 		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId))
 
 		scheduler = createWatchRebuildScheduler({
@@ -94,10 +96,10 @@ export function createBuildWatcher({
 			onError,
 			rebuild: async (change) => {
 				const publishedPath = publishedPathFor(buildResult!.appId)
-				// PS2：plan 从 Store 活图读取（同一引用，M-A），不再读闭包镜像
+				// D-OS-3: plan 从 state.graph 读活图（替代 activeStore.getDependencyGraph() 读空 default）
 				const plan = createWatchBuildPlan({
 					changedFiles: change.changedFiles,
-					dependencyGraph: activeStore.getDependencyGraph(),
+					dependencyGraph: sessionState.graph,
 					workPath,
 					publishedPath,
 				})
@@ -114,7 +116,8 @@ export function createBuildWatcher({
 				const result = await build(targetPath, workPath, useAppIdDir, {
 					...options,
 					store: activeStore,
-					cache,
+					cache: sessionState.moduleCache,
+					state: sessionState,
 					...plan.options,
 				})
 				buildResult = result as { appId: string; [key: string]: unknown }
