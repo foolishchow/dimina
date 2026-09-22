@@ -3,6 +3,7 @@
 ## A-GB-1 — Graph 实现类（R-GB-1, D-GB-1, D-GB-4）
 
 - [ ] `src/packer/graph.ts` 含 `export class PackerGraph implements Graph`
+- [ ] `types.ts` 定义 `GraphConfigData` 类型（无索引签名）
 - [ ] PackerGraph 实现全部 Graph interface 方法
 
 ## A-GB-2 — build(ctx) 自包含（R-GB-2, D-GB-4, D-PCS-4）

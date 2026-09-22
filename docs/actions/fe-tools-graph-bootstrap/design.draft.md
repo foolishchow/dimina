@@ -55,8 +55,20 @@ ALS getter 读:
 ```typescript
 // src/packer/graph.ts
 import type { Graph, PackerContext, GraphSnapshot } from './types.ts'
-import type { GraphSnapshot as DepGraphSnapshot } from '../model/dependency-graph.ts'
 import { DependencyGraph } from '../model/dependency-graph.ts'
+// 注：GraphSnapshot 已由 types.ts 再导出（from dependency-graph.ts），无需重复导入
+
+// GraphConfigData：ConfigInfo 的类型安全子集（无索引签名）
+// 需在 types.ts 定义——从 ConfigInfo 提取显式字段：
+//   { appInfo, pageInfo, componentInfo, runtimeType, projectInfo }
+// 避免 [key: string]: unknown 索引签名（D-PCS-10）
+interface GraphConfigData {
+  appInfo: Record<string, unknown>
+  pageInfo: Record<string, PageConfig>
+  componentInfo: Record<string, ComponentConfig>
+  runtimeType: string
+  projectInfo?: Record<string, unknown>
+}
 
 export class PackerGraph implements Graph {
   private graph: DependencyGraph
