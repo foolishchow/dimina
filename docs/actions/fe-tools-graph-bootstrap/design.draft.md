@@ -78,9 +78,10 @@ export class PackerGraph implements Graph {
 
   build(ctx: PackerContext): void {
     // 步 3-6 自包含
-    this.configData = this.readAppConfig(ctx.workPath)       // 步 3-4
-    this.discoverComponents(ctx.workPath)                     // 步 5
-    this.graph = this.createInitialGraph(ctx)                // 步 6
+    // private helpers（实现时加 private 声明）:
+    this.configData = this.readAppConfig(ctx.workPath)       // 步 3-4: 读 app.json + project.config.json
+    this.discoverComponents(ctx.workPath)                     // 步 5: 递归发现组件
+    this.graph = this.createInitialGraph(ctx)                // 步 6: 从 configData 建图
   }
 
   reconcile(ctx: PackerContext): void {
