@@ -142,53 +142,63 @@ interface ModuleResultCache<V = CompiledModule> {
 // 泛型化需要重构现有 class
 ```
 
-## §3 讨论
+## §3 决策（已拍板）
 
-### Q-1: getDirectDependents kind 参数
+### D-IU-1: getInvalidatedModules 泛化——删 `kind=logic` 硬编码
 
-现有 `getDirectDependents(id, 'logic')` 改成什么？
+现有 `getDirectDependents(id, 'logic')` 硬编码 kind。改为不传 kind——返回全 kind dependents。
 
-**选项 A**：去掉 kind 参数——`getDirectDependents(id)` 返回全 kind dependents。
-**选项 B**：加可选 kind 参数——`getDirectDependents(id, kinds?)`，不传时全 kind。
+```typescript
+// 现在
+for (const [owner, kinds] of ownerKinds) {
+  if (kinds.has('logic')) pending.push(owner)   // ← 只推 logic owner
+}
+for (const dependent of this.getDirectDependents(id, 'logic')) {  // ← 只走 logic 边
 
-**倾向 A**：getInvalidatedModules 内部直接调 `getDirectDependents(id)` 不传 kind。现有 `getDirectDependents` 签名已有可选 kinds 参数，不传 = 全 kind。只需删 `getInvalidatedModules` 内的 `'logic'` 硬编码。
+// 改后
+for (const [owner, _kinds] of ownerKinds) {
+  pending.push(owner)                            // ← 全 kind owner
+}
+for (const dependent of this.getDirectDependents(id)) {  // ← 全 kind 边
+```
 
-### Q-2: view compile result 形状（倾向已定）
+不改签名，只删 `'logic'` 硬编码。现有 `getDirectDependents` 不传 kind 已返回全 kind。
 
-view parse-walk 的 compile result 是什么？
+### D-IU-2: view compile result 形状——ViewCompiledModule（已定）
 
-**现状**：view parse-walk 内部产 `scriptRes`（Map<moduleId, code>）+ `renderRes`（render code + map）+ `wxsBindings`。直接进 emitEntry。
+提取为 `ViewCompiledModule`（from Packer 形状）——`{ moduleId, kind: 'view', code, map, dependencies, renderBody?, wxsBindings? }`。worker 返回 `ViewCompiledModule[]`，stage-channel 写 cache。
 
-**倾向已定**：提取为 `ViewCompiledModule`（from Packer 形状）——`{ moduleId, kind: 'view', code, map, dependencies, renderBody?, wxsBindings? }`。worker 返回 `ViewCompiledModule[]`，stage-channel 写 cache。
+cache hit 时 worker 从 cache 取 ViewCompiledModule，直接 emit（跳过 compile，不跳过 emit）。
 
-**问题**：view emit 是 inline（即编即发）。cache 存了 ViewCompiledModule 后，cache hit 时跳过 compile，但还需要 emit。emit 从哪拿 code？
+### D-IU-3: cache 不泛型化——view/style 各建独立 cache
 
-**倾向已定**：cache hit 时 worker 从 cache 取 ViewCompiledModule，直接 emit（跳过 compile，不跳过 emit）。
+不泛型化现有 ModuleResultCache class。view/style 各建独立 cache 实例，value 类型不同：
 
-### Q-3: ModuleResultCache 泛型化
+```typescript
+// logic cache（不变）
+cache: ModuleResultCache  // value = { compileInfo, logicDependencies }
 
-现有 `ModuleResultCache` class 非泛型，`CachedModuleResult = { compileInfo: CompileInfo, logicDependencies: string[] }`。
+// view cache（新增）
+viewCache: Map<string, { module: ViewCompiledModule; dependencies: string[] }>
 
-**选项 A**：泛型化现有 class——`ModuleResultCache<V = CompiledModule>`。logic 用 `ModuleResultCache<LogicCompiledModule>`，view 用 `ModuleResultCache<ViewCompiledModule>`。
-**选项 B**：不改现有 class，新建 view/style cache（不同 value 类型）。
+// style cache（新增）
+styleCache: Map<string, { module: StyleCompiledModule; dependencies: string[] }>
+```
 
-**倾向 A**：泛型化。Packer 形状已定义 `ModuleResultCache<V>`。现有 class 泛型化后 logic 也能用新形状。
+“统一”是在功能层面（三车道都有模块级增量），不是在类型层面。泛型化留给后续 Packer 接入。
 
-**问题**：泛型化后 `CachedModuleResult` 类型怎么处理？logic 现有 `{ compileInfo, logicDependencies }` → 变成 `{ module: LogicCompiledModule, dependencies: string[] }`？需要重构现有 cache 写入/读取。
+### D-IU-4: intra-build + cross-rebuild 两层共存
 
-### Q-4: intra-build cache vs cross-rebuild cache
+| 层 | 用途 | 生命周期 | 实现 |
+|---|---|---|---|
+| intra-build（moduleCompileCache） | 同一 build 内去重 | per-build（worker 内存 Map） | 不变 |
+| cross-rebuild（新 cache） | 跨 build 跳过 | session-scoped | 新增 |
 
-view 有 `moduleCompileCache`（intra-build dedup）。ModuleResultCache（cross-rebuild）和它什么关系？
+检查顺序：intra-build 先查（快，内存）→ miss 则 cross-rebuild（序列化快照）→ miss 则 compile → 写回两层。
 
-**倾向**：两层共存——intra-build cache 防同 build 内重复编译；cross-rebuild cache 防跨 build 重复编译。cache hit 顺序：先查 intra-build（Map，快），再查 cross-rebuild（ModuleResultCache，需序列化）。
+### D-IU-5: 只返回 dirty result
 
-**简化**：可以合并——intra-build cache 改用 ModuleResultCache 实例（per-build 副本）。但 watch rebuild 时 cross-rebuild cache 替代 intra-build。
-
-### Q-5: IPC 消息增大
-
-worker 返回值增加 view/style compile result 后 IPC 消息增大。
-
-**倾向**：只返回 invalidated 的 result（dirty）。现有 logic 只返回 dirty compileRes。view/style 同理——只返回 invalidated modules 的 compile result。
+只返回 invalidated 的 result（dirty）。现有 logic 只返回 dirty compileRes。view/style 同理——只返回 invalidated modules 的 compile result。IPC 增量 = 改动模块数 × 单个 result 大小，和 logic 行为一致。
 
 ## §4 伪代码
 

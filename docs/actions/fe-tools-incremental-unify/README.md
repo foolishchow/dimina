@@ -68,11 +68,17 @@ M1（computeInvalidatedModules）+ M2（ModuleResultCache）已 complete 归档�
 
 ## Readiness gaps
 
-- Q-1: getInvalidatedModules 现有 `getDirectDependents(id, 'logic')` 改成什么？去掉 kind 参数？还是加 `getInvalidatedModules(file, kinds?)` 参数？
-- Q-2: view parse-walk 的 compile result 是什么形状？EmitModule[]? scriptRes? 如何序列化给 cache？
-- Q-3: ModuleResultCache 现有非泛型（CachedModuleResult = { compileInfo: CompileInfo, logicDependencies: string[] }）。view/style 的 cache value 形状不同——泛型化？还是新建 cache 实例？
-- Q-4: view parse-walk 有 moduleCompileCache（intra-build）。ModuleResultCache（cross-rebuild）和它什么关系？
-- Q-5: worker 返回值增加 view/style compile result 后 IPC 消息增大——性能影响？
+- 无——Q-1..5 已拍板（见 design.draft.md §3）
+
+## 决策汇总
+
+| 决策 | 内容 |
+|---|---|
+| D-IU-1 | getInvalidatedModules 泛化：删 `kind=logic` 硬编码，调无 kind 版 |
+| D-IU-2 | view compile result 形状：ViewCompiledModule（from Packer 形状）|
+| D-IU-3 | cache 不泛型化：view/style 各建独立 cache（不同 value 类型）|
+| D-IU-4 | intra-build + cross-rebuild 两层共存 |
+| D-IU-5 | 只返回 dirty result（和 logic 现有模式一致）|
 
 ## Closure conditions
 
