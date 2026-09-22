@@ -1,12 +1,12 @@
 # FE Tools Incremental Unify
 
 - Action: `fe-tools-incremental-unify`
-- Status: `ready`
+- Status: `deferred`
 - Updated: 2026-09-22
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——OrchestratorState + ModuleResultCache 契约）
-- 前身：[`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md)（**complete 已归档**；M1：computeInvalidatedModules logic-only）
-- 前身：[`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md)（**complete 已归档**；M2：ModuleResultCache logic-only）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-packer-core-shape`](../../complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——OrchestratorState + ModuleResultCache 契约）
+- 前身：[`fe-tools-module-invalidation`](../../complete/fe-tools-module-invalidation/README.md)（**complete 已归档**；M1：computeInvalidatedModules logic-only）
+- 前身：[`fe-tools-module-result-cache`](../../complete/fe-tools-module-result-cache/README.md)（**complete 已归档**；M2：ModuleResultCache logic-only）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## 背景
@@ -44,10 +44,10 @@ M1（computeInvalidatedModules）+ M2（ModuleResultCache）已 complete 归档�
 
 ## 设计输入
 
-- [`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md) — OrchestratorState + ModuleResultCache\<V\> 契约
-- [`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md) — M1 D-IV-1..9
-- [`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md) — M2 D-RC-1..4
-- [`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/source-audit.md) — §4.3 view/style 无模块级增量 / F-6
+- [`fe-tools-packer-core-shape`](../../complete/fe-tools-packer-core-shape/README.md) — OrchestratorState + ModuleResultCache\<V\> 契约
+- [`fe-tools-module-invalidation`](../../complete/fe-tools-module-invalidation/README.md) — M1 D-IV-1..9
+- [`fe-tools-module-result-cache`](../../complete/fe-tools-module-result-cache/README.md) — M2 D-RC-1..4
+- [`fe-tools-packer-lifecycle-audit`](../../complete/fe-tools-packer-lifecycle-audit/source-audit.md) — §4.3 view/style 无模块级增量 / F-6
 
 ## 交付物
 
@@ -85,3 +85,10 @@ M1（computeInvalidatedModules）+ M2（ModuleResultCache）已 complete 归档�
 - R-IU-1..6 全 passed
 - behavior 0（diff=0 + vitest 全绿）
 - view/style 有模块级增量能力
+
+## Deferral
+
+- **决策日期**：2026-09-22
+- **原因**：本 Action 独立于 Packer 落地链（不改 env.ts），但 view/style 模块级增量应等 Packer 架构完善后统一规划。当前 Packer 落地仅有 als-store + graph-bootstrap 完成（路 1 过渡态），PackerContext / load-compile 分离 / Orchestrator 均未 formalize。在 Orchestrator 落地前做增量统一，可能与后续管线重构产生冲突。
+- **重激活条件**：Packer Orchestrator 实现完成（build-pipeline + watch-plan 统一）后，重新评估本 Action 是否仍适用原设计，或需要新开 Action 承接。
+- **替代**：暂无替代 Action。logic-only 增量（M1+M2 已 complete）满足当前 watch 需求。
