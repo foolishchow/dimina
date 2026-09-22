@@ -80,11 +80,26 @@ echo "watch rebuild diff: $?"
 
 ## V-OS-5 — 类型约束 grep
 
+覆盖全部 4 个交付物（R-OS-7 适用范围）。新文件必须是 0；已有文件不得新增。
+
 ```bash
+# 1. 新文件 session-state.ts：必须 = 0
 cd fe/tools/bundler/src/packer
 grep -c ': any\b\|as any\b\|@ts-nocheck' session-state.ts    # = 0
 grep -c '\[key: string\]' session-state.ts                   # = 0
+
+# 2. 已有文件：不新增（baseline vs current，diff 必须 = 0）
+for f in \
+  src/compiler/core/env.ts \
+  src/compiler/pipeline/build-pipeline.ts \
+  src/watch/watch-runner.ts; do
+  base=$(git show HEAD~1:"fe/tools/bundler/$f" 2>/dev/null | grep -c ': any\b\|as any\b\|@ts-nocheck\|\[key: string\]' || echo 0)
+  curr=$(grep -c ': any\b\|as any\b\|@ts-nocheck\|\[key: string\]' "fe/tools/bundler/$f" || echo 0)
+  echo "$f: baseline=$base current=$curr"
+  [ "$base" = "$curr" ] || echo "  ⚠ MISMATCH — new instances introduced"
+done
 ```
+预期：session-state.ts 全 0；已有文件 baseline = current（不新增）。
 
 ## V-OS-6 — validator
 
