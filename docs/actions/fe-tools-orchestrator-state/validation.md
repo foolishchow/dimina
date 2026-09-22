@@ -61,7 +61,10 @@ const targetFile = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/ba
 const content = fs.readFileSync(targetFile, 'utf-8');
 fs.writeFileSync(targetFile, content); // 写回相同内容
 
-await watcher.waitForIdle();
+await Promise.race([
+  watcher.waitForIdle(),
+  new Promise((_, reject) => setTimeout(() => reject(new Error('watch rebuild timeout — chokidar may not have detected the content-identical write')), 10000)),
+]);
 await watcher.stop();
 console.log('rebuild done');
 SCRIPT

@@ -32,7 +32,7 @@ worker parse-walk 发现的 source-level edges（require/@import）也在 ALS co
 **把 graph + cache + invalidated 三处散落状态收敛为一个 session-scoped 的 `OrchestratorState`，让 graph 跨 rebuild 长期存活（D-PCS-3）。**
 
 具体：
-1. 创建 `PackerSessionState`（实现 OrchestratorState interface）——持有活 graph + 活 cache + invalidated 集
+1. 创建 `PackerSessionState`（定义 class，结构类型匹配 OrchestratorState 形状——不 `implements`，conformance deferred）——持有活 graph + 活 cache + invalidated 集
 2. watch-runner 创建 state，跨 rebuild 持有
 3. storeInfo 接收 `options.graph`（从 state 来），不新建 PackerGraph
 4. watch rebuild 用 `state.graph.reconcile()` 复用旧图（不再 restoreFromSnapshot 重建）
@@ -55,7 +55,7 @@ worker parse-walk 发现的 source-level edges（require/@import）也在 ALS co
 
 ## Requirements
 
-- R-OS-1 MUST 创建 `src/packer/session-state.ts`，实现 OrchestratorState interface（from `types.ts` §7）
+- R-OS-1 MUST 创建 `src/packer/session-state.ts`，定义 `PackerSessionState` class（结构类型匹配 OrchestratorState 形状，不 `implements`）
 - R-OS-2 MUST storeInfo 接收 `options.graph`（PackerGraph 实例），传入时不新建
 - R-OS-3 MUST watch rebuild 用 `state.graph.reconcile()`（不再 restoreFromSnapshot 重建旧图）
 - R-OS-4 MUST watch-runner 创建 state（session start），跨 rebuild 持有

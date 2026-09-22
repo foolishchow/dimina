@@ -252,7 +252,7 @@ const graph = state?.graph  // 从 state 取 graph（可能 undefined → 走旧
 
 | 风险 | 缓解 |
 |---|---|
-| watch rebuild 增量路径产出 ≠ 全量产出 | V-OS-3 验证：watch rebuild 产物 vs 全量产物 diff=0 |
+| watch rebuild 增量路径产出 ≠ 全量产出 | V-OS-4 验证：watch rebuild 产物 vs 全量产物 diff=0 |
 | cache hit 返回 stale 结果 | cache key = moduleId（不含 fingerprint），reconcile 后图更新 → invalidatedModules 驱逐 dirty |
 | `state.graph` 的 reconcile 合入旧 worker delta 导致图膨胀 | reconcile 的 removeStale 删除不在新 config 的 entries；merge 只加 edges 不加 nodes |
 | watch-runner.spec.js mock 测例需更新 | state 可注入 → 测试注入 mock state.graph（替代 mock store.getDependencyGraph）；PS2 测例改为验证 sessionState.graph 被读 |
