@@ -58,7 +58,7 @@ watch file change
 | view | { ???, dependencies: string[] } | moduleId |
 | style | { ???, dependencies: string[] } | moduleId |
 
-view/style 的 compile result 形状需讨论（Q-2）。
+view/style 的 compile result 形状见 D-IU-2。
 
 ## 决策输入
 
@@ -72,25 +72,35 @@ view/style 的 compile result 形状需讨论（Q-2）。
 | D-RC-4 | watch-plan 触发 | 不变 |
 | D-PCS-10 | CompiledModule discriminated union | cache value 可以用 CompiledModule variant |
 
+## 本 Action 决策
+
+| 决策 | 内容 |
+|---|---|
+| D-IU-1 | getInvalidatedModules 泛化：删 `kind=logic` 硬编码，调无 kind 版 |
+| D-IU-2 | view compile result 形状：ViewCompiledModule（from Packer 形状）|
+| D-IU-3 | cache 不泛型化：view/style 各建独立 cache（不同 value 类型）|
+| D-IU-4 | intra-build + cross-rebuild 两层共存 |
+| D-IU-5 | 只返回 dirty result（和 logic 现有模式一致）|
+
 ## MUST 需求
 
-### R-IU-1 getInvalidatedModules 泛化
+### R-IU-1 getInvalidatedModules 泛化（D-IU-1）
 
 MUST `getInvalidatedModules(filePath)` 遍历全 kind 边——不按 kind=logic 过滤。
 MUST 返回受影响的全 kind module IDs（不只 logic）。
 
-### R-IU-2 computeInvalidatedModules 泛化
+### R-IU-2 computeInvalidatedModules 泛化（D-IU-1）
 
 MUST `computeInvalidatedModules(graph, changedFiles)` 返回全 kind module IDs。
 MUST 现有调用方（watch-plan）不改签名。
 
-### R-IU-3 view/style ModuleResultCache 接入
+### R-IU-3 view/style ModuleResultCache 接入（D-IU-2, D-IU-3）
 
 MUST view/style worker 返回 compile result + dependencies。
 MUST stage-channel 写 view/style cache。
 MUST watch-runner 创建 view/style cache 实例。
 
-### R-IU-4 cache hit 跳过
+### R-IU-4 cache hit 跳过（D-IU-4, D-IU-5）
 
 MUST view/style worker 收 cache 快照 + invalidatedModules。
 MUST cache hit 时跳过 compile（只返回 cached result）。
@@ -108,8 +118,8 @@ MUST 不用 `[key: string]: unknown` 索引签名。
 
 ## SHOULD
 
-- R-IU-7 SHOULD ModuleResultCache 泛型化（`ModuleResultCache<V>`），view/style 各自实例化
-- R-IU-8 SHOULD view/style cache value 用 Packer 形状的 CompiledModule variant（ViewCompiledModule / StyleCompiledModule）
+- R-IU-7 SHOULD ModuleResultCache 泛型化（`ModuleResultCache<V>`），view/style 各自实例化（D-IU-3: 本 Action 不泛型化，留给后续）
+- R-IU-8 SHOULD view/style cache value 用 Packer 形状的 CompiledModule variant（ViewCompiledModule / StyleCompiledModule）（D-IU-2）
 
 ## 约束
 

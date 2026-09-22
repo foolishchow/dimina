@@ -44,9 +44,18 @@ graph.build(ctx):
 | D-PCS-4 | Graph 自己 bootstrap | build(ctx) 直接读 app.json，无中间数据 |
 | D-PCS-6 | PackerContext(I/O) + OrchestratorState(graph+cache) 拆区 | graph 不在 ALS 里 |
 
+## 本 Action 决策
+
+| 决策 | 内容 |
+|---|---|
+| D-GB-1 | configInfo 归属：Graph 内部持有 configData，ALS 持 Graph 引用（路 1 过渡态）|
+| D-GB-2 | getter 读取：全局 getter 委托 Graph，签名不变 |
+| D-GB-3 | watch merge：搬入 PackerGraph.reconcile(ctx) |
+| D-GB-4 | build 自洽：内部先读 config 建 configData，再从 configData 建图 |
+
 ## MUST 需求
 
-### R-GB-1 Graph 实现类
+### R-GB-1 Graph 实现类（D-GB-1, D-GB-4）
 
 MUST 创建 `src/packer/graph.ts`，`export class PackerGraph implements Graph`（Graph interface from `types.ts`）。
 
@@ -57,22 +66,22 @@ MUST 实现全部 Graph interface 方法：
 - `toJSON(): GraphSnapshot` — 序列化
 - `getEntries()` / `getFileOwners()` / `getAffectedEntries()` / `getInvalidatedModules()` / `hasFile()` / `getFileKinds()` — 查询（委托现有 DependencyGraph）
 
-### R-GB-2 build(ctx) 自包含
+### R-GB-2 build(ctx) 自包含（D-GB-4）
 
 MUST `build(ctx)` 从 `ctx.workPath` 直接读 app.json → 递归发现组件 → 扫文件 → 建图。
 MUST 不依赖外部 `configInfo` 预先填充——Graph 内部持有 config 数据。
 
-### R-GB-3 reconcile(ctx)
+### R-GB-3 reconcile(ctx)（D-GB-3）
 
 MUST `reconcile(ctx)` 处理配置变更：重做 config fixpoint + 保留不变的 source-level edges。
 MUST watch rebuild 的 graph merge 逻辑（现有 storeInfo 内 `options.dependencyGraph` 合并）由 reconcile 承接。
 
-### R-GB-4 storeInfo 瘦身
+### R-GB-4 storeInfo 瘦身（D-GB-1）
 
 MUST `storeInfo` 瘦身为只设 PackerContext（步 1-2：paths + fileTypes）。
 MUST 调用方（build-pipeline / watch-plan）改为调 `graph.build(ctx)` 或 `graph.reconcile(ctx)`。
 
-### R-GB-5 ALS 兼容
+### R-GB-5 ALS 兼容（D-GB-2）
 
 MUST 现有 ALS getter（`getComponent` / `getAppConfigInfo` / `getRuntimeType` / `isMiniGame` 等）不改签名。
 MUST 这些 getter 的调用方不改。
@@ -91,7 +100,7 @@ MUST 不用 `[key: string]: unknown` 索引签名。
 ## SHOULD
 
 - R-GB-8 SHOULD PackerGraph 内部委托现有 DependencyGraph 类（不重新实现图数据结构）
-- R-GB-9 SHOULD config 数据（appInfo / pageInfo / componentInfo）由 Graph 持有，ALS getter 从 Graph 读
+- R-GB-9 SHOULD config 数据（appInfo / pageInfo / componentInfo）由 Graph 持有，ALS getter 从 Graph 读（D-GB-1, D-GB-2）
 
 ## 约束
 
@@ -110,4 +119,4 @@ MUST 不用 `[key: string]: unknown` 索引签名。
 
 ## TODO
 
-- Q-1..Q-4 待讨论（见 README Readiness gaps）
+- Q-1..Q-4 已拍板为 D-GB-1..4（见 design.draft.md §3）
