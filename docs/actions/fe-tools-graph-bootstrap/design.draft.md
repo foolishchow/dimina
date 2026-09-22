@@ -115,6 +115,9 @@ export class PackerGraph implements Graph {
 
   // storeInfo 从 Graph 取 configData 快照
   getConfigData(): GraphConfigData { return this.configData }
+
+  // getter 委托——返回内部 DependencyGraph
+  getInnerGraph(): DependencyGraph { return this.graph }
 }
 ```
 
@@ -127,7 +130,9 @@ Graph 内部持有 configData（appInfo / pageInfo / componentInfo / runtimeType
 ```typescript
 // ALS context 变化（路 1 过渡态）：
 // 现在: { pathInfo, configInfo, compilerOptions, dependencyGraph, npmResolver }
-// 过渡: { pathInfo, configInfo, compilerOptions, dependencyGraph, npmResolver, graph: PackerGraph }
+// 过渡: { pathInfo, configInfo, compilerOptions, npmResolver, graph: PackerGraph }
+//   — 新增 graph 字段（PackerGraph），不再写 dependencyGraph 字段
+//   — dependencyGraph 字段保留但不写（向后兼容）
 // 终态(路 2): { pathInfo, compilerOptions, npmResolver, graph: PackerGraph }（显式传参，不再 ALS）
 //
 // D-PCS-6 说 graph 不在 PackerContext——接口契约层不违反。
@@ -229,9 +234,9 @@ function storeInfo(workPath, options = {}) {
   // 但 ALS 需要 configData 快照给 getter 用
   if (options.graph) {
     context.configInfo = options.graph.getConfigData()  // 从 Graph 取快照
-    context.dependencyGraph = options.graph  // ALS 也持有 graph 引用（getter 兼容）
+    context.graph = options.graph  // 新字段：PackerGraph 引用（getter 兼容）
   }
-  return { pathInfo, configInfo, compilerOptions, dependencyGraph: context.dependencyGraph.toJSON() }
+  return { pathInfo, configInfo, compilerOptions, dependencyGraph: context.graph.toJSON() }
 }
 
 // env.ts resetStoreInfo 改后（worker 重建 ALS）
@@ -245,7 +250,7 @@ function resetStoreInfo(opts: { pathInfo, configInfo, compilerOptions?, dependen
   // 重建 PackerGraph（从快照——不调 build，worker 不重读 app.json）
   const graph = new PackerGraph()
   graph.restoreFromSnapshot(opts.configInfo, opts.dependencyGraph)  // 类内部设 private 字段
-  context.dependencyGraph = graph             // ALS 持 graph 引用
+  context.graph = graph             // 新字段：PackerGraph 引用
   if (opts.pathInfo.workPath) {
     context.npmResolver = new NpmResolver(opts.pathInfo.workPath)
   }
