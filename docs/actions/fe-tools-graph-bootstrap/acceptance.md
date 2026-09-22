@@ -18,10 +18,12 @@
 - [ ] `reconcile(ctx)` 保留 source-level edges
 - [ ] watch rebuild 的 graph merge 由 reconcile 承接
 
-## A-GB-4 — storeInfo 瘦身（R-GB-4, D-GB-1, D-PCS-1）
+## A-GB-4 — storeInfo 瘦身（R-GB-4, D-GB-1, D-GB-4, D-PCS-1）
 
 - [ ] `storeInfo` 只设 PackerContext（paths + fileTypes）
 - [ ] 调用方（build-pipeline / watch-plan）改为调 graph.build/reconcile
+- [ ] build-pipeline 含 CompilerContext→PackerContext adapter
+- [ ] PackerGraph 提供 `getConfigData()` 方法
 
 ## A-GB-5 — ALS 兼容（R-GB-5, D-GB-2）
 

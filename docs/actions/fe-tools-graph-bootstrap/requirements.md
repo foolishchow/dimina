@@ -76,10 +76,12 @@ MUST 不依赖外部 `configInfo` 预先填充——Graph 内部持有 config �
 MUST `reconcile(ctx)` 处理配置变更：重做 config fixpoint + 保留不变的 source-level edges。
 MUST watch rebuild 的 graph merge 逻辑（现有 storeInfo 内 `options.dependencyGraph` 合并）由 reconcile 承接。
 
-### R-GB-4 storeInfo 瘦身（D-GB-1）
+### R-GB-4 storeInfo 瘦身（D-GB-1, D-GB-4）
 
 MUST `storeInfo` 瘦身为只设 PackerContext（步 1-2：paths + fileTypes）。
 MUST 调用方（build-pipeline / watch-plan）改为调 `graph.build(ctx)` 或 `graph.reconcile(ctx)`。
+MUST build-pipeline 需 CompilerContext→PackerContext adapter（bridge ALS ctx 到 Graph interface 签名——见 design.draft §4）。
+MUST PackerGraph 提供 `getConfigData()` 方法，供 storeInfo 取 configData 快照写入 ALS。
 
 ### R-GB-5 ALS 兼容（D-GB-2）
 
