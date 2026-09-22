@@ -1,8 +1,8 @@
 # FE Tools ALS Store
 
 - Action: `fe-tools-als-store`
-- Status: `draft`
-- Updated: 2026-09-21
+- Status: `ready`
+- Updated: 2026-09-22
 - Status authority: [Action Status](../STATUS.md)
 - 工作分支：`feature/fe-tools-sidecar`
 - 后继：[`fe-tools-graph-bootstrap`](../fe-tools-graph-bootstrap/README.md)（`draft`；PackerGraph 自包含——用本工具的 ALS 作 ctx 桥接）

@@ -1,8 +1,8 @@
 # FE Tools Incremental Unify
 
 - Action: `fe-tools-incremental-unify`
-- Status: `draft`
-- Updated: 2026-09-21
+- Status: `ready`
+- Updated: 2026-09-22
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——OrchestratorState + ModuleResultCache 契约）
 - 前身：[`fe-tools-module-invalidation`](../_archive/complete/fe-tools-module-invalidation/README.md)（**complete 已归档**；M1：computeInvalidatedModules logic-only）
