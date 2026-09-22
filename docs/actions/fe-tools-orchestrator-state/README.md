@@ -1,7 +1,7 @@
 # FE Tools Orchestrator State
 
 - Action: `fe-tools-orchestrator-state`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-09-22
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-graph-bootstrap`](../_archive/complete/fe-tools-graph-bootstrap/README.md)（**complete 已归档**；PackerGraph 落地——config fixpoint 路 1 过渡态）
