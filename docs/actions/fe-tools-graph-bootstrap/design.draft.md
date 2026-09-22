@@ -174,10 +174,24 @@ build(ctx: PackerContext): void {
 // 现状: ctx.storeInfo = store.load(workPath, { fileTypes, dependencyGraph })
 // target:
 const graph = state.graph  // OrchestratorState.session.graph
+
+// CompilerContext (ALS) → PackerContext adapter
+// CompilerContext 有 pathInfo.workPath / compilerOptions (fileTypes);
+// PackerContext 需直接 workPath / targetPath / fileTypes / readContent / resolveAlias / resolveNpm。
+// 用 adapter 桥接——tsc 签名匹配 Graph interface。
+const packerCtx: PackerContext = {
+  workPath: ctx.pathInfo.workPath!,
+  targetPath: ctx.pathInfo.targetPath!,
+  readContent: (p) => fs.readFileSync(path.resolve(ctx.pathInfo.workPath!, p), 'utf-8'),
+  resolveAlias: (src) => ctx.npmResolver?.resolveAlias(src) ?? null,
+  resolveNpm: (src, base) => ctx.npmResolver?.resolve(src, base) ?? src,
+  fileTypes: ctx.compilerOptions,
+}
+
 if (!options.incremental) {
-  graph.build(ctx)           // 首次：config fixpoint
+  graph.build(packerCtx)       // 首次：config fixpoint
 } else if (options.configChanged) {
-  graph.reconcile(ctx)       // .json 变了：reconcile
+  graph.reconcile(packerCtx)   // .json 变了：reconcile
 }
 // storeInfo 仍调（写 ALS I/O + configData 快照），但步 3-6 委托 Graph
 store.load(workPath, { fileTypes, graph })  // 瘦身后的 storeInfo
@@ -205,3 +219,4 @@ function storeInfo(workPath, options = {}) {
 | worker 没有 Graph 实例 | storeInfo 快照含 configData，worker 重建 ALS 从快照读 |
 | storeInfo 和 graph.build 的调用顺序 | build-pipeline 先调 graph.build 再调 storeInfo（storeInfo 从 Graph 取快照） |
 | 行为 0 难度——config fixpoint 逻辑搬家可能改变执行顺序 | 逐步迁移：先提取逻辑到 Graph，再改调用方 |
+| CompilerContext (ALS) 与 PackerContext 类型不兼容 | adapter 函数桥接：CompilerContext → PackerContext（提取 pathInfo.workPath 等）；adapter 在 build-pipeline 内联，不暴露到 Graph |

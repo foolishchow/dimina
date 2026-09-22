@@ -170,6 +170,13 @@ for (const dependent of this.getDirectDependents(id)) {  // ← 全 kind 边
 
 cache hit 时 worker 从 cache 取 ViewCompiledModule，直接 emit（跳过 compile，不跳过 emit）。
 
+**dependencies 来源**：`dependencies: string[]` 是该 view 模块依赖的子模块 ID 集（include/wxs/usingComponents 引用的目标）。现有 `compileViewTree` 不直接产出此信息——从两个来源获取：
+
+1. **compile 时产出**：`compileViewTree` 内部已发现 include/wxs/usingComponents（用于 walk），将这些依赖 ID 收集到 `dependencies` 数组即可——不引入新逻辑，只收集已有信息。
+2. **Graph 查询（备选）**：`graph.getDirectDependents(moduleId)` 返回全 kind dependents，可 filter 出 view 子模块。
+
+推荐方案 1（compile 时产出）——避免跨模块查询，保持 worker 自包含。`kind: 'view'` 硬编码。
+
 ### D-IU-3: cache 不泛型化——view/style 各建独立 cache
 
 不泛型化现有 ModuleResultCache class。view/style 各建独立 cache 实例，value 类型不同：
