@@ -216,7 +216,13 @@ const packerCtx: PackerContext = {
   readContent: (p) => fs.readFileSync(path.resolve(ctx.pathInfo.workPath!, p), 'utf-8'),
   resolveAlias: (src) => ctx.npmResolver?.resolveAlias(src) ?? null,
   resolveNpm: (src, base) => ctx.npmResolver?.resolve(src, base) ?? src,
-  fileTypes: ctx.compilerOptions,
+  fileTypes: {
+    templateExts: ctx.compilerOptions.templateExts,
+    styleExts: ctx.compilerOptions.styleExts,
+    viewScriptExts: ctx.compilerOptions.viewScriptExts,
+    viewScriptTags: ctx.compilerOptions.viewScriptTags,
+    directivePrefixes: ctx.compilerOptions.templateDirectivePrefixes,  // 字段名映射
+  },
 }
 
 if (!options.incremental) {
@@ -257,6 +263,16 @@ function resetStoreInfo(opts: { pathInfo, configInfo, compilerOptions?, dependen
     context.npmResolver = new NpmResolver(opts.pathInfo.workPath)
   }
 }
+```
+
+```typescript
+// watch-plan.ts createWatchBuildPlan（伪代码片段）
+// 现状: options.dependencyGraph = dependencyGraph.toJSON() + storeInfo merge
+// target: 调 graph.reconcile + 传 graph 给 storeInfo
+const packerCtx = toPackerContext(ctx)  // 同 build-pipeline adapter
+state.graph.reconcile(packerCtx)       // config 变了：reconcile（含 merge 逻辑）
+// storeInfo 仍调，但传 graph（非 dependencyGraph merge）
+store.load(workPath, { fileTypes, graph: state.graph })
 ```
 
 ## §5 风险
