@@ -6,6 +6,7 @@
 - Status authority: [Action Status](../STATUS.md)
 - 工作分支：`feature/fe-tools-sidecar`
 - 后继：[`fe-tools-graph-bootstrap`](../fe-tools-graph-bootstrap/README.md)（`draft`；PackerGraph 自包含——用本工具的 PackerContext 作 ctx）
+- 实施顺序：本 Action 先于 graph-bootstrap——两者都改 env.ts，als-store 改 ALS 机制（compilerContextStorage → packerALS），graph-bootstrap 改 storeInfo 逻辑。建议 als-store 先落地，graph-bootstrap 基于更新后的 env.ts
 
 ## 背景
 

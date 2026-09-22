@@ -28,7 +28,7 @@ git diff --stat -- fe/tools/bundler/__dist_sourcemap__/
 
 ```bash
 cd fe/tools/bundler
-grep -rn ': any\b\|as any\b\|@ts-nocheck' src/compiler/worker-runtime/async-context-store.ts src/compiler/worker-runtime/context.ts  # = 0
+grep -rn ': any\b\|as any\b\|@ts-nocheck' src/compiler/worker-runtime/async-context-store.ts src/compiler/worker-runtime/context.ts src/compiler/core/env.ts  # = 0
 grep -c '\[key: string\]' src/compiler/worker-runtime/async-context-store.ts  # = 0
 # abilityContext 类型不是 unknown/any
 grep 'abilityContext\|abilityALS' src/compiler/worker-runtime/context.ts  # 应有类型标注

@@ -28,7 +28,7 @@ git diff --stat -- fe/tools/bundler/__dist_sourcemap__/
 
 ```bash
 cd fe/tools/bundler
-grep -rn ': any\b\|as any\b\|@ts-nocheck' src/model/invalidation.ts src/model/module-result-cache.ts src/compiler/view/parse-walk.ts src/compiler/style/parse-walk.ts  # = 0 matches
+grep -rn ': any\b\|as any\b\|@ts-nocheck' src/model/invalidation.ts src/model/module-result-cache.ts src/compiler/view/parse-walk.ts src/compiler/style/parse-walk.ts src/compiler/pipeline/stage-channel.ts src/watch/watch-runner.ts src/watch/watch-plan.ts  # = 0 matches
 grep -c '\[key: string\]' src/model/invalidation.ts src/model/module-result-cache.ts  # = 0
 ```
 
