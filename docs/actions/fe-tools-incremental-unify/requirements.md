@@ -104,6 +104,7 @@ MUST watch-runner 创建 view/style cache 实例。
 
 MUST view/style worker 收 cache 快照 + invalidatedModules。
 MUST cache hit 时跳过 compile（只返回 cached result）。
+SHOULD 测试验证 cache hit 路径被触发（两次 build 同模块 → 第二次 cache hit 跳过 compile）——behavior 0 diff=0 无法检测 cache 永远 miss，需显式测试。
 
 ### R-IU-5 行为 0
 

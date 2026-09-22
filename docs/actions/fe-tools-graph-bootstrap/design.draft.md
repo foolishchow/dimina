@@ -209,6 +209,24 @@ function storeInfo(workPath, options = {}) {
   }
   return { pathInfo, configInfo, compilerOptions, dependencyGraph: context.dependencyGraph.toJSON() }
 }
+
+// env.ts resetStoreInfo 改后（worker 重建 ALS）
+// 签名不变——调用方（emit-engine.ts）不改。
+// 实现变：从 configInfo + dependencyGraph 快照重建 PackerGraph。
+function resetStoreInfo(opts: { pathInfo, configInfo, compilerOptions?, dependencyGraph? }) {
+  const context = getCompilerContext()
+  context.pathInfo = opts.pathInfo
+  context.configInfo = opts.configInfo
+  context.compilerOptions = opts.compilerOptions || normalizeFileTypes()
+  // 重建 PackerGraph（从快照——不调 build，worker 不重读 app.json）
+  const graph = new PackerGraph()
+  graph.configData = opts.configInfo          // 从快照恢复 configData
+  graph.graph = new DependencyGraph(opts.dependencyGraph)  // 从快照恢复图
+  context.dependencyGraph = graph             // ALS 持 graph 引用
+  if (opts.pathInfo.workPath) {
+    context.npmResolver = new NpmResolver(opts.pathInfo.workPath)
+  }
+}
 ```
 
 ## §5 风险

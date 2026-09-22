@@ -21,6 +21,7 @@
 
 - [ ] view/style worker 收 cache 快照 + invalidatedModules
 - [ ] cache hit 时跳过 compile（返回 cached result）
+- [ ] 测试验证 cache hit 路径被触发（两次 build 同模块 → 第二次跳过 compile）
 
 ## A-IU-5 — 行为 0（R-IU-5）
 
