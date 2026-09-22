@@ -218,8 +218,8 @@ const packerCtx: PackerContext = {
   workPath: ctx.pathInfo.workPath!,
   targetPath: ctx.pathInfo.targetPath!,
   readContent: (p) => fs.readFileSync(path.resolve(ctx.pathInfo.workPath!, p), 'utf-8'),
-  resolveAlias: (src) => ctx.npmResolver?.resolveAlias(src) ?? null,
-  resolveNpm: (src, base) => ctx.npmResolver?.resolve(src, base) ?? src,
+  resolveAlias: (_src) => null,  // D-PCS-1 deferred——实际方法待定
+  resolveNpm: (src, _base) => src,  // D-PCS-1 deferred——实际方法待定
   fileTypes: {
     templateExts: ctx.compilerOptions.templateExts,
     styleExts: ctx.compilerOptions.styleExts,
