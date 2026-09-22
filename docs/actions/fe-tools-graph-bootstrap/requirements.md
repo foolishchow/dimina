@@ -59,6 +59,7 @@ graph.build(ctx):
 
 MUST 创建 `src/packer/graph.ts`，`export class PackerGraph implements Graph`（Graph interface from `types.ts`）。
 MUST 在 `graph.ts` 定义 `GraphConfigData` 类型（ConfigInfo 的类型安全子集，无 `[key: string]: unknown` 索引签名——D-PCS-10）。放 graph.ts 而非 types.ts——types.ts 是纯形状声明层，不导入 env.ts 的 PageConfig/ComponentConfig。
+MUST 在 env.ts 加 `export` 到 `PageConfig` / `ComponentConfig` interface（当前未 export——仅加 export 关键字，最小改动）。
 
 MUST 实现全部 Graph interface 方法：
 - `build(ctx: PackerContext): void` — config fixpoint

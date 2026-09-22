@@ -4,6 +4,7 @@
 
 - [ ] `src/packer/graph.ts` 含 `export class PackerGraph implements Graph`
 - [ ] `graph.ts` 定义 `GraphConfigData` 类型（无索引签名）
+- [ ] env.ts `PageConfig` / `ComponentConfig` 加 `export`
 - [ ] PackerGraph 实现全部 Graph interface 方法
 
 ## A-GB-2 — build(ctx) 自包含（R-GB-2, D-GB-4, D-PCS-4）

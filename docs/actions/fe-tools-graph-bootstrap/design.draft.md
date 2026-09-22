@@ -62,6 +62,8 @@ import { DependencyGraph } from '../model/dependency-graph.ts'
 // 放 graph.ts（非 types.ts）——types.ts 是纯形状声明层，不导入 env.ts 的 PageConfig/ComponentConfig。
 // 字段 optional 匹配 ConfigInfo——ConfigInfo 可直接赋值给 GraphConfigData。
 import type { PageConfig, ComponentConfig } from '../compiler/core/env.ts'
+// 注：PageConfig / ComponentConfig 当前未 export（env.ts interface 无 export 关键字）。
+// 实施时需在 env.ts 加 export 到两个 interface（最小改动——仅加 export 关键字）。
 interface GraphConfigData {
   appInfo?: Record<string, unknown>
   pageInfo?: Record<string, PageConfig>
@@ -110,6 +112,9 @@ export class PackerGraph implements Graph {
     this.configData = configData
     this.graph = new DependencyGraph(graphSnapshot ?? null)
   }
+
+  // storeInfo 从 Graph 取 configData 快照
+  getConfigData(): GraphConfigData { return this.configData }
 }
 ```
 
