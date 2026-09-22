@@ -97,9 +97,8 @@ function runWithCompilerContext<T>(callback: () => T): T {
 }
 
 function getCompilerContext(): CompilerContext {
-  const ctx = compilerContextStorage.getStore()
-  if (!ctx) throw new Error('不在编译上下文内')
-  return ctx
+  defaultCompilerContext ||= createCompilerContext()
+  return compilerContextStorage.getStore() || defaultCompilerContext
 }
 
 // 改后
@@ -112,7 +111,9 @@ function runWithCompilerContext<T>(callback: () => T): T {
 }
 
 function getCompilerContext(): CompilerContext {
-  return packerALS.get()
+  // 保持回退行为——tryGet() ?? defaultCompilerContext
+  defaultCompilerContext ||= createCompilerContext()
+  return packerALS.tryGet() ?? defaultCompilerContext
 }
 ```
 
@@ -123,6 +124,7 @@ function getCompilerContext(): CompilerContext {
 | `abilityContext` → `abilityALS` | API 相同（run/get），类型从 unknown → AbilityContext。运行时行为不变。 |
 | `compilerContextStorage` → `packerALS` | API 相同（run/get），加 globalThis 兜底。production 行为不变（单例 no-op）。vitest 新行为：原 `compilerContextStorage` 无 globalThis 兜底，vitest 多实例化时每次新建 ALS；加兜底后复用单例。由 V-AS-2 vitest 验证兜底。 |
 | globalThis key 从 `__abilityContext` → `__als_ability` | key 变了但 legacyKey 兼容查找——vitest 重实例化时先查旧 key `__abilityContext`，找到旧 ALS 实例复用。新 key 写入供后续查找。 |
+| `getCompilerContext` 回退逻辑 | 改前 `getStore() \|\| defaultCompilerContext`；改后 `tryGet() ?? defaultCompilerContext`——保持回退，不引入 throw。`defaultCompilerContext` 保留（lazy fallback）。 |
 
 行为 0 风险低——只改封装方式，不改数据流。
 
