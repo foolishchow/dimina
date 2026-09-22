@@ -230,7 +230,7 @@
 | 顺序 | Action | 做什么 | 状态 |
 | --- | --- | --- | --- |
 | 1 | [`fe-tools-als-store`](_archive/complete/fe-tools-als-store/README.md) | 通用 ALS 工具类 `AsyncContextStore<T>`——统一 worker-runtime abilityContext + env.ts compilerContextStorage | `complete` 已归档 |
-| 2 | [`fe-tools-graph-bootstrap`](fe-tools-graph-bootstrap/README.md) | storeInfo config fixpoint 迁入 PackerGraph（D-GB-1..4） | `draft` ready |
+| 2 | [`fe-tools-graph-bootstrap`](_archive/complete/fe-tools-graph-bootstrap/README.md) | storeInfo config fixpoint 迁入 PackerGraph（D-GB-1..4） | `complete` |
 | ↘ | [`fe-tools-incremental-unify`](fe-tools-incremental-unify/README.md) | view/style 模块级增量（D-IU-1..5） | `draft` ready |
 
 als-store 和 graph-bootstrap 都改 env.ts——建议 als-store 先落地（改 ALS 机制），graph-bootstrap 基于更新后的 env.ts（改 storeInfo 逻辑）。incremental-unify 独立，不依赖 als-store。

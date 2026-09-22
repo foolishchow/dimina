@@ -1,13 +1,13 @@
 # FE Tools Graph Bootstrap
 
 - Action: `fe-tools-graph-bootstrap`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-22
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——Graph interface 契约）
-- 前身：[`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/README.md)（**complete 已归档**；F-1..F-6 关键发现）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（**complete 已归档**；Packer core 6 组件形状定义——Graph interface 契约）
+- 前身：[`fe-tools-packer-lifecycle-audit`](../fe-tools-packer-lifecycle-audit/README.md)（**complete 已归档**；F-1..F-6 关键发现）
 - 工作分支：`feature/fe-tools-sidecar`
-- 相关：[`fe-tools-als-store`](../_archive/complete/fe-tools-als-store/README.md)（**complete 已归档**；通用 ALS 工具类——独立 refactor，非硬前置。本 Action 用现有 ALS，als-store 完成后可自然统一。两者都改 env.ts，建议 als-store 先落地）
+- 相关：[`fe-tools-als-store`](../fe-tools-als-store/README.md)（**complete 已归档**；通用 ALS 工具类——独立 refactor，非硬前置。本 Action 用现有 ALS，als-store 完成后可自然统一。两者都改 env.ts，建议 als-store 先落地）
 
 ## 背景
 
@@ -46,8 +46,8 @@
 
 ## 设计输入
 
-- [`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md) — Graph interface 契约（D-PCS-2, D-PCS-3, D-PCS-4）
-- [`fe-tools-packer-lifecycle-audit`](../_archive/complete/fe-tools-packer-lifecycle-audit/source-audit.md) — §2 第一 build / §4 watch rebuild / §5 graph 生命周期 / F-1 ALS-backed / F-2 graph 跨线程
+- [`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md) — Graph interface 契约（D-PCS-2, D-PCS-3, D-PCS-4）
+- [`fe-tools-packer-lifecycle-audit`](../fe-tools-packer-lifecycle-audit/source-audit.md) — §2 第一 build / §4 watch rebuild / §5 graph 生命周期 / F-1 ALS-backed / F-2 graph 跨线程
 - env.ts `storeInfo()` 实现（6 步）
 - `model/dependency-graph.ts` — DependencyGraph 类（现有实现）
 
