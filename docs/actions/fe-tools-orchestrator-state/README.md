@@ -67,7 +67,7 @@ worker parse-walk 发现的 source-level edges（require/@import）也在 ALS co
 
 | 决策 | 内容 |
 |---|---|
-| D-OS-1 | state 由 watch-runner 创建，通过 options.state 传入 build-pipeline；单次 build 不传 state（向后兼容） |
+| D-OS-1 | state 由 watch-runner 创建（可注入）；createBuildWatcher 加 state? 可选参数，未传入时内部 new；通过 options.state 传入 build-pipeline；单次 build 不传 |
 | D-OS-2 | storeInfo 接收 options.graph；传入时用传入实例（不新建），跳过 restoreFromSnapshot |
 | D-OS-3 | watch-plan 从 state.graph 读活图（替代 activeStore.getDependencyGraph() 读空 default） |
 | D-OS-4 | cache 从 state.moduleCache 取，仍通过 options.cache 传 build-pipeline（不改读取逻辑） |
@@ -77,4 +77,4 @@ worker parse-walk 发现的 source-level edges（require/@import）也在 ALS co
 
 - R-OS-1..7 全 passed
 - behavior 0（单次 build 7 examples diff=0 + watch rebuild 产物一致 + vitest 全绿）
-- OrchestratorState conforms to shape interface（§7）
+- PackerSessionState 字段与 OrchestratorState 形状一致（结构类型，不 `implements`——ModuleResultCache class conformance deferred）

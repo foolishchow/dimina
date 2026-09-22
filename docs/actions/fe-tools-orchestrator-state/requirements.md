@@ -2,12 +2,12 @@
 
 ## R-OS-1 — OrchestratorState 实现类
 
-MUST 创建 `src/packer/session-state.ts`，定义 `export class PackerSessionState implements OrchestratorState`。
+MUST 创建 `src/packer/session-state.ts`，定义 `export class PackerSessionState`。
 
 - 持有 `graph: PackerGraph`（session-scoped，跨 rebuild 持久）
 - 持有 `moduleCache: ModuleResultCache`（session-scoped）
 - 持有 `invalidatedModules: Set<string>`（per-rebuild 重算）
-- 实现 `types.ts` §7 `OrchestratorState` interface 全部字段
+- 不写 `implements OrchestratorState`——现有 ModuleResultCache class 的 get/set 返回 CachedModuleResult（非 `{ module, dependencies }`）且 size 是 getter（非 method），与 types.ts §7 interface 不兼容。接口 conformance deferred 到 ModuleResultCache 泛型化 Action。当前用结构类型——字段名与形状一致。
 
 依据：D-PCS-3（graph 长期持有）, D-PCS-6（PackerContext + OrchestratorState 拆区）, D-PCS-9（OrchestratorState session-scoped）。
 
@@ -32,8 +32,10 @@ MUST watch rebuild 用 `state.graph.reconcile()` 复用旧图。
 
 ## R-OS-4 — watch-runner 创建 state
 
-MUST watch-runner 在 session start 创建 `PackerSessionState`。
+MUST watch-runner 在 session start 创建 `PackerSessionState`（或注入）。
 
+- `createBuildWatcher` 加 `state?: PackerSessionState` 可选参数
+- 传入时用传入的（测试注入 mock）；未传入时 `new PackerSessionState()` 内部创建
 - 首次 build：`state.graph` 是新实例（`new PackerGraph()`），storeInfo 调 `graph.build()`
 - watch rebuild：`state.graph` 已有上一次 build 的数据（含 worker delta），storeInfo 调 `graph.reconcile()`
 - state 通过 `options.state` 传给 `build()` → build-pipeline

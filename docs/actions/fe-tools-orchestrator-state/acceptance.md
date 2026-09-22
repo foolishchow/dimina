@@ -2,11 +2,11 @@
 
 ## A-OS-1 — OrchestratorState 实现类（R-OS-1, D-OS-5, D-PCS-3, D-PCS-6, D-PCS-9）
 
-- [ ] `src/packer/session-state.ts` 含 `export class PackerSessionState implements OrchestratorState`
+- [ ] `src/packer/session-state.ts` 含 `export class PackerSessionState`
 - [ ] 持有 `graph: PackerGraph`（session-scoped）
 - [ ] 持有 `moduleCache: ModuleResultCache`（session-scoped）
 - [ ] 持有 `invalidatedModules: Set<string>`（per-rebuild）
-- [ ] 实现 types.ts §7 OrchestratorState interface 全部字段
+- [ ] 不写 `implements OrchestratorState`（ModuleResultCache class 与 types.ts interface 不兼容；conformance deferred）
 
 ## A-OS-2 — storeInfo 接收 options.graph（R-OS-2, D-OS-2）
 
@@ -24,7 +24,8 @@
 
 ## A-OS-4 — watch-runner 创建 state（R-OS-4, D-OS-1, D-OS-4）
 
-- [ ] watch-runner 在 session start 创建 `PackerSessionState`
+- [ ] watch-runner 在 session start 创建 `PackerSessionState`（或注入）
+- [ ] `createBuildWatcher` 加 `state?: PackerSessionState` 可选参数
 - [ ] state 通过 `options.state` 传给 `build()` → build-pipeline
 - [ ] cache 从 `state.moduleCache` 取
 - [ ] 单次 build（compile CLI）不传 state（向后兼容）

@@ -64,9 +64,17 @@ interface OrchestratorState {
 // src/packer/session-state.ts（新建）
 import { PackerGraph } from './graph.ts'
 import { ModuleResultCache } from '../model/module-result-cache.ts'
-import type { OrchestratorState } from './types.ts'
 
-export class PackerSessionState implements OrchestratorState {
+/**
+ * session-scoped 状态：graph + cache + invalidated。
+ *
+ * 注意：不写 `implements OrchestratorState`——现有 ModuleResultCache class
+ * 的 get/set 返回 CachedModuleResult（非 { module, dependencies }），
+ * 且 size 是 getter（非 method），与 types.ts §7 interface 不兼容。
+ * 接口 conformance deferred 到 ModuleResultCache 泛型化 Action。
+ * 当前用结构类型——字段名与形状一致，运行时行为正确。
+ */
+export class PackerSessionState {
     readonly graph: PackerGraph = new PackerGraph()
     readonly moduleCache: ModuleResultCache = new ModuleResultCache()
     invalidatedModules: Set<string> = new Set()
@@ -75,9 +83,9 @@ export class PackerSessionState implements OrchestratorState {
 
 ## §3 决策详述
 
-### D-OS-1: state 由 watch-runner 创建
+### D-OS-1: state 由 watch-runner 创建（可注入）
 
-**决策**：watch-runner 在 session start 创建 `PackerSessionState`，通过 `options.state` 传入 `build()` → build-pipeline。单次 build（compile CLI）不传 state（向后兼容走旧路径）。
+**决策**：`createBuildWatcher` 加 `state?: PackerSessionState` 可选参数。传入时用传入的（测试注入 mock）；未传入时 `new PackerSessionState()` 内部创建。state 通过 `options.state` 传入 `build()` → build-pipeline。单次 build（compile CLI）不传 state（向后兼容走旧路径）。
 
 **理由**：
 - 与现有 cache 传递模式一致（watch-runner 创建，通过 options 传）
@@ -87,6 +95,7 @@ export class PackerSessionState implements OrchestratorState {
 **替代方案否决**：
 - build() 内部惰性创建 state → state 不暴露给 watch-runner → watch-plan 无法读 state.graph
 - ALS 持 state → D-PCS-9 说 ALS 是 pipeline-scoped，OrchestratorState 是 session-scoped，不能放 ALS
+- state 不可注入 → watch-runner.spec.js 无法 mock state.graph（测试注入 mock store.getDependencyGraph 被 D-OS-3 绕过）
 
 ### D-OS-2: storeInfo 接收 options.graph
 
@@ -104,6 +113,9 @@ function storeInfo(workPath, options = {}) {
 
     if (options.dependencyGraph) {
         // watch rebuild
+        // 注意：当 options.graph 存在（state 路径）时，options.dependencyGraph
+        // 快照是 dead weight——storeInfo 不读它（graph 已有活数据）。
+        // 保留传递是为了向后兼容（无 state 的旧路径仍需 restoreFromSnapshot）。
         if (!options.graph) {
             // 旧路径（无 state）：从快照重建旧图
             graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
@@ -172,46 +184,57 @@ export class PackerSessionState implements OrchestratorState {
 ### 4.1 watch-runner.ts
 
 ```typescript
-// session start
-const activeStore = store ?? createProjectStore()
-const state = new PackerSessionState()  // ← 新建
-
-// first build
-buildResult = await build(targetPath, workPath, useAppIdDir, {
-    ...options,
-    store: activeStore,
-    cache: state.moduleCache,  // ← 从 state 取
-    state,                      // ← 传 state
-})
-
-// rebuild
-rebuild: async (change) => {
-    const plan = createWatchBuildPlan({
-        changedFiles: change.changedFiles,
-        dependencyGraph: state.graph,  // ← 活图（替代 activeStore.getDependencyGraph()）
-        workPath,
-        publishedPath,
-    })
-    if (plan.skip) return
+// createBuildWatcher 加 state 可选参数
+export function createBuildWatcher({
+    targetPath, workPath, useAppIdDir, store, state, options = {}, ...
+}: { ..., state?: PackerSessionState, ... }) {
     // ...
-    const result = await build(targetPath, workPath, useAppIdDir, {
+    const activeStore = store ?? createProjectStore()
+    const sessionState = state ?? new PackerSessionState()  // 注入或新建
+
+    // first build
+    buildResult = await build(targetPath, workPath, useAppIdDir, {
         ...options,
         store: activeStore,
-        cache: state.moduleCache,  // ← 从 state 取
-        state,                      // ← 传 state
-        ...plan.options,
+        cache: sessionState.moduleCache,  // ← 从 state 取
+        state: sessionState,               // ← 传 state
     })
+
+    // rebuild
+    rebuild: async (change) => {
+        const plan = createWatchBuildPlan({
+            changedFiles: change.changedFiles,
+            dependencyGraph: sessionState.graph,  // ← 活图（替代 activeStore.getDependencyGraph()）
+            workPath,
+            publishedPath,
+        })
+        if (plan.skip) return
+        // ...
+        const result = await build(targetPath, workPath, useAppIdDir, {
+            ...options,
+            store: activeStore,
+            cache: sessionState.moduleCache,  // ← 从 state 取
+            state: sessionState,               // ← 传 state
+            ...plan.options,
+        })
+    }
 }
 ```
 
 ### 4.2 build-pipeline.ts
 
 ```typescript
-// _runBuild 解构加 state
-const { ..., state } = runOptions
+// _runBuild 解构加 state（需同步更新 runOptions 类型 cast）
+const { ..., cache, invalidatedModules, skipMaterialize, state } = runOptions as {
+    // ... 现有字段 ...
+    cache?: unknown
+    invalidatedModules?: string[]
+    skipMaterialize?: boolean
+    state?: PackerSessionState  // ← 新增
+}
 
 // '收集配置信息' task
-const graph = state?.graph  // 从 state 取 graph（可能 undefined）
+const graph = state?.graph  // 从 state 取 graph（可能 undefined → 走旧路径）
 ;(ctx).storeInfo = _store.load(workPath, { fileTypes, dependencyGraph, graph })
 ```
 
@@ -224,7 +247,7 @@ const graph = state?.graph  // 从 state 取 graph（可能 undefined）
 | watch rebuild 增量路径产出 ≠ 全量产出 | V-OS-3 验证：watch rebuild 产物 vs 全量产物 diff=0 |
 | cache hit 返回 stale 结果 | cache key = moduleId（不含 fingerprint），reconcile 后图更新 → invalidatedModules 驱逐 dirty |
 | `state.graph` 的 reconcile 合入旧 worker delta 导致图膨胀 | reconcile 的 removeStale 删除不在新 config 的 entries；merge 只加 edges 不加 nodes |
-| watch-runner.spec.js mock 测例不兼容 | mock store.getDependencyGraph → 改为 mock state.graph；测例需更新 |
+| watch-runner.spec.js mock 测例需更新 | state 可注入 → 测试注入 mock state.graph（替代 mock store.getDependencyGraph）；PS2 测例改为验证 sessionState.graph 被读 |
 
 ## §6 不在本 Action 范围
 
