@@ -172,7 +172,7 @@ function storeInfo(workPath, options = {}) {
 **决策**：用 class（非工厂函数），因为 OrchestratorState 是纯数据 interface，class 可加 readonly 修饰。
 
 ```typescript
-export class PackerSessionState implements OrchestratorState {
+export class PackerSessionState {
     readonly graph: PackerGraph = new PackerGraph()
     readonly moduleCache: ModuleResultCache = new ModuleResultCache()
     invalidatedModules: Set<string> = new Set()
@@ -224,6 +224,9 @@ export function createBuildWatcher({
 ### 4.2 build-pipeline.ts
 
 ```typescript
+// 需新增 import
+import { PackerSessionState } from '../../packer/session-state.ts'
+
 // _runBuild 解构加 state（需同步更新 runOptions 类型 cast）
 const { ..., cache, invalidatedModules, skipMaterialize, state } = runOptions as {
     // ... 现有字段 ...
@@ -232,6 +235,11 @@ const { ..., cache, invalidatedModules, skipMaterialize, state } = runOptions as
     skipMaterialize?: boolean
     state?: PackerSessionState  // ← 新增
 }
+
+// state 需加入 serializableOptions 排除列表（同 store/lifecycle/dependencyGraph）
+const { dependencyGraph: _graphPayload, lifecycle: _lifecyclePayload, store: _storeRef,
+         state: _stateRef,  // ← 新增：防止 PackerSessionState 泄漏到 lifecycle.emit payload
+         targetPath: _t, workPath: _w, useAppIdDir: _u, ...serializableOptions } = runOptions
 
 // '收集配置信息' task
 const graph = state?.graph  // 从 state 取 graph（可能 undefined → 走旧路径）

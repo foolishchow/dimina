@@ -31,22 +31,41 @@ done
 
 ## V-OS-4 — 行为 0：watch rebuild 产物一致
 
-**方案**：用 `examples/miniprogram/base`，先 full build 保存产物，再启动 watch → 触发文件变更 → rebuild → 比对 rebuild 产物与 full build 产物。
+**方案**：用 `examples/miniprogram/base`，先 full build 保存产物，再用 watch 模式触发 rebuild，比对接收产物。
 
 ```bash
 # 1. Full build → 保存 baseline
 rm -rf /tmp/os-watch-full
-node --input-type=module -e "
-import build from './dist/index.js';
+cat > /tmp/os-watch-full.mjs << 'SCRIPT'
+import build from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/dist/index.js';
 await build('/tmp/os-watch-full', '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base', true, {});
 console.log('full build done');
-"
+SCRIPT
+node /tmp/os-watch-full.mjs
 cp -r /tmp/os-watch-full /tmp/os-watch-baseline
 
-# 2. Watch build → 触发 rebuild
-#    启动 dev-server 或直接调 createBuildWatcher
-#    触发文件变更（e.g., touch/modify a .js file in examples/miniprogram/base）
-#    等 rebuild 完成
+# 2. Watch rebuild：用脚本调 createBuildWatcher + 触发文件变更
+cat > /tmp/os-watch-rebuild.mjs << 'SCRIPT'
+import { createBuildWatcher } from '/Users/foolishchow/Workspaces/dimina/fe/tools/bundler/dist/watch/watch-runner.js';
+import fs from 'node:fs';
+
+const watcher = createBuildWatcher({
+  targetPath: '/tmp/os-watch-full',
+  workPath: '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base',
+  useAppIdDir: true,
+});
+await watcher.start();
+
+// 触发一个 .js 文件变更（touch 不改内容 → 增量路径）
+const targetFile = '/Users/foolishchow/Workspaces/dimina/examples/miniprogram/base/pages/index/index.js';
+const content = fs.readFileSync(targetFile, 'utf-8');
+fs.writeFileSync(targetFile, content); // 写回相同内容
+
+await watcher.waitForIdle();
+await watcher.stop();
+console.log('rebuild done');
+SCRIPT
+node /tmp/os-watch-rebuild.mjs
 
 # 3. 比对
 diff -r /tmp/os-watch-baseline /tmp/os-watch-full

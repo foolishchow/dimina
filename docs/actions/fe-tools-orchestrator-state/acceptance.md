@@ -11,6 +11,7 @@
 ## A-OS-2 — storeInfo 接收 options.graph（R-OS-2, D-OS-2）
 
 - [ ] `StoreInfoOptions` 加 `graph?: PackerGraph` 字段
+- [ ] build-pipeline 从 runOptions 解构 `state`，将 `state?.graph` 传给 `store.load`
 - [ ] 传入 `options.graph` 时用传入实例（不 `new PackerGraph()`）
 - [ ] 未传入时向后兼容（`new PackerGraph()`）
 - [ ] 传入 `options.graph` 且有 `options.dependencyGraph` 时跳过 `restoreFromSnapshot`
