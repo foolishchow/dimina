@@ -107,14 +107,16 @@ getInvalidatedModules(filePath: string): string[] {
 
 ```
 watch-runner start:
-  logicCache = new ModuleResultCache()
-  viewCache = new ModuleResultCache()    // 新增
-  styleCache = new ModuleResultCache()   // 新增
+  cache = new ModuleResultCache()            // logic（字段名不变——现有 stage-channel 读 ctx.cache）
+  viewCache = new Map(...)                   // 新增（独立实例，value 类型不同）
+  styleCache = new Map(...)                  // 新增
 
 worker input:
-  logicCache: new Map(logicCache.toJSON())
-  viewCache: new Map(viewCache.toJSON())   // 新增
-  styleCache: new Map(styleCache.toJSON()) // 新增
+  cache: new Map(cache.toJSON())             // logic（字段名不变）
+  viewCache: new Map(viewCache.toJSON())     // 新增
+  styleCache: new Map(styleCache.toJSON())   // 新增
+
+注：现有 ctx.cache 字段名不变（logic cache）。新增 viewCache / styleCache 字段——不重命名现有 cache 为 logicCache，避免不必要改动。
 
 worker parse-walk (view):
   invalidatedModules 含 view module? → cache miss → compile → 返回 { viewCompileRes, dependencies }
@@ -243,9 +245,12 @@ const caches = {
 // 现状：worker 返回值是 Record<string, unknown>（executor.ts 无类型）。
 // stage-channel 用 `as { ... }` 结构断言读取（如 `(result as { compileRes?: ... }).compileRes`）。
 // view/style 结果仍走同一 as-cast 模式——不引入 `as any`，用 `as { viewCompileResults?: ... }`。
+// cache 从 ctx 提取（和现有 logic cache 提取同一模式）
+const viewCache = (ctx as { viewCache?: Map<string, { module: ViewCompiledModule; dependencies: string[] }> }).viewCache
+const styleCache = (ctx as { styleCache?: Map<string, { module: StyleCompiledModule; dependencies: string[] }> }).styleCache
 // worker 返回值新增 viewCompileResults / styleCompileResults
 for (const result of (workerResult as { viewCompileResults?: Array<{ moduleId: string; compiled: ViewCompiledModule; dependencies: string[] }> }).viewCompileResults ?? []) {
-  caches.view.set(result.moduleId, {
+  viewCache?.set(result.moduleId, {
     module: result.compiled,
     dependencies: result.dependencies,
   })
