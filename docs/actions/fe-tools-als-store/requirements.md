@@ -66,7 +66,11 @@ MUST globalThis 兜底单例——vitest 多实例兼容（同一 name 复用同
 
 MUST `worker-runtime/context.ts` 的 `abilityContext` 改用 `AsyncContextStore`。
 MUST 类型从 `unknown` 改为正确的 AbilityContext 类型。
-MUST 调用方（`runtime.ts`）不改——`abilityContext.run(...)` / `abilityContext.get()` 签名兼容。
+MUST 调用方（4 处）不改行为：
+- `runtime.ts` `abilityContext.run(...)` → `abilityALS.run(...)`
+- `emit.ts` `abilityContext.getStore() as ...` → `abilityALS.tryGet()?.sink`（消除 as cast）
+- `compatibility.ts` `abilityContext.getStore() as ...` → `abilityALS.tryGet()?.logger ?? consoleFallback`（消除 as cast）
+- `style/index.ts` `abilityContext.getStore() as ...` → `abilityALS.get().sink`（消除 as cast）
 
 ### R-AS-3 compilerContextStorage 改用 AsyncContextStore
 

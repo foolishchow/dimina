@@ -58,21 +58,29 @@ export const abilityContext = (g as ...).__abilityContext ||= new AsyncLocalStor
 // 改后
 import { AsyncContextStore } from './async-context-store.ts'
 
+// 结构类型——不引用 class（PostMessageSink / BufferingLogger 是实现，不是接口）
 export interface AbilityContext {
-  sink: import('./sinks.ts').Sink
-  logger: import('./loggers.ts').Logger
+	sink: { write: (entry: unknown) => void }
+	logger: { warn: (msg: string) => void }
 }
 
 export const abilityALS = new AsyncContextStore<AbilityContext>({ name: 'ability' })
-
-// 兼容旧 API（runtime.ts 用 abilityContext.run / .getStore）
-// 方案 A: 导出 abilityALS，runtime.ts 改用 abilityALS
-// 方案 B: 导出 abilityContext 包装（转发到 abilityALS）
 //
 // run<R> 支持泛型返回值——AsyncLocalStorage.run 本身返回 callback 返回值，直接透传
+//
+// 调用方迁移（4 处）：
+//   runtime.ts:23       abilityContext.run({ sink, logger }, ...) → abilityALS.run({ sink, logger }, ...)
+//   emit.ts:230         abilityContext.getStore() as { sink?: ... } → abilityALS.tryGet()?.sink
+//   compatibility.ts:310  abilityContext.getStore() as { logger?: ... } → abilityALS.tryGet()?.logger ?? consoleFallback
+//   style/index.ts:26    abilityContext.getStore() as { sink: ... } → abilityALS.get().sink
+//
+// tryGet() 用于有 fallback 的场景（emit / compatibility）
+// get() 用于必须存在上下文的场景（style/index.ts）
+//
+// 好处：消除 3 处 `as` 结构断言——tryGet()/get() 返回有类型，不需 cast
 ```
 
-倾向方案 A——`runtime.ts` 直接改用 `abilityALS.run()` / `abilityALS.get()`。改动小（一处）。
+方案 A——`runtime.ts` 直接改用 `abilityALS.run()`。共 4 处 call site 改动（见上方注释）。
 
 ### §2.2 compiler/core/env.ts
 

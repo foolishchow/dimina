@@ -13,7 +13,10 @@
 
 - [ ] `worker-runtime/context.ts` `abilityContext` 改用 `AsyncContextStore`
 - [ ] 类型从 `unknown` 改为 `AbilityContext`
-- [ ] `runtime.ts` 调用方兼容（run / get 签名不变）
+- [ ] `runtime.ts` 调用方兼容（`abilityALS.run()` 替换 `abilityContext.run()`）
+- [ ] `emit.ts` 调用方兼容（`abilityALS.tryGet()?.sink` 替换 `getStore() as ...`）
+- [ ] `compatibility.ts` 调用方兼容（`abilityALS.tryGet()?.logger` 替换 `getStore() as ...`）
+- [ ] `style/index.ts` 调用方兼容（`abilityALS.get().sink` 替换 `getStore() as ...`）
 
 ## A-AS-3 — compilerContextStorage 改用 AsyncContextStore（R-AS-3）
 

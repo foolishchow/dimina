@@ -153,17 +153,17 @@ interface ModuleResultCache<V = CompiledModule> {
 
 **倾向 A**：getInvalidatedModules 内部直接调 `getDirectDependents(id)` 不传 kind。现有 `getDirectDependents` 签名已有可选 kinds 参数，不传 = 全 kind。只需删 `getInvalidatedModules` 内的 `'logic'` 硬编码。
 
-### Q-2: view compile result 形状
+### Q-2: view compile result 形状（倾向已定）
 
 view parse-walk 的 compile result 是什么？
 
 **现状**：view parse-walk 内部产 `scriptRes`（Map<moduleId, code>）+ `renderRes`（render code + map）+ `wxsBindings`。直接进 emitEntry。
 
-**倾向**：提取为 `ViewCompiledModule`（from Packer 形状）——`{ moduleId, kind: 'view', code, map, dependencies, renderBody?, wxsBindings? }`。worker 返回 `ViewCompiledModule[]`，stage-channel 写 cache。
+**倾向已定**：提取为 `ViewCompiledModule`（from Packer 形状）——`{ moduleId, kind: 'view', code, map, dependencies, renderBody?, wxsBindings? }`。worker 返回 `ViewCompiledModule[]`，stage-channel 写 cache。
 
 **问题**：view emit 是 inline（即编即发）。cache 存了 ViewCompiledModule 后，cache hit 时跳过 compile，但还需要 emit。emit 从哪拿 code？
 
-**倾向**：cache hit 时 worker 从 cache 取 ViewCompiledModule，直接 emit（跳过 compile，不跳过 emit）。
+**倾向已定**：cache hit 时 worker 从 cache 取 ViewCompiledModule，直接 emit（跳过 compile，不跳过 emit）。
 
 ### Q-3: ModuleResultCache 泛型化
 
@@ -221,8 +221,11 @@ const caches = {
 }
 
 // stage-channel.ts
+// 现状：worker 返回值是 Record<string, unknown>（executor.ts 无类型）。
+// stage-channel 用 `as { ... }` 结构断言读取（如 `(result as { compileRes?: ... }).compileRes`）。
+// view/style 结果仍走同一 as-cast 模式——不引入 `as any`，用 `as { viewCompileResults?: ... }`。
 // worker 返回值新增 viewCompileResults / styleCompileResults
-for (const result of workerResult.viewCompileResults ?? []) {
+for (const result of (workerResult as { viewCompileResults?: Array<{ moduleId: string; compiled: ViewCompiledModule; dependencies: string[] }> }).viewCompileResults ?? []) {
   caches.view.set(result.moduleId, {
     module: result.compiled,
     dependencies: result.dependencies,
