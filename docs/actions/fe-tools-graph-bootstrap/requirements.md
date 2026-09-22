@@ -91,6 +91,7 @@ MUST 现有 ALS getter（`getComponent` / `getAppConfigInfo` / `getRuntimeType` 
 MUST 这些 getter 的调用方不改。
 MUST `resetStoreInfo` 实现变更为重建 PackerGraph（从 configInfo + dependencyGraph 快照），签名不变——调用方（emit-engine.ts）不改。
 MUST PackerGraph 提供 `restoreFromSnapshot(configData, graphSnapshot)` 方法供 worker 重建（不调 build，不重读 app.json）。
+MUST CompilerContext 类型加 `graph?: PackerGraph` 字段（optional——`createCompilerContext()` 不改，不初始化）。
 
 ### R-GB-6 行为 0
 

@@ -33,6 +33,7 @@
 - [ ] 这些 getter 的调用方不改
 - [ ] `resetStoreInfo` 重建 PackerGraph（从快照），签名不变
 - [ ] PackerGraph 提供 `restoreFromSnapshot()` 方法
+- [ ] CompilerContext 类型加 `graph?: PackerGraph` 字段（optional）
 
 ## A-GB-6 — 行为 0（R-GB-6）
 

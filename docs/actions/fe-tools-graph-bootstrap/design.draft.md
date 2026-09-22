@@ -108,7 +108,7 @@ export class PackerGraph implements Graph {
   isMiniGame() { return this.configData.runtimeType === MINI_GAME }
 
   // worker 从快照重建（resetStoreInfo 调）——不调 build，不重读 app.json
-  restoreFromSnapshot(configData: GraphConfigData, graphSnapshot: GraphSnapshot | undefined): void {
+  restoreFromSnapshot(configData: GraphConfigData, graphSnapshot: GraphSnapshot | DependencyGraph | null | undefined): void {
     this.configData = configData
     this.graph = new DependencyGraph(graphSnapshot ?? null)
   }
