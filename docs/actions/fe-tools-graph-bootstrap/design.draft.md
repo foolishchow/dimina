@@ -145,20 +145,22 @@ Graph 内部持有 configData（appInfo / pageInfo / componentInfo / runtimeType
 
 ```typescript
 // env.ts — getter 实现改，签名不变
+// 用 getCompilerContext()（保持回退行为），非 packerALS.get()（throw）
+// graph 是 optional——用 ?. optional chaining
 function getComponent(path: string) {
-  return packerALS.get().graph.getComponent(path)
+  return getCompilerContext().graph?.getComponent(path)
 }
 function getDependencyGraph() {
-  return packerALS.get().graph.getInnerGraph()  // 返回 DependencyGraph
+  return getCompilerContext().graph?.getInnerGraph()  // 返回 DependencyGraph
 }
 function getAppConfigInfo() {
-  return packerALS.get().graph.getAppConfigInfo()
+  return getCompilerContext().graph?.getAppConfigInfo()
 }
 function getRuntimeType() {
-  return packerALS.get().graph.getRuntimeType()
+  return getCompilerContext().graph?.getRuntimeType() ?? MINI_PROGRAM_RUNTIME_TYPE
 }
 function isMiniGame() {
-  return packerALS.get().graph.isMiniGame()
+  return getCompilerContext().graph?.isMiniGame() ?? false
 }
 ```
 
@@ -236,7 +238,7 @@ function storeInfo(workPath, options = {}) {
     context.configInfo = options.graph.getConfigData()  // 从 Graph 取快照
     context.graph = options.graph  // 新字段：PackerGraph 引用（getter 兼容）
   }
-  return { pathInfo, configInfo, compilerOptions, dependencyGraph: context.graph.toJSON() }
+  return { pathInfo, configInfo, compilerOptions, dependencyGraph: context.graph?.toJSON() ?? null }
 }
 
 // env.ts resetStoreInfo 改后（worker 重建 ALS）
