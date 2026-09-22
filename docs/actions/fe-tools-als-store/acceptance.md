@@ -7,6 +7,7 @@
 - [ ] 实现 `get(): T`（无上下文时 throw）
 - [ ] 实现 `tryGet(): T | undefined`
 - [ ] 实现 `readonly name: string`
+- [ ] 支持 `legacyKey?` 向后兼容（旧 key 名查找）
 - [ ] globalThis 兜底单例（同一 name 复用同一 ALS 实例）
 
 ## A-AS-2 — abilityContext 改用 AsyncContextStore（R-AS-2）

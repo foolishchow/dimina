@@ -18,12 +18,15 @@ export class AsyncContextStore<T> {
   private readonly als: AsyncLocalStorage<T>
   readonly name: string
 
-  constructor(options: { name: string }) {
+  constructor(options: { name: string; legacyKey?: string }) {
     this.name = options.name
     const key = `__als_${this.name}`
     const g = globalThis as { [k: string]: unknown } & typeof globalThis
     // globalThis 兜底：vitest 可能多实例化本模块，同一 name 复用
-    this.als = (g[key] as AsyncLocalStorage<T> | undefined) ?? new AsyncLocalStorage<T>()
+    // backward compat：先查 legacyKey（旧 key 名），再查新 key，最后新建
+    this.als = (options.legacyKey ? g[options.legacyKey] as AsyncLocalStorage<T> | undefined : undefined)
+      ?? (g[key] as AsyncLocalStorage<T> | undefined)
+      ?? new AsyncLocalStorage<T>()
     g[key] = this.als
   }
 
@@ -64,7 +67,7 @@ export interface AbilityContext {
 	logger: { warn: (msg: string) => void }
 }
 
-export const abilityALS = new AsyncContextStore<AbilityContext>({ name: 'ability' })
+export const abilityALS = new AsyncContextStore<AbilityContext>({ name: 'ability', legacyKey: '__abilityContext' })
 //
 // run<R> 支持泛型返回值——AsyncLocalStorage.run 本身返回 callback 返回值，直接透传
 //
@@ -119,7 +122,7 @@ function getCompilerContext(): CompilerContext {
 |---|---|
 | `abilityContext` → `abilityALS` | API 相同（run/get），类型从 unknown → AbilityContext。运行时行为不变。 |
 | `compilerContextStorage` → `packerALS` | API 相同（run/get），加 globalThis 兜底。运行时行为不变（单例仍复用）。 |
-| globalThis key 从 `__abilityContext` → `__als_ability` | key 变了但功能相同——vitest 兜底仍在。 |
+| globalThis key 从 `__abilityContext` → `__als_ability` | key 变了但 legacyKey 兼容查找——vitest 重实例化时先查旧 key `__abilityContext`，找到旧 ALS 实例复用。新 key 写入供后续查找。 |
 
 行为 0 风险低——只改封装方式，不改数据流。
 

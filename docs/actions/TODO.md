@@ -222,3 +222,22 @@
 | 否决（不开） | `exactOptionalPropertyTypes`（49 错，第三方库类型几乎不兼容，日常摩擦大）；`noPropertyAccessFromIndexSignature`（175 错，纯噪音，可读性反降） |
 | 形态 | 候选 1+2 已完成（`fe-tools-bundler-strict-access` complete 已归档）；候选 3 独立 Action `fe-tools-bundler-eslint`（待触发） |
 | 触发条件 | 候选 3 需团队确认引入 ESLint 工具链 |
+
+## Packer 落地（2026-09-21 · 已 formalize）
+
+`fe-tools-packer-core-shape`（complete 归档）定义了 Packer core 6 组件形状（D-PCS-1..10 北星契约）。落地工作已 formalize 为以下 draft Action：
+
+| 顺序 | Action | 做什么 | 状态 |
+| --- | --- | --- | --- |
+| 1 | [`fe-tools-als-store`](fe-tools-als-store/README.md) | 通用 ALS 工具类 `AsyncContextStore<T>`——统一 worker-runtime abilityContext + env.ts compilerContextStorage | `draft` ready |
+| 2 | [`fe-tools-graph-bootstrap`](fe-tools-graph-bootstrap/README.md) | storeInfo config fixpoint 迁入 PackerGraph（D-GB-1..4） | `draft` ready |
+| ↘ | [`fe-tools-incremental-unify`](fe-tools-incremental-unify/README.md) | view/style 模块级增量（D-IU-1..5） | `draft` ready |
+
+als-store 和 graph-bootstrap 都改 env.ts——建议 als-store 先落地（改 ALS 机制），graph-bootstrap 基于更新后的 env.ts（改 storeInfo 逻辑）。incremental-unify 独立，不依赖 als-store。
+
+后续未 formalize 的候选：
+- PackerContext 落地（用 ALS 工具封装 compiler context + 显式传参）
+- load/compile 分离（三车道 parse-walk 拆 Loader + Compiler）
+- Orchestrator 实现（build-pipeline + watch-plan 统一）
+- HMR patch 产物（前置：watch 增量闭环）
+- deriveFromGraph 接入 production（前置：watch 增量 + HMR）

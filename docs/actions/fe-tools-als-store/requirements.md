@@ -92,8 +92,8 @@ MUST `abilityContext` 从 `unknown` 改为有类型（不引入 `any`）。
 
 ## SHOULD
 
-- R-AS-6 SHOULD `AsyncContextStore` 构造函数收 `name` 参数（错误信息可读）
-- R-AS-7 SHOULD globalThis 兜底 key 用 `__als_${name}` 格式（避免冲突）
+- R-AS-6 SHOULD `AsyncContextStore` 构造函数收 `name` + `legacyKey?` 参数（名称可读 + 向后兼容）
+- R-AS-7 SHOULD globalThis 兜底 key 用 `__als_${name}` 格式（避免冲突）；`legacyKey` 用于旧 key 名向后兼容（如 `__abilityContext`）
 
 ## 约束
 
