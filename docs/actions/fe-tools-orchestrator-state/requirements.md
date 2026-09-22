@@ -9,7 +9,7 @@ MUST 创建 `src/packer/session-state.ts`，定义 `export class PackerSessionSt
 - 持有 `invalidatedModules: Set<string>`（per-rebuild 重算）
 - 不写 `implements OrchestratorState`——现有 ModuleResultCache class 的 get/set 返回 CachedModuleResult（非 `{ module, dependencies }`）且 size 是 getter（非 method），与 types.ts §7 interface 不兼容。接口 conformance deferred 到 ModuleResultCache 泛型化 Action。当前用结构类型——字段名与形状一致。
 
-依据：D-PCS-3（graph 长期持有）, D-PCS-6（PackerContext + OrchestratorState 拆区）, D-PCS-9（OrchestratorState session-scoped）。
+依据：D-OS-5, D-PCS-3（graph 长期持有）, D-PCS-6（PackerContext + OrchestratorState 拆区）, D-PCS-9（OrchestratorState session-scoped）。
 
 ## R-OS-2 — storeInfo 接收 options.graph
 
