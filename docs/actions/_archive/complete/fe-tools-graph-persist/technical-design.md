@@ -2,7 +2,7 @@
 
 Status: **ready（2026-10-07）**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md) · [orchestrator-state](../_archive/complete/fe-tools-orchestrator-state/README.md) · [packer-context](../_archive/complete/fe-tools-packer-context/README.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md) · [orchestrator-state](../fe-tools-orchestrator-state/README.md) · [packer-context](../fe-tools-packer-context/README.md)
 
 ## 1. 现状代码
 

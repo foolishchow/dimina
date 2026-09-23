@@ -197,18 +197,19 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 	storePathInfo(workPath)
 
 	// Steps 3-6: 委托 PackerGraph 做 config fixpoint
-	// D-OS-2: options.graph 传入时用传入实例（不新建），跳过 restoreFromSnapshot
+	// D-GP-1: options.graph 传入时走 reconcile（保留旧图 source-level edges）；旧路径（dependencyGraph 快照）走 restore+reconcile；无则 build fresh
 	const graph = options.graph ?? new PackerGraph()
-	if (options.dependencyGraph) {
-		// Watch rebuild
-		if (!options.graph) {
-			// 旧路径（无 state）：从快照重建旧图
-			graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
-		}
-		// state 路径：graph 已有数据（含 worker delta），跳过 restore
+	if (options.graph) {
+		// State 路径：graph 是 state 持有的活图实例
+		// 首次 build: reconcile on empty = build + merge empty = build（等价）
+		// Watch rebuild: reconcile 保留旧图 source-level edges
+		graph.reconcile(toPackerContext(context))
+	} else if (options.dependencyGraph) {
+		// 旧路径（无 state）：从快照重建旧图 → reconcile
+		graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
 		graph.reconcile(toPackerContext(context))
 	} else {
-		// First build: build fresh
+		// 无 state 无快照：首次 build fresh
 		graph.build(toPackerContext(context))
 	}
 

@@ -1,11 +1,11 @@
 # FE Tools Graph Persist
 
 - Action: `fe-tools-graph-persist`
-- Status: `ready`
+- Status: `complete`
 - Updated: 2026-10-07
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-orchestrator-state`](../_archive/complete/fe-tools-orchestrator-state/README.md)（**complete**；PackerSessionState 持 graph + cache + invalidated）
-- 前置：[`fe-tools-packer-context`](../_archive/complete/fe-tools-packer-context/README.md)（**complete**；config fixpoint 迁入 PackerGraph）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-orchestrator-state`](../fe-tools-orchestrator-state/README.md)（**complete**；PackerSessionState 持 graph + cache + invalidated）
+- 前置：[`fe-tools-packer-context`](../fe-tools-packer-context/README.md)（**complete**；config fixpoint 迁入 PackerGraph）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## Background
@@ -62,9 +62,9 @@ reconcile 在首次 build 时等价于 build（merge 空 old graph = no-op）。
 
 ## Design inputs
 
-- [Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证
-- [`fe-tools-orchestrator-state`](../_archive/complete/fe-tools-orchestrator-state/README.md)（PackerSessionState）
-- [`fe-tools-packer-context`](../_archive/complete/fe-tools-packer-context/README.md)（config fixpoint + reconcile）
+- [Experience-Review.md](../../../../Experience-Review.md) §12 行为 0 全量验证
+- [`fe-tools-orchestrator-state`](../fe-tools-orchestrator-state/README.md)（PackerSessionState）
+- [`fe-tools-packer-context`](../fe-tools-packer-context/README.md)（config fixpoint + reconcile）
 - `src/compiler/core/env.ts`（`storeInfo` 分支逻辑）
 - `src/packer/graph.ts`（`build` / `reconcile`）
 - `src/watch/watch-runner.ts`（rebuild 传参）

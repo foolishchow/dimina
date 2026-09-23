@@ -12,8 +12,8 @@ Status: **ready（2026-10-07）** — 未授 `in_progress` 不改 `src`。
 | --- | --- | --- |
 | 0 | 立项 `draft` | **done**（2026-10-07） |
 | 1 | 升 `ready` | **done**（2026-10-07） |
-| 2 | `env.ts`：`storeInfo` 分支条件修正（D-GP-1） | pending |
-| 3 | P-GP* / A-GP*；回流 architecture-notes；close 另授 | pending |
+| 2 | `env.ts`：`storeInfo` 分支条件修正（D-GP-1） | **done** |
+| 3 | P-GP* / A-GP*；回流 architecture-notes；close 另授 | **done** |
 
 ## 依赖
 
