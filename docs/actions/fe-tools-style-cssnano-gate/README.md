@@ -55,7 +55,7 @@ cssnano 也用 `DIMINA_COMPILER_DIFF_VERIFY` gate，代码归置到 emit 侧：
 
 ## Deliverables
 
-- `src/compiler/style/emit.ts`：加 `loadCssnano()` + `cssnanoLoader`（从 parse-walk 迁来）；`emitStyle` 加 cssnano canonical path（sourcemap=true 路径）
+- `src/compiler/style/emit.ts`：加 `import postcss`；迁 `loadCssnano()` + `cssnanoLoader`；`emitStyle` 加 cssnano canonical path（sourcemap=true；`annotation: false` + `let map` 独立变量）
 - `src/compiler/style/parse-walk.ts`：cssnano 调用加 `isDiffVerifyMode()` gate（legacy fallback）；`loadCssnano` + `cssnanoLoader` 改为 import 自 `./emit.ts`
 
 ## Requirements

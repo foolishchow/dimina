@@ -100,10 +100,10 @@ if (options.minify && sourcemap && !isDiffVerifyMode() && module.map) {
     const cssnano = await loadCssnano()
     const postcssResult = await postcss([cssnano()]).process(code, {
         from: undefined,
-        map: { prev: module.map, inline: false },
+        map: { prev: module.map, inline: false, annotation: false, sourcesContent: true },
     })
     code = postcssResult.css
-    module = { ...module, map: postcssResult.map.toString() }
+    map = postcssResult.map.toString()  // ← 更新 sourcemap
 }
 
 // sourcemap=false + minify + 生产模式 → minifyCss esbuild（已有）
@@ -113,6 +113,12 @@ if (options.minify && !sourcemap && !isDiffVerifyMode()) {
 ```
 
 依据：R-CN-1。`sourcemap && module.map` 守卫确保有 sourcemap 时才跑 cssnano（与 minifyCss 的 `!sourcemap` 守卫互补）。
+
+`annotation: false` 守卫：PostCSS `annotation` 默认 `true` 会向 CSS 追加 `/*# sourceMappingURL=to.css.map */`，与 emitStyle 手动追加的 sourceMappingURL重复 → 设 `false` 避免重复。
+
+`sourcesContent: true`：保留 sourcesContent（`style-sourcemap.spec.js` 断言 `map.sourcesContent`）。
+
+`module` 是 `const`，不可重新赋值。引入 `let map = module.map` 作为独立变量，cssnano 更新后赋值 `map = postcssResult.map.toString()`，后续 sourcemap 处理块读 `map` 而非 `module.map`。
 
 ### D-CN-4: per-module vs aggregated
 
@@ -145,7 +151,7 @@ if (options.minify && !sourcemap && !isDiffVerifyMode()) {
 
 | 文件 | 变更 |
 |---|---|
-| `style/emit.ts` | 加 `loadCssnano()` + `cssnanoLoader`（从 parse-walk 迁来）；`emitStyle` 加 cssnano canonical path（sourcemap=true） |
+| `style/emit.ts` | 加 `import postcss from 'postcss'`；迁 `loadCssnano()` + `cssnanoLoader`（从 parse-walk 迁来）；`emitStyle` 加 cssnano canonical path（sourcemap=true；`annotation: false` 守卫 + `let map` 独立变量） |
 | `style/parse-walk.ts` | 删 `loadCssnano` + `cssnanoLoader` 定义；import 改为 `from './emit.ts'`；cssnano 调用加 `isDiffVerifyMode()` gate |
 
 ## 5. 验收映射
