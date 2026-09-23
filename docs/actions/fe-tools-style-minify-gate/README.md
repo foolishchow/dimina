@@ -1,7 +1,7 @@
 # FE Tools Style Minify Gate
 
 - Action: `fe-tools-style-minify-gate`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-10-07
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-emit-transform-split`](../_archive/complete/fe-tools-emit-transform-split/README.md)（**complete**；三车道 parse+walk / transform / emit 拆分）
