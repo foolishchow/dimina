@@ -1,6 +1,6 @@
 # fe-tools-fingerprints-persist
 
-- Status: `ready`
+- Status: `complete`
 - Created: 2026-10-07
 - ID: `fe-tools-fingerprints-persist`
 
@@ -24,7 +24,7 @@
 
 ## Dependencies
 
-- [`fe-tools-graph-persist`](../_archive/complete/fe-tools-graph-persist/README.md)（**complete**；G1——storeInfo state 路径走 reconcile，graph 持久化）
+- [`fe-tools-graph-persist`](../fe-tools-graph-persist/README.md)（**complete**；G1——storeInfo state 路径走 reconcile，graph 持久化）
 - `fingerprint.ts`（existing——D-BM-2：`fingerprintFile` + `FileFP` 已实现）
 
 ## Non-goals
@@ -52,7 +52,7 @@
 
 ## References
 
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-graph-persist`](../_archive/complete/fe-tools-graph-persist/README.md)（**complete**；G1）
-- [Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证
-- [`fe-tools-orchestrator-state`](../_archive/complete/fe-tools-orchestrator-state/README.md)（PackerSessionState）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-graph-persist`](../fe-tools-graph-persist/README.md)（**complete**；G1）
+- [Experience-Review.md](../../../../Experience-Review.md) §12 行为 0 全量验证
+- [`fe-tools-orchestrator-state`](../fe-tools-orchestrator-state/README.md)（PackerSessionState）

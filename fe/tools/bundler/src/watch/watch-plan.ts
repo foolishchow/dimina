@@ -10,6 +10,8 @@
 
 import path from 'node:path'
 import { computeAffectedEntries, computeStagesForFiles, computeInvalidatedModules } from '../model/invalidation.ts'
+import { fingerprintFile } from '../model/fingerprint.ts'
+import type { FileFP } from '../model/fingerprint.ts'
 
 const WATCH_FILE_EVENTS = new Set(['add', 'change', 'unlink'])
 
@@ -92,14 +94,30 @@ function getPublishedOutputPath(targetPath: string, useAppIdDir: boolean, appId:
  * @param {Map<string, {mtime,size,hash}>} params.prevFingerprints 上次指纹表（可选）
  * @returns {{ skip: boolean, incremental: boolean, options: object, fingerprints: Map }}
  */
-function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPath, publishedPath }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; getInvalidatedModules: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string }) {
+function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath, publishedPath, prevFingerprints }: { changedFiles: string[]; dependencyGraph: { hasFile: (f: string) => boolean; getAffectedEntries: (f: string) => string[]; getFileKinds: (f: string) => string[]; getInvalidatedModules: (f: string) => string[]; toJSON: () => unknown }; workPath: string; publishedPath: string; prevFingerprints?: Map<string, FileFP> }) {
+	// D-FP-3: 上一轮指纹表（来自 PackerSessionState）。所有 return 路径都带更新后的 fingerprints。
+	const fingerprints = new Map(prevFingerprints ?? [])
+
 	if (!changedFiles || changedFiles.length === 0) {
-		return { skip: true, incremental: false, options: {}, fingerprints: new Map() }
+		return { skip: true, incremental: false, options: {}, fingerprints }
+	}
+
+	// D-FP-4: 早固定所有 changedFiles——所有 return 路径（json/untracked 全量、incremental）都更新指纹
+	for (const absPath of changedFiles) {
+		const relPath = path.relative(workPath, absPath).split(path.sep).join('/')
+		const prev = prevFingerprints?.get(relPath)
+		const fp = fingerprintFile(absPath, prev)
+		if (fp === null) {
+			// 文件删除 → 从指纹表移除
+			fingerprints.delete(relPath)
+		} else {
+			fingerprints.set(relPath, fp)
+		}
 	}
 
 	// json 变化 → 全量（配置重扫，保守正确）——用绝对路径检查
 	if (changedFiles.some((abs) => path.extname(abs).toLowerCase() === '.json')) {
-		return { skip: false, incremental: false, configChanged: true, options: { incremental: false, configChanged: true }, fingerprints: new Map() }
+		return { skip: false, incremental: false, configChanged: true, options: { incremental: false, configChanged: true }, fingerprints }
 	}
 
 	// 被图追踪的文件 → 增量；未被追踪 → 全量（新文件/未知文件不应 skip）
@@ -107,26 +125,46 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 	const untracked = changedFiles.filter((abs) => !dependencyGraph.hasFile(abs))
 	if (untracked.length > 0) {
 		// add 事件（新文件）或未知文件 → 全量 rebuild
-		return { skip: false, incremental: false, configChanged: false, options: { incremental: false, configChanged: false }, fingerprints: new Map() }
+		return { skip: false, incremental: false, configChanged: false, options: { incremental: false, configChanged: false }, fingerprints }
 	}
 	if (tracked.length === 0) {
-		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints: new Map() }
+		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints }
+	}
+
+	// D-FP-5: content-based dedup——mtime 变但 content hash 没变的文件从 actuallyChanged 过滤掉（false positive）
+	const actuallyChanged: string[] = []
+	for (const absPath of tracked) {
+		const relPath = path.relative(workPath, absPath).split(path.sep).join('/')
+		const fp = fingerprints.get(relPath) // 已在 D-FP-4 计算
+		const prev = prevFingerprints?.get(relPath)
+		if (fp === undefined) {
+			// fingerprintFile 返回 null（文件删除）→ 保留
+			actuallyChanged.push(absPath)
+		} else if (prev && prev.hash === fp.hash) {
+			// content 未变 → false positive，跳过
+		} else {
+			// 新文件或 content 变了 → 保留
+			actuallyChanged.push(absPath)
+		}
+	}
+	if (actuallyChanged.length === 0) {
+		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints }
 	}
 
 	// closure：变更文件 → 受影响 entry 集
-	const affectedSet = computeAffectedEntries(dependencyGraph, tracked)
+	const affectedSet = computeAffectedEntries(dependencyGraph, actuallyChanged)
 	const affectedEntries = [...affectedSet]
 	if (affectedEntries.length === 0) {
-		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints: new Map() }
+		return { skip: true, incremental: false, configChanged: false, options: {}, fingerprints }
 	}
 
 	// M2 D-RC-4：computeInvalidatedModules — dirty moduleId 集
-	const invalidatedModules = computeInvalidatedModules(dependencyGraph, tracked)
+	const invalidatedModules = computeInvalidatedModules(dependencyGraph, actuallyChanged)
 
 	// stages：变更文件的 kind → 需要跑的编译阶段
-	const stages = computeStagesForFiles(dependencyGraph, tracked)
+	const stages = computeStagesForFiles(dependencyGraph, actuallyChanged)
 	if (stages.size === 0) {
-		return { skip: false, incremental: false, configChanged: false, options: { incremental: false, configChanged: false }, fingerprints: new Map() }
+		return { skip: false, incremental: false, configChanged: false, options: { incremental: false, configChanged: false }, fingerprints }
 	}
 
 	return {
@@ -141,9 +179,9 @@ function createWatchBuildPlan({ changedFiles, dependencyGraph, workPath: _workPa
 			invalidatedModules,
 			seedPath: publishedPath,
 			prepareConfig: false,
-			prepareNpm: changedFiles.some((abs) => isNpmPackageFile(abs)),
+			prepareNpm: actuallyChanged.some((abs) => isNpmPackageFile(abs)),
 		},
-		fingerprints: new Map(), // M2 后续接入（watch 场景暂不持久化指纹表）
+		fingerprints,
 	}
 }
 

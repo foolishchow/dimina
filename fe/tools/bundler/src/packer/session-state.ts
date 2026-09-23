@@ -13,9 +13,12 @@
 
 import { PackerGraph } from './graph.ts'
 import { ModuleResultCache } from '../model/module-result-cache.ts'
+import type { FileFP } from '../model/fingerprint.ts'
 
 export class PackerSessionState {
 	readonly graph: PackerGraph = new PackerGraph()
 	readonly moduleCache: ModuleResultCache = new ModuleResultCache()
+	// D-FP-1: fingerprints 跨 rebuild 持久（watch-runner 每次 rebuild 重新赋值，同 invalidatedModules）
+	fingerprints: Map<string, FileFP> = new Map()
 	invalidatedModules: Set<string> = new Set()
 }

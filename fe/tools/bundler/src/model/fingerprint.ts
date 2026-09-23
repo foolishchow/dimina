@@ -35,7 +35,7 @@ function computeFileHash(filePath: string): string {
  * @returns {{ mtimeMs: number, size: number, hash: string } | null} 新指纹（文件不存在返回 null）
  */
 export interface FileFP { missing?: boolean; mtimeMs?: number; ctimeMs?: number; size?: number; hash?: string }
-function fingerprintFile(filePath: string, prev?: FileFP): FileFP | null {
+export function fingerprintFile(filePath: string, prev?: FileFP): FileFP | null {
 	let stat
 	try {
 		stat = fs.statSync(filePath)

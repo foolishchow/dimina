@@ -1,6 +1,6 @@
 # Requirements — fe-tools-fingerprints-persist
 
-Status: **ready（2026-10-07）**
+Status: **complete（2026-10-07）**
 
 ## Background
 

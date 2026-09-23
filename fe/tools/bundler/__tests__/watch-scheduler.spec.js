@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { DependencyGraph } from '../src/model/dependency-graph.ts'
@@ -141,5 +143,56 @@ describe('compiler watch scheduler', () => {
 				stages: ['view'],
 			},
 		})
+	})
+
+	it('skips rebuild when only mtime changed but content is identical (D-FP-5 dedup)', () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fp-'))
+		try {
+			const workPath = tempDir
+			const filePath = path.join(workPath, 'pages/index/index.js')
+			fs.mkdirSync(path.dirname(filePath), { recursive: true })
+			fs.writeFileSync(filePath, 'const a = 1\n')
+
+			const graph = new DependencyGraph()
+			graph.addNode('pages/index/index', { entry: true, type: 'page' })
+			graph.addFile('pages/index/index', filePath, 'logic')
+
+			// ① 首次 plan（新文件，无 prev）→ incremental
+			const first = createWatchBuildPlan({
+				changedFiles: [filePath],
+				dependencyGraph: graph,
+				workPath,
+				publishedPath: '/dist/app',
+			})
+			expect(first.skip).toBe(false)
+			expect(first.incremental).toBe(true)
+			expect(first.fingerprints.has('pages/index/index.js')).toBe(true)
+
+			// ② mtime-only（utimesSync +10s，内容不变）→ dedup → skip
+			const future = new Date(Date.now() + 10000)
+			fs.utimesSync(filePath, future, future)
+			const second = createWatchBuildPlan({
+				changedFiles: [filePath],
+				dependencyGraph: graph,
+				workPath,
+				publishedPath: '/dist/app',
+				prevFingerprints: first.fingerprints,
+			})
+			expect(second.skip).toBe(true)
+
+			// ③ 内容修改（不同长度内容，size 变化强制重算）→ incremental
+			fs.writeFileSync(filePath, 'const a = 22\n')
+			const third = createWatchBuildPlan({
+				changedFiles: [filePath],
+				dependencyGraph: graph,
+				workPath,
+				publishedPath: '/dist/app',
+				prevFingerprints: second.fingerprints,
+			})
+			expect(third.skip).toBe(false)
+			expect(third.incremental).toBe(true)
+		} finally {
+			fs.rmSync(tempDir, { recursive: true, force: true })
+		}
 	})
 })

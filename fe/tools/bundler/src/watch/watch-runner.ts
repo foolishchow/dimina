@@ -97,12 +97,15 @@ export function createBuildWatcher({
 			rebuild: async (change) => {
 				const publishedPath = publishedPathFor(buildResult!.appId)
 				// D-OS-3: plan 从 state.graph 读活图（替代 activeStore.getDependencyGraph() 读空 default）
+				// D-FP-8: prevFingerprints 来自 sessionState；persist plan.fingerprints（即使 skip 也持久化——指纹已更新）
 				const plan = createWatchBuildPlan({
 					changedFiles: change.changedFiles,
 					dependencyGraph: sessionState.graph,
 					workPath,
 					publishedPath,
+					prevFingerprints: sessionState.fingerprints,
 				})
+				sessionState.fingerprints = plan.fingerprints
 				if (plan.skip) {
 					return
 				}
