@@ -1,10 +1,10 @@
 # FE Tools Style Minify Gate
 
 - Action: `fe-tools-style-minify-gate`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-10-07
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-emit-transform-split`](../_archive/complete/fe-tools-emit-transform-split/README.md)（**complete**；三车道 parse+walk / transform / emit 拆分）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-emit-transform-split`](../fe-tools-emit-transform-split/README.md)（**complete**；三车道 parse+walk / transform / emit 拆分）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## Background
@@ -42,8 +42,8 @@ Style minify 目前在 **parse-walk（编译阶段）** 做，不在 emit。这�
 
 ## Design inputs
 
-- [Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证
-- [fe-tools-emit-transform-split](../_archive/complete/fe-tools-emit-transform-split/README.md)（emit 拆分）
+- [Experience-Review.md](../../../../Experience-Review.md) §12 行为 0 全量验证
+- [fe-tools-emit-transform-split](../fe-tools-emit-transform-split/README.md)（emit 拆分）
 - `src/compiler/style/parse-walk.ts`（minifyCss 调用点）
 - `src/compiler/style/emit.ts`（minifyCss 定义 + emitStyle 死参数）
 

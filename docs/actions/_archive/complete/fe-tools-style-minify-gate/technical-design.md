@@ -2,7 +2,7 @@
 
 Status: **draft（2026-10-07）**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md) · [emit-transform-split](../_archive/complete/fe-tools-emit-transform-split/README.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md) · [emit-transform-split](../fe-tools-emit-transform-split/README.md)
 
 ## 1. 现状代码
 

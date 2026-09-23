@@ -18,7 +18,7 @@ import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleE
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { StyleCompileError } from '../../shared/utils.ts'
-import { minifyCss } from './emit.ts'
+import { minifyCss, isDiffVerifyMode } from './emit.ts'
 
 export interface StyleModule {
 	path: string
@@ -390,7 +390,8 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		else {
 			const prefixedResult = await postcss(postcssPlugins).process(scopedResult.code, { from: undefined })
 			// esbuild CSS minify per-module（行为 0：保留模块间 \n）
-			if (shouldMinify) {
+			// D-SM-2: 验证模式（isDiffVerifyMode）留 parse-walk；生产模式不 minify，让 emitStyle 做
+			if (shouldMinify && isDiffVerifyMode()) {
 				const minifiedCode = await minifyCss(prefixedResult.css)
 				finalResult = { css: minifiedCode, map: null }
 			}
