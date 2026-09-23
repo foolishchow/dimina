@@ -113,15 +113,15 @@ class DependencyGraph {
 		const ownerKinds = this.fileKinds.get(normalizedPath)
 		if (!ownerKinds) return []
 		const pending: string[] = []
-		for (const [owner, kinds] of ownerKinds) {
-			if (kinds.has('logic')) pending.push(owner)
+		for (const [owner] of ownerKinds) {
+			pending.push(owner)
 		}
 		const visited = new Set<string>()
 		while (pending.length > 0) {
 			const id = pending.pop()!
 			if (visited.has(id)) continue
 			visited.add(id)
-			for (const dependent of this.getDirectDependents(id, 'logic')) {
+			for (const dependent of this.getDirectDependents(id)) {
 				pending.push(dependent)
 			}
 		}

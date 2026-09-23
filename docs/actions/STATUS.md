@@ -28,6 +28,7 @@
 
 | Action | Status | Path | Summary | Updated |
 | --- | --- | --- | --- | --- |
+| `fe-tools-invalidation-all-kinds` | `complete` | [README](_archive/complete/fe-tools-invalidation-all-kinds/README.md) | 增量前置 G3：`getInvalidatedModules` 去 `kind=logic` 硬编码（owner 全推 + 全 kind dependents 闭包，= incremental-unify D-IU-1）；`computeInvalidatedModules` 签名不变自动泛化；D-IV-6/7 反转（授权 = D-IU-1）；测试更新（2 反转 + 3 新增）。D-G3-1..6 实施。行为 0 三件套（tsc 0 + vitest 612/612 + 7/7 diff=0）。20 轮 review pass。 | 2026-10-07 |
 | `compiler-improvement` | `complete` | [README](_archive/complete/compiler-improvement/README.md) | 编译器改造 umbrella：A 轨道（A1/A2.0/A2/A3/A4）全部 complete；B/C deferred。A-001~A-009 全 passed，已归档。 | 2026-09-08 |
 | `compiler-hook-layer` | `complete` | [README](_archive/complete/compiler-hook-layer/README.md) | Umbrella gate A1（事件契约已冻结 v1）：runBuild 生命周期驱动化交付，行为/产物零变化；A-001~A-009 全 passed，已归档。 | 2026-09-08 |
 | `dmcc-dev-server` | `complete` | [README](_archive/complete/dmcc-dev-server/README.md) | Umbrella gate A2：`dmcc dev` 交付 dev 链路（静态服务 + 宿主页 + ws + 代理 + L1 relaunch）；A-001~A-012 全 passed，已归档。 | 2026-09-08 |

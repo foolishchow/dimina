@@ -27,15 +27,15 @@ export function computeAffectedEntries(graph: { getAffectedEntries: (f: string) 
 }
 
 /**
- * 计算受影响的 logic Module 集（图闭包，仅 logic 边）。
+ * 计算受影响的全 kind Module 集（图闭包，全 kind 边）。
  *
  * D-IV-1: computeInvalidatedModules — 批量；返回排序去重 string[]。
- * D-IV-6: 闭包只沿 kind=logic 的 dependents。
- * 粒度落 Module（logic moduleId），与 computeAffectedEntries（Entry）分工。
+ * D-IU-1: 闭包沿全 kind dependents（D-IV-6/7 已反转：原 logic-only）。
+ * 粒度落 Module（全 kind moduleId），与 computeAffectedEntries（Entry）分工。
  *
  * @param {DependencyGraph} graph 依赖图实例
  * @param {string[]} changedFiles 变更文件路径列表
- * @returns {string[]} 受影响的 logic moduleId 列表（排序去重）
+ * @returns {string[]} 受影响的全 kind moduleId 列表（排序去重）
  */
 export function computeInvalidatedModules(graph: { getInvalidatedModules: (f: string) => string[] }, changedFiles: string[]): string[] {
 	const out = new Set<string>()

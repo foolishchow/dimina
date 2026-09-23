@@ -145,15 +145,15 @@ describe('compiler dependency graph', () => {
 			.toEqual(['pages/foo/index'])
 	})
 
-	it('getInvalidatedModules: wxml → empty (no logic file edge)', () => {
+	it('getInvalidatedModules: wxml → view owner 进集 (D-IV-7 反转)', () => {
 		const graph = new DependencyGraph()
 		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.wxml'), 'view')
 
 		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.wxml')))
-			.toEqual([])
+			.toEqual(['pages/foo/index'])
 	})
 
-	it('getInvalidatedModules: component.js → moduleId in set, page NOT (D-IV-6)', () => {
+	it('getInvalidatedModules: component.js → moduleId + page 进集 (D-IV-6 反转：全 kind 闭包沿 component 边)', () => {
 		const graph = new DependencyGraph()
 		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
 		graph.addFile('/components/leaf/index', path.join(tempDir, 'components/leaf/index.js'), 'logic')
@@ -161,7 +161,40 @@ describe('compiler dependency graph', () => {
 
 		const result = graph.getInvalidatedModules(path.join(tempDir, 'components/leaf/index.js'))
 		expect(result).toContain('/components/leaf/index')
-		expect(result).not.toContain('pages/foo/index')
+		expect(result).toContain('pages/foo/index')
+	})
+
+	it('getInvalidatedModules: wxss → style owner 进集', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.wxss'), 'style')
+
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.wxss')))
+			.toEqual(['pages/foo/index'])
+	})
+
+	it('getInvalidatedModules: component .wxml 变更 → 依赖页 moduleId 进集 (全 kind 闭包沿 component 边)', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('/components/leaf/index', path.join(tempDir, 'components/leaf/index.wxml'), 'view')
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.wxml'), 'view')
+		graph.addDependency('pages/foo/index', '/components/leaf/index', 'component')
+
+		const result = graph.getInvalidatedModules(path.join(tempDir, 'components/leaf/index.wxml'))
+		expect(result).toContain('/components/leaf/index')
+		expect(result).toContain('pages/foo/index')
+	})
+
+	it('getInvalidatedModules: 同模块多文件（js/wxml/wxss）任一变更 → 模块进集 (全 kind owner 收集)', () => {
+		const graph = new DependencyGraph()
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.js'), 'logic')
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.wxml'), 'view')
+		graph.addFile('pages/foo/index', path.join(tempDir, 'pages/foo/index.wxss'), 'style')
+
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.js')))
+			.toEqual(['pages/foo/index'])
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.wxml')))
+			.toEqual(['pages/foo/index'])
+		expect(graph.getInvalidatedModules(path.join(tempDir, 'pages/foo/index.wxss')))
+			.toEqual(['pages/foo/index'])
 	})
 
 	it('getInvalidatedModules: unknown file → [] (D-IV-3, does not throw)', () => {

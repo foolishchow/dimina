@@ -353,7 +353,7 @@ export interface OrchestrateOptions {
 	affectedEntries?: string[]
 	/** 要跑的车道（view/logic/style）。 */
 	stages?: string[]
-	/** logic moduleCache 失效集。 */
+	/** 全 kind 失效模块列表（G3 D-IV-6/7 反转：原 logic-only，现全 kind）。 */
 	invalidatedModules?: string[]
 	/** 增量复制旧产物根。 */
 	seedPath?: string
