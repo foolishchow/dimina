@@ -116,7 +116,7 @@ cached 模块的 source edges 不再丢失。图完整。✅
 
 `options.graph` 未传入但 `options.dependencyGraph` 传入 → 走 `else if` 分支（restoreFromSnapshot + reconcile）。与修正前逻辑一致。✅
 
-依据：R-GP-4。
+**注**：当前无生产/测试调用方走此路径——`dependencyGraph` 在 `ORCH_OPTION_KEYS` 中，`build()` 不传给 `orchestrate()` → `storeInfo` 不收到。保留为向后兼容。
 
 ## 3. 不改什么
 
