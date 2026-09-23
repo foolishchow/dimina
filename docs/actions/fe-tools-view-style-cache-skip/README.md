@@ -47,28 +47,28 @@
 
 ## 核心设计门（readiness blocker）
 
-### RG5-1: view cache-hit 递归 emit 语义（D-G4-1 deferred）
+### RG5-1: view cache-hit 递归 emit 语义 + sub-recompile ViewModule（D-G4-1 deferred；F6 细化，◑ 近解）
 
 view discovery 是**递归**——`compileML(page)` → `viewParseWalk(page)` → `compileViewTree:324/368` 走 `usingComponents` → 产 `EmitModule[]`（page + 各 sub-component 独立 entry）。G4 收集 `ViewCompiledModule[]`（page + 各 sub-component 各一条）。
 
-cache-hit 时若跳 viewParseWalk → **丢失 sub-component 发现** → 漏 emit。**待决**：
-- 方向 A（D-G4-1 推荐）：cache-hit 用 `graph.getDirectDependencies(pageId, 'component')` 查 sub-component IDs → 递归 cache-hit emit（类比 logic `logicDependencies:105` recursive emit）。若 sub-component 也 cached → emit from cache；若 invalidated → recompile 该 sub。
-- 方向 B：cache-hit 粒度 = 整 page（page + sub-components 作一 blob cache）——但 G4 已 per-module cache，需重构 cache shape（违反 D-G4-3 bare）。
-- 方向 C：cache-hit 不跳 viewParseWalk discovery，只跳 Vue compileTemplate——但 parse-walk 是昂贵部分， defeating purpose。
+cache-hit 时若跳 viewParseWalk → **丢失 sub-component 发现** → 漏 emit。**F6 细化**（近解）：
+- **allCached 预检**：cache-hit 仅当 page + 全 subs（graph `getDirectDependencies(page.path,'component')`）均 cached 且均 NOT invalidated
+- **ONE emitEntry bundle**：cache-hit 一次 emitEntry 含 page+subs 全部 cached modules（= cache-miss 结构，保 watch 产物粒度一致→behavior-0）
+- **③ 降级**：任一 sub invalidated → page 全量 recompile（viewParseWalk 内部构造 sub ViewModule，避免 sub-recompile ViewModule 来源问题）
 
-**倾向方向 A**（graph 'component' 边递归，不改 viewParseWalk）。G5 design 须拍板。
+**residual**（验证题，非性 blocker）：① graph 'component' 边 = viewParseWalk discovered usingComponents 一致性（G3 graph 全 kind——预期一致，须测试确认）；② **modules[] 顺序一致性**（F7）：cache-hit `modules=[pageCached,...graph subs]` 顺序须 = cache-miss `viewParseWalk EmitModule[]` 顺序——倾向两路径 sort by moduleId 或验 emitEntry order-invariant。
 
-### RG5-2: view cache-hit 是否需 dependencies:[] 填充
+### RG5-2: view cache-hit 是否需 dependencies:[] 填充 ✅ 已解（F6）
 
-G4 设 `dependencies: []`（placeholder，D-G4-1）。若 RG5-1 选方向 A（graph 查询），则 cache-hit 不依赖 cached.dependencies（直接查 graph）→ **dependencies: [] 保持 placeholder**。若选依赖 cached.dependencies → G5 须在 compile 时填充（从 compileViewTree discovered usingComponents）。**与 RG5-1 联动**。
+G4 设 `dependencies: []`（placeholder，D-G4-1）。F6 细化后：cache-hit 用 graph `getDirectDependencies(page.path,'component')` 查 sub IDs，**不消费 cached.dependencies** → **dependencies: [] 保持 placeholder**（CompiledModuleBase required 须提供值，G4 已设 `[]`）。
 
 ### RG5-3: style cache-hit（较简单）
 
 style `buildCompileCss(page)` per-page，非递归（component sub-styles concat 进单 code，D-G4-2）。cache-hit = per-page：moduleId（page.path）cached 且 NOT invalidated → 跳 buildCompileCss，返 cached StyleCompiledModule（re-emit cached code/map）。无递归 emit 问题（单 code blob）。**已较明确**，design 拍板即足。
 
-### RG5-4: cache-hit 与 intra-build（moduleCompileCache）协同
+### RG5-4: cache-hit 与 intra-build（moduleCompileCache）协同 ✅ 自动解
 
-D-IU-4 检查顺序：intra-build 先查 → miss 则 cross-rebuild → miss 则 compile → 写回两层。G5 加 cross-rebuild 读。intra-build（view/style parse-walk 内 moduleCompileCache）不变。**待决**：cache-hit 写回 intra-build？或 cross-rebuild hit 不写 intra-build（intra-build 仅 compile miss 写）？
+D-IU-4 检查顺序：intra-build 先查 → miss 则 cross-rebuild → miss 则 compile → 写回两层。**G5 自动解**：cache-hit 跳整 parse-walk 路径（viewParseWalk/buildCompileCss）→ intra-build `moduleCompileCache`（parse-walk 内部）既不查也不写。cross-rebuild hit 不写 intra-build（intra-build 仅 compile-miss 路径写，现有行为）。**非 readiness blocker**——行为自然 fallout。
 
 ## Deliverables
 

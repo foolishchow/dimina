@@ -20,14 +20,14 @@ Status: **draft（2026-10-08）**
 ## A-G54 — view/style cache-hit skip（R-G5-4, A-IU-4, D-G5-3/4/5）
 
 - [ ] style `compileSS` cache-hit per-page skip（RG5-3，跳 buildCompileCss，re-emit cached）
-- [ ] view `compileML` cache-hit skip（RG5-1 决策后——递归 emit 语义）
-- [ ] cache-hit 仅当 moduleId 在 cache 且 NOT in invalidatedModules
-- [ ] 测试：两次 build 同模块 → 第二次 cache-hit（跳 compile，产物字节一致）
+- [ ] view `compileML` cache-hit skip（RG5-1 F6：allCached 预检 page+全 subs cached 无 invalidated → ONE emitEntry bundle；任一 sub invalidated → ③ 全量 recompile）
+- [ ] cache-hit 仅当 moduleId 在 cache 且 NOT in invalidatedModules（view 额外：page + 全 subs 均 cached 无 invalidated——F6 allCached 预检）
+- [ ] 测试：两次 build 同模块 → 第二次 cache-hit（跳 compile，产物字节一致）；view allCached 场景 + sub invalidated ③ 降级场景
 
 ## A-G55 — 行为 0 + 类型约束（R-G5-5, A-IU-5）
 
 - [ ] one-shot build 全量 diff=0（无 invalidatedModules → 无 cache-hit skip → 全量编译 = G4 行为）
-- [ ] watch 路径 cache-hit skip：产物字节一致（cached code/map = 全量结果）
+- [ ] watch 路径 cache-hit skip：产物字节一致（cached code/map = 全量结果；P-G506 两 Build 比对）
 - [ ] tsc 0 errors；vitest 全绿
 - [ ] V-PC-5：无 `any`/`as any`/`@ts-nocheck`/`[key: string]` 新增
 

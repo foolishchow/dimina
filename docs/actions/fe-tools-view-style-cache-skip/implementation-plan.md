@@ -6,7 +6,7 @@ Status: **draft（2026-10-08）**
 
 ## Step 0 — design gate review（readiness）
 
-- [ ] RG5-1 view cache-hit 递归 emit 语义拍板（倾向方向 A：graph 'component' 边递归）
+- [ ] RG5-1 view cache-hit 递归 emit 语义拍板（F6 细化：allCached 预检 + ③ 降级 + ONE emitEntry；residual = graph/顺序一致性验证题）
 - [ ] RG5-2 view dependencies:[] 决策（与 RG5-1 联动）
 - [ ] RG5-3 style cache-hit per-page 拍板
 - [ ] RG5-4 cache-hit 与 intra-build 协同拍板
@@ -29,13 +29,13 @@ Status: **draft（2026-10-08）**
 ## Step 3 — 测试
 
 - [ ] cache-hit 单测（mock ctx 注入：① cache-hit skip compile ② cache-miss 写 cache ③ no-op one-shot ④ logic 回归）
-- [ ] view cache-hit 递归 emit 单测（RG5-1 决策后——sub-component cached/invalidated 混合）
+- [ ] view cache-hit 单测（F6：① allCached page+全 subs cached 无 invalidated → skip viewParseWalk ONE emitEntry ② sub invalidated → ③ 降级全量 recompile ③ F7 modules[] 顺序一致性）
 - [ ] style cache-hit per-page 单测
 - 估时 2h
 
-## Step 4 — 验证（P-G501..505）
+## Step 4 — 验证（P-G501..506）
 
-- [ ] P-G501..505 全过（tsc + vitest + 行为 0 全量 diff=0 + V-PC-5 + cache-hit 单测）
+- [ ] P-G501..506 全过（tsc + vitest + 行为 0 全量 diff=0 + V-PC-5 + cache-hit 单测 + watch cache-hit byte-identity 集成）
 - 估时 2h
 
 ## Step 5 — 回流
