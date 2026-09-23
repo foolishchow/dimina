@@ -244,6 +244,7 @@ Packer 下一刀（当前 draft）：
 - [`fe-tools-graph-persist`](_archive/complete/fe-tools-graph-persist/README.md)（**`complete`**）— storeInfo state 路径走 reconcile（非 build），保留旧图 source-level edges。增量前置 G1。
 - [`fe-tools-fingerprints-persist`](_archive/complete/fe-tools-fingerprints-persist/README.md)（**`complete`**）— watch-plan 持久化 fingerprints 到 PackerSessionState，content-based dedup。增量前置 G2。
 - [`fe-tools-view-style-compile-res`](_archive/complete/fe-tools-view-style-compile-res/README.md)（**`complete`**）— 增量前置 G4：view/style worker 返回 ViewCompiledModule/StyleCompiledModule（D-PCS-10 类型已存在）+ stage-channel 写 ctx.viewCache/styleCache（guarded no-op）。设计输入 = incremental-unify D-IU-2/3/4/5。8 轮 review 36 findings 全清。行为 0 三件套（617/617 + 6 项目 diff=0）。为 G5 cache-hit skip 备数据源。
+- [`fe-tools-view-style-cache-skip`](fe-tools-view-style-cache-skip/README.md)（**`draft`**）— 增量前置 G5（incremental-unify 重激活）：A-IU-3 剩余（PackerSessionState 字段 + orchestrator plumbing + worker input 快照）+ A-IU-4 cache-hit skip（view/style 跳 compile re-emit cached）。闭合 incremental-unify。设计输入 = D-IU-2/3/4/5 + G4 D-G4-1..9。design gate RG5-1（view cache-hit 递归 emit，倾向 graph 'component' 边）/RG5-2/RG5-3（✅）/RG5-4 待 review。行为 0（one-shot diff=0；watch cache-hit=效率提升）。
 
 后续未 formalize 的候选：
 - load/compile 分离（三车道 parse-walk 拆 Loader + Compiler）— 不急；当前交织不影响功能/增量/正确性；等 HMR 立项时需求驱动再做
