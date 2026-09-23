@@ -22,7 +22,7 @@ Status: **draft（2026-10-07）**
 
 ### R-GP-3（MUST）— watch rebuild 图完整性
 
-修正后，watch rebuild 后 `state.graph` 保留上一次 build 的 source-level edges（含 cached 模块的边）。vitest 全绿（含 watch-runner.spec.js D-OS-3 "rebuild plan reads the live graph from sessionState.graph"）。
+修正后，watch rebuild 后 `state.graph` 保留上一次 build 的 source-level edges（含 cached 模块的边）。vitest 全绿（回归）。注意：watch-runner.spec.js mock 了 `store.load` → 不直接验证 reconcile 路径；watch rebuild 图完整性由代码审阅 + 首次 build diff=0 间接验证。
 
 依据：cached 模块跳过 parse-walk → 不补边 → 依赖 reconcile 保留旧边。
 

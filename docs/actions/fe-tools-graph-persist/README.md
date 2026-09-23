@@ -102,5 +102,5 @@ reconcile 在首次 build 时等价于 build（merge 空 old graph = no-op）。
 
 - A-GP1..4 全部 [x]；
 - 首次 build diff=0（reconcile on empty = build）；
-- vitest 全绿（含 watch-runner.spec.js D-OS-3 测试）；
+- vitest 全绿（回归）；
 - 回流 architecture-notes。
