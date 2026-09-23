@@ -1,6 +1,7 @@
 /**
  * style parse+walk：less compile + postcss walk（styleTransformPlugin + externalClass + autoprefixer + cssnano）。
- * cssnano 留在此（postcss 插件，需 AST）。不含 esbuild。
+ * cssnano（D-CN-2）：仅验证模式留此（legacy fallback）；生产模式在 emit.ts（D-CN-3 正本）。
+ * 不含 esbuild。
  *
  * D-PW-1：从 index.ts 真抽出。index.ts 只保留 compileSS 编排 + styleEngine。
  */
@@ -18,7 +19,7 @@ import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleE
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { StyleCompileError } from '../../shared/utils.ts'
-import { minifyCss, isDiffVerifyMode } from './emit.ts'
+import { minifyCss, isDiffVerifyMode, loadCssnano } from './emit.ts'
 
 export interface StyleModule {
 	path: string
@@ -39,14 +40,8 @@ interface StyleCompileResult {
 const compileRes = new Map<string, { code: string; map: string | null }>()
 const builtInTagNames = new Set(tagWhiteList)
 const autoprefixerPlugin = autoprefixer({ overrideBrowserslist: ['cover 99.5%'] })
-let cssnanoLoader: Promise<typeof import('cssnano')['default']> | undefined
 let lessLoader: Promise<any> | undefined
 let sassLoader: Promise<typeof import('sass')> | undefined
-
-function loadCssnano() {
-	cssnanoLoader ||= import('cssnano').then(module => module.default)
-	return cssnanoLoader
-}
 
 function loadLess() {
 	lessLoader ||= import('less').then((module: Record<string, unknown>) => module.default)
@@ -378,7 +373,8 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		const postcssPlugins = [createExternalClassPlugin(moduleId!), autoprefixerPlugin] as postcss.Plugin[]
 		const shouldMinify = options.minify !== false
 		if (options.sourcemap) {
-			if (shouldMinify) {
+			// D-CN-2: cssnano 仅验证模式留 parse-walk（legacy fallback）；生产模式由 emitStyle 做（D-CN-3）
+			if (shouldMinify && isDiffVerifyMode()) {
 				const cssnano = await loadCssnano()
 				postcssPlugins.push(cssnano() as unknown as postcss.Plugin)
 			}

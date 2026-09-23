@@ -1,10 +1,10 @@
 # FE Tools Style CSSnano Gate
 
 - Action: `fe-tools-style-cssnano-gate`
-- Status: `ready`
+- Status: `complete`
 - Updated: 2026-10-07
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-style-minify-gate`](../_archive/complete/fe-tools-style-minify-gate/README.md)（**complete**；minifyCss esbuild 已 gate `DIMINA_COMPILER_DIFF_VERIFY`）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-style-minify-gate`](../fe-tools-style-minify-gate/README.md)（**complete**；minifyCss esbuild 已 gate `DIMINA_COMPILER_DIFF_VERIFY`）
 - 工作分支：`feature/fe-tools-sidecar`
 
 ## Background
@@ -48,8 +48,8 @@ cssnano 也用 `DIMINA_COMPILER_DIFF_VERIFY` gate，代码归置到 emit 侧：
 
 ## Design inputs
 
-- [Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证
-- [style-minify-gate](../_archive/complete/fe-tools-style-minify-gate/README.md)（minifyCss gate 先例）
+- [Experience-Review.md](../../../../Experience-Review.md) §12 行为 0 全量验证
+- [style-minify-gate](../fe-tools-style-minify-gate/README.md)（minifyCss gate 先例）
 - `src/compiler/style/parse-walk.ts`（cssnano 在 PostCSS pipeline，line 382-383）
 - `src/compiler/style/emit.ts`（minifyCss + isDiffVerifyMode 正本，canonical home）
 

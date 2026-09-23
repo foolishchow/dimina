@@ -1,4 +1,5 @@
 import { transform } from 'esbuild'
+import postcss from 'postcss'
 import type { EmitModule, EmitEntry, EmitEntryFile, EmitEntrySourcemap } from '../pipeline/emit.ts'
 
 /**
@@ -22,6 +23,16 @@ export async function minifyCss(css: string): Promise<string> {
 	return result.code
 }
 
+/**
+ * D-CN-1: cssnano loader（正本在此，parse-walk legacy fallback 借用）。
+ */
+let cssnanoLoader: Promise<typeof import('cssnano')['default']> | undefined
+
+export function loadCssnano() {
+	cssnanoLoader ||= import('cssnano').then(module => module.default)
+	return cssnanoLoader
+}
+
 export interface StyleEmitOptions {
 	entryId: string
 	filename: string
@@ -31,7 +42,9 @@ export interface StyleEmitOptions {
 }
 
 /**
- * emit style：package + optional esbuild CSS minify（仅 sourcemap=false+minify）。
+ * emit style：package + optional CSS minify。
+ * - sourcemap=false + minify → esbuild minifyCss（D-SM-3）
+ * - sourcemap=true  + minify → cssnano PostCSS（D-CN-3）
  * 无 modDefine。
  */
 export async function emitStyle(
@@ -41,10 +54,24 @@ export async function emitStyle(
 	// 取聚合后的 CSS（modules 数组只有 1 个元素）
 	const module = modules[0]!
 	let code = module.code
+	let map = module.map
 	const { filename, relPrefix, sourcemap } = options
 
-	// esbuild CSS minify：验证模式由 parse-walk per-module 执行；生产模式由 emitStyle aggregated 执行（D-SM-3）
-	// !sourcemap 守卫：sourcemap=true 路径 cssnano 已在 parse-walk 处理，不双重 minify + 不失效 sourcemap
+	// D-CN-3: cssnano PostCSS minify（sourcemap=true 路径，生产模式 canonical）
+	// annotation: false 守卫：PostCSS 默认追加 sourceMappingURL，与 emitStyle 手动追加重复
+	// sourcesContent: true：保留 sourcesContent（style-sourcemap.spec.js 断言）
+	if (options.minify && sourcemap && !isDiffVerifyMode() && map) {
+		const cssnano = await loadCssnano()
+		const postcssResult = await postcss([cssnano() as unknown as postcss.Plugin]).process(code, {
+			from: undefined,
+			map: { prev: map, inline: false, annotation: false, sourcesContent: true },
+		})
+		code = postcssResult.css
+		map = postcssResult.map.toString()
+	}
+
+	// D-SM-3: esbuild CSS minify（sourcemap=false 路径，生产模式 canonical）
+	// !sourcemap 守卫：sourcemap=true 路径 cssnano 已处理，不双重 minify
 	if (options.minify && !sourcemap && !isDiffVerifyMode()) {
 		code = await minifyCss(code)
 	}
@@ -56,13 +83,13 @@ export async function emitStyle(
 		files,
 	}
 
-	if (sourcemap && module.map) {
+	if (sourcemap && map) {
 		const mapFileName = `${filename}.css.map`
-		const map = JSON.parse(module.map)
-		map.file = `${filename}.css`
+		const parsedMap = JSON.parse(map)
+		parsedMap.file = `${filename}.css`
 		code += `\n/*# sourceMappingURL=${mapFileName} */\n`
 		files[0]!.code = code
-		const sourcemaps: EmitEntrySourcemap[] = [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(map) }]
+		const sourcemaps: EmitEntrySourcemap[] = [{ path: `${relPrefix}/${mapFileName}`, map: JSON.stringify(parsedMap) }]
 		entry.sourcemaps = sourcemaps
 	}
 

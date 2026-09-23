@@ -2,7 +2,7 @@
 
 Status: **ready（2026-10-07）**
 
-权威参考：[Experience-Review.md](../../Experience-Review.md) · [style-minify-gate](../_archive/complete/fe-tools-style-minify-gate/README.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md) · [style-minify-gate](../fe-tools-style-minify-gate/README.md)
 
 ## 1. 现状代码
 
