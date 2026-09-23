@@ -88,3 +88,4 @@
 | `fe-tools-packer-context` | `complete` | [README](_archive/complete/fe-tools-packer-context/README.md) | PackerContext 真 I/O + Graph 路 2。D-PC-0..11 实施。行为 0 全量 7 项目 diff=0。 | 2026-10-07 |
 | `fe-tools-style-minify-gate` | `complete` | [README](_archive/complete/fe-tools-style-minify-gate/README.md) | style minifyCss（esbuild）gate `DIMINA_COMPILER_DIFF_VERIFY` env var。设置→parse-walk（现状 diff=0）；未设→emit。cssnano 不动。D-SM-1..4 实施。 | 2026-10-07 |
 | `fe-tools-style-cssnano-gate` | `complete` | [README](_archive/complete/fe-tools-style-cssnano-gate/README.md) | cssnano（sourcemap=true 路径）gate `DIMINA_COMPILER_DIFF_VERIFY`。loader 迁 emit 侧（正本）；parse-walk legacy fallback。D-CN-1..5 实施。 | 2026-10-07 |
+| `fe-tools-graph-persist` | `draft` | [README](fe-tools-graph-persist/README.md) | storeInfo state 路径走 reconcile（非 build），保留旧图 source-level edges。D-GP-1..4 冻。增量前置 G1。 | 2026-10-07 |
