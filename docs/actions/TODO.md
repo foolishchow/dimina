@@ -242,7 +242,8 @@ Packer 下一刀（当前 draft）：
 - [`fe-tools-style-cssnano-gate`](_archive/complete/fe-tools-style-cssnano-gate/README.md)（**`complete`**）— cssnano gate `DIMINA_COMPILER_DIFF_VERIFY`（loader 迁 emit 正本；parse-walk legacy fallback）
 
 后续未 formalize 的候选：
-- load/compile 分离（三车道 parse-walk 拆 Loader + Compiler）
+- load/compile 分离（三车道 parse-walk 拆 Loader + Compiler）— 不急；当前交织不影响功能/增量/正确性；等 HMR 立项时需求驱动再做
+- **worker-runtime 独立 package** — 5/7 文件已纯（零耦合）；2 处耦合待解：①`define-engine.ts` 默认 `successPayload` 读 `env.ts getDependencyGraph`（改默认 `() => ({})`，style 显式写）；②`executor.ts` 硬编码 4 个 entry 路径 + import `worker-pool.ts`（加 `entryPath` + `workerPool` 参数）。解耦后可 `mv` 提取，零代码改。**触发条件：有外部消费者时**
 - Orchestrator 实现 → [`fe-tools-packer-orchestrator`](_archive/complete/fe-tools-packer-orchestrator/README.md)（**`complete`**；D-OR-0..8）
 - **单次 / Bundler Session 级持久 `PackerSessionState`**（跨多次 `.build()` 复用 graph·cache；今日单次短命保现状）——前置：packer-orchestrator complete；触发：有可量化复用收益或产品要求 Session 级缓存
 - **`orchestrate` 返回值收敛为形状 `EmitEntry[]`**（本门 D-OR-7 返回 buildResult）——前置：packer-orchestrator complete
