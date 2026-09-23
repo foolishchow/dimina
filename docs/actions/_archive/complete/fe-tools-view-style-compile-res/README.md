@@ -1,6 +1,6 @@
 # fe-tools-view-style-compile-res
 
-- Status: `ready`
+- Status: `complete`
 - Created: 2026-10-07
 - ID: `fe-tools-view-style-compile-res`
 
@@ -42,10 +42,10 @@ view/style worker 像 logic 一样返回模块级编译结果：
 
 ## Dependencies
 
-- [`fe-tools-invalidation-all-kinds`](../_archive/complete/fe-tools-invalidation-all-kinds/README.md)（**complete**；G3——getInvalidatedModules 覆盖全 kind，失效集含 view/style moduleId）
-- [`fe-tools-incremental-unify`](../_archive/deferred/fe-tools-incremental-unify/design.draft.md)（**deferred**；D-IU-2/3/4/5 设计输入——本门实现 view/style 部分）
-- [`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete**；D-PCS-10 CompiledModule discriminated union——ViewCompiledModule/StyleCompiledModule 类型来源）
-- [`fe-tools-module-result-cache`](../_archive/complete/fe-tools-module-result-cache/README.md)（**complete**；M2 D-RC-1..3 logic cache 闭环——**参照模式（非前置：G4 不碰 ModuleResultCache，D-IU-3 logic cache 保持）**）
+- [`fe-tools-invalidation-all-kinds`](../fe-tools-invalidation-all-kinds/README.md)（**complete**；G3——getInvalidatedModules 覆盖全 kind，失效集含 view/style moduleId）
+- [`fe-tools-incremental-unify`](../../deferred/fe-tools-incremental-unify/design.draft.md)（**deferred**；D-IU-2/3/4/5 设计输入——本门实现 view/style 部分）
+- [`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（**complete**；D-PCS-10 CompiledModule discriminated union——ViewCompiledModule/StyleCompiledModule 类型来源）
+- [`fe-tools-module-result-cache`](../fe-tools-module-result-cache/README.md)（**complete**；M2 D-RC-1..3 logic cache 闭环——**参照模式（非前置：G4 不碰 ModuleResultCache，D-IU-3 logic cache 保持）**）
 
 ## Non-goals
 
@@ -82,8 +82,8 @@ view/style worker 像 logic 一样返回模块级编译结果：
 
 ## References
 
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-invalidation-all-kinds`](../_archive/complete/fe-tools-invalidation-all-kinds/README.md)（G3 complete）
-- 设计输入：[`fe-tools-incremental-unify`](../_archive/deferred/fe-tools-incremental-unify/design.draft.md)（D-IU-2/3/4/5）
-- 类型来源：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（D-PCS-10 CompiledModule）
-- [Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-invalidation-all-kinds`](../fe-tools-invalidation-all-kinds/README.md)（G3 complete）
+- 设计输入：[`fe-tools-incremental-unify`](../../deferred/fe-tools-incremental-unify/design.draft.md)（D-IU-2/3/4/5）
+- 类型来源：[`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（D-PCS-10 CompiledModule）
+- [Experience-Review.md](../../../../Experience-Review.md) §12 行为 0 全量验证

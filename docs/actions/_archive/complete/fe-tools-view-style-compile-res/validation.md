@@ -1,6 +1,6 @@
 # Validation — fe-tools-view-style-compile-res
 
-Status: **ready（2026-10-08）**
+Status: **complete（2026-10-08）**
 
 > review R1-R3 修正后固化。P-G4-x 映射 A-G4-x。
 

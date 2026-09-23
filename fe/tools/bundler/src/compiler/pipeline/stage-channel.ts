@@ -75,6 +75,22 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 		}
 	}
 
+	// G4 D-G4-3：view/style cache 写入（bare value，guarded optional chaining——G4 期 ctx 无实例→no-op）
+	const viewResults = (result as { viewCompileResults?: Array<{ moduleId: string }> }).viewCompileResults
+	const viewCache = (ctx as { viewCache?: { set: (id: string, val: unknown) => void } }).viewCache
+	if (viewCache && viewResults) {
+		for (const mod of viewResults) {
+			viewCache.set(mod.moduleId, mod)
+		}
+	}
+	const styleResults = (result as { styleCompileResults?: Array<{ moduleId: string }> }).styleCompileResults
+	const styleCache = (ctx as { styleCache?: { set: (id: string, val: unknown) => void } }).styleCache
+	if (styleCache && styleResults) {
+		for (const mod of styleResults) {
+			styleCache.set(mod.moduleId, mod)
+		}
+	}
+
 	// D-ER-3：logic 阶段存 emitBuckets 到 ctx（供 3.5 task 按桶发 emit-worker）
 	if ((result as { emitBuckets?: unknown }).emitBuckets) {
 		(ctx as { emitBuckets?: unknown }).emitBuckets = (result as { emitBuckets?: unknown }).emitBuckets

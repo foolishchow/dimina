@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-view-style-compile-res
 
-Status: **ready（2026-10-08）**
+Status: **complete（2026-10-08）**
 
 > review R1-R3 修正后固化。A-G4-x 映射 R-G4-x（RG4-1/2/3/4 已解，见 TD D-G4-1..3/8）。
 

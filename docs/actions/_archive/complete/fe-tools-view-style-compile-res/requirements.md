@@ -1,6 +1,6 @@
 # Requirements — fe-tools-view-style-compile-res
 
-Status: **ready（2026-10-08）**
+Status: **complete（2026-10-08）**
 
 ## Background
 

@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-view-style-compile-res
 
-Status: **ready（2026-10-08）**
+Status: **complete（2026-10-08）**
 
 > review R1-R3 修正后，design gate RG4-1/2/3/4 已解（降级 + bare + 默认 successPayload，见 TD D-G4-1..3/8）；RG4-5/6 待 impl 审。步骤已可冻结。
 
@@ -19,12 +19,12 @@ Status: **ready（2026-10-08）**
 ## Status
 
 - [x] Step 0（design gate review ✅ RG4-1/2/3/4 已解；RG4-5/6 转 impl 审）
-- [ ] Step 1
-- [ ] Step 2
-- [ ] Step 3
-- [ ] Step 4
-- [ ] Step 5
-- [ ] Step 6（归档——Close workflow）
+- [x] Step 1
+- [x] Step 2
+- [x] Step 3
+- [x] Step 4
+- [x] Step 5
+- [x] Step 6（归档——Close workflow）
 
 ## 前置
 

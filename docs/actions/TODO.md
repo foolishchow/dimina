@@ -243,7 +243,7 @@ Packer 下一刀（当前 draft）：
 - [`fe-tools-style-cssnano-gate`](_archive/complete/fe-tools-style-cssnano-gate/README.md)（**`complete`**）— cssnano gate `DIMINA_COMPILER_DIFF_VERIFY`（loader 迁 emit 正本；parse-walk legacy fallback）
 - [`fe-tools-graph-persist`](_archive/complete/fe-tools-graph-persist/README.md)（**`complete`**）— storeInfo state 路径走 reconcile（非 build），保留旧图 source-level edges。增量前置 G1。
 - [`fe-tools-fingerprints-persist`](_archive/complete/fe-tools-fingerprints-persist/README.md)（**`complete`**）— watch-plan 持久化 fingerprints 到 PackerSessionState，content-based dedup。增量前置 G2。
-- [`fe-tools-view-style-compile-res`](fe-tools-view-style-compile-res/README.md)（**`ready`**）— 增量前置 G4：view/style worker 返回 ViewCompiledModule/StyleCompiledModule（D-PCS-10 类型已存在）+ stage-channel 写 ctx.viewCache/styleCache（guarded no-op）。设计输入 = incremental-unify D-IU-2/3/4/5。design gate RG4-1/2/3/4 ✅ 已解（8 轮 review 36 findings 全清 + 降级）；RG4-5/6 待 impl 审。为 G5 cache-hit skip 备数据源。
+- [`fe-tools-view-style-compile-res`](_archive/complete/fe-tools-view-style-compile-res/README.md)（**`complete`**）— 增量前置 G4：view/style worker 返回 ViewCompiledModule/StyleCompiledModule（D-PCS-10 类型已存在）+ stage-channel 写 ctx.viewCache/styleCache（guarded no-op）。设计输入 = incremental-unify D-IU-2/3/4/5。8 轮 review 36 findings 全清。行为 0 三件套（617/617 + 6 项目 diff=0）。为 G5 cache-hit skip 备数据源。
 
 后续未 formalize 的候选：
 - load/compile 分离（三车道 parse-walk 拆 Loader + Compiler）— 不急；当前交织不影响功能/增量/正确性；等 HMR 立项时需求驱动再做

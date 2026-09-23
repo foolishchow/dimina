@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-view-style-compile-res
 
-Status: **ready（2026-10-08）**
+Status: **complete（2026-10-08）**
 
 > **本门为 `draft`**——§2 target 为设计草稿（基于 incremental-unify D-IU-2/3/4/5）；§3 决策标 design-gate（RG4-1..6）须 review 解决后定稿升 `ready`。
 
