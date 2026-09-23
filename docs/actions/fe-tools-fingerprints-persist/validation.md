@@ -7,7 +7,7 @@ Status: **draft（2026-10-07）**
 | ID | Check | Method | Req | Status |
 |---|---|---|---|---|
 | P-FP01 | fingerprints 持久化 | 审阅代码：`PackerSessionState.fingerprints` 字段；`watch-runner` pass + persist | R-FP-1 / A-FP1 | pending |
-| P-FP02 | content-based dedup | 审阅代码：`createWatchBuildPlan` 接收 `prevFingerprints`；`fingerprintFile` 过滤 false positives；`actuallyChanged` 用于下游 | R-FP-2 / A-FP2 | pending |
+| P-FP02 | content-based dedup | `watch-scheduler.spec.js` 真实文件 dedup 测试：temp file 首次 plan → incremental；`utimesSync` mtime-only（内容不变）→ skip；内容修改 → incremental。+ 审阅代码（`prevFingerprints` 接收；`fingerprintFile` 过滤 false positives；`actuallyChanged` 用于下游） | R-FP-2 / A-FP2 | pending |
 | P-FP03 | 首次 build 行为 0 | `DIMINA_COMPILER_DIFF_VERIFY=1`；全量 7 项目 diff=0（stash baseline vs new） | R-FP-3 / A-FP3 | pending |
 | P-FP04 | vitest 回归 | vitest 全绿（回归）；tsc 0 | R-FP-4 / A-FP4 | pending |
 
@@ -22,3 +22,4 @@ Status: **draft（2026-10-07）**
 | Date | Entry |
 |---|---|
 | 2026-10-07 | 立项 `draft`。 |
+| 2026-10-07 | 3 轮 review：R1（1M+3L→F1 真实文件 dedup 测试 / F2 json 保守全量澄清 / F3 死代码信息 / F4 双 fingerprintFile 信息）R2(clean) R3(clean)。F1/F2 修正完成。 |

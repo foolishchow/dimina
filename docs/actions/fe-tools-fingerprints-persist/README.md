@@ -20,6 +20,7 @@
 | 2 | `src/model/fingerprint.ts` | export `fingerprintFile` (currently not exported) |
 | 3 | `src/watch/watch-plan.ts` | add `prevFingerprints` param; early fingerprint all `changedFiles`; filter tracked by content hash; all returns return updated `fingerprints` |
 | 4 | `src/watch/watch-runner.ts` | pass `prevFingerprints: sessionState.fingerprints`; persist `sessionState.fingerprints = plan.fingerprints` |
+| 5 | `__tests__/watch-scheduler.spec.js` | add real-file dedup test（temp file：首次 plan → incremental；`utimesSync` mtime-only → skip；内容修改 → incremental） |
 
 ## Dependencies
 

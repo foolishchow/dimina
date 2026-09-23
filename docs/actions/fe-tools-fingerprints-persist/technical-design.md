@@ -78,6 +78,8 @@ export function fingerprintFile(filePath: string, prev?: FileFP): FileFP | null 
 
 仅加 `export` 关键字。函数逻辑不变。
 
+**注意（F4）**：`model/compile-cache.ts` 存在同名 `fingerprintFile`，但契约不同（返回 `{ missing: true }` 而非 `null`；含 ctimeMs 预筛；全 64 hex；用于 npm 依赖缓存）。本 Action 只用 `model/fingerprint.ts` 的实现，两者不混用。
+
 ### D-FP-3: createWatchBuildPlan add prevFingerprints param + use workPath
 
 ```typescript
@@ -198,6 +200,16 @@ if (plan.skip) { return }
 
 - `watch-scheduler.spec.js`：fake paths（`/project/...`）→ `fingerprintFile` statSync 抛 → null → 所有文件保留 → 行为不变。`fingerprints` 返回 empty Map → `expect.anything()` 匹配。
 - `watch-runner.spec.js` D-OS-3：mock state 无 `fingerprints` → `undefined` → empty Map → 同上。
+
+### 3.4 新增真实文件 dedup 测试（F1 fix）
+
+`watch-scheduler.spec.js` 加一个真实文件用例（`fs.mkdtempSync` + `fs.writeFileSync` + `fs.utimesSync`）：
+
+1. **首次 plan**（新文件，无 prev）→ `fingerprintFile` 返回 hash → `prev` undefined → 保留 → `incremental: true`
+2. **mtime-only**（`utimesSync` 改 mtime +10s，内容不变）→ `fingerprintFile` 重算 hash（相同）→ `prev.hash === fp.hash` → 过滤 → `skip: true`
+3. **内容修改**（`writeFileSync` 改内容）→ `fingerprintFile` 重算 hash（不同）→ 保留 → `incremental: true`
+
+锁住 D-FP-5 的 content-hash 过滤分支（fake paths 测试走不到该分支）。
 
 ## §4 验收映射
 

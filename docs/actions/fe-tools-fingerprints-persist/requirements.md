@@ -37,14 +37,17 @@ chokidar 'change' 事件只表示 mtime 变了。mtime 变了但内容没变（`
 
 用 `actuallyChanged`（过滤后）做 closure（`computeAffectedEntries`、`computeInvalidatedModules`、`computeStagesForFiles`、`isNpmPackageFile`）。
 
+**注意（json 保守全量）**：json 变化（含 mtime-only）仍触发全量 rebuild——json 检查在 content-hash 过滤**之前**（D-FP-4/5 顺序），content-dedup 仅用于源码文件。
+
 ### R-FP-3（MUST）— 首次 build 行为 0
 
 首次 build（无 watch）不受影响。全量 7 项目 diff=0。
 
-### R-FP-4（MUST）— vitest 全绿（回归）
+### R-FP-4（MUST）— vitest 全绿（回归 + 新增 dedup 测试）
 
-`watch-scheduler.spec.js`：`createWatchBuildPlan` 用 fake paths（`/project/...`）→ `fingerprintFile` statSync 抛 → null → 所有文件保留在 `actuallyChanged` → 行为不变。
-`watch-runner.spec.js`：D-OS-3 mock state 无 `fingerprints` → `undefined` → empty Map → 同上。
+回归：`watch-scheduler.spec.js` 既有用例用 fake paths（`/project/...`）→ `fingerprintFile` statSync 抛 → null → 所有文件保留在 `actuallyChanged` → 行为不变。`watch-runner.spec.js`：D-OS-3 mock state 无 `fingerprints` → `undefined` → empty Map → 同上。
+
+新增：`watch-scheduler.spec.js` 加真实文件 dedup 测试（temp file）：①首次 plan → incremental（新文件无 prev）②`utimesSync` mtime-only（内容不变）→ plan skip ③内容修改 → plan incremental。
 
 ## Non-scope
 

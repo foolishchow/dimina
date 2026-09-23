@@ -14,4 +14,5 @@ Status: **draft（2026-10-07）** — 未授 `in_progress` 不改 `src`。
 | 3 | `fingerprint.ts`：export `fingerprintFile`（D-FP-2） | pending |
 | 4 | `watch-plan.ts`：`prevFingerprints` param + early fingerprint + content-hash filter + all returns updated fingerprints（D-FP-3..7） | pending |
 | 5 | `watch-runner.ts`：pass `prevFingerprints` + persist `plan.fingerprints`（D-FP-8） | pending |
-| 6 | P-FP* / A-FP*；回流 architecture-notes；close 另授 | pending |
+| 6 | `watch-scheduler.spec.js`：真实文件 dedup 测试（F1 fix） | pending |
+| 7 | P-FP* / A-FP*；回流 architecture-notes；close 另授 | pending |
