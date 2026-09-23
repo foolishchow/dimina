@@ -37,7 +37,7 @@
 | 北星 | Module 一等公民；图与缓存围着它转；不整包抽 Packer |
 | 近端子门 | M1 [`fe-tools-module-invalidation`](_archive/complete/fe-tools-module-invalidation/README.md) **✅ complete 已归档** → M2 [`fe-tools-module-result-cache`](_archive/complete/fe-tools-module-result-cache/README.md) **✅ complete 已归档**；M0 emit W1 deferred |
 | D-MF-1 | **已封口**：方案 A（今日 `CompileInfo.path`）；刀 2 仅 logic；view/style 排除；规范形迁移另门 |
-| 其后 | 伞级 complete 归档；M0 emit W1 另门可独立先行；后继伞 [`fe-tools-module-convergence`](_archive/complete/fe-tools-module-convergence/README.md) **`complete`**（MC0 graph 正确 + MC3a deriveFromGraph 全 complete；D-MC-0 **A=code 不上图**）；MC3b → [`fe-tools-emit-relocate`](_archive/complete/fe-tools-emit-relocate/README.md) **`complete`**；[`fe-tools-packer-orchestrator`](_archive/complete/fe-tools-packer-orchestrator/README.md) **`complete`**（编排归位）；下一刀 [`fe-tools-packer-context`](fe-tools-packer-context/README.md)（**`in_progress`**） |
+| 其后 | 伞级 complete 归档；M0 emit W1 另门可独立先行；后继伞 [`fe-tools-module-convergence`](_archive/complete/fe-tools-module-convergence/README.md) **`complete`**（MC0 graph 正确 + MC3a deriveFromGraph 全 complete；D-MC-0 **A=code 不上图**）；MC3b → [`fe-tools-emit-relocate`](_archive/complete/fe-tools-emit-relocate/README.md) **`complete`**；[`fe-tools-packer-orchestrator`](_archive/complete/fe-tools-packer-orchestrator/README.md) **`complete`**（编排归位）；下一刀 [`fe-tools-packer-context`](_archive/complete/fe-tools-packer-context/README.md)（**`complete`**） |
 
 ### 1a. M1 模块级失效 —— ✅ complete 已归档
 
@@ -237,7 +237,7 @@
 als-store 和 graph-bootstrap 都改 env.ts——als-store 先落地（改 ALS 机制），graph-bootstrap 基于更新后的 env.ts（改 storeInfo 逻辑）。incremental-unify deferred——等 Packer Orchestrator 落地后统一规划。orchestrator-state 是 graph-bootstrap 的直接续接——D-PCS-3（graph session-scoped）。implemented：PackerSessionState 落地，watch rebuild 增量路径生效（修复空 defaultCompilerContext）。
 
 Packer 下一刀（当前 draft）：
-- [`fe-tools-packer-context`](fe-tools-packer-context/README.md)（**`in_progress`**）— PackerContext 真 I/O + Graph 路 2（D-PC-0..11 已冻；10 轮 review pass）
+- [`fe-tools-packer-context`](_archive/complete/fe-tools-packer-context/README.md)（**`complete`**）— PackerContext 真 I/O + Graph 路 2（D-PC-0..11 已实施；行为 0 全量 7 项目 diff=0）
 
 后续未 formalize 的候选：
 - load/compile 分离（三车道 parse-walk 拆 Loader + Compiler）

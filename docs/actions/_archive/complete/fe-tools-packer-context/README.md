@@ -1,12 +1,12 @@
 # FE Tools Packer Context
 
 - Action: `fe-tools-packer-context`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-09-22
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-graph-bootstrap`](../_archive/complete/fe-tools-graph-bootstrap/README.md)（**complete**；Graph 路 1）
-- 前置：[`fe-tools-packer-orchestrator`](../_archive/complete/fe-tools-packer-orchestrator/README.md)（**complete**；orch 入口）
-- 前置：[`fe-tools-packer-core-shape`](../_archive/complete/fe-tools-packer-core-shape/README.md)（**complete**；`PackerContext` §2）
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-graph-bootstrap`](../fe-tools-graph-bootstrap/README.md)（**complete**；Graph 路 1）
+- 前置：[`fe-tools-packer-orchestrator`](../fe-tools-packer-orchestrator/README.md)（**complete**；orch 入口）
+- 前置：[`fe-tools-packer-core-shape`](../fe-tools-packer-core-shape/README.md)（**complete**；`PackerContext` §2）
 - 文档集：[README](README.md) · [requirements](requirements.md) · [technical-design](technical-design.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 

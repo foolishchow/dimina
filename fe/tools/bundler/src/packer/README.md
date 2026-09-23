@@ -79,10 +79,10 @@ Scheme 层专有字段（getComponent / getAppId / isMiniGame / getAppConfigInfo
 | 通用 I/O | storePathInfo / getWorkPath / getTargetPath / readContent / resolveNpm | PackerContext | I/O 环境 |
 | 模块解析 | resolveAlias | PackerContext | D-PCS-1: deferred |
 | 文件类型 | normalizeFileTypes + 5 个 getter | PackerContext.fileTypes | |
-| Dimina 专有 | storeAppConfig / storePageConfig / getComponent / getAppConfigInfo / getAppId / isMiniGame | Graph（D-PCS-2, D-PCS-4） | Graph 自己读 app.json + 递归组件 |
+| Dimina 专有 | storeAppConfig / storePageConfig / getComponent / getAppConfigInfo / getAppId / isMiniGame | Graph（D-PCS-2, D-PCS-4） | config fixpoint 迁入 config-fixpoint.ts；env 保留薄壳 |
 | 运行时类型 | normalizeRuntimeType / getRuntimeType | Graph（D-PCS-4） | runtimeType 在 Graph 内部判断 |
 | 生命周期 | storeInfo / resetStoreInfo | 不迁移（ALS 实现） | PackerContext 是 interface，ALS 是实现 |
-| 纯 Scheme | storeProjectConfig / getCompilerOptions / ... | 不迁移 | Scheme 层专有 |
+| 纯 Scheme | storeProjectConfig / getCompilerOptions / ... | 迁入 config-fixpoint.ts（薄壳 env 保留） | D-PC-11 |
 
 ### 现有 module 类型 → LoadedModule / CompiledModule
 

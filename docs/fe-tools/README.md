@@ -11,4 +11,4 @@
 | [session-scheduling.draft.md](./session-scheduling.draft.md) | 会话调度草案（L1–L4 / W1–W4 历史确认） |
 | [compiler-symptom-inventory.md](./compiler-symptom-inventory.md) | 病症地图（梳理用，不授权实施） |
 
-近端已交付：[`fe-tools-packer-orchestrator`](../actions/_archive/complete/fe-tools-packer-orchestrator/README.md)（Packer 编排归位，**`complete`**）。候选池见 [`docs/actions/TODO.md`](../actions/TODO.md)。
+近端已交付：[`fe-tools-packer-orchestrator`](../actions/_archive/complete/fe-tools-packer-orchestrator/README.md)（Packer 编排归位，**`complete`**）。当前 Packer 刀：[`fe-tools-packer-context`](../actions/fe-tools-packer-context/README.md)（**`draft`** — Context 真 I/O + Graph 路 2）。候选池见 [`docs/actions/TODO.md`](../actions/TODO.md)。

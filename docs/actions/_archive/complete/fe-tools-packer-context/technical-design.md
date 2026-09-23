@@ -2,7 +2,7 @@
 
 Status: **draft（2026-09-22）** — D-PC-0..11 已冻。
 
-权威参考：[Experience-Review.md](../../Experience-Review.md) · [packer types §2](../../../fe/tools/bundler/src/packer/types.ts) · [graph-bootstrap](../_archive/complete/fe-tools-graph-bootstrap/README.md) · [packer-orchestrator](../_archive/complete/fe-tools-packer-orchestrator/README.md)
+权威参考：[Experience-Review.md](../../../../Experience-Review.md) · [packer types §2](../../../../../fe/tools/bundler/src/packer/types.ts) · [graph-bootstrap](../fe-tools-graph-bootstrap/README.md) · [packer-orchestrator](../fe-tools-packer-orchestrator/README.md)
 
 ## §0 现状
 

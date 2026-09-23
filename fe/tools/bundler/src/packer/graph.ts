@@ -9,9 +9,8 @@
  * - 快照: toJSON / restoreFromSnapshot / getConfigData / getInnerGraph
  *
  * D-GB-1 三阶段：
- *   现在（路 1 过渡态）: build 通过 ALS Proxy 委托 env.ts config fixpoint 函数，
- *     结果复制到 this.configData / this.graph。
- *   终态（路 2）: build 从 ctx.readContent 直接读文件，不经过 ALS。
+ *   现在（路 2）: build 从 ctx.readContent 直接读文件，不经 ALS。
+ *   D-PC-0/6: config fixpoint 迁入 Graph，关路 1。
  *
  * D-GB-2: ALS getters 委托 Graph（this.configData），ALS 持 Graph ref。
  * D-GB-3: reconcile = build + merge old + remove stale。
@@ -23,12 +22,13 @@ import { DependencyGraph } from '../model/dependency-graph.ts'
 import type { GraphSnapshot } from '../model/dependency-graph.ts'
 import type { PageConfig, ComponentConfig } from '../compiler/core/env.ts'
 import {
-	storeProjectConfig,
-	storeAppConfig,
-	storePageConfig,
-	createInitialDependencyGraph,
-	getCompilerContext,
-} from '../compiler/core/env.ts'
+	type FixpointCtx,
+	readProjectConfig,
+	readAppConfig,
+	readPageConfig,
+	buildInitialGraph,
+} from './config-fixpoint.ts'
+import { NpmResolver } from '../compiler/core/npm-resolver.ts'
 
 type DependencyGraphSnapshot = ConstructorParameters<typeof DependencyGraph>[0]
 
@@ -61,22 +61,21 @@ export class PackerGraph implements Graph {
 	/**
 	 * config fixpoint（读 app.json → 递归发现组件 → 扫文件 → 建图）。
 	 *
-	 * 路 1 过渡态: 通过 ALS Proxy 委托 env.ts config fixpoint 函数，
-	 * 函数写入 ALS context.configInfo / context.dependencyGraph，
-	 * 然后复制到 this.configData / this.graph。
+	 * 路 2（D-PC-0/6）: 从 ctx.readContent 直接读文件，不经 ALS。
+	 * D-PC-9: build 过程只读写 Graph 局部 configData；禁止 ALS getter 回环。
+	 * D-PC-8: NpmResolver(ctx.workPath) for config fixpoint。
+	 * D-PC-10: ctx.fileTypes 建图。
 	 */
 	build(ctx: PackerContext): void {
-		// D-GB-1: 现在（路 1 过渡态）— 委托 env.ts config fixpoint 函数。
-		// 这些函数通过模块级 Proxy 读写 ALS context（pathInfo / configInfo）。
-		// ctx 暂不直接使用（终态路 2 将从 ctx.readContent 直接读文件）。
-		void ctx
-		storeProjectConfig()
-		storeAppConfig()
-		storePageConfig()
-		const context = getCompilerContext()
-		context.dependencyGraph = createInitialDependencyGraph()
-		this.configData = { ...context.configInfo }
-		this.graph = context.dependencyGraph
+		const fc: FixpointCtx = {
+			ctx,
+			configData: this.configData,
+			npm: new NpmResolver(ctx.workPath),
+		}
+		readProjectConfig(fc)
+		readAppConfig(fc)
+		readPageConfig(fc)
+		this.graph = buildInitialGraph(fc)
 	}
 
 	/**
