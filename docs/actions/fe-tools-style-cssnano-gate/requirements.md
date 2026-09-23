@@ -1,6 +1,6 @@
 # Requirements — fe-tools-style-cssnano-gate
 
-Status: **draft（2026-10-07）**
+Status: **ready（2026-10-07）**
 
 ## 问题
 

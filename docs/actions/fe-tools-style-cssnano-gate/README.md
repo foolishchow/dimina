@@ -1,7 +1,7 @@
 # FE Tools Style CSSnano Gate
 
 - Action: `fe-tools-style-cssnano-gate`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-07
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-style-minify-gate`](../_archive/complete/fe-tools-style-minify-gate/README.md)（**complete**；minifyCss esbuild 已 gate `DIMINA_COMPILER_DIFF_VERIFY`）

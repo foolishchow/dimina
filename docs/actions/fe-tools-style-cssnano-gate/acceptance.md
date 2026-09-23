@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-style-cssnano-gate
 
-Status: **draft（2026-10-07）** — A-CN1..5 pending。
+Status: **ready（2026-10-07）** — A-CN1..5 pending。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |
