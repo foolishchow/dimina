@@ -90,4 +90,4 @@ storeInfo steps 1–2（paths + fileTypes → ALS；storePathInfo 可仍 init AL
 ## §8 行为 0
 
 - 不改三车道产物字符串语义
-- 验证：examples diff（对照集与 orch 惯例一致）+ vitest + tsc
+- 验证：examples diff（全量 7 项目：air-battle / base / mpx-demo / subpackages / taro-todo / vant / weui——Experience-Review §12）+ vitest + tsc
