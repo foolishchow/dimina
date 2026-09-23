@@ -33,7 +33,7 @@ Status: **draft（2026-09-22）** — D-PC-0..11 已冻。
 
 ## R-PC-4（MUST）行为 0
 
-- examples 产物 diff=0（与仓库惯例 / orch 对照集一致）
+- examples 产物 diff=0（全量 7 项目：air-battle / base / mpx-demo / subpackages / taro-todo / vant / weui——Experience-Review §12 全量要求，此门改 env.ts + graph.ts 双全局路径）
 - 全量 vitest 绿；tsc 0 错
 - 不引入 `any` / `as any` / `@ts-nocheck`（新增/改动面）
 

@@ -65,6 +65,7 @@ storeInfo steps 1–2（paths + fileTypes → ALS；storePathInfo 可仍 init AL
 
 - PackerContext 字段保留，实现 stub
 - config fixpoint 不读这两字段；路径解析用 Graph 内迁自 `resolveAppAlias` / `NpmResolver.resolveComponentPath`（D-PC-8）
+- **`resolveAppAlias` 有外部调用者**（`logic/parse-walk.ts` line 312，源级 alias 解析）；env.ts 版本保留为薄壳（读取 ALS `configInfo.appInfo`），Graph 私有版本读取 `this.configData.appInfo`。`getModuleId` 无外部调用者，可完全迁入 Graph 私有
 - 真接线：另门
 
 ## §5 存在性与 fileTypes（D-PC-7 / D-PC-10）

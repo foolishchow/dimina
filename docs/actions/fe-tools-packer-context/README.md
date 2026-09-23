@@ -64,7 +64,7 @@ packer-orchestrator (complete): orch 入口 + 写权
 
 ## 行为 0 守卫
 
-- examples 产物 diff=0（与 orch 惯例一致：仓库 examples 下参与对照的 apps）
+- examples 产物 diff=0（全量 7 项目：air-battle / base / mpx-demo / subpackages / taro-todo / vant / weui——Experience-Review §12 全量要求，此门改 env.ts + graph.ts 双全局路径）
 - 全量 vitest 绿；tsc 0
 
 ## Readiness gaps
