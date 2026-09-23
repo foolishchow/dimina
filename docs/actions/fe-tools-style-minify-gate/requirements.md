@@ -32,7 +32,7 @@ cssnano（sourcemap=true 路径）不本门处理。它只在 sourcemap=true 时
 
 ### R-SM-5（SHOULD）— 生产模式可跑
 
-`DIMINA_COMPILER_DIFF_VERIFY` 未设置时，vitest 全绿，tsc 0 errors。产物 minified（和验证模式字节一致——因为同一 minify 函数 `minifyCss`，只是调用位置不同）。
+`DIMINA_COMPILER_DIFF_VERIFY` 未设置时，vitest 全绿，tsc 0 errors。产物 minified（per-module vs aggregated minify 产出字节可能不同——见 D-SM-4，但均为有效 minified CSS）。
 
 ## 约束
 

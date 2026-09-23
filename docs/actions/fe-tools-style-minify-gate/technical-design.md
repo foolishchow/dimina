@@ -46,7 +46,7 @@ const entry = await emitStyle(
 ### D-SM-1: env var 读取
 
 ```typescript
-// 位置：style/emit.ts 或 style/parse-walk.ts 共用
+// 定义在 style/emit.ts（parse-walk.ts 已有 import 路径，不新增依赖方向）
 function isDiffVerifyMode(): boolean {
     return !!process.env.DIMINA_COMPILER_DIFF_VERIFY
 }
@@ -77,8 +77,8 @@ export async function emitStyle(modules, options: StyleEmitOptions): Promise<Emi
     const module = modules[0]!
     let code = module.code
 
-    // 新路径：生产模式下 emit 做 minify
-    if (options.minify && !isDiffVerifyMode()) {
+    // 新路径：生产模式下 emit 做 minify（仅 sourcemap=false——sourcemap=true 路径 cssnano 已在 parse-walk 处理）
+    if (options.minify && !options.sourcemap && !isDiffVerifyMode()) {
         code = await minifyCss(code)
     }
 
@@ -86,15 +86,15 @@ export async function emitStyle(modules, options: StyleEmitOptions): Promise<Emi
 }
 ```
 
-依据：R-SM-2。死参数 `minify` 激活。
+依据：R-SM-2。死参数 `minify` 激活。`!options.sourcemap` 守卫确保 sourcemap=true 路径不被双重 minify（cssnano 已在 parse-walk 处理）+ sourcemap 不失效。
 
 ### D-SM-4: 产出一致性
 
-验证模式：parse-walk minify → `result.code`（minified）→ emitStyle 不 minify → 产物 = minified。
+验证模式：parse-walk per-module minify → `result.code`（minified）→ emitStyle 不 minify → 产物 = minified。
 
-生产模式：parse-walk 不 minify → `result.code`（unminified）→ emitStyle minify → 产物 = minified。
+生产模式：parse-walk 不 minify → `result.code`（unminified）→ emitStyle aggregated minify → 产物 = minified。
 
-同一 `minifyCss` 函数，同一 esbuild 参数，只是调用位置不同 → 产出字节一致。
+同一 `minifyCss` 函数，同一 esbuild 参数。但 per-module minify（验证模式）与 aggregated minify（生产模式）产出字节可能不同（per-module 保留模块间 `\n`，aggregated 删除——见 `emit.ts:6` 注释）。两种模式产出均为有效 minified CSS，但不保证字节一致。
 
 ## 3. 不改什么
 
@@ -108,7 +108,7 @@ export async function emitStyle(modules, options: StyleEmitOptions): Promise<Emi
 
 | 文件 | 变更 |
 |---|---|
-| `style/emit.ts` | 加 `isDiffVerifyMode()` + `emitStyle` 激活 `minify` 参数 |
+| `style/emit.ts` | 加 `isDiffVerifyMode()`（定义在此）+ `emitStyle` 激活 `minify` 参数（`!sourcemap` 守卫） |
 | `style/parse-walk.ts` | sourcemap=false 路径 minifyCss 调用加 `isDiffVerifyMode()` gate |
 
 ## 5. 验收映射

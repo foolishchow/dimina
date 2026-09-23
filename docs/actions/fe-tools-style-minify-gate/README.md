@@ -50,8 +50,7 @@ Style minify 目前在 **parse-walk（编译阶段）** 做，不在 emit。这�
 ## Deliverables
 
 - `src/compiler/style/parse-walk.ts`：sourcemap=false 路径 minifyCss 调用加 env var gate
-- `src/compiler/style/emit.ts`：`emitStyle` 激活死 `minify` 参数，调 `minifyCss`
-- `src/compiler/style/index.ts`：如需调整传参
+- `src/compiler/style/emit.ts`：加 `isDiffVerifyMode()` + `emitStyle` 激活死 `minify` 参数（`!sourcemap` 守卫）
 
 ## Requirements
 

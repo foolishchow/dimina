@@ -6,8 +6,8 @@ Status: **draft（2026-10-07）**
 
 | ID | Check | Command / method | Maps to | Result |
 | --- | --- | --- | --- | --- |
-| P-SM01 | env var gate 生效 | `DIMINA_COMPILER_DIFF_VERIFY=1` 构建 → parse-walk minify；不设 → parse-walk 不 minify | R-SM-1 / A-SM1 | pending |
-| P-SM02 | emitStyle 激活 minify | 审阅 `emitStyle`：`minify && !isDiffVerifyMode()` → 调 minifyCss | R-SM-2 / A-SM2 | pending |
+| P-SM01 | env var gate 生效 | 审阅代码确认 gate 逻辑：`DIMINA_COMPILER_DIFF_VERIFY=1` → parse-walk 调 minifyCss + emitStyle 不调；不设 → parse-walk 不调 + emitStyle 调（仅 sourcemap=false） | R-SM-1 / A-SM1 | pending |
+| P-SM02 | emitStyle 激活 minify | 审阅 `emitStyle`：`minify && !sourcemap && !isDiffVerifyMode()` → 调 minifyCss | R-SM-2 / A-SM2 | pending |
 | P-SM03 | 行为 0（验证模式） | `DIMINA_COMPILER_DIFF_VERIFY=1`；全量 7 项目 diff=0；vitest；tsc 0 | R-SM-3 / A-SM3 | pending |
 | P-SM04 | cssnano 不变 | `git diff` 确认 sourcemap=true 路径 cssnano 代码不变 | R-SM-4 / A-SM4 | pending |
 | P-SM05 | 生产模式可跑 | 不设 `DIMINA_COMPILER_DIFF_VERIFY`；vitest 全绿；tsc 0 | R-SM-5 / A-SM5 | pending |
