@@ -1,6 +1,6 @@
 # Validation — fe-tools-fingerprints-persist
 
-Status: **draft（2026-10-07）**
+Status: **ready（2026-10-07）**
 
 ## Checkpoints
 
@@ -24,3 +24,5 @@ Status: **draft（2026-10-07）**
 | 2026-10-07 | 立项 `draft`。 |
 | 2026-10-07 | 3 轮 review：R1(1M+3L→F1 真实文件 dedup 测试 / F2 json 保守全量澄清 / F3 死代码信息 / F4 双 fingerprintFile 信息) R2(clean) R3(clean)。F1/F2 修正完成。 |
 | 2026-10-07 | 3 轮 post-fix review：R1(1L→F5 约束措辞矛盾) R2(clean) R3(clean)。F5 修正：明确不改 build()/orchestrate() 传参，允许 watch-runner 内部 D-FP-8 改动。 |
+| 2026-10-07 | 6 轮 review累计所有 findings 修正闭环（F1/F2/F3/F4/F5）；post-fix 3 轮 clean。升 `ready`。 |
+

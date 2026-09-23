@@ -1,6 +1,6 @@
 # fe-tools-fingerprints-persist
 
-- Status: `draft`
+- Status: `ready`
 - Created: 2026-10-07
 - ID: `fe-tools-fingerprints-persist`
 

@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-fingerprints-persist
 
-Status: **draft（2026-10-07）**
+Status: **ready（2026-10-07）**
 
 权威参考：[Experience-Review.md](../../Experience-Review.md) · [graph-persist](../_archive/complete/fe-tools-graph-persist/README.md) · [orchestrator-state](../_archive/complete/fe-tools-orchestrator-state/README.md)
 
