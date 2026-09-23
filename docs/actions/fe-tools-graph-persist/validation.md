@@ -1,6 +1,6 @@
 # Validation — fe-tools-graph-persist
 
-Status: **draft（2026-10-07）**
+Status: **ready（2026-10-07）**
 
 权威参考：[Experience-Review.md](../../Experience-Review.md)
 
@@ -24,3 +24,4 @@ Status: **draft（2026-10-07）**
 | When | What |
 | --- | --- |
 | 2026-10-07 | 立项 `draft`。 |
+| 2026-10-07 | 3 轮 review：R1(1M+1L→F1/F2 修正) R2(clean) R3 clean；post-fix R1(2L→F3/F4 修正) R2(clean) R3(clean)。3 consecutive clean passes。升 `ready`。 |

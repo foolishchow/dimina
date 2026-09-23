@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-graph-persist
 
-Status: **draft（2026-10-07）** — A-GP1..4 pending。
+Status: **ready（2026-10-07）** — A-GP1..4 pending。
 
 | ID | Req | Criterion | Evidence | Status |
 | --- | --- | --- | --- | --- |

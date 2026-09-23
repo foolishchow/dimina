@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-graph-persist
 
-Status: **draft（2026-10-07）**
+Status: **ready（2026-10-07）**
 
 权威参考：[Experience-Review.md](../../Experience-Review.md) · [orchestrator-state](../_archive/complete/fe-tools-orchestrator-state/README.md) · [packer-context](../_archive/complete/fe-tools-packer-context/README.md)
 

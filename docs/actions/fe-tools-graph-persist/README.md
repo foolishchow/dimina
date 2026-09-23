@@ -1,7 +1,7 @@
 # FE Tools Graph Persist
 
 - Action: `fe-tools-graph-persist`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-07
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-orchestrator-state`](../_archive/complete/fe-tools-orchestrator-state/README.md)（**complete**；PackerSessionState 持 graph + cache + invalidated）

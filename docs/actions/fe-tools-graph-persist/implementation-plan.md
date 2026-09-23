@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-graph-persist
 
-Status: **draft（2026-10-07）** — 未授 `in_progress` 不改 `src`。
+Status: **ready（2026-10-07）** — 未授 `in_progress` 不改 `src`。
 
 ## 纪律
 
@@ -11,7 +11,7 @@ Status: **draft（2026-10-07）** — 未授 `in_progress` 不改 `src`。
 | Step | 动作 | 状态 |
 | --- | --- | --- |
 | 0 | 立项 `draft` | **done**（2026-10-07） |
-| 1 | 升 `ready`（另授） | pending |
+| 1 | 升 `ready` | **done**（2026-10-07） |
 | 2 | `env.ts`：`storeInfo` 分支条件修正（D-GP-1） | pending |
 | 3 | P-GP* / A-GP*；回流 architecture-notes；close 另授 | pending |
 
