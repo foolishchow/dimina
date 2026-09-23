@@ -90,5 +90,5 @@ M1（computeInvalidatedModules）+ M2（ModuleResultCache）已 complete 归档�
 
 - **决策日期**：2026-09-22
 - **原因**：本 Action 独立于 Packer 落地链（不改 env.ts），但 view/style 模块级增量应等 Packer 架构完善后统一规划。当前 Packer 落地仅有 als-store + graph-bootstrap 完成（路 1 过渡态），PackerContext / load-compile 分离 / Orchestrator 均未 formalize。在 Orchestrator 落地前做增量统一，可能与后续管线重构产生冲突。
-- **重激活条件**：[`fe-tools-packer-orchestrator`](../complete/fe-tools-packer-orchestrator/README.md)（**complete**）已落地（build/watch 统一经 `orchestrate`）。可重新评估本 Action 是否仍适用原设计，或需要新开 Action 承接。
+- **重激活条件**：[`fe-tools-packer-orchestrator`](../../complete/fe-tools-packer-orchestrator/README.md)（**complete**）已落地（build/watch 统一经 `orchestrate`）。可重新评估本 Action 是否仍适用原设计，或需要新开 Action 承接。
 - **替代**：暂无替代 Action。logic-only 增量（M1+M2 已 complete）满足当前 watch 需求。
