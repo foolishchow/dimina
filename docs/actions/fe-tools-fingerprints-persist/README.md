@@ -40,7 +40,7 @@
 
 - 行为 0 原则：首次 build 产物字节完全不变。
 - 不改 `fingerprint.ts` 的 `fingerprintFile` / `scanFingerprints` 逻辑（已正确）。
-- 不改 `watch-runner` 传参（D-OR-6/8 有意不传 dependencyGraph 快照）。
+- 不改 `build()`/`orchestrate()` 传参（D-OR-6/8 有意不传 dependencyGraph 快照）；watch-runner 内部 `createWatchBuildPlan` 调用可加 `prevFingerprints` + persist（D-FP-8）。
 - 不加 `any` / `as any` / `@ts-nocheck` / `[key: string]`。
 
 ## Closure conditions
