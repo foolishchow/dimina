@@ -59,7 +59,7 @@ Status: **ready（2026-10-09）**
 ## Step 5 — 验证（P-HR1..7）
 
 - [ ] P-HR1 `grep -rn "loaderRegistry\.\(get\|kinds\)" src/`（非零且非测试）+ kinds/get 单测断言（logic/view/style）
-- [ ] P-HR2 L_HMR flag 两态单测：默认关 payload == baseline（dev-reload.spec.js 18 tests 语义）；开 + 单 kind 增量 → L_HMR + changedStages + affectedPages
+- [ ] P-HR2 L_HMR flag 两态单测：默认关 payload == baseline（dev-reload.spec.js 既有 18 tests + H4 L_HMR 4 tests，复用/扩展）；开 + 增量（stages>0，非限定单 kind——dev-reload.ts:62） → L_HMR + changedStages + affectedPages
 - [ ] P-HR3 view-selective-stages.spec.js pass（触发/子集/字节三断言）
 - [ ] P-HR4 `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` 收敛为 typed 边界消费（result/task 局部窄化不计）
 - [ ] P-HR5 `grep -n "pipeline/" src/model/invalidation.ts` = 0

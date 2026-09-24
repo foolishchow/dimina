@@ -6,8 +6,8 @@ Status: **ready（2026-10-09）**
 
 | ID | Requirement | Observable condition | Planned evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-HR1 | R-HR-1 registry 管线接线 | `loaderRegistry.get/kinds` 有生产调用点（grep 非零）；view/style Loader 已注册；compile/emit registry 非空——**单测断言 `kinds()` 含 logic/view/style + `get(kind)` 返回注册实现** | grep + registry 单测 | pending |
-| A-HR2 | R-HR-2 L_HMR 激活通道 | `enableHmr` 有生产设值点（flag 透传 preview-adapter）；默认关时 reload payload 与 baseline 恒等；flag 开时单 kind 增量合成 L_HMR | 单测（flag 两态）+ payload dump | pending |
+| A-HR1 | R-HR-1 registry 管线接线 | `loaderRegistry.get/kinds` 有生产调用点（grep 非零）；view/style Loader 已注册——**单测断言 `kinds()` 含 logic/view/style + `get(kind)` 返回注册实现**；**compileRegistry/emitRegistry 非空**（阶段函数注册——单测断言各 registry 注册实现非空，独立于 LoaderRegistry） | grep + registry 单测（loader/compile/emit 三 registry 各验） | pending |
+| A-HR2 | R-HR-2 L_HMR 激活通道 | `enableHmr` 有生产设值点（flag 透传 preview-adapter）；默认关时 reload payload 与 baseline 恒等；flag 开时增量（stages>0）合成 L_HMR（非限定单 kind——dev-reload.ts:62 逻辑） | 单测（flag 两态）+ payload dump | pending |
 | A-HR3 | R-HR-3 selective 链路级验证 | stage-channel 边界级测试：selective 触发 + pageBundles 只含 dirty 子集 + orderList 全量 + 产物与全量重编字节恒等 | 新 spec（触发/子集/字节三断言） | pending |
 | A-HR4 | R-HR-4 R3 ctx 类型收敛 | **ctx 字段**断言收敛（grep `ctx as {` 在 stage-channel + orchestrator 收敛为 typed；result/task 局部窄化不在内）；单一 typed 边界声明在档 | grep `ctx as {` + tsc | pending |
 | A-HR5 | R-HR-5 COMPILE_STAGE_ORDER 下沉 | `model/invalidation.ts` 无 `compiler/pipeline` import（grep = 0）；compile-cache 分支记 tracker residual（非本项消解） | grep + vitest + tracker diff | pending |
