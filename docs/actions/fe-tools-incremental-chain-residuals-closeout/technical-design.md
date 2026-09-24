@@ -61,16 +61,17 @@ async function viewCompile(...): Promise<{ viewCompileResults: ViewCompiledModul
 // view/index.ts compileML——ensureWxsScan 移入条件分支
 async function compileML(pages, root, progress, viewCache?, invalidated?) {
   // G5 D-IRC-3/R9：仅当至少一 page cache-miss 时才扫 wxs（全 cache-hit 跳过——hit 不消费 wxs）
+  // 预检须保守（pessimistic）——与 loop cache-hit 逻辑严格一致，避免 hasMiss=false 但 loop miss → viewParseWalk 缺 wxs
   const hasMiss = pages.some(p => {
     const b = viewCache?.get(p.path)
-    return !b || b.some(m => invalidated?.includes(m.moduleId) ?? false)
+    return !b || b.some(m => invalidated?.includes(m.moduleId) ?? false)  // 与 loop 判定同式
   })
   if (hasMiss) ensureWxsScan(getWorkPath())
   // ...
 }
 ```
 
-**若 `hasMiss` 预检引入复杂度/回归风险** → 降级 Non-acceptance（R9 info，不实施）。
+**保守性约束**：`hasMiss` 预检式须与 loop 内 cache-hit 判定**逐字同式**（bundle 存在 + bundle 内任一 module invalidated → miss），否则 hasMiss=false 但 loop miss → viewParseWalk 缺 wxs scan → 回归。**若 `hasMiss` 引入复杂度/回归风险** → 降级 Non-acceptance（R9 info，不实施，保持无条件 scan）。
 
 ### §2.4 R6 — 集成测 `.css` 断言
 
@@ -111,17 +112,17 @@ afterEach(() => {
 
 ### D-IRC-4: 行为 0 边界
 
-R1 接线后：one-shot（`index.ts:38`/`build-pipeline.ts:23` 不改）→ undefined → no-op → 全量 → diff=0（不变）。watch 启用 cache → 效能提升，产物字节恒等（cached code/map = 全量结果；P-IRC 真实 watcher 集成测验）。
+R1 接线后：one-shot（`index.ts:38`/`build-pipeline.ts:23` 不改）→ undefined → no-op → 全量 → diff=0（不变）。watch 启用 cache → 效能提升，产物字节恒等（cached code/map = 全量结果；既有集成测覆盖）。
 
-### D-IRC-5: 真实 watcher 回归测（R1 接线锁）
+### D-IRC-5: 接线回归测（R1 接线锁，注入 state + mock build）
 
-不手建 Map——经 `createBuildWatcher`（或直调 watch-runner build path）触发 initial build + rebuild → 断言 `sessionState.viewCache` 非空 + 有写入（`size > 0`）+ 含 page bundle。锁接线，防回退。
+注入 `state: new PackerSessionState()`（viewCache 未设）+ mock build（避免真实 build 重量）→ watch-runner R1 接线（`:90` `if(!sessionState.viewCache) sessionState.viewCache = new Map()`）赋值 → 断言 `state.viewCache` 是 `Map` instance（非 undefined）+ `styleCache` 同。**不手建 Map**（Map 由 watch-runner R1 接线赋值，非测试手设）。锁接线，防回退。
 
 ## §4 风险
 
 | 风险 | 缓解 |
 | --- | --- |
-| R1 接线后 watch 产物字节变化 | cached code/map = 全量结果（emitEntry 确定性）→ 字节恒等；P-IRC 真实 watcher 集成测验 |
+| R1 接线后 watch 产物字节变化 | cached code/map = 全量结果（emitEntry 确定性）→ 字节恒等；既有集成测覆盖 |
 | R9 hasMiss 预检误判（sub invalidated 未检） | hasMiss 检 bundle invalidation（含 transitive subs）；或降级 Non-acceptance |
 | viewCompileResults 保留误用 | 注释明示 vestigial-but-intentional；HMR 前不消费 |
 | 接线遗漏（仅改 watch-runner，one-shot 误改） | impl-plan 明示 3 创建点，仅 watch-runner 改 |

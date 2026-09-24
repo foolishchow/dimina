@@ -34,11 +34,11 @@ Status: **draft（2026-10-09）**
 
 ### R-IRC-7（MUST）— 行为 0 不变
 
-one-shot 全量 build 6 项目 diff=0（R1 接线后 one-shot 仍 undefined→no-op→全量；不变）。watch 路径 cache 启用后产物字节恒等（真实 watcher 集成测）。
+one-shot 全量 build 6 项目 diff=0（R1 接线后 one-shot 仍 undefined→no-op→全量；不变）。watch 路径 cache 启用后字节恒等（既有集成测覆盖，R1 接线不改字节恒等）。
 
-### R-IRC-8（MUST）— 回写 G5 文档 + architecture-notes
+### R-IRC-8（MUST）— 回写 architecture-notes + IRC docs（G5 归档不重写）
 
-G5 acceptance A-G51 / validation / architecture-notes G5 条目回写一行：消除"watch-runner 创建实例"叙事与代码的不一致（R1 接线前是叙事超前，接线后一致）。
+architecture-notes + IRC acceptance/validation 记录：R1 接线修正了 G5 acceptance A-G51 的「watch-runner 创建实例」叙事超前（G5 closeout 时该叙事超前于代码，F1 回顾抓出；IRC 接线后叙事与代码一致）。**G5 归档文档不重写**（immutable，与 X1 Non-acceptance 同原则——归档 complete 不可变）。
 
 ## 约束
 

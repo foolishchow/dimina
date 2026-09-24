@@ -43,13 +43,13 @@ G1–G5 逐门算法 + 接线 + invalidatedModules 端到端链路均已坐实�
 
 ## Deliverables
 
-- R1：watch-runner 实例化 `viewCache`/`styleCache` + 真实 watcher 回归测（不手建 Map）
+- R1：watch-runner 实例化 `viewCache`/`styleCache` + 接线回归测（注入 state + mock build，不手建 Map）
 - R6：集成测 ① 加 `.css` 字节恒等断言
 - R7：`viewCompileResults` 保留决策 + 注释标注 HMR-future dirty signal
 - R8：集成测 `afterEach` reset env
 - R4：`docs/fe-tools/README.md` 导航漂移修
 - R9（SHOULD）：`ensureWxsScan` 移入 cache-miss 条件分支
-- 回写 G5 acceptance/validation + architecture-notes 一行（消除"已创建"与代码不一致）
+- R-IRC-8：architecture-notes + IRC docs 记录 R1 接线修正 G5 A-G51 叙事超前（**G5 归档不重写**，immutable）
 
 ## Readiness gaps
 
@@ -57,6 +57,6 @@ G1–G5 逐门算法 + 接线 + invalidatedModules 端到端链路均已坐实�
 
 ## Closure conditions
 
-- R1 生产 watch 真实路径 cache 命中（回归测：`createBuildWatcher` 触发 rebuild → `sessionState.viewCache` 非空 + 有写入）
+- R1 生产 watch cache 接线生效（回归测：注入 state + mock build → `state.viewCache` 是 `Map` instance，由 watch-runner R1 接线赋值非手建）
 - 行为 0 三件套（one-shot diff=0 不变；watch 字节恒等集成测 pass）
 - residual tracker R1/R6/R7/R8/R4/R9 标 `fixed`；R3/R5/X1/R2 标 `wontfix`/`downgraded`（Non-acceptance）

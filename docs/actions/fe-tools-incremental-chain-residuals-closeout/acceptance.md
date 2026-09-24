@@ -8,11 +8,10 @@ Status: **draft（2026-10-09）**
 - [ ] one-shot 创建点（`index.ts:38` / `build-pipeline.ts:23`）保持 undefined（不动）
 - [ ] 外部传入 `state`（已有 cache）不覆盖（`if (!...)` 守卫）
 
-## A-IRC2 — R1 真实 watcher 回归测（D-IRC-5）
+## A-IRC2 — R1 接线回归测（D-IRC-5）
 
-- [ ] 经 `createBuildWatcher`（或 watch-runner build path）触发 initial build + rebuild，**不手建 Map**
-- [ ] 断言 `sessionState.viewCache` 非空 + `size > 0` + 含 page bundle（key 为 page.path）
-- [ ] 断言 `sessionState.styleCache` 非空 + 有写入
+- [ ] 经 `createBuildWatcher`（注入 `state: new PackerSessionState()`，mock build）触发 initial build → 断言 R1 接线生效：`state.viewCache` 是 `Map` instance（非 undefined）+ `state.styleCache` 同（**不手建 Map**——由 watch-runner R1 接线赋值）
+- [ ] cache 实际写入（filled）由既有集成测覆盖（`view-style-cache-skip.spec.js` 集成测经真实 build + state reuse 验 view/style 字节恒等 + cache 写入）
 
 ## A-IRC3 — style cache-hit 集成 `.css` 字节恒等（R6）
 
@@ -38,13 +37,14 @@ Status: **draft（2026-10-09）**
 ## A-IRC8 — 行为 0 + 类型约束
 
 - [ ] one-shot build 6 项目 diff=0（R1 接线后不变）
-- [ ] watch 路径 cache 启用 → rebuild 产物 view/style 字节恒等（真实 watcher 集成测）
+- [ ] watch 路径 cache 启用 → 字节恒等（既有 committed 集成测覆盖，R1 接线不改字节恒等）
 - [ ] tsc 0 errors；vitest 全绿
 - [ ] V-IRC-5：changed files 0 `as any` / 0 `[key: string]: unknown` 新增
 
-## A-IRC9 — 回写 G5 文档 + architecture-notes（R-IRC-8）
+## A-IRC9 — 回写 architecture-notes + IRC docs（R-IRC-8，G5 归档不重写）
 
-- [ ] G5 归档 acceptance A-G51 / validation / architecture-notes G5 条目回写一行（消除"已创建"与代码不一致）
+- [ ] architecture-notes + IRC acceptance/validation 记录：R1 接线修正 G5 A-G51「watch-runner 创建实例」叙事超前（F1 回顾抓出）
+- [ ] **G5 归档文档不重写**（immutable，与 X1 Non-acceptance 同原则）
 
 ## Non-acceptance
 
