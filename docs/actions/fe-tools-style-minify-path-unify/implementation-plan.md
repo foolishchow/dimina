@@ -29,9 +29,9 @@ Status: **draft（2026-10-09）**
 
 | 文件 | 改动 | 状态 |
 |---|---|---|
-| `/tmp/verify-*.mjs`（G1-G5+IRC 全部） | 删 `process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'` 行 | pending |
-| `__tests__/view-style-cache-skip.spec.js` integration | 删 `:160` setEnv + `:164` deleteEnv（afterEach 仅留 fs cleanup） | pending |
-| `__tests__/style-sourcemap.spec.js` | 核查是否设 env（cssnano sourcemap=true 路径）→ 删 | pending |
+| `/tmp/verify-*.mjs`（G1-G5+IRC 全部，**ephemeral，非 committed**） | 删 `process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'` 行（下次手跑 verify 时不设；repo 无 committed verify 脚本，行为 0 验证靠手动跑 /tmp 脚本） | pending |
+| `__tests__/view-style-cache-skip.spec.js` integration（**committed**） | 删 `:160` setEnv + `:164` deleteEnv（afterEach 仅留 fs cleanup） | pending |
+| `__tests__/style-sourcemap.spec.js`（**committed**，不设 env——现测 production cssnano aggregated） | 方案 A 后 cssnano 统一 parse-walk per-module → 输出变 → empirical 验 token-offset 断言是否破；若破则更新期望 | pending |
 
 ## Step 4 — 验证（P-SMPU-1..6）
 

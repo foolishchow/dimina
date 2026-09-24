@@ -46,18 +46,22 @@ production 路径须 == baseline（per-module minify + `\n` 保留）。D-SM-4/D
 
 ### D-SMPU-2: 统一路径选 A 还是 B（**design gate 待定**）
 
+> **`\n` 保留机制**（empirically confirmed）：esbuild `minifyCss` 输出尾部带 `\n`（实测 `.a{color:red}\n`）。parse-walk `buildCompileCss` per-module minify 后 `.join('')`（:416）——模块间 `\n` 来自各模块 minified code 尾部 `\n`，**非显式 `.join('\\n')`**。这是脆弱不变式：若 esbuild/cssnano 改尾部 `\n` 行为，`\n` 保留破。方案 A/B 均依赖此机制。
+
 #### 方案 A — revert：minify 留 parse-walk（per-module），emit 不 minify
 
 ```typescript
-// emit.ts：删 :63,75 的 minify 块（emit 不再 minify）
+// emit.ts：删 :63,75 的 minify 块（emit 不再 minify；StyleEmitOptions.minify 变死参，注释标）
 // parse-walk.ts：删 :377,390 的 isDiffVerifyMode() guard（无条件 per-module minify）
-if (shouldMinify) { const minifiedCode = await minifyCss(prefixedResult.css); ... }
+//   :390 esbuild（sourcemap=false）：if (shouldMinify) { ... minifyCss ... }
+//   :377 cssnano（sourcemap=true）：if (shouldMinify) { postcssPlugins.push(cssnano()) }  ← 也需统一
 ```
 
 - ✅ 最小改动（parse-walk 已有 per-module minify 逻辑，去 guard 即可）
 - ✅ 字节恒等（per-module + `\n` = baseline，已证 verify 路径 diff=0）
 - ❌ 放弃 D-SM-2 迁移目标（minify 归 emit——D-SM-2 的设计意图）
 - ❌ emit `StyleEmitOptions.minify` 变死参（D-SM-1 前状态）
+- ⚠️ **cssnano(sourcemap=true) 也统一到 parse-walk per-module** → `style-sourcemap.spec.js`（现测 emit aggregated，不设 env）输出变（per-module `\n` vs aggregated 删）→ token-offset 断言可能破，需 empirical 验 + 可能更新期望
 
 #### 方案 B — emit per-module：emit 收 per-module codes，各 minify 后 join `\n`
 
