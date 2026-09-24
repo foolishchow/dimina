@@ -11,7 +11,7 @@ Status: **draft（2026-10-09）**
 | A-DC3 | R-DC-3 pipeline+worker-runtime 解散 | `ls src/compiler/pipeline/ src/compiler/worker-runtime/` = 空或删 | ls | pending |
 | A-DC4 | R-DC-4 core/ 解体 | `ls src/compiler/core/` = 空或删；packer 域文件在 packer/ 子目录；shared 文件在 `shared/` | ls + 归位对照 | pending |
 | A-DC5 | R-DC-5 compiler/ 只剩 per-kind | `ls src/compiler/` 仅 logic/view/style 三目录 | ls | pending |
-| A-DC6 | R-DC-6 行为 0 | tsc 0 + vitest 全绿 + 6 项目 diff=0 + 函数体 git diff 仅 import 行 | 三件套执行记录 + git diff --stat | pending |
+| A-DC6 | R-DC-6 行为 0 | tsc 0 + vitest 全绿 + 6 项目 diff=0 + 函数体机械 check（非 import 删除行=0） | 三件套执行记录 + `git diff -M` 机械 check | pending |
 | A-DC7 | R-DC-7 ③b/③c 消解 | `grep -rn "from '.*\(\.\./\)*compiler/pipeline" src/packer/` = 0（packer 内无 compiler/pipeline 反向 import）；③a 已 fixed（非本 Action） | grep + tracker | pending |
 | A-DC8 | R-DC-8 tracker+arch sync | tracker ③b/③c 状态更新；architecture-notes **新增**目录收敛条目 + **更新** stale path 引用（`grep 'pipeline/' docs/fe-tools/architecture-notes.md` 旧路径全更新）；STATUS/TODO sync | tracker diff + arch-notes review + grep | pending |
 

@@ -51,6 +51,6 @@ packer 架构 retrospect（F-PA-1..6）发现：packer 域逻辑散在 4 处—�
 - `src/compiler/pipeline/` + `src/compiler/worker-runtime/` 解散
 - `src/compiler/core/` 解体
 - `src/compiler/` 只剩 `logic/view/style/`
-- 全量 import 路径改写（~100+ 处，ESM 显式后缀 + tsc 全量验）
+- 全量 import 路径改写（~100+ 处，含 `__tests__/` spec 导入被搬路径同步更新；ESM 显式后缀 + tsc 全量验）
 - 行为 0 三件套验证档
 - tracker ③b/③c 状态更新（③a 已 fixed） + architecture-notes 目录收敛条目 + stale path 引用更新

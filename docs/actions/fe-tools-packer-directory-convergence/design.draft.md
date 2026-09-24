@@ -53,7 +53,7 @@ Status: **draft（2026-10-09）**
 **红线**：本 Action 只做文件位置搬迁 + import 路径改写。函数体、逻辑、类型签名**不动**。**文件拆分允许** IF 函数体逐字搬迁（无合并/改签名）——`registry.ts → dispatch.ts + lce.ts` 是结构归位非逻辑改。验证：
 - tsc 0（路径改写后类型检查）
 - 6 项目 diff=0（逻辑零改 → 产物字节不变）
-- 函数体 git diff 仅 import 行 + 文件位置（`git diff --stat` 行数 ~= import 改写数）
+- 函数体 git diff 机械 check（`git diff -M` + 非 import 删除行=0；非旧 `--stat` 行数估）
 
 **禁止**：借机重构函数体 / 改类型 / 抽 collaborator / 抽 aspect（那是 D/C 轮）。若搬迁中发现需重构，记入 tracker residual，不在本 Action 做。
 
@@ -70,6 +70,8 @@ Status: **draft（2026-10-09）**
 | B5 | `aspect/` | compatibility.ts（+ core/ 解体：sourcemap/expression-parser 去 shared/compiler） | 收尾 |
 
 每批结束：tsc 0 + vitest 全绿 + 6 项目 diff=0（行为 0 gate）+ grep 验子目录归位。
+
+**⚠️ 原子性红线（stateful module 搬迁）**：env.ts / compatibility.ts / renderers.ts 含 module-level mutable state——**dual-instance 陷阱**：每批搬此类文件须**单 commit 原子**完成（① 更新全 static import 路径 ② 更新全 dynamic `import('...')` 字符串路径 ③ 删旧文件），不留中间态。旧文件若残留 + 新旧路径并存 → ESM 双实例 → ALS state 隔离 → 行为破（vitest 会 catch 但须 prevent）。验：`grep -rn "compiler/core/env" src/ __tests__/` = 0（旧路径全清）。
 
 ### D-DC-4 — packer→compiler 跨域依赖保留
 
@@ -152,11 +154,12 @@ src/compiler/
 
 | 维度 | 评估 |
 | --- | --- |
-| 规模 | ~27 文件迁移 + ~100+ import 路径改写 |
-| blast radius | env.ts（22 导入方：17 compiler + 1 model + 4 packer）/ compatibility.ts（5）/ emit.ts（9）—— 实测值 |
+| 规模 | ~27 文件迁移 + ~100+ import 路径改写（含 `__tests__/` 10+ spec 导入被搬路径——env/renderers/compatibility/dependency-graph 等同步更新） |
+| blast radius | env.ts（22 导入方：17 compiler + 1 model + 4 packer）+ `__tests__/`（10+ spec 导入被搬路径）/ compatibility.ts（5）/ emit.ts（9）—— 实测值 |
 | 行为 0 | critical（ESM 显式后缀 + tsc 全量验）；但 diff=0 应成立（逻辑零改，只 import 行变） |
 | 分批 | 5 批（B1-B5），每批行为 0 gate，避免一次性大爆炸 |
 | 回退 | 每批独立 commit，可单批 revert |
+| 预存逻辑环 | packer/graph ↔ packer/store（graph→store `import type` PageConfig/ComponentConfig erased；store→graph runtime PackerGraph/DependencyGraph/config-fixpoint）—— 搬迁后 intra-packer 不恶化（type-only 经 `import type` + node strip-types erased，runtime 无环）。非本 Action 引入，记录为已知 |
 
 ## §5 与既有 residual 关系
 

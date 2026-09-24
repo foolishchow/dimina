@@ -12,7 +12,8 @@ Status: **draft（2026-10-09）**
 | P-DC4 | core/ 解体 | `ls src/compiler/core/` = 空或不存在；shared/compiler 文件归位 | pending |
 | P-DC5 | compiler/ 只剩 per-kind | `ls src/compiler/` 仅 logic/view/style | pending |
 | P-DC6 | 行为 0 三件套 | `tsc --noEmit` 0；vitest 全绿（87/646 基线）；6 项目 one-shot `diff -r` baseline = 0 | pending |
-| P-DC7 | 函数体零改（纯搬迁红线） | `git diff --stat` 行数 ~= import 改写数；抽样 git diff 函数体无变更（只 import 行 + 文件位置） | pending |
+| P-DC7 | 函数体零改（纯搬迁红线） | 机械 check：`git diff -M` rename detection；`git diff HEAD~N -M \| grep '^-' \| grep -v 'import\|from \|^---'` = 0（非 import 删除行=0）；抽样 3 文件验函数体逐字搬迁 | pending |
+| P-DC7b | stateful module 单实例（dual-instance 防） | env/compatibility/renderers 搬后：`grep -rn 'compiler/core/env\|compiler/core/compatibility\|compiler/core/renderers' src/ __tests__/` = 0（旧路径全清，无新旧并存）；vitest 状态相关 spec 全绿（ALS state 隔离会致 fail） | pending |
 | P-DC8 | ③b/③c 消解 | `grep -rn "from '.*\(\.\./\)*compiler/pipeline" src/packer/` = 0（packer 内无 compiler/pipeline 反向 import）；③a 已 fixed（chain-residuals，非本 Action） | pending |
 | P-DC9 | packer→compiler 方向单向 | `grep -rn "from '.*packer/" src/compiler/logic src/compiler/view src/compiler/style` 非零（packer→compiler I/O 供给，方向正确）；反向（compiler→packer 内部非 I/O）须消除 | pending |
 | P-DC10 | tracker + arch sync | tracker ③b/③c 状态更新；architecture-notes 新增目录收敛条目 + **更新 stale path 引用**（`grep 'pipeline/' docs/fe-tools/architecture-notes.md` 旧路径 → packer/ 新路径）；STATUS/TODO sync | pending |
