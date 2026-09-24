@@ -3,7 +3,6 @@
 - Action: `fe-tools-hmr-chain-residuals`
 - Status: `ready`
 - Updated: 2026-10-09
-- 终态决定：—（实施期）
 - 设计门：D-HR-1 **locked B** / D-HR-2 **locked b** / D-HR-3 **locked stage-channel 边界级**（2026-10-09 formalize 锁定）
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-hmr-compiler`](../_archive/complete/fe-tools-hmr-compiler/README.md)（伞 **complete** 2026-10-09；子门 H1-H4 + 全部 Phase 2 交付）
@@ -64,7 +63,7 @@ HMR 编译侧血缘**全量收口**：registry 管线接线（loader 真消费 +
 ## Readiness gaps
 
 - 无（design gates 已锁）
-- 实施期评项：D-HR-1 Loader 接口与 storeInfo 图权威衔接点（design.draft §2 待评项）——不阻塞 ready（选项 B 的 load 接线在 storeInfo 现有 graph 写入点内）
+- 实施期评项（非阻塞）：D-HR-1 Loader 接口与 storeInfo 图权威衔接点（design.draft §2 待评项）——选项 B 的 load 接线在 storeInfo 现有 graph 写入点内，衔接形状可在 implementation-plan 详述
 
 ## Closure conditions
 

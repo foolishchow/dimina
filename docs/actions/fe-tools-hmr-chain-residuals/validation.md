@@ -23,4 +23,4 @@ Status: **ready（2026-10-09）**
 ## Uncovered（预期声明）
 
 - L_HMR 默认开启的端到端（runtime-side downgrade 是运行时侧）——flag 开态只验 payload 合成，不验容器消费
-- registry dispatch 全替换（D-HR-1 选项 A）——本 Action 荐 B（gate 待 formalize 锁），A 留后续门
+- registry dispatch 全替换（D-HR-1 选项 A）——本 Action locked B，A 留后续门
