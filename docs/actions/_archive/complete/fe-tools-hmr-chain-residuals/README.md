@@ -1,12 +1,12 @@
 # FE Tools HMR Chain Residuals
 
 - Action: `fe-tools-hmr-chain-residuals`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-10-09
 - 设计门：D-HR-1 **locked B** / D-HR-2 **locked b** / D-HR-3 **locked stage-channel 边界级**（2026-10-09 formalize 锁定）
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-hmr-compiler`](../_archive/complete/fe-tools-hmr-compiler/README.md)（伞 **complete** 2026-10-09；子门 H1-H4 + 全部 Phase 2 交付）
-- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-hmr-compiler`](../../../_archive/complete/fe-tools-hmr-compiler/README.md)（伞 **complete** 2026-10-09；子门 H1-H4 + 全部 Phase 2 交付）
+- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../../../fe-tools/architecture-notes.md)
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 
 ## Background
@@ -38,12 +38,12 @@ HMR 编译侧血缘**全量收口**：registry 管线接线（loader 真消费 +
 
 ## Design inputs
 
-- [H2 Phase 2 交付物](../../fe-tools/architecture-notes.md)：`logicLoader`（`compiler/logic/registry-impl.ts`）+ `LoaderRegistryImpl`（`packer/registry.ts`）+ view/style L/C/E 阶段函数（`viewLoadModule`/`styleLoad`/`styleCompile`/`styleEmit` 等）
+- [H2 Phase 2 交付物](../../../../fe-tools/architecture-notes.md)：`logicLoader`（`compiler/logic/registry-impl.ts`）+ `LoaderRegistryImpl`（`packer/registry.ts`）+ view/style L/C/E 阶段函数（`viewLoadModule`/`styleLoad`/`styleCompile`/`styleEmit` 等）
 - [H3 Phase 2]：compileML 三分支（cache-hit → **selective** → 全量）+ `ViewSelectContext`
 - [H4 Phase 1/2]：`synthesizeReloadLevel` `enableHmr` 参数（`dev/dev-reload.ts:40`）+ `getDirtyEntries`
 - [D-PUSH-2 locked 选项②]：runtime-side downgrade——编译侧发 L_HMR，runtime 收后自降 L1（当前接线恒 L1，与 locked 决策不符）
 - [D-REG-1..3]：registry 渐进非双路径约束（接线策略的设计先例）
-- [residuals tracker](../../fe-tools/incremental-chain-residuals.md)：R3（open，条件已过期）
+- [residuals tracker](../../../../fe-tools/incremental-chain-residuals.md)：R3（open，条件已过期）
 
 ## Deliverables
 

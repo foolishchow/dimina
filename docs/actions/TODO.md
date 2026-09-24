@@ -265,4 +265,4 @@ Packer 下一刀（当前 draft）：
 
 ### HMR 血缘 residuals（2026-10-09 · draft 已立项）
 
-- [`fe-tools-hmr-chain-residuals`](fe-tools-hmr-chain-residuals/README.md)（**`in_progress`**）— 伞 close 后复盘浮出"三档证据分级"（代码/接线/证据）：F-HR-1 loaderRegistry 注册零消费、F-HR-2 enableHmr 无生产设值点（与 D-PUSH-2 locked 不符）、F-HR-3 selective 仅 compileML 直调无链路证据；+ R3（条件过期）+ ③ 下沉。design gates：D-HR-1 locked B（首消费点渐进）、D-HR-2 locked b（flag-gated 默认关）、D-HR-3 locked stage-channel 边界级。
+- [`fe-tools-hmr-chain-residuals`](_archive/complete/fe-tools-hmr-chain-residuals/README.md)（**`complete`**）— 伞 close 后复盘浮出"三档证据分级"（代码/接线/证据）：F-HR-1 loaderRegistry 注册零消费、F-HR-2 enableHmr 无生产设值点（与 D-PUSH-2 locked 不符）、F-HR-3 selective 仅 compileML 直调无链路证据；+ R3（条件过期）+ ③ 下沉。design gates：D-HR-1 locked B（首消费点渐进）、D-HR-2 locked b（flag-gated 默认关）、D-HR-3 locked stage-channel 边界级。**交付**：R-HR-2/3/4/5 done + D-HR-1 (a) done（(b)/(c) blocked Non-scope 接口演进 deferred）。
