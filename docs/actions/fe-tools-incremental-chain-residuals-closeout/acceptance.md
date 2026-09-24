@@ -39,7 +39,7 @@ Status: **draft（2026-10-09）**
 - [ ] one-shot build 6 项目 diff=0（R1 接线后不变）
 - [ ] watch 路径 cache 启用 → 字节恒等（既有 committed 集成测覆盖，R1 接线不改字节恒等）
 - [ ] tsc 0 errors；vitest 全绿
-- [ ] V-IRC-5：changed files 0 `as any` / 0 `[key: string]: unknown` 新增
+- [ ] V-PC-5：changed files 0 `as any` / 0 `[key: string]: unknown` 新增
 
 ## A-IRC9 — 回写 architecture-notes + IRC docs（R-IRC-8，G5 归档不重写）
 
@@ -58,5 +58,5 @@ Status: **draft（2026-10-09）**
 
 ## Traceability
 
-- R-IRC-1..8 ↔ A-IRC1..9 ↔ P-IRC-1..7（implementation-plan Step 4）
+- R-IRC-1..8 ↔ A-IRC1..9 ↔ P-IRC1..7（implementation-plan Step 4）
 - residual tracker R1/R6/R7/R8/R4/R9 → fixed；R3/R5/X1/R2 → wontfix/downgraded（Non-acceptance）

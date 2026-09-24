@@ -29,15 +29,15 @@ Status: **draft（2026-10-09）**
 | `view-style-cache-skip.spec.js` integration `afterEach` | 加 `delete process.env.DIMINA_COMPILER_DIFF_VERIFY`（D-IRC R8） | R8 | pending |
 | 新增 R1 接线回归测 | 注入 `state: new PackerSessionState()` + mock build → watch-runner R1 接线赋 `viewCache`/`styleCache` → 断言 `state.viewCache` 是 `Map` instance（非 undefined）+ `styleCache` 同（D-IRC-5，不手建 Map） | R1 | pending |
 
-## Step 4 — 验证（P-IRC-1..N）
+## Step 4 — 验证（P-IRC1..N）
 
-- [ ] P-IRC-1 代码审阅（watch-runner 接线 + one-shot 不动 + 注释 + doc 对齐）
-- [ ] P-IRC-2 R1 接线回归测 pass（注入 state + mock build，不手建 Map）
-- [ ] P-IRC-3 行为 0 one-shot diff=0（6 项目，R1 接线后不变）
-- [ ] P-IRC-4 tsc 0 errors + vitest 全绿（含 R6/R8 修正 + R1 回归测）
-- [ ] P-IRC-5 V-PC-5（changed files 0 `as any` / 0 索引签名）
-- [ ] P-IRC-6 既有 committed 集成测（state reuse + cache-hit）仍 pass（R1 接线不改字节恒等）
-- [ ] P-IRC-7 residual tracker R1/R6/R7/R8/R4/R9 标 `fixed`（R9 若降级则 Non-acceptance）
+- [ ] P-IRC1 代码审阅（watch-runner 接线 + one-shot 不动 + 注释 + doc 对齐）
+- [ ] P-IRC2 R1 接线回归测 pass（注入 state + mock build，不手建 Map）
+- [ ] P-IRC3 行为 0 one-shot diff=0（6 项目，R1 接线后不变）
+- [ ] P-IRC4 tsc 0 errors + vitest 全绿（含 R6/R8 修正 + R1 回归测）
+- [ ] P-IRC5 V-PC-5（changed files 0 `as any` / 0 索引签名）
+- [ ] P-IRC6 既有 committed 集成测（state reuse + cache-hit）仍 pass（R1 接线不改字节恒等）
+- [ ] P-IRC7 residual tracker R1/R6/R7/R8/R4/R9 标 `fixed`（R9 若降级则 Non-acceptance）
 
 ## Step 5 — 回流
 
