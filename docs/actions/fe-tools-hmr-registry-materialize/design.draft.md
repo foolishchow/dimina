@@ -48,6 +48,13 @@ const emptyRegistry = {
 
 **区别于 SMPU/H1 dual-path**：这里是「先实体化 registry + 接线 + 验证 + 删 compile-target compile 段」的单向迁移（非 flag 切换 dual-path）。与 H1 locked B 精神一致（一次性替换，无 fallback）。
 
+**⋰ 反转 D-HMR-3 推荐 A → locked 非双路径**（F2 补）：伞 D-HMR-3 推荐 A「compile-target 保留 fallback，逐步切流量」= dual-path。H2 反转：compile-target compile 段直接替换（无 fallback flag），与 H1 D-ED-2 locked B 精神一致（SMPU dual-path 验证缺口经验）。伞 D-HMR-3 须 sync。
+
+**⚠️ F4 补：compile-target 段划分**：
+- **保留**：`createCompileTarget`（静态验证——stages fail-fast + requestedStages 派生）
+- **替换**：`readLoadBindings`（env 读取——getPages + storeInfo）+ `deriveStagePlan`（纯派生——stages / workerOptions / paths）→ registry 派发（Loader.load → Compiler.compile → Emitter.emit）
+- design.draft §1.4 原「compile-target 静态段（createCompileTarget）保留」须明确 readLoadBindings + deriveStagePlan 是 compile 段（替换目标）。
+
 ---
 
 ## §2 load 归属（D-REG-2）
@@ -93,6 +100,8 @@ stage 概念是否随 registry 实体化下沉？或 stage 被 registry kind 替
 ### §4.1 one-shot diff=0
 
 one-shot build 不传 state → registry 派发须产同 compile-target stages 的 compile 结果。Loader/Compiler/Emitter 包装现有 parse-walk/transform/emit 路径（非新逻辑）→ 字节一致。
+
+**⚠️ F7 补：worker invocation pattern 保持**——registry 派发须保 `runCompileStage` 的 worker 调用模式（script / workerOptions / onOutput / IPC 序列化）字节一致。若 registry 改变 worker dispatch 或 IPC 序列化，产物字节可能不同。§5 实证须含「registry 派发 == runCompileStage worker invocation byte-identical」验证。
 
 ### §4.2 watch 路径
 

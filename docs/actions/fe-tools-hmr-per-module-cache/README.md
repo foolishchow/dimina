@@ -26,6 +26,8 @@ view/style cache 从 per-page-bundle → per-module。单组件 recompile → �
 -改 G5 per-page-bundle 设计（G5 complete，immutable）
 - runtime HMR API
 
+**⚠️ H3 反转 G5 D-G5-4' bridge**（F6 补）：H3 反转 G5 D-G5-4'（per-page-bundle → per-module）。G5 complete immutable——H3 **不重写 G5 docs**，靠 architecture-notes bridge（如 SMPU bridged D-SM-2/D-CN-1/D-CN-3 reversal）。H3 实施时 architecture-notes 记 D-G5-4' → D-PMC-1 演进链。
+
 ## Scope
 
 ```text

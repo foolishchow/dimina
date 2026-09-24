@@ -59,6 +59,8 @@ dev server 如何知 runtime 未就绪 → downgrade L_HMR→L1？
 
 **推荐选项 ②（runtime-side downgrade）**——编译侧不依赖 runtime probe（运行时侧依赖最小化）。runtime 收 L_HMR 后：就绪 → hot-swap；未就绪 → 自降 L1 reload。
 
+**⚠️ F3 补：选项 ② 风险**——若 runtime 未实现 downgrade 逻辑（旧 runtime / runtime 未升级），L_HMR payload 丢失（无 reload，dev server 不知情）。mitigation：① dev server 加 timeout（发 L_HMR 后无 client ack → fallback L1）② 接受 H4 非阻塞伞 close（编译侧 HMR 完成，runtime downgrade 是运行时侧交付物）。选项 ① capability probe 更安全（dev server 主动知 runtime 状态），但增加编译侧 runtime 依赖。**待 H4 formalize 锁时权衡**。
+
 ---
 
 ## §3 materialize 增量化（D-PUSH-3）
@@ -72,6 +74,8 @@ dev server 如何知 runtime 未就绪 → downgrade L_HMR→L1？
 只写变更产物（非全量）。BuildModel 增量 materialize：
 - one-shot：全量 materialize（无 state → 无增量概念）
 - watch：增量 materialize（只写 dirty entries）
+
+**⚠️ F5 补：现状实现**：`publish.ts:8` `publishToDist` 用 `fs.readdirSync(src)` + `copyFileSync`（**全目录拷贝**，非 entry 级）。`build-model.ts:15` `entries: Map<string, ...>` 不 track dirty。增量 materialize 须：① BuildModel 加 dirty set（track 变更 entries）② publishToDist 改 entry 级增量拷贝（只 copy dirty entries）。
 
 ### §3.3 D-PUSH-3 design gate
 
@@ -87,6 +91,8 @@ materialize 增量化边界：
 ### §4.1 one-shot 不受影响
 
 H4 仅 watch 路径。one-shot 不传 state → no HMR → no L_HMR → 全量 reload（L0-L3 不变）→ diff=0 平凡成立。
+
+**⚠️ F8 补：materialize 增量化是 watch-only**——one-shot build 仍调 `materialize()` + `publishToDist()`（orchestrator '写入编译产物' task）。H4 增量 materialize 须 guard：`if (dirtySet) 增量写入 else 全量写入`（one-shot 无 dirtySet → 全量，行为不变 → diff=0）。publishToDist 同理（one-shot 全目录拷贝不变）。
 
 ### §4.2 watch 路径渐进
 

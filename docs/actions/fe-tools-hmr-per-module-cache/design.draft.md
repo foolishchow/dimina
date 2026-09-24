@@ -25,6 +25,7 @@ per-module 反转需重建 bundle 序。**不能**用 graph 重建（P-G506）�
 - cache 存 `Map<moduleId, ViewCompiledModule>` + `Map<pageId, moduleId[]>`（order list）
 - emit 时按 order list 重建 bundle
 - **序来源**：首次 viewParseWalk 时的 module 序（存入 order list）
+- **⚠️ F1 补：现有结构可 leverage**——`ViewCompileMLResult.pageBundles: Array<{pagePath, modules: ViewCompiledModule[]}>`（view/index.ts:68）已是 per-page 有序 module list。H3 可 split：per-module cache（`Map<moduleId, ViewCompiledModule>`）+ 保留 pageBundles 作 order list（`pagePath → moduleId[]`）。非全新建——重构现有 pageBundles。
 
 **选项 ② compile/emit 粒度解耦**：
 - per-module compile（cache 按 moduleId）
