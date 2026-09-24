@@ -21,9 +21,9 @@ Status: **draft（2026-10-09）**
 - [ ] `__tests__/view-style-cache-skip.spec.js` integration 删 setEnv/deleteEnv
 - [ ] `__tests__/style-sourcemap.spec.js` 删 env 设置（若有）
 
-## A-SMPU4 — 反转 D-SM-4/D-CN-4 Non-scope（R-SMPU-4）
+## A-SMPU4 — 反转 Non-scope + bridge 迁移反转（R-SMPU-4）
 
-- [ ] architecture-notes SMPU 条目记：D-SM-4/D-CN-4 "Non-scope 不要求字节一致" 反转——字节一致为要求
+- [ ] architecture-notes SMPU 条目记：① D-SM-4/D-CN-4 "Non-scope 不要求字节一致" 反转——字节一致为要求；② 若选方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）均反转——canonical 回 parse-walk
 
 ## A-SMPU5 — 行为 0 production 路径（R-SMPU-5）
 
@@ -41,7 +41,8 @@ Status: **draft（2026-10-09）**
 
 - CSS minify 算法 / cssnano 配置参数（不改）
 - logic / view minify（已在 emit 且无 dual-path）
-- D-SM-2 迁移目标（若选方案 A，minify 归 emit 的迁移放弃——load/compile 拆时重做；architecture-notes 记）
+- D-SM-2 迁移目标（若选方案 A，esbuild minify 归 emit 的迁移放弃——load/compile 拆时重做；architecture-notes 记）
+- D-CN-1/D-CN-3（若选方案 A，cssnano 正本/canonical 归 emit 反转——cssnano 回 parse-walk per-module；canonical 在 load/compile 拆时重定）
 - HMR / load-compile 拆 / deriveFromGraph 接入（后续门）
 - 重写 style-minify-gate / style-cssnano-gate 归档文档（immutable，architecture-notes bridge）
 

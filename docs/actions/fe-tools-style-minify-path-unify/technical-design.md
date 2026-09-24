@@ -61,7 +61,7 @@ production 路径须 == baseline（per-module minify + `\n` 保留）。D-SM-4/D
 - ✅ 字节恒等（per-module + `\n` = baseline，已证 verify 路径 diff=0）
 - ❌ 放弃 D-SM-2 迁移目标（minify 归 emit——D-SM-2 的设计意图）
 - ❌ emit `StyleEmitOptions.minify` 变死参（D-SM-1 前状态）
-- ⚠️ **cssnano(sourcemap=true) 也统一到 parse-walk per-module** → `style-sourcemap.spec.js`（现测 emit aggregated，不设 env）输出变（per-module `\n` vs aggregated 删）→ token-offset 断言可能破，需 empirical 验 + 可能更新期望
+- ⚠️ **cssnano(sourcemap=true) 也统一到 parse-walk per-module** → `style-sourcemap.spec.js`（现测 emit aggregated，不设 env）输出变——**empirically confirmed**（base 项目 probe：cssnano per-module ≠ aggregated，字节差，同 esbuild）；token-offset 断言 likely 破，需更新期望（per-module `\n` 保留 vs aggregated 删）
 
 #### 方案 B — emit per-module：emit 收 per-module codes，各 minify 后 join `\n`
 

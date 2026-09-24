@@ -11,7 +11,7 @@ Status: **draft（2026-10-09）**
 | P-SMPU3 | 行为 0 production 路径 | 6 项目 one-shot diff=0 对 baseline（**不设 env**，验 production 真实路径；非旧 verify 路径） | 待测 |
 | P-SMPU4 | tsc + vitest | tsc 0 errors；vitest 全绿（含 style-sourcemap.spec.js cssnano 路径回归） | 待测 |
 | P-SMPU5 | V-PC-5 类型约束 | changed files（style/emit.ts + style/parse-walk.ts）无 `as any`/`@ts-nocheck`/`[key: string]: unknown` 新增 | 待测 |
-| P-SMPU6 | cssnano sourcemap=true 路径回归 | `style-sourcemap.spec.js`（方案 A 后 cssnano 统一 parse-walk per-module，输出变）→ empirical 验 token-offset 断言是否仍 pass；若破则更新期望（per-module `\n` vs aggregated） | 待测 |
+| P-SMPU6 | cssnano sourcemap=true 路径回归 | `style-sourcemap.spec.js`（方案 A 后 cssnano 统一 parse-walk per-module，**empirically 字节差已确认**）→ token-offset 断言 likely 破，需更新期望（per-module `\n` vs aggregated）；baseline 现 pass 3/3 | 待测 |
 
 ## 流程
 
