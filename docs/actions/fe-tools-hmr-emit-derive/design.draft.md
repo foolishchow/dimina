@@ -62,15 +62,27 @@ const subModules = subPages[root].flatMap(p => deriveFromGraph(graph, cache, p.p
 - 去重：component 出现在多 page 闭包，须 dedup（emitBuckets 不重复）
 - 序：须 match compileJS 插入序（非字典序）——**G5 P-G506 先例：序重建 from graph 不可行**（序不一致）
 
-**解法 B（cache 内存序）**：
-- deriveFromGraph 改为不 `.sort()`，按 graph 遍历序（BFS pop 序）返回
+**解法 B（cache 插入序）**：
+- deriveFromGraph 改为不 `.sort()`，按 graph 遍历序（DFS pop 序）返回
 - 或 ModuleResultCache 维护插入序（Map 保持插入序），deriveFromGraph 按 cache key 序
-- **待实证**：cache 插入序 == emitBuckets 序?
+- **⚠️ F2 修正：B 混淆两种序**：
+  - **B1 graph DFS 序**：去 `.sort()` → `getDependencyClosure` 返回 DFS visit 序（`pending.pop()` LIFO）
+  - **B2 cache 插入序**：ModuleResultCache Map 插入序（compileJS push 序）
+  - **emitBuckets序 = B2**（compileJS push 序 == cache 插入序）
+  - deriveFromGraph 当前遍历 graph closure（B1 路径）→ 去 `.sort()` 得 B1 DFS 序，**≠ B2 emitBuckets序**
+  - **解法 B 须明确 B2**：deriveFromGraph 须按 cache 插入序迭代（非 graph closure 序）——可能需改 deriveFromGraph 签名（传 cache entry list 而非 graph closure）或 graph closure 按 cache 序返回
+- **待实证**：cache 插入序 == emitBuckets序?（B2 可行性）
 
 **解法 C（bucket 概念进 graph）**：
 - graph 加 'package' kind 边（main package → app + main pages；sub package → sub pages）
 - deriveFromGraph(graph, cache, 'main-package') → main bucket closure
 - **改 graph schema**——超出 H1 scope（触碰 G1 graph-persist）
+
+**解法 D（cache order metadata）**：
+- ModuleResultCache 存显式 order index（compileJS push 时赋 index）
+- deriveFromGraph 按 order index 排序（非 graph 序、非 Map 插入序）
+- **B2 失败时的 fallback**（cache 插入序 ≠ emitBuckets序）——介于 B2 与 C 之间，不改 graph schema
+- **⚠️ cache shape 变更**：D 改 ModuleResultCache WRITE 路径（compileJS 加 orderIndex 字段），非 deriveFromGraph READ。cache shape 变更有 G4 先例（D-G4-1..9 view cache shape）——须显式决策（非 silent 改）。deriveFromGraph 仍只读。
 
 ### §1.5 D-ED-1 design gate
 
@@ -98,6 +110,11 @@ deriveFromGraph 接线 + emitBuckets 保留 fallback（env/flag 切换），验�
 **推荐 B（一次性）**——SMPU 教训表明 dual-path 验证缺口风险 > 一次性风险。deriveFromGraph 已定义 + 只读 + cache 已 fill，一次性接线可 diff=0 验证。若 diff≠0 则解法 B（cache 序）调优。
 
 **反转 D-HMR-2 推荐 A** → **locked B（一次性）**（SMPU 经验启示）。
+
+**⚠️ F4 修正：locked B 条件化**——D-ED-2 locked B 须 §4 实证 pass：
+- cache 序实证 pass（B2 可行）→ locked B 安全（一次性删 emitBuckets 改 deriveFromGraph，diff=0 验）
+- cache 序实证 fail → 须先解法 D（cache order metadata）再 locked B；或回退解法 A（序重建，G5 风险）
+- locked B 不是绝对——依赖 §4 实证结果。
 
 ---
 
