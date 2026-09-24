@@ -43,12 +43,12 @@ const STYLE_MOD = { moduleId: 'pages/a/index', kind: 'style', code: '/*s*/', map
 describe('stage-channel cache write (G4 D-G4-3)', () => {
 	beforeEach(() => { vi.clearAllMocks() })
 
-	it('① writes view/style results to ctx.viewCache/styleCache (bare value)', async () => {
+	it('① writes view/style results to ctx.viewCache (per-page-bundle, G5 D-G5-4\') / styleCache (bare, G4 D-G4-3)', async () => {
 		executeTask.mockResolvedValue({
 			dependencyGraph: { toJSON: () => [] },
 			compatibilityWarnings: [],
-			viewCompileResults: [VIEW_MOD],
-			styleCompileResults: [STYLE_MOD],
+			viewPageBundles: [{ pagePath: 'pages/a/index', modules: [VIEW_MOD] }],  // G5: per-page-bundle
+			styleCompileResults: [STYLE_MOD],  // G4: style 仍 per-module（无 transitive subs）
 		})
 		const viewCache = new Map()
 		const styleCache = new Map()
@@ -60,15 +60,15 @@ describe('stage-channel cache write (G4 D-G4-3)', () => {
 			options: { pages: { mainPages: [], subPages: {} } },
 			lifecycle: null,
 		})
-		expect(viewCache.get('pages/a/index')).toEqual(VIEW_MOD)
-		expect(styleCache.get('pages/a/index')).toEqual(STYLE_MOD)
+		expect(viewCache.get('pages/a/index')).toEqual([VIEW_MOD])  // G5: per-page-bundle（ViewCompiledModule[]）
+		expect(styleCache.get('pages/a/index')).toEqual(STYLE_MOD)  // G4: per-module bare
 	})
 
 	it('② no-op when ctx has no viewCache/styleCache (G4 period: undefined → guarded)', async () => {
 		executeTask.mockResolvedValue({
 			dependencyGraph: { toJSON: () => [] },
 			compatibilityWarnings: [],
-			viewCompileResults: [VIEW_MOD],
+			viewPageBundles: [{ pagePath: 'pages/a/index', modules: [VIEW_MOD] }],
 			styleCompileResults: [STYLE_MOD],
 		})
 		const ctx = makeCtx({})  // 无 viewCache/styleCache（G4 期 PackerSessionState 无字段）

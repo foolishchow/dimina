@@ -12,20 +12,32 @@ interface Progress {
 	completedTasks: number
 }
 
-async function compileSS(pages: StyleModule[], root: string | null, progress: Progress, options: StyleOptions = {}): Promise<StyleCompiledModule[]> {
-	// G4 D-G4-2：收集 StyleCompiledModule[]（降级 base + dependencies: []），供 G5 cache-hit skip
+async function compileSS(pages: StyleModule[], root: string | null, progress: Progress, options: StyleOptions = {}, styleCache?: Map<string, StyleCompiledModule>, invalidated?: string[] | null): Promise<StyleCompiledModule[]> {
+	// G4 D-G4-2 / G5 D-G5-5: 收集 cache-miss StyleCompiledModule[]（cache-hit 不返——D-G5-3/D-IU-5 只返 dirty）
 	const results: StyleCompiledModule[] = []
 	// page 样式
 	for (const page of pages) {
-		const result = await buildCompileCss(page, new Set(), options)
-		// G4 D-G4-2：buildCompileCss 返 StyleCompileResult（{code,map}）→ 降级 base StyleCompiledModule
-		results.push({ moduleId: page.path, kind: 'style', code: result.code, map: result.map, dependencies: [] })
+		const cached = styleCache?.get(page.path)  // G5 cross-rebuild 读
+		const isInvalidated = invalidated?.includes(page.path) ?? false
+		let code: string
+		let map: string | null
+		if (cached && !isInvalidated) {
+			// ★ G5 cache-hit：跳 buildCompileCss，用 cached code/map re-emit（不 push——D-G5-3）
+			code = cached.code
+			map = cached.map
+		} else {
+			// cache-miss：编译 + push（stage-channel 写 cache）
+			const result = await buildCompileCss(page, new Set(), options)
+			code = result.code
+			map = result.map
+			results.push({ moduleId: page.path, kind: 'style', code, map, dependencies: [] })
+		}
 		const filename = `${page.path.replace(/\//g, '_')}`
 		// 相对发布根的物化路径前缀（D-P2）
 		const relPrefix = root ? `${root}` : 'main'
 
 		const entry = await emitStyle(
-			[{ moduleId: page.path, code: result.code, map: result.map }],
+			[{ moduleId: page.path, code, map }],
 			{ entryId: page.path, filename, relPrefix, sourcemap: !!options.sourcemap, minify: options.minify !== false },
 		)
 		const { sink } = abilityALS.get()
@@ -33,7 +45,7 @@ async function compileSS(pages: StyleModule[], root: string | null, progress: Pr
 
 		progress.completedTasks++
 	}
-	return results
+	return results  // 只 cache-miss（dirty）
 }
 
 export { buildCompileCss, boostExternalClassSelectors, ensureImportSemicolons, normalizeCssUrlValue, normalizeRootStyleImports, processHostSelector, resolveStyleImportPath } from './parse-walk.ts'
@@ -41,15 +53,15 @@ export { compileSS }
 
 // P-WR02: engine export（不动调度，F47）
 async function styleCompile({ msg, progress, config }: CompileOptions): Promise<{ styleCompileResults: StyleCompiledModule[] }> {
-	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: StyleModule[]; subPages: Record<string, { info: StyleModule[]; independent: boolean }> } }
+	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: StyleModule[]; subPages: Record<string, { info: StyleModule[]; independent: boolean }> }; styleCache?: Map<string, StyleCompiledModule> | null; invalidatedModules?: string[] | null }
 	resetStoreInfo(m.storeInfo)
 
 	const styleOptions: StyleOptions = { sourcemap: m.sourcemap, minify: (config as { minify?: boolean }).minify }
-	// G4 D-G4-2：compile 只返 { styleCompileResults }（新字段）；styleEngine 用 defineEngine 默认 successPayload（runtime.ts:30 自动合并）
+	// G4 D-G4-2 / G5 D-G5-3: compile 只返 { styleCompileResults }（只 cache-miss——D-IU-5 只返 dirty）；styleEngine 用 defineEngine 默认 successPayload
 	const styleCompileResults: StyleCompiledModule[] = []
-	styleCompileResults.push(...await compileSS(m.pages.mainPages, null, progress as Progress, styleOptions))
+	styleCompileResults.push(...await compileSS(m.pages.mainPages, null, progress as Progress, styleOptions, m.styleCache ?? undefined, m.invalidatedModules))
 	for (const [root, subPages] of Object.entries(m.pages.subPages)) {
-		styleCompileResults.push(...await compileSS(subPages.info, root, progress as Progress, styleOptions))
+		styleCompileResults.push(...await compileSS(subPages.info, root, progress as Progress, styleOptions, m.styleCache ?? undefined, m.invalidatedModules))
 	}
 
 	clearStyleCaches()

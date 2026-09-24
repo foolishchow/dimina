@@ -45,6 +45,9 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 			stageTimeoutMs: options.stageTimeoutMs as number | undefined,
 			collectOutput: typeof onOutput === 'function',  // 兼容字段（worker onMessage 旧版解构，runtime 不用）
 			cache: (() => { const c = (ctx as { cache?: { toJSON: () => [string, unknown][] } }).cache; return c ? new Map(c.toJSON()) : null })(),
+			// G5 D-G5-2/F12: view/style cache 快照——bare Map 用 new Map(c)（非 toJSON——ModuleResultCache 有 toJSON，bare Map 没有）
+			viewCache: (() => { const c = (ctx as { viewCache?: Map<string, unknown> }).viewCache; return c ? new Map(c) : null })(),
+			styleCache: (() => { const c = (ctx as { styleCache?: Map<string, unknown> }).styleCache; return c ? new Map(c) : null })(),
 			invalidatedModules: (ctx as { invalidatedModules?: string[] }).invalidatedModules ?? null,
 		},
 		onOutput,
@@ -75,12 +78,12 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 		}
 	}
 
-	// G4 D-G4-3：view/style cache 写入（bare value，guarded optional chaining——G4 期 ctx 无实例→no-op）
-	const viewResults = (result as { viewCompileResults?: Array<{ moduleId: string }> }).viewCompileResults
+	// G4 D-G4-3 / G5 D-G5-4'：view cache 写入（per-page-bundle——存 viewParseWalk 完整有序 bundle，cache-hit re-emit 原序保字节一致；guarded——G4 期 ctx 无实例→no-op）
+	const viewPageBundles = (result as { viewPageBundles?: Array<{ pagePath: string; modules: Array<{ moduleId: string; code: string; map: string | null }> }> }).viewPageBundles
 	const viewCache = (ctx as { viewCache?: { set: (id: string, val: unknown) => void } }).viewCache
-	if (viewCache && viewResults) {
-		for (const mod of viewResults) {
-			viewCache.set(mod.moduleId, mod)
+	if (viewCache && viewPageBundles) {
+		for (const b of viewPageBundles) {
+			viewCache.set(b.pagePath, b.modules)
 		}
 	}
 	const styleResults = (result as { styleCompileResults?: Array<{ moduleId: string }> }).styleCompileResults

@@ -1,13 +1,13 @@
 # FE Tools View/Style Cache-Skip（G5 — incremental-unify 重激活）
 
 - Action: `fe-tools-view-style-cache-skip`
-- Status: `ready`
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-graph-persist`](../_archive/complete/fe-tools-graph-persist/README.md)（**complete**；G1——storeInfo state 路径走 reconcile）
-- 前置：[`fe-tools-fingerprints-persist`](../_archive/complete/fe-tools-fingerprints-persist/README.md)（**complete**；G2——watch-plan content-based dedup）
-- 前置：[`fe-tools-invalidation-all-kinds`](../_archive/complete/fe-tools-invalidation-all-kinds/README.md)（**complete**；G3——getInvalidatedModules 泛化全 kind，D-IU-1）
-- 前置：[`fe-tools-view-style-compile-res`](../_archive/complete/fe-tools-view-style-compile-res/README.md)（**complete**；G4——view/style worker 返 ViewCompiledModule[]/StyleCompiledModule[] + stage-channel 写 ctx.viewCache/styleCache）
-- 设计输入：[`fe-tools-incremental-unify`](../_archive/deferred/fe-tools-incremental-unify/design.draft.md)（**deferred**；D-IU-2/3/4/5）
+- Status: `complete`
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-graph-persist`](../fe-tools-graph-persist/README.md)（**complete**；G1——storeInfo state 路径走 reconcile）
+- 前置：[`fe-tools-fingerprints-persist`](../fe-tools-fingerprints-persist/README.md)（**complete**；G2——watch-plan content-based dedup）
+- 前置：[`fe-tools-invalidation-all-kinds`](../fe-tools-invalidation-all-kinds/README.md)（**complete**；G3——getInvalidatedModules 泛化全 kind，D-IU-1）
+- 前置：[`fe-tools-view-style-compile-res`](../fe-tools-view-style-compile-res/README.md)（**complete**；G4——view/style worker 返 ViewCompiledModule[]/StyleCompiledModule[] + stage-channel 写 ctx.viewCache/styleCache）
+- 设计输入：[`fe-tools-incremental-unify`](../../deferred/fe-tools-incremental-unify/design.draft.md)（**deferred**；D-IU-2/3/4/5）
 
 ## 背景
 
@@ -90,4 +90,4 @@ G1 ✅ → G2 ✅ → G3 ✅ → G4 ✅ → **G5 draft**（readiness gate 待 RG
 
 ## 相关
 
-- [`fe-tools-incremental-unify`](../_archive/deferred/fe-tools-incremental-unify/design.draft.md)（deferred；D-IU-1..5 设计输入；G5 重激活闭合 A-IU-3 剩余 + A-IU-4）
+- [`fe-tools-incremental-unify`](../../deferred/fe-tools-incremental-unify/design.draft.md)（deferred；D-IU-1..5 设计输入；G5 重激活闭合 A-IU-3 剩余 + A-IU-4）

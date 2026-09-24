@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-view-style-cache-skip
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 现状（G4 落地后）
 
@@ -38,8 +38,9 @@ interface PackerSessionState {
   // 现有
   moduleCache: ModuleResultCache  // logic（不变）
   // G5 新增（optional——one-shot state 不 init → undefined → G4 no-op 边界延续；watch-runner init 实例）
-  viewCache?: Map<string, ViewCompiledModule>   // bare（D-G4-3）
-  styleCache?: Map<string, StyleCompiledModule>  // bare
+  // D-G5-4'：viewCache = per-page-bundle（ViewCompiledModule[]——存 viewParseWalk 完整有序 bundle，cache-hit re-emit 原序保字节一致）
+  viewCache?: Map<string, ViewCompiledModule[]>   // per-page-bundle（D-G5-4'，反转 D-G4-3 per-module）
+  styleCache?: Map<string, StyleCompiledModule>   // per-page bare（D-G4-3，style 无 transitive subs）
   // ...
 }
 ```
@@ -96,44 +97,50 @@ async function compileSS(pages, root, progress, options, styleCache?, invalidate
 
 style 非 recursive（buildCompileCss concat sub-styles 进单 code，D-G4-2）→ cache-hit per-page 直接。
 
-### §2.5 view cache-hit skip（R-G5-4，RG5-1 待决）
+### §2.5 view cache-hit skip（R-G5-4，**D-G5-4' per-page-bundle——实施期 P-G506 验证反转 F6**）
 
-**view discovery recursive**（compileViewTree:324/368 走 usingComponents → page + 各 sub-component 独立 EmitModule）。cache-hit 若跳 viewParseWalk → 丢失 sub-component 发现。
+**实施期发现**（P-G506 watch byte-identity 验证）：F6 原设计用 `graph.getDirectDependencies(page,'component')` 重建 sub 集不可行——graph 'component' 边仅 **direct**（非 transitive），且 **不含 wxs modules**（wxs 走 'view' kind 边），且**序不一致**（graph 序 vs viewParseWalk DFS 插入序）→ cache-hit bundle 缺 transitive subs + wxs → 字节差异（实测 base/pages_index.js b1=10525 vs b2=3049）。
+
+**D-G5-4' 解**：viewCache 改 **per-page-bundle**——cache value = `ViewCompiledModule[]`（= viewParseWalk 完整有序 EmitModule[]，page+transitive subs+wxs 全量）。cache-hit 直接 re-emit 该存储 bundle（原序原集→字节一致）。invalidation = bundle 内任一 module invalidated → cache-miss 全量 viewParseWalk。
 
 ```typescript
-// view/index.ts compileML（G5，RG5-1 方向 A + ③）——viewCompile 传 msg.viewCache/msg.invalidatedModules（F4）
-async function compileML(pages, root, progress, viewCache?, invalidated?): Promise<ViewCompiledModule[]> {
+// view/index.ts compileML（G5 D-G5-4'）——viewCompile 传 msg.viewCache/msg.invalidatedModules
+async function compileML(pages, root, progress, viewCache?, invalidated?): Promise<{ results: ViewCompiledModule[], pageBundles: Array<{pagePath, modules}> }> {
   const results: ViewCompiledModule[] = []  // 只返 cache-miss（D-G5-3/D-IU-5）
+  const pageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[] }> = []  // 供 stage-channel 写 per-page-bundle cache
   for (const page of pages) {
-    // ★ 预检查：page + 全 subs 须均 cached 且均 NOT invalidated（F6：先查再 emit，避免 sub invalidated 时 page 已 emit → double-emit）
-    const pageCached = viewCache?.get(page.path)
-    const pageInvalid = invalidated?.includes(page.path) ?? false
-    const subIds = getDependencyGraph().getDirectDependencies(page.path, 'component')  // page 的 component deps
-    const subEntries = subIds.map(id => ({ id, cached: viewCache?.get(id), invalid: invalidated?.includes(id) ?? false }))
-    const allCached = pageCached && !pageInvalid && subEntries.every(e => e.cached && !e.invalid)
-    if (allCached) {
-      // ★ cache-hit：page + 全 subs 均 cached 无 invalidated——ONE emitEntry bundle（F6：保 emit 粒度= cache-miss，watch 产物结构一致）
-      const modules = [pageCached, ...subEntries.map(e => e.cached)].map(m => ({ moduleId: m.moduleId, code: m.code, map: m.map }))
+    // ★ cache-hit 预检：page bundle cached 且 bundle 内任一 module 均未 invalidated
+    const cachedBundle = viewCache?.get(page.path)  // ViewCompiledModule[] | undefined
+    const bundleInvalidated = cachedBundle ? cachedBundle.some(m => invalidated?.includes(m.moduleId) ?? false) : false
+    if (cachedBundle && !bundleInvalidated) {
+      // ★ cache-hit：跳 viewParseWalk，re-emit 原序 bundle（= cache-miss 结构，保 watch 产物粒度+字节一致）
+      const modules = cachedBundle.map(m => ({ moduleId: m.moduleId, code: m.code, map: m.map }))
       await emitEntry({ entryId: page.path, kind: 'view', modules, /* transform/sourcemap/filename/relPrefix 同 cache-miss */ })
       // 不 push——D-G5-3 cache-hit 不返
     } else {
-      // cache-miss（含③ 降级：任一 sub invalidated → page 全量 recompile，sub cache-hit 优化仅当 page+全 subs cached 生效）
+      // cache-miss（bundle 未 cached 或任一 module invalidated → 全量 viewParseWalk）
       const modules = viewParseWalk(page, { sourcemap: enableSourcemap })
-      for (const mod of modules) {
-        results.push({ moduleId: mod.moduleId, kind: 'view', code: mod.code, map: mod.map, dependencies: [] })
-      }
-      await emitEntry({ entryId: page.path, kind: 'view', modules, ... })  // emit 不变（与 cache-miss 同结构）
+      const viewMods = modules.map(mod => ({ moduleId: mod.moduleId, kind: 'view', code: mod.code, map: mod.map, dependencies: [] }))
+      results.push(...viewMods)
+      pageBundles.push({ pagePath: page.path, modules: viewMods })  // 存 per-page-bundle
+      await emitEntry({ entryId: page.path, kind: 'view', modules, ... })
     }
     progress.completedTasks++
   }
-  return results  // 只 cache-miss（dirty）
+  return { results, pageBundles }  // results 只 cache-miss；pageBundles 供 stage-channel 写 cache
 }
 ```
 
-**RG5-1 未决点**（含 sub-problem，已 F6 细化）：
-- **emit 粒度保 matter**（F6）：cache-hit 须 ONE emitEntry bundle page+subs（= cache-miss 结构），不能 per-module 分别 emit（否则 watch 产物结构差异→behavior-0 破坏）。cache-hit 仅当 page + 全 subs cached 且均 NOT invalidated——任一 sub invalidated → ③ 降级全量 recompile（simplest + 保 emit 结构）
-- **sub-recompile ViewModule 来源**（RG5-1 core sub-problem）：③ 降级避免此问题——sub invalidated → page 全量 viewParseWalk（viewParseWalk 内部构造 sub ViewModule），不走单独 sub recompile。**倾向③**（simplest + sound + 保 emit 结构）
-- dependencies:[] 是否需填充（RG5-2）——若方向 A + ③，cache-hit 用 graph 查 sub IDs，不依赖 cached.dependencies → 保持 placeholder
+**stage-channel 写入**（per-page-bundle，反转 G4 D-G4-3 per-module）：
+```typescript
+// stage-channel.ts——view 写块读 result.viewPageBundles
+const viewPageBundles = result.viewPageBundles  // Array<{pagePath, modules}>
+if (viewCache && viewPageBundles) {
+  for (const b of viewPageBundles) viewCache.set(b.pagePath, b.modules)  // per-page-bundle
+}
+```
+
+**viewCompile 返回 shape**（G5 扩 G4）：`{ viewCompileResults: ViewCompiledModule[], viewPageBundles: Array<{pagePath, modules}> }`（viewCompileResults 仍返 cache-miss dirty 供兼容；viewPageBundles 供 stage-channel 写 cache）。
 
 ## §3 决策（draft，待 review 拍板）
 
@@ -149,9 +156,13 @@ bare `Map<string, ViewCompiledModule>`/`Map<string, StyleCompiledModule>`（G4 D
 
 cache-hit 用 cached code/map re-emit（emitStyle/emitEntry 调用不变——跳 compile 不跳 emit，D-IU-2）。**反转 G4 期“全量返回”**——G5 incremental filter：**cache-hit 不返 cached 到 results**（D-IU-5 只返回 dirty= 只返 cache-miss 新编译的；cache-hit 已在 main-thread cache，stage-channel 不重写）。worker `results` 数组只收集 cache-miss 编译产物。
 
-### D-G5-4: view cache-hit = graph 'component' 边 + allCached 预检 + ③ 降级（RG5-1 F6 细化，◑ 近解）
+### D-G5-4': view cache-hit = per-page-bundle（实施期反转 D-G5-4 F6，P-G506 验证驱动）
 
-F6 细化：cache-hit 用 `graph.getDirectDependencies(pageId, 'component')` 查 sub IDs；**allCached 预检**（page+全 subs cached 无 invalidated）→ ONE emitEntry bundle（保粒度）；任一 sub invalidated → ③ page 全量 recompile（viewParseWalk 内部构造 sub ViewModule）。不改 viewParseWalk（D-G4-1）。**RG5-1 residual**（验证题，非性 blocker）：① graph 边 = viewParseWalk discovery 一致性 ② modules[] 顺序一致性（F7，倾向 sort by moduleId 两路径）。
+**实施期 P-G506 watch byte-identity 验证发现**：D-G5-4 原设计（F6：`graph.getDirectDependencies(page,'component')` 重建 sub 集）不可行——graph 'component' 边仅 direct（非 transitive）、不含 wxs modules、序不一致 → cache-hit bundle 缺内容（实测 b1=10525 vs b2=3049 字节）。
+
+**D-G5-4' 解**：viewCache = **per-page-bundle**（`Map<string, ViewCompiledModule[]>`），cache value = viewParseWalk 完整有序 EmitModule[]（page+transitive subs+wxs）。cache-hit re-emit 存储的原序 bundle → 字节一致（同集同序同 input→emitEntry 确定性输出）。invalidation = bundle 内任一 module moduleId ∈ invalidated → cache-miss 全量 viewParseWalk。**RG5-1 residual 消解**（① graph 一致性 + ② F7 顺序均不再相关——直接存原序 bundle）。
+
+style 仍 per-page bare（D-G4-3/D-G5-5，无 transitive subs）。
 
 ### D-G5-5: style cache-hit per-page（RG5-3）
 
@@ -165,16 +176,17 @@ one-shot：无 invalidatedModules → 无 cache-hit skip → 全量编译 = G4 �
 
 | RG5 | 门 | 状态 |
 |---|---|---|
-| RG5-1 | view cache-hit 递归 emit 语义 + sub-recompile ViewModule（F6 细化：allCached 预检 + ③ 降级 + ONE emitEntry bundle 保粒度） | ◑ 近解（residual ① graph 'component' 边 = viewParseWalk discovery 一致性；② F7 modules[] 顺序一致性 cache-hit `[page,...graph subs]` vs cache-miss viewParseWalk EmitModule[] 顺序——倾向两路径 sort by moduleId 或验 emitEntry order-invariant；均验证题，非性 blocker） |
-| RG5-2 | view dependencies:[] 填充 vs placeholder | ✅ 已解（F6：cache-hit 用 graph 查 sub IDs，不消费 cached.dependencies→保持 placeholder） |
-| RG5-3 | style cache-hit per-page | ✅ 较明确（design 拍板即足） |
-| RG5-4 | cache-hit 与 intra-build 协同 | ✅ 自动解（cache-hit 跳整 parse-walk→intra-build 不查不写；非 readiness blocker） |
+| RG5-1 | view cache-hit 递归 emit 语义 | ✅ 已解（D-G5-4' per-page-bundle——存 viewParseWalk 完整有序 bundle，cache-hit re-emit 原序→字节一致。反转 F6 graph 重建：P-G506 验证发现 graph direct-only + 无 wxs + 序不一致→不可行） |
+| RG5-2 | view dependencies:[] 填充 vs placeholder | ✅ 已解（D-G5-4'：cache-hit 不消费 graph/dependencies，直接用存储 bundle→保持 placeholder） |
+| RG5-3 | style cache-hit per-page | ✅ 已解（D-G5-5 per-page bare，0 .wxss diff 实测） |
+| RG5-4 | cache-hit 与 intra-build 协同 | ✅ 自动解（cache-hit 跳整 parse-walk→intra-build 不查不写） |
 
 ## §5 风险
 
 | 风险 | 缓解 |
 |---|---|
-| view cache-hit sub-component invalidated 时 recompile 需 ViewModule | RG5-1 待决——可能需 viewParseWalk 不跳 discovery（方向 C）或 graph 查 sub |
-| cache-hit 写回 intra-build 一致性 | RG5-4 待决 |
-| watch 产物顺序变更 | cache-hit re-emit 用 cached code/map → 字节一致；顺序 = pages 迭代顺序（不变） |
-| behavior-0 watch 验证 | watch 路径非 no-op——靠单测 + 回归（cache-hit 触发 + 产物字节一致） |
+| view cache-hit sub-component 重建 | ✅ D-G5-4' per-page-bundle 消解——存原序 bundle，不重建 |
+| cache-hit 写回 intra-build 一致性 | ✅ RG5-4 自动解 |
+| watch 产物字节一致 | ✅ P-G506 实测：view 0 pages_* diff + style 0 .wxss diff（per-page-bundle 原序 re-emit） |
+| behavior-0 watch 验证 | ✅ P-G503 one-shot diff=0（6 项目）；P-G506 view/style byte-identity confirmed |
+| logic cache + static-copy byte-identity（pre-existing，out-of-scope） | 已记录为 residual——logic cache（7 logic.js diff，G4 baseline 同样）+ static-copy（invalidatedModules=[] 时跳拷贝）均为 pre-G5 既有，需独立 Action |
