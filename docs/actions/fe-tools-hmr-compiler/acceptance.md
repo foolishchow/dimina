@@ -36,4 +36,4 @@ Status: **draft（2026-10-09）**
 - 子门 H3（per-module view/style cache）↔ A-HMR3
 - 子门 H4（per-module HMR push）↔ A-HMR4
 - 各子门行为 0 ↔ A-HMR5
-- 目录 cycle 消解 ↔ A-HMR6（load/compile/emit 分离副产品）
+- 目录 cycle 消解 ↔ A-HMR6（H1-H2 副产品）

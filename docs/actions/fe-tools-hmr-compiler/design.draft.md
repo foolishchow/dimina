@@ -33,6 +33,8 @@ emitEngine({ entryId: 'logic', modules: emitBuckets.main.map(toEmitModule) })  /
 
 **解法**：`deriveFromGraph`（`convergence.ts:6`）——graph→cache→EmitModule 派生，只派生受影响 entry 的 module 集。
 
+**⚠️ H1 scope（logic-only）**：`deriveFromGraph` 仅派生 **logic** EmitModule[]（convergence.ts:12 自述"非 logic 模块不在 ModuleResultCache，cache.get(id) 自然过滤"）。view/style emit 走 domain `emitEntry`/`emitStyle`（已 per-page in-domain，orchestrator:65-68 onOutput→buildModel.add），**不经 emitBuckets，H1 不动**。H1 只替换 orchestrator Logic emit task（emitBuckets→deriveFromGraph）。
+
 ### §1.3 真缺口 2：view/style cache 是 per-page-bundle（非 per-module）
 
 G5 D-G5-4'：viewCache = `Map<string, ViewCompiledModule[]>`（per-page-bundle，存 viewParseWalk 完整有序 bundle）。
@@ -75,8 +77,9 @@ H1 预判"load/compile 分离"有误（已分离）。重新拆分：
 ### §2.2 依赖序
 
 ```
-H1 deriveFromGraph 接线（emit 增量）
+H1 deriveFromGraph 接线（emit 增量，logic-only）
    │   使 emit 集 = graph 派生（非手动 bucket）
+   ├─ H1/H2/H3 可并行（见下注）
    ▼
 H2 registry 实体化（compile 替代 legacy）
    │   Packer shape 激活；compile-target → registry
@@ -89,6 +92,11 @@ H4 per-module HMR push（dev server 增量）
    ▼
 伞 close
 ```
+
+**⚠️ 依赖序非严格线性**（F2 修正）：
+- H1（Emitter 侧，deriveFromGraph）+ H2（3 registry 实体化）+ H3（cache 粒度反转）三者**主题独立**——H1 是 emit 路径、H2 是 compile 路径、H3 是 cache 粒度，可并行 formalize。
+- **H4 真依赖 H1+H3**（per-module push 需 per-module emit（H1）+ per-module cache（H3）就绪）。
+- 线性序 H1→H2→H3→H4 是默认跟踪序（简化伞管），子门可并行 formalize。
 
 ### §2.3 规模总评
 
@@ -105,13 +113,17 @@ H4 per-module HMR push（dev server 增量）
 
 ## §3 行为 0 边界
 
-### §3.1 one-shot 路径不变（H1-H2-H3）
+### §3.1 one-shot 路径不变（H1-H2）
 
-one-shot build 不传 state（D-OS-1）→ 无 invalidatedModules → 无 cache-hit skip → 全量编译。H1-H3 重构 emit/compile 路径，但 one-shot 输出须 diff=0 对 baseline。
+one-shot build 不传 state（D-OS-1）→ 无 invalidatedModules → 无 cache-hit skip → 全量编译。H1-H2 重构 emit/compile 路径，但 one-shot 输出须 diff=0 对 baseline。
 
 **关键验证**：H1 emitBuckets→deriveFromGraph——deriveFromGraph(graph, cache, entryId) 派生的 EmitModule[] 须与 emitBuckets 的 modules 字节一致（同集同序同 code）。convergence.ts 注释自述"只读不改 graph/cache"——派生逻辑是 cache.get(id) → EmitModule，与 emitBuckets 的 CompileInfo→EmitModule 映射一致（待 H1 实证）。
 
-### §3.2 watch 路径渐进启用（H4）
+### §3.2 watch 字节恒等（H3）
+
+H3（per-module view/style cache）改 cache 粒度（per-page-bundle → per-module）。one-shot 无 cache（undefined → no-op）→ **H3 one-shot diff=0 平凡成立**。**H3 风险在 watch**：per-module 派生须保 bundle 字节一致（序重建——G5 D-G5-4' per-page-bundle 存原序 bundle 保字节一致，per-module 反转须在派生时重建同序）。
+
+### §3.3 watch 路径渐进启用（H4）
 
 H4 per-module HMR push 仅 watch 路径。one-shot 不受影响（不传 state → no HMR）。行为 0 边界延续。
 
@@ -129,6 +141,10 @@ load/compile/emit 分离（H1-H2）subsume 目录缺口：
 | ④ build-pipeline.ts dead | 直接删（零风险） | H0（随手，非子门） |
 
 **④ 可零风险先行**（不阻塞 H1-H4）。
+
+**① W3 一致性**：env.ts 迁移是 **gradual migration**（packer-context 已迁 14 config-fixpoint 函数、graph-bootstrap 已迁 storeInfo steps 3-6），非 big-bang split——与 packer-research W3「env.ts 不拆（注入 context）」一致。H2 registry 实体化继续 gradual 路径（load 归 Loader registry，env.ts 薄壳继续瘦身至消解）。
+
+**血缘**：HMR-compiler IS packer-research 的「重评估 Packer 边界」——packer-research 闭环"先 TODO 刀 2+3 → 落地后重评估"，增量链 G1-G5+IRC 完成 刀 2+3（module invalidation + module result cache），重评估条件已 met。HMR-compiler 激活 Packer shape（registry + deriveFromGraph）= 该重评估。
 
 ---
 

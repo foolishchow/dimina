@@ -37,14 +37,14 @@ view/style cache 从 per-page-bundle（G5 D-G5-4'）改 per-module，使单组�
 各子门 production 重构不破 baseline——one-shot 6 项目 diff=0 不变；watch 路径字节恒等延续（SMPU 后 production == verify baseline）。
 
 ### R-HMR-6（SHOULD）— 目录 cycle 消解
-load/compile 分离自然消解目录边界缺口：
+H1-H2 自然消解目录边界缺口：
 - ① core⇄packer（env.ts god module——storeInfo/load 迁出后 env.ts 反向 import 消解）
 - ② pipeline⇄domain（emit.ts 归位——domain 不再向上 import pipeline）
 - ③ model→pipeline（stage/emit 概念随 registry 实体化归位）
 
 ## Constraints
 
-- **W3 决策延续**：env.ts 不整体拆（packer-research W3）——load/compile 分离通过迁移 storeInfo/load 到 model/packer，env.ts 自然消解（非显式拆 env.ts）
+- **W3 决策延续**：env.ts 不整体拆（packer-research W3）——registry 实体化（H2）通过迁移 storeInfo/load 到 model/packer，env.ts 自然消解（非显式拆 env.ts）
 - **行为 0 三件套**：vitest 全绿 + tsc 0 errors + 全量 examples diff=0（各子门均须过）
 - **HMR 边界**：one-shot 路径不变（D-OS-1「单次 build 不传 state」延续）；watch 路径渐进启用 HMR
 - **runtime 协议**：H4 per-module push 需 runtime HMR API 对齐（运行时侧——非本伞实施，但 H4 依赖协议定义）

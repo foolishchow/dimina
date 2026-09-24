@@ -23,7 +23,7 @@
 
 ## Goal
 
-**编译侧 HMR**——load/compile 分离 + deriveFromGraph 接线 + registry 实体化 + per-module HMR push，使 dev server 增量推送（非全量 reload）。伞主要交付**路线与子门顺序**；产品代码在子门实施。
+**编译侧 HMR**——deriveFromGraph 接线 + registry 实体化 + per-module view/style cache + per-module HMR push，使 dev server 增量推送（非全量 reload）。伞主要交付**路线与子门顺序**；产品代码在子门实施。
 
 ## Non-goals
 
@@ -57,16 +57,16 @@
 
 - 增量链 G1-G5+IRC+SMPU（complete）——HMR 基础设施已就绪
 - Packer shape：`types.ts`（Loader/Compiler/Emitter/Registry 接口）+ `convergence.ts`（deriveFromGraph）+ `session-state.ts`（graph+cache+viewCache/styleCache+fingerprints+invalidatedModules）
-- `env.ts` god module（W3「不拆」决策——load/compile 分离后自然消解 cycle ①）
+- `env.ts` god module（W3「不拆」决策——H2 registry 实体化后自然消解 cycle ①）
 - 3 registry 空壳（`orchestrator:54` emptyRegistry）
 - `deriveFromGraph`（`convergence.ts:6`，定义未调）
-- 目录边界缺口（2 cycle + 2 leak，见 [目录分析](design.draft.md)）——load/compile 分离 subsume ①②③
+- 目录边界缺口（2 cycle + 2 leak，见 [目录分析](design.draft.md)）——H1-H2 subsume ①②③
 
 ## Readiness gaps
 
 - **规模评估待做**（design.draft）——4 子门拆分粒度 + 依赖序 + 行为 0 边界
 - **runtime HMR API 依赖**（运行时侧——非本伞范围，但 H4 per-module push 需 runtime 协议对齐）
-- **D-HMR-2 design gate**：load/compile 分离策略（渐进 vs 一次性）待 design.draft 评
+- **D-HMR-2 design gate**：deriveFromGraph 接线策略（渐进 vs 一次性）待 design.draft 评
 
 ## 闭合条件
 
