@@ -77,7 +77,8 @@ if (options.minify && !sourcemap) {
 - ✅ 完成 D-SM-2 迁移（minify 归 emit）
 - ✅ 字节恒等（per-module + `\n`）
 - ❌ emitStyle 输入 shape 变（需收 per-module codes，非聚合体）——但现状 `modules` 数组只 1 元素（聚合体），需上游 parse-walk 不聚合 + 传 per-module
-- ❌ 改动大（parse-walk join 逻辑 + emitStyle 输入 + cssnano per-module 在 emit）
+- ❌ 改动大（parse-walk join 逻辑 + emitStyle 输入 + cssnano per-module 在 emit + map 合并）
+- ⚠️ **style-sourcemap.spec.js 同样受影响**（B 也改 cssnano aggregated→per-module，输出变 → token-offset 断言 likely 破，同 A）——该影响 A/B 共享，非 A-specific
 
 **推荐 A**（最小改动 + 字节恒等已证 + 接受放弃 D-SM-2 迁移——emit 统一 minify 策略在 load/compile 拆时再做）。design gate 决。
 

@@ -48,5 +48,6 @@ Status: **draft（2026-10-09）**
 
 ## Traceability
 
-- R-SMPU-1..6 ↔ A-SMPU1..6 ↔ P-SMPU-1..6（implementation-plan Step 4）
+- R-SMPU-1..6 ↔ A-SMPU1..6 ↔ P-SMPU1..6（implementation-plan Step 4）
 - 反转 D-SM-4（style-minify-gate）+ D-CN-4（style-cssnano-gate）Non-scope → architecture-notes bridge
+- 若选方案 A：bridge D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）反转 → canonical 回 parse-walk
