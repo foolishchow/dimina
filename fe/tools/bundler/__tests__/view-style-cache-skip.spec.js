@@ -1,11 +1,14 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { storeInfo, getDependencyGraph } from '../src/compiler/core/env.ts'
 import { compileML } from '../src/compiler/view/index.ts'
 import { compileSS } from '../src/compiler/style/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
+import build from '../src/index.ts'
+import { PackerSessionState } from '../src/packer/session-state.ts'
 
 /**
  * G5 (fe-tools-view-style-cache-skip) 测试：
@@ -114,4 +117,83 @@ describe('compileML cache-hit (G5 D-G5-4/F6)', () => {
 		expect(results.length).toBeGreaterThan(0)
 		expect(results[0].kind).toBe('view')
 	})
+})
+
+// ── 集成：state-reuse cache-hit 字节一致性（P-G506 / 真实路径）──
+// D-G5-4' per-page-bundle 重建 transitive subs+wxs 的回归门
+function setupProjectWithComponent(root) {
+	fs.mkdirSync(path.join(root, 'pages/home'), { recursive: true })
+	fs.mkdirSync(path.join(root, 'components/mycomp'), { recursive: true })
+	fs.writeFileSync(path.join(root, 'app.json'), JSON.stringify({ pages: ['pages/home/index'] }))
+	fs.writeFileSync(path.join(root, 'project.config.json'), JSON.stringify({ appid: 'g5-int' }))
+	fs.writeFileSync(path.join(root, 'pages/home/index.json'), JSON.stringify({ usingComponents: { mycomp: '/components/mycomp/index' } }))
+	fs.writeFileSync(path.join(root, 'pages/home/index.wxml'), '<mycomp>home</mycomp>\n')
+	fs.writeFileSync(path.join(root, 'pages/home/index.js'), 'Page({})\n')
+	fs.writeFileSync(path.join(root, 'pages/home/index.wxss'), '.home { color: red; }\n')
+	fs.writeFileSync(path.join(root, 'components/mycomp/index.json'), JSON.stringify({ component: true }))
+	fs.writeFileSync(path.join(root, 'components/mycomp/index.wxml'), '<view>comp</view>\n')
+	fs.writeFileSync(path.join(root, 'components/mycomp/index.js'), 'Component({})\n')
+	fs.writeFileSync(path.join(root, 'components/mycomp/index.wxss'), '.comp { color: blue; }\n')
+}
+
+function findFile(root, name) {
+	for (const e of fs.readdirSync(root, { withFileTypes: true })) {
+		const p = path.join(root, e.name)
+		if (e.isDirectory()) { const r = findFile(p, name); if (r) return r }
+		else if (e.name === name) return p
+	}
+	return null
+}
+
+function diffDirs(a, b) {
+	try { return execFileSync('diff', ['-rq', a, b], { encoding: 'utf8' }) }
+	catch (e) { return (e.stdout || '') + (e.stderr || '') }
+}
+
+describe('integration: state-reuse cache-hit byte-identity', () => {
+	let srcDir, out1, out2
+	beforeEach(() => {
+		srcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'g5-int-'))
+		setupProjectWithComponent(srcDir)
+		out1 = path.join(srcDir, '_out1')
+		out2 = path.join(srcDir, '_out2')
+		process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'
+	})
+	afterEach(() => {
+		if (srcDir && fs.existsSync(srcDir)) fs.rmSync(srcDir, { recursive: true, force: true })
+	})
+
+	it('view cache-hit 含 transitive subs：bundle 含子组件 + 字节一致（D-G5-4\'）', async () => {
+		const state = new PackerSessionState()
+		state.viewCache = new Map()
+		state.styleCache = new Map()
+		// build1：填 cache（page bundle = page + sub-component，经 viewParseWalk transitive 发现）
+		await build(out1, srcDir, true, { state })
+		// build2：state reuse + 空 invalidated → cache-hit（page bundle 未 invalidated → re-emit 原序 bundle）
+		await build(out2, srcDir, true, { state, invalidatedModules: [] })
+
+		const v1 = findFile(out1, 'pages_home_index.js')
+		const v2 = findFile(out2, 'pages_home_index.js')
+		expect(v1).not.toBeNull()
+		expect(v2).not.toBeNull()
+		const c1 = fs.readFileSync(v1, 'utf8')
+		const c2 = fs.readFileSync(v2, 'utf8')
+		// D-G5-4' per-page-bundle：cache-hit re-emit 含 transitive sub-component（非缺内容）
+		expect(c1).toContain('components/mycomp')  // sub-component moduleId 在 bundle
+		expect(c1).toContain('render:')  // view render fn
+		// cache-hit 字节一致：build2 re-emit = build1 全量
+		expect(c1).toBe(c2)
+	}, 30000)
+
+	it('真实路径字节一致：非空 invalidated（单 page 变更）→ 全 diff=0', async () => {
+		const state = new PackerSessionState()
+		state.viewCache = new Map()
+		state.styleCache = new Map()
+		await build(out1, srcDir, true, { state })
+		// build2：真实 watch 路径——单 page invalidated（page 逻辑变更）
+		await build(out2, srcDir, true, { state, invalidatedModules: ['pages/home/index'] })
+
+		const diff = diffDirs(out1, out2)
+		expect(diff.trim()).toBe('')  // logic + view + style + static 全字节一致
+	}, 30000)
 })

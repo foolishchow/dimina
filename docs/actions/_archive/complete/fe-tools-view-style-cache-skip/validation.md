@@ -7,11 +7,11 @@ Status: **complete（2026-10-09）**
 | ID | 方法 | check | evidence |
 |---|---|---|---|
 | P-G501 | 代码审阅 | ① `session-state.ts` `PackerSessionState` 含 `viewCache?: Map<string, ViewCompiledModule[]>`（per-page-bundle，D-G5-4'）+ `styleCache?: Map<string, StyleCompiledModule>`（bare）② `orchestrator.ts` state→ctx plumbing 镜像 logic（:171/:181）③ `stage-channel.ts` worker input viewCache/styleCache 快照（`new Map(c)`，F12）+ view 写块 per-page-bundle ④ `git diff` 范围 | ✅ 审阅通过 |
-| P-G502 | cache-hit 单测 | `view-style-cache-skip.spec.js` 6 tests：compileSS cache-hit/miss/no-cache + compileML per-page-bundle cache-hit/miss/no-cache；G4 test `view-style-compile-res.spec.js` ① per-page-bundle shape 同步 | ✅ 11 tests pass |
+| P-G502 | cache-hit 单测 | `view-style-cache-skip.spec.js` 8 tests：compileSS cache-hit/miss/no-cache + compileML per-page-bundle cache-hit/miss/no-cache + **2 集成**（① view cache-hit 含 transitive subs + 字节一致 ② 真实路径非空 invalidated 全 diff=0）；G4 test `view-style-compile-res.spec.js` ① per-page-bundle shape 同步 | ✅ 13 tests pass |
 | P-G503 | 行为 0 全量 diff | one-shot build 6 项目 diff=0（无 invalidatedModules + state.viewCache=undefined → 无 cache-hit skip → 全量编译 = G4 行为） | ✅ diff -r = 0（6 项目） |
 | P-G504 | tsc + vitest | tsc 0 errors；vitest 84 files / 623 tests 全绿（compile-cli-cache flaky 单跑 pass） | ✅ tsc exit 0；vitest 623/623 |
 | P-G505 | V-PC-5 类型约束 | changed files 无 `as any`/`@ts-nocheck`/`[key: string]: unknown` 索引签名新增（`as { viewCache? }` 结构断言允许） | ✅ grep 0 violation |
-| P-G506 | watch cache-hit byte-identity 集成 | 两次 build 同项目（build1 填 cache，build2 reuse state + invalidatedModules=[] → cache-hit skip）→ 比 output：**view 0 pages_* diff + style 0 .wxss diff**（per-page-bundle 原序 re-emit 保字节一致） | ✅ view/style byte-identity confirmed（residual 见下） |
+| P-G506 | watch cache-hit byte-identity 集成 | 两次 build 同项目（build1 填 cache，build2 reuse state + invalidatedModules=[] → cache-hit skip）→ 比 output：**view 0 pages_* diff + style 0 .wxss diff**（per-page-bundle 原序 re-emit 保字节一致）。**已 committed 为 vitest 集成测试**（`view-style-cache-skip.spec.js` 「integration: state-reuse cache-hit byte-identity」两例：① cache-hit 含 transitive subs + 字节一致 ② 真实路径非空 invalidated 全 diff=0） | ✅ view/style byte-identity confirmed（residual 见下） |
 
 ### P-G506 residual（out-of-scope，pre-existing）
 
