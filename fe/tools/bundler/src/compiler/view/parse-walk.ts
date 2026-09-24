@@ -249,19 +249,70 @@ interface ViewParseWalkOptions {
 }
 
 /**
+ * view L phase（F-H2-1 拆分）：per-module 模板加载（parse WXML + 组件/wxs 发现）。
+ * 包装 toCompileTemplate——纯发现，不含 render 编译。
+ *
+ * 注：view 拆分是函数级（per-module 阶段函数），非批量阶段——compileViewTree
+ * 递归必须保持交错编排（scriptRes 插入序 = EmitModule[] 序 = H3 order list 序，
+ * wxs 条目与模块条目交错；批量 load-then-compile 会变序，非字节恒等）。
+ */
+interface ViewLoadedModule {
+	tpl: string
+	sourceInfo: { path: string; content: string }
+	origins: unknown[]
+	sourceContents: Map<string, string>
+}
+
+function viewLoadModule(isComponent: boolean, module: ViewModule, skipTemplatePaths: Set<string>): {
+	loaded: ViewLoadedModule | null
+	instruction: Record<string, unknown>
+	templateModule: unknown[]
+	compileInstruction: Record<string, unknown>
+	canUseCache: boolean
+} {
+	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
+	if (!tpl || !instruction) {
+		return { loaded: null, instruction: {}, templateModule: [], compileInstruction: {}, canUseCache: false }
+	}
+	const templateModule = instruction.templateModule || []
+	const templateModuleForCompile = (templateModule as Array<{ path: string }>).filter(tm => !(skipTemplatePaths as Set<string>).has(tm.path))
+	const compileInstruction = {
+		...instruction,
+		templateModule: templateModuleForCompile,
+	}
+	const canUseCache = skipTemplatePaths.size === 0
+	return {
+		loaded: { tpl, sourceInfo, origins: origins as unknown[], sourceContents: sourceContents as Map<string, string> },
+		instruction,
+		templateModule,
+		compileInstruction,
+		canUseCache,
+	}
+}
+
+/**
+ * view E phase（F-H2-1 拆分）：装配（scriptRes → EmitModule[]，插入序 = 编译序）。
+ */
+function viewEmit(scriptRes: Map<string, string>, sourceMapRes: Map<string, string>): EmitModule[] {
+	return [...scriptRes.entries()].map(([modulePath, code]) => ({
+		moduleId: modulePath,
+		code,
+		map: sourceMapRes.get(modulePath) || null,
+	}))
+}
+
+/**
  * view parse+walk：预 walk 组件树（toCompileTemplate only）→ 收集全部 wxs → 一次编译 → EmitModule[]
  * 编排接管原 buildCompileView 的 activePaths / inheritedTemplatePaths / MC1 error caching。
+ *
+ * F-H2-1 拆分后：compileViewTree（交错编排，L/C per-module）+ viewEmit（E 阶段）。
  */
 export function viewParseWalk(pageModule: ViewModule, options: ViewParseWalkOptions): EmitModule[] {
 	void options // sourcemap flag consumed via enableSourcemap in inner functions
 	const scriptRes = new Map<string, string>()
 	const sourceMapRes = new Map<string, string>()
 	compileViewTree(pageModule, false, scriptRes, new Set(), new Set(), sourceMapRes)
-	return [...scriptRes.entries()].map(([modulePath, code]) => ({
-		moduleId: modulePath,
-		code,
-		map: sourceMapRes.get(modulePath) || null,
-	}))
+	return viewEmit(scriptRes, sourceMapRes)
 }
 
 /**
@@ -591,23 +642,21 @@ function finalizeModule(
  * 编译页面及自定义组件，自定义组件可认为是特殊的页面
  * https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/
  * @param {*} module
+ *
+ * F-H2-1 拆分后：viewLoadModule（L）→ tryModuleCache → compileModuleRender（C）→ finalizeModule（缓存+装配）。
  */
 function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: { skipTemplatePaths?: Set<string>; sourceMapRes?: Map<string, string>; allScriptModules?: Array<{ path: string; code: string; originalName?: string }> } = {}): Record<string, unknown> | null {
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
 	const sourceMapRes = options.sourceMapRes as Map<string, string> || new Map<string, string>()
-	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
-	if (!tpl) {
+	// L 阶段：模板加载（parse + 发现）
+	const { loaded, instruction, templateModule, compileInstruction: loadedCompileInstruction, canUseCache } = viewLoadModule(isComponent, module, skipTemplatePaths as Set<string>)
+	if (!loaded) {
 		return null
 	}
-	const templateModule = instruction.templateModule || []
-	const templateModuleForCompile = (templateModule as Array<{ path: string }>).filter(tm => !(skipTemplatePaths as Set<string>).has(tm.path))
 	const compileInstruction = {
-		...instruction,
-		templateModule: templateModuleForCompile,
+		...loadedCompileInstruction,
 		scriptModule: options.allScriptModules || instruction.scriptModule,
 	}
-
-	const canUseCache = (skipTemplatePaths as Set<string>).size === 0
 
 	// 1. 缓存命中分派
 	const cached = tryModuleCache(module, scriptRes, instruction, sourceMapRes, canUseCache)
@@ -615,9 +664,9 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 		return cached.instruction
 	}
 
-	// 2. 编译
+	// 2. C 阶段：编译
 	const renderResult = compileModuleRender(module, compileInstruction, scriptRes, {
-		tpl, sourceInfo, origins: origins as unknown[], sourceContents: sourceContents as Map<string, string>, isComponent, allScriptModules: options.allScriptModules,
+		tpl: loaded.tpl, sourceInfo: loaded.sourceInfo, origins: loaded.origins, sourceContents: loaded.sourceContents, isComponent, allScriptModules: options.allScriptModules,
 	})
 
 	// 3. 包装 + 缓存写入
