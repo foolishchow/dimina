@@ -60,9 +60,10 @@ ctx.styleCache = styleCache
 ### §2.3 stage-channel worker input 快照（R-G5-3）
 
 ```typescript
-// stage-channel.ts input（镜像现有 cache IIFE）
-viewCache: (() => { const c = (ctx as { viewCache?: { toJSON: () => [string, unknown][] } }).viewCache; return c ? new Map(c.toJSON()) : null })(),
-styleCache: (() => { const c = (ctx as { styleCache?: ... }).styleCache; return c ? new Map(c.toJSON()) : null })(),
+// stage-channel.ts input——view/style cache 是 bare Map（D-G5-1/D-G4-3），无 toJSON（F12 纠正：不能镜像 logic IIFE 的 c.toJSON()——logic 的 ModuleResultCache 有 toJSON，bare Map 没有）
+viewCache: (() => { const c = (ctx as { viewCache?: Map<string, unknown> }).viewCache; return c ? new Map(c) : null })(),
+styleCache: (() => { const c = (ctx as { styleCache?: Map<string, unknown> }).styleCache; return c ? new Map(c) : null })(),
+// logic cache IIFE（:47）仍用 toJSON——ModuleResultCache 有该方法；view/style bare Map 用 new Map(c) copy constructor
 // invalidatedModules 已传（:48）
 ```
 

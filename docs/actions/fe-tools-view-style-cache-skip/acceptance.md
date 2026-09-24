@@ -14,7 +14,7 @@ Status: **draft（2026-10-08）**
 
 ## A-G53 — stage-channel worker input cache 快照（R-G5-3, D-G5-2）
 
-- [ ] `stage-channel.ts` worker input 加 `viewCache`/`styleCache` 快照（镜像 `cache: new Map(c.toJSON())`）
+- [ ] `stage-channel.ts` worker input 加 `viewCache`/`styleCache` 快照（bare Map 用 `new Map(c)` copy constructor——F12：非 toJSON，logic 的 ModuleResultCache 才有 toJSON）
 - [ ] worker 收快照 + `invalidatedModules`（已传，G5 消费）
 
 ## A-G54 — view/style cache-hit skip（R-G5-4, A-IU-4, D-G5-3/4/5）

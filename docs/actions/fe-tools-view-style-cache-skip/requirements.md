@@ -12,7 +12,7 @@ Status: **draft（2026-10-08）**
 
 ## R-G5-3: stage-channel worker input cache 快照
 
-`stage-channel.ts` worker input 镜像现有 `cache: (() => { const c = ctx.cache; return c ? new Map(c.toJSON()) : null })()` 加 view/style：`viewCache`/`styleCache` 快照（序列化传 worker）。worker 收快照 + `invalidatedModules`（已传，G4 期忽略）。
+`stage-channel.ts` worker input 为 view/style 加快照——bare Map 用 `new Map(c)` copy constructor（**F12：非 toJSON**——logic 的 `ModuleResultCache` 有 `toJSON` 方法，view/style bare `Map` 没有；logic IIFE `(() => { const c = ctx.cache; return c ? new Map(c.toJSON()) : null })()` 仍用于 logic，view/style 用 `(() => { const c = ctx.viewCache; return c ? new Map(c) : null })()`）。worker 收快照 + `invalidatedModules`（已传，G4 期忽略）。
 
 ## R-G5-4: view/style cache-hit skip（A-IU-4）
 

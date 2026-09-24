@@ -27,7 +27,7 @@
 
 1. `PackerSessionState` 加 `viewCache`/`styleCache` 字段（bare `Map<string, ViewCompiledModule>`/`Map<string, StyleCompiledModule>`，D-G4-3）
 2. `orchestrator.ts` state→ctx plumbing（`ctx.viewCache = state.viewCache`，镜像现有 `ctx.cache = state.moduleCache`）
-3. `stage-channel.ts` worker input 加 viewCache/styleCache 快照（镜像现有 `cache: new Map(c.toJSON())`）
+3. `stage-channel.ts` worker input 加 viewCache/styleCache 快照（bare Map 用 `new Map(c)`——F12：非 toJSON，logic 的 ModuleResultCache 才有 toJSON）
 4. `view/index.ts` `compileML` + `style/index.ts` `compileSS` cache-hit skip——moduleId 在 cache 且 NOT in invalidatedModules → 跳 compile，返 cached ViewCompiledModule/StyleCompiledModule（re-emit cached code/map）
 
 ## 非目标
