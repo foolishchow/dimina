@@ -1,13 +1,14 @@
 # FE Tools HMR Compiler（Umbrella）
 
 - Action: `fe-tools-hmr-compiler`
-- Status: `ready`
+- Status: `complete`
 - Updated: 2026-10-09
-- Status authority: [Action Status](../STATUS.md)
-- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)（Packer / Scheme）
+- 终态决定：**complete**——子门 H1-H4 全 complete + 全部 Phase 2 交付（F-H2-1 L/C/E 拆分 + D-PMC-2 选择性重编译 + F-H4-2 publish 增量 sync）；R-HMR-1..5（MUST）全 pass；R-HMR-6（SHOULD）partial（残留见 [acceptance A-HMR6](acceptance.md)）
+- Status authority: [Action Status](../../../STATUS.md)
+- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../../../fe-tools/architecture-notes.md)（Packer / Scheme）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [acceptance](acceptance.md) · [roadmap](roadmap.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
-- 前置：增量链 G1–G5 + IRC + SMPU 全 `complete`（[navigation](../../fe-tools/README.md)）；Packer shape（[types](../../../fe/tools/bundler/src/packer/types.ts) · [convergence](../../../fe/tools/bundler/src/model/convergence.ts)）已定义未接线
+- 前置：增量链 G1–G5 + IRC + SMPU 全 `complete`（[navigation](../../../../fe-tools/README.md)）；Packer shape（[types](../../../../../fe/tools/bundler/src/packer/types.ts) · [convergence](../../../../../fe/tools/bundler/src/model/convergence.ts)）已定义未接线
 
 ## 背景
 
@@ -31,16 +32,16 @@
 - **整包 Packer extraction**（packer-research 已否决；重评估条件见 packer-research）
 - 改 view / style 车道业务语义；改 `fe/packages`
 - 在本伞直接改 `fe/tools/bundler/src`（无子门授权时）
-- 复活已归档 [`fe-tools-incremental-unify`](../_archive/deferred/fe-tools-incremental-unify/README.md) 的 deferred scope（A-IU-1..5 已全 complete via G4/G5）
+- 复活已归档 [`fe-tools-incremental-unify`](../../deferred/fe-tools-incremental-unify/README.md) 的 deferred scope（A-IU-1..5 已全 complete via G4/G5）
 
 ## 边界
 
 ```text
 本伞:     HMR 编译侧路线 + 子门顺序 + Non-goals（文档）
-子门 H1:  deriveFromGraph 接线（emit 从 emitBuckets 全量改 graph 派生增量）→ [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/README.md)（**`complete`**）
-子门 H2:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）→ [`fe-tools-hmr-registry-materialize`](../_archive/complete/fe-tools-hmr-registry-materialize/README.md)（**`complete`**）
-子门 H3:  per-module view/style cache（G5 per-page-bundle 粒度反转）→ [`fe-tools-hmr-per-module-cache`](../_archive/complete/fe-tools-hmr-per-module-cache/README.md)（**`complete`**）
-子门 H4:  per-module HMR push（dev server 消费增量 payload）→ [`fe-tools-hmr-push`](../_archive/complete/fe-tools-hmr-push/README.md)（**`complete`**）
+子门 H1:  deriveFromGraph 接线（emit 从 emitBuckets 全量改 graph 派生增量）→ [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/README.md)（**`complete`**）
+子门 H2:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）→ [`fe-tools-hmr-registry-materialize`](../fe-tools-hmr-registry-materialize/README.md)（**`complete`**）
+子门 H3:  per-module view/style cache（G5 per-page-bundle 粒度反转）→ [`fe-tools-hmr-per-module-cache`](../fe-tools-hmr-per-module-cache/README.md)（**`complete`**）
+子门 H4:  per-module HMR push（dev server 消费增量 payload）→ [`fe-tools-hmr-push`](../fe-tools-hmr-push/README.md)（**`complete`**）
 不做:     runtime HMR API；整包 Packer extraction
 ```
 
@@ -80,3 +81,7 @@
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-09 | 立项 `draft`：从 SMPU complete 后的"HMR 先做"决策；4 子门预判（H1-H4）；design.draft 规模评估待做 |
+| 2026-10-09 | draft → `ready`：design.draft 规模评估 + D-HMR-1..5 在档 + review 收敛 |
+| 2026-10-09 | H1-H4 子门全 complete（各子门归档） |
+| 2026-10-09 | Phase 2 全交付：F-H2-1 L/C/E 拆分 + D-PMC-2 选择性重编译 + F-H4-2 publish 增量 sync |
+| 2026-10-09 | ready → **`complete`** 收口：A-HMR1..6 / P-HMR1..6 填实（R-HMR-6 SHOULD partial 残留在档）；runtime HMR API 是伞外运行时侧依赖（D-HMR-5 非阻塞） |

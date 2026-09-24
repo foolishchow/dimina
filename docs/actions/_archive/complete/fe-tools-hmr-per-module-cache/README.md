@@ -4,7 +4,7 @@
 - Status: `complete`
 - Updated: 2026-10-09
 - Status authority: [Action Status](../../../STATUS.md)
-- 父伞：[`fe-tools-hmr-compiler`](../../../fe-tools-hmr-compiler/README.md)（**`ready`**；H3 子门）
+- 父伞：[`fe-tools-hmr-compiler`](../fe-tools-hmr-compiler/README.md)（**`ready`**；H3 子门）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 - 前置：H2 `complete`（registry 实体化——compile 路径经 registry 派发）

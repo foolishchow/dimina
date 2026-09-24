@@ -2,7 +2,7 @@
 
 > 本文件是设计草稿，非正式文档。用于规模评估后产出正式子门 design。
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 现状分析（4 缺口代码实证）
 
@@ -180,7 +180,7 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 
 推荐 A（渐进，降风险，类比 SMPU dual-path 过渡）。
 
-**⋰ H1 子门 formalize 锁（2026-10-09）**：D-ED-2 **反转推荐 A → locked B（一次性）**——SMPU 经验启示 dual-path 验证缺口风险 > 一次性风险。locked B 条件化（F4）：须 §4 实证 pass（cache 序 == emitBuckets 序）。见 [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/design.draft.md) §2。
+**⋰ H1 子门 formalize 锁（2026-10-09）**：D-ED-2 **反转推荐 A → locked B（一次性）**——SMPU 经验启示 dual-path 验证缺口风险 > 一次性风险。locked B 条件化（F4）：须 §4 实证 pass（cache 序 == emitBuckets 序）。见 [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/design.draft.md) §2。
 
 ### D-HMR-3: H2 registry 替代 compile-target 策略
 **design gate 待定**：
@@ -189,12 +189,12 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 
 推荐 A（compile-target 是核心入口，渐进降风险）。
 
-**⋰ H2 子门 formalize 锁（2026-10-09）**：D-REG-1 **反转推荐 A → locked 非双路径**——compile-target compile 段直接替换（无 fallback flag），与 H1 locked B 精神一致。D-REG-2/3 locked（load 在 domain + stage 保留）。F-H2-1 viewParseWalk 拆分规模升级 L+。见 [`fe-tools-hmr-registry-materialize`](../_archive/complete/fe-tools-hmr-registry-materialize/design.draft.md) §1/§5。
+**⋰ H2 子门 formalize 锁（2026-10-09）**：D-REG-1 **反转推荐 A → locked 非双路径**——compile-target compile 段直接替换（无 fallback flag），与 H1 locked B 精神一致。D-REG-2/3 locked（load 在 domain + stage 保留）。F-H2-1 viewParseWalk 拆分规模升级 L+。见 [`fe-tools-hmr-registry-materialize`](../fe-tools-hmr-registry-materialize/design.draft.md) §1/§5。
 
 ### D-HMR-4: H3 per-module view/style cache 粒度反转
 G5 D-G5-4' per-page-bundle 是为 cache-hit 字节一致。per-module 反转需重建 bundle 序。**⚠️ G5 P-G506 实证 graph 重建不可行**（direct-only + 无 wxs + 序不一致）。H3 须用**不同策略**：① per-module 存储 + 显式序元数据（存 order list，非 graph 派生）或 ② per-module compile + per-page-bundle emit（粒度解耦）。**design gate 待 H3 formalize 时详评策略 A/B**。
 
-**⋰ H3 子门 formalize 锁（2026-10-09）**：D-PMC-1 **locked 选项① stored order metadata**——actual probe PASS（3 项目 base+subpackages+vant，per-module split + order list reassembly == per-page-bundle 字节级恒等；vant 4.86x dedup 实证）。避开 P-G506。见 [`fe-tools-hmr-per-module-cache`](../_archive/complete/fe-tools-hmr-per-module-cache/design.draft.md) §1/§4。
+**⋰ H3 子门 formalize 锁（2026-10-09）**：D-PMC-1 **locked 选项① stored order metadata**——actual probe PASS（3 项目 base+subpackages+vant，per-module split + order list reassembly == per-page-bundle 字节级恒等；vant 4.86x dedup 实证）。避开 P-G506。见 [`fe-tools-hmr-per-module-cache`](../fe-tools-hmr-per-module-cache/design.draft.md) §1/§4。
 
 ### D-HMR-5: H4 runtime fallback
 编译侧增量 payload 先交付，dev server fallback L1 reload，runtime 就绪后激活 L_HMR。**非阻塞**。
