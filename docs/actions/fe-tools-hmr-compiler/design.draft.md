@@ -180,6 +180,8 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 
 推荐 A（渐进，降风险，类比 SMPU dual-path 过渡）。
 
+**⋰ H1 子门 formalize 锁（2026-10-09）**：D-ED-2 **反转推荐 A → locked B（一次性）**——SMPU 经验启示 dual-path 验证缺口风险 > 一次性风险。locked B 条件化（F4）：须 §4 实证 pass（cache 序 == emitBuckets 序）。见 [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/design.draft.md) §2。
+
 ### D-HMR-3: H2 registry 替代 compile-target 策略
 **design gate 待定**：
 - **方案 A（渐进）**：registry 实体化 + compile-target 保留 fallback，逐步切流量
@@ -205,11 +207,11 @@ G5 D-G5-4' per-page-bundle 是为 cache-hit 字节一致。per-module 反转需�
 | 依赖可识 | ✅ 增量链 complete + Packer shape 定义 + runtime HMR API（H4 外部） |
 | deliverables 可枚举 | ✅ H1-H4 + A-HMR1..6 |
 | acceptance/validation 可执行 | ✅ 行为 0 三件套 + 目录 cycle 矩阵 |
-| design gate | ⚠️ D-HMR-2/3/4 待 H1/H2/H3 formalize 时锁 |
+| design gate | ⚠️ D-HMR-2 H1 子门已锁 locked B（反转 A）；D-HMR-3/4 待 H2/H3 formalize 时锁 |
 
 **readiness gap**：D-HMR-2（H1 策略 A/B）+ D-HMR-3（H2 策略 A/B）需 design gate review 锁。子门 formalize 时各自详评。
 
-**升 ready 条件**：本 design.draft 评完 + D-HMR-1 子门顺序冻 + D-HMR-2/3 推荐 A 文档化（子门 formalize 时锁）。
+**升 ready 条件**：本 design.draft 评完 + D-HMR-1 子门顺序冻 + D-HMR-2/3 推荐 A 文档化（子门 formalize 时锁）。D-HMR-2 已由 H1 子门反转 locked B。
 
 ---
 

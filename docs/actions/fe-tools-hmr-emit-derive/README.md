@@ -54,6 +54,6 @@ H1:  orchestrator Logic emit task: emitBuckets → deriveFromGraph
 - D-ED-1 entry 映射冻结 + 实证字节一致
 - orchestrator Logic emit task 改调 deriveFromGraph
 - 行为 0：one-shot 6 项目 diff=0 + tsc 0 + vitest 全绿
-- emitBuckets 移除（或保留 fallback，D-ED-2 锁后定）
+- emitBuckets 移除（D-ED-2 locked B 一次性移除，F4 条件化：§4 实证 pass）
 - 持久发现回流 architecture-notes
 - STATUS / 导航一致
