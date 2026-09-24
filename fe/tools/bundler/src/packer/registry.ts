@@ -16,7 +16,7 @@
 
 import path from 'node:path'
 import type { CompileTarget, LoadBindings, PagesInfo, StageSpec, SubPackage } from '../compiler/pipeline/compile-target.types.ts'
-import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from '../compiler/core/env.ts'
+import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from './store/env.ts'
 import { viewEngine } from '../compiler/view/index.ts'
 import { logicEngine } from '../compiler/logic/index.ts'
 import { styleEngine } from '../compiler/style/index.ts'

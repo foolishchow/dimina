@@ -1,4 +1,4 @@
-import { getViewScriptTags } from '../../../core/env.ts'
+import { getViewScriptTags } from '../../../../packer/store/env.ts'
 import {
 	getAttr,
 	queryAll,

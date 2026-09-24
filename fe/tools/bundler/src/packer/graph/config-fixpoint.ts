@@ -22,7 +22,7 @@ import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from './dependency-graph.ts'
 import type { GraphConfigData } from './graph.ts'
 import type { PackerContext, PackerFileTypes } from '../types.ts'
-import type { PageConfig, ComponentConfig } from '../../compiler/core/env.ts'
+import type { PageConfig, ComponentConfig } from '../store/env.ts'
 
 // ── 常量（从 env.ts 迁移）──
 

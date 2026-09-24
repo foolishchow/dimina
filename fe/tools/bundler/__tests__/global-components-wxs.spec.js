@@ -117,11 +117,11 @@ describe('全局组件 wxs 问题修复', () => {
 		process.env.TARGET_PATH = outputDir
 		
 		// 清理模块缓存
-		const envModulePath = path.resolve(__dirname, '../src/compiler/core/env.ts')
+		const envModulePath = path.resolve(__dirname, '../src/packer/store/env.ts')
 		delete require.cache[envModulePath]
 		
 		// 重新导入并初始化环境
-		const { storeInfo, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
 		
 		// 执行配置收集
 		storeInfo(tempDir)

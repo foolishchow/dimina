@@ -23,13 +23,13 @@ import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 import { NpmBuilder } from '../compiler/core/npm-builder.ts'
 import compileConfig from '../compiler/pipeline/config-compiler.ts'
-import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from '../compiler/core/env.ts'
+import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from './store/env.ts'
 import { executeTask } from '../compiler/worker-runtime/executor.ts'
 import { emitEngine } from '../compiler/pipeline/emit-engine.ts'
 import { runCompileStage } from '../compiler/pipeline/stage-channel.ts'
 import type { RunCompileStageParams } from '../compiler/pipeline/stage-channel.ts'
 import { BuildModel, materialize } from '../model/build-model.ts'
-import { createProjectStore } from '../model/project-store.ts'
+import { createProjectStore } from './store/project-store.ts'
 import { deriveLogicBuckets } from '../model/convergence.ts'
 
 interface RendererAdapter {

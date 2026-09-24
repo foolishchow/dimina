@@ -54,7 +54,7 @@ describe('模板表达式空值保护', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
@@ -82,7 +82,7 @@ describe('模板表达式空值保护', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
@@ -113,7 +113,7 @@ describe('模板表达式空值保护', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
@@ -148,7 +148,7 @@ describe('模板表达式空值保护', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { storeInfo, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 
 		const { compileML } = await import('../src/compiler/view/index.js')

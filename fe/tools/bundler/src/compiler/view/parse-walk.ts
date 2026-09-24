@@ -15,7 +15,7 @@ import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
 import { getTemplateDirectiveName } from '../core/compatibility.ts'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
-import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getViewScriptExts, getViewScriptTags, getWorkPath } from '../core/env.ts'
+import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getViewScriptExts, getViewScriptTags, getWorkPath } from '../../packer/store/env.ts'
 import type { WxmlNode } from './wxml/common/document.ts'
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import {

@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkTemplateCompatibility, getTemplateDirectiveName } from '../src/compiler/core/compatibility.ts'
-import { getPages, storeInfo } from '../src/compiler/core/env.ts'
+import { getPages, storeInfo } from '../src/packer/store/env.ts'
 import { compileML } from '../src/compiler/view/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 

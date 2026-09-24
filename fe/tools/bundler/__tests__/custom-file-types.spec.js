@@ -9,7 +9,7 @@ import {
 	getViewScriptTags,
 	resetStoreInfo,
 	storeInfo,
-} from '../src/compiler/core/env.ts'
+} from '../src/packer/store/env.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 
 /**
@@ -331,7 +331,7 @@ describe('custom file types — 行为层（集成）', () => {
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
 		store(tempDir, { fileTypes: { template: ['qdml'] } })
 
 		const { compileML } = await import('../src/compiler/view/index.js')
@@ -359,7 +359,7 @@ describe('custom file types — 行为层（集成）', () => {
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
 		store(tempDir) // 不注入自定义文件类型
 
 		const { compileML } = await import('../src/compiler/view/index.js')
@@ -387,7 +387,7 @@ describe('custom file types — 行为层（集成）', () => {
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
 		store(tempDir, { fileTypes: { template: ['qdml'], style: ['qdss'] } })
 
 		const { compileSS } = await import('../src/compiler/style/index.js')
@@ -430,7 +430,7 @@ module.exports = { srcFn: srcFn }
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
 		store(tempDir, { fileTypes: { template: ['qdml'], viewScript: ['qds'] } })
 
 		const { compileML } = await import('../src/compiler/view/index.js')
@@ -470,7 +470,7 @@ module.exports = { srcFn: srcFn }
 
 		const outputDir = setTargetPath()
 
-		const { storeInfo: store, getPages } = await import('../src/compiler/core/env.ts')
+		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
 		store(tempDir, { fileTypes: { template: ['qdml'] } })
 
 		const { compileML } = await import('../src/compiler/view/index.js')

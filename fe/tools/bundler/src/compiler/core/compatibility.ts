@@ -1,7 +1,7 @@
 import { Parser } from 'htmlparser2'
 import type { ParserOptions } from 'htmlparser2'
 import { isHTMLTag } from '@vue/shared'
-import { getTemplateDirectivePrefixes, getViewScriptTags } from '../core/env.ts'
+import { getTemplateDirectivePrefixes, getViewScriptTags } from '../../packer/store/env.ts'
 import { supportedBuiltinComponents, supportedWxApis } from './compatibility-reference.ts'
 import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.ts'
 import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore

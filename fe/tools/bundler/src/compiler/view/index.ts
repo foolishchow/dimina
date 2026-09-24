@@ -3,7 +3,7 @@
  * parse+walk 代码在 parse-walk.ts（D-PW-2 真抽出）。
  */
 
-import { getDependencyGraph, getWorkPath, resetStoreInfo } from '../core/env.ts'
+import { getDependencyGraph, getWorkPath, resetStoreInfo } from '../../packer/store/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'

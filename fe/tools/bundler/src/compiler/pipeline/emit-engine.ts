@@ -1,5 +1,5 @@
 import { defineEngine } from '../worker-runtime/define-engine.ts'
-import { resetStoreInfo } from '../core/env.ts'
+import { resetStoreInfo } from '../../packer/store/env.ts'
 import { produceEntry } from './emit.ts'
 import type { EmitEntryParams } from './emit.ts'
 

@@ -18,7 +18,7 @@ vi.mock('esbuild', async (importOriginal) => {
 })
 
 const { compileJS, _setActiveCompileConfigForTest } = await import('../src/compiler/logic/index.ts')
-const { storeInfo } = await import('../src/compiler/core/env.ts')
+const { storeInfo } = await import('../src/packer/store/env.ts')
 
 describe('logic esTarget.logic wiring (CF-3)', () => {
 	let tempDir

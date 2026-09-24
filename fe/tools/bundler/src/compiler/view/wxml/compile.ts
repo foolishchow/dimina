@@ -6,7 +6,7 @@ import {
 	getTemplateExts,
 	getViewScriptTags,
 	getWorkPath,
-} from '../../core/env.ts'
+} from '../../../packer/store/env.ts'
 import { attachProjection } from './common/document.ts'
 import { parseWxml } from './parse.ts'
 import { loadTemplates } from './load/index.ts'

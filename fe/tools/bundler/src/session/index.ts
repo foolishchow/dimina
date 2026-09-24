@@ -32,7 +32,7 @@
 import { createBuildWatcher } from '../watch/watch-runner.ts'
 import { createLifecycle } from '../shared/lifecycle.ts'
 import { createWebPreviewAdapter } from './preview-adapter.ts'
-import { createProjectStore } from '../model/project-store.ts'
+import { createProjectStore } from '../packer/store/project-store.ts'
 import { createSessionRunner, COMPILE_KEYS } from './runner.ts'
 import type { ResolvedBundlerInput } from './resolve.ts'
 import type { ReloadContext } from './preview-adapter.ts'

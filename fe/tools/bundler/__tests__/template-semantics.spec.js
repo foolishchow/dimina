@@ -53,7 +53,7 @@ describe('mini-program template semantics', () => {
 		fs.mkdirSync(outputDir, { recursive: true })
 		process.env.TARGET_PATH = outputDir
 
-		const { getPages, storeInfo } = await import('../src/compiler/core/env.ts')
+		const { getPages, storeInfo } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 		const { compileML } = await import('../src/compiler/view/index.js')
 		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))

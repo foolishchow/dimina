@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
 import { computeInvalidatedModules } from '../src/model/invalidation.ts'
 import build from '../src/index.ts'
-import { getDependencyGraph, storeInfo } from '../src/compiler/core/env.ts'
+import { getDependencyGraph, storeInfo } from '../src/packer/store/env.ts'
 
 describe('compiler dependency graph', () => {
 	let tempDir

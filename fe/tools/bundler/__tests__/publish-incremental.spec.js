@@ -36,7 +36,7 @@ describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 
 	async function setupEnv() {
 		// await import 保证与 publish.ts 同一 ESM 实例（require 会产生独立 CJS 实例——dual-instance trap）
-		const { storeInfo } = await import('../src/compiler/core/env.ts')
+		const { storeInfo } = await import('../src/packer/store/env.ts')
 		storeInfo(workDir)
 	}
 

@@ -1,4 +1,4 @@
-import { resetStoreInfo } from '../core/env.ts'
+import { resetStoreInfo } from '../../packer/store/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03

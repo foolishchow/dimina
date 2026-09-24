@@ -21,7 +21,7 @@ vi.mock('../src/compiler/worker-runtime/executor.ts', () => ({
 
 import { executeTask } from '../src/compiler/worker-runtime/executor.ts'
 import { runCompileStage } from '../src/compiler/pipeline/stage-channel.ts'
-import { storeInfo, getPages } from '../src/compiler/core/env.ts'
+import { storeInfo, getPages } from '../src/packer/store/env.ts'
 import { viewEngine } from '../src/compiler/view/index.ts'
 import { styleEngine } from '../src/compiler/style/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'

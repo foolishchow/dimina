@@ -7,7 +7,7 @@ import type { Node } from 'oxc-parser'
 type AstNode = Node & { loc?: { start?: { line?: number } } }
 import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
-import { getAppId, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, resolveAppAlias } from '../core/env.ts'
+import { getAppId, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, resolveAppAlias } from '../../packer/store/env.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { EmitModule } from '../pipeline/emit.ts'
 

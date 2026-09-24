@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { storeInfo, getDependencyGraph } from '../src/compiler/core/env.ts'
+import { storeInfo, getDependencyGraph } from '../src/packer/store/env.ts'
 import { compileML } from '../src/compiler/view/index.ts'
 import { compileSS } from '../src/compiler/style/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
@@ -63,7 +63,7 @@ describe('compileSS cache-hit (G5 D-G5-5)', () => {
 	})
 
 	it('cache-miss invalidated：重编 + 返 results', async () => {
-		const { getPages: gp } = await import('../src/compiler/core/env.ts')
+		const { getPages: gp } = await import('../src/packer/store/env.ts')
 		const pages = gp().mainPages
 		const pagePath = pages[0].path
 		const styleCache = new Map([[pagePath, styleMod(pagePath, 'OLD')]])
@@ -75,7 +75,7 @@ describe('compileSS cache-hit (G5 D-G5-5)', () => {
 	})
 
 	it('no-cache（one-shot 边界）：cache-miss 全量编译', async () => {
-		const { getPages: gp } = await import('../src/compiler/core/env.ts')
+		const { getPages: gp } = await import('../src/packer/store/env.ts')
 		const pages = gp().mainPages
 		const results = await runWithAbilities(outDir, () =>
 			compileSS(pages, null, { completedTasks: 0 }, { sourcemap: false, minify: true }, undefined, null),
@@ -98,7 +98,7 @@ describe('compileML cache-hit (G5 D-G5-4/F6)', () => {
 	})
 
 	it('cache-miss invalidated：③ 降级全量 viewParseWalk + 返 results', async () => {
-		const { getPages: gp } = await import('../src/compiler/core/env.ts')
+		const { getPages: gp } = await import('../src/packer/store/env.ts')
 		const pages = gp().mainPages
 		const pagePath = pages[0].path
 		const viewCache = new Map([[pagePath, viewMod(pagePath, 'OLD')]])  // H3 per-module
@@ -111,7 +111,7 @@ describe('compileML cache-hit (G5 D-G5-4/F6)', () => {
 	})
 
 	it('no-cache（one-shot 边界）：cache-miss 全量编译', async () => {
-		const { getPages: gp } = await import('../src/compiler/core/env.ts')
+		const { getPages: gp } = await import('../src/packer/store/env.ts')
 		const pages = gp().mainPages
 		const { results } = await runWithAbilities(outDir, () =>
 			compileML(pages, null, { completedTasks: 0 }, undefined, null),

@@ -1,4 +1,4 @@
-import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getWorkPath, isMiniGame, resetStoreInfo } from '../core/env.ts'
+import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getWorkPath, isMiniGame, resetStoreInfo } from '../../packer/store/env.ts'
 import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../worker-runtime/define-engine.ts'
 import type { CachedModuleResult } from '../../model/module-result-cache.ts'

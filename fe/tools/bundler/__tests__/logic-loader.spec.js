@@ -38,7 +38,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 		].join('\n'))
 		writeFile('pages/helper.js', 'export const helper = 1\n')
 
-		const { storeInfo } = await import('../src/compiler/core/env.ts')
+		const { storeInfo } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
 		const { logicParseWalk } = await import('../src/compiler/logic/parse-walk.js')
@@ -75,7 +75,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 		].join('\n'))
 		writeFile('pages/helper.ts', 'export const helper = 1\n')
 
-		const { storeInfo } = await import('../src/compiler/core/env.ts')
+		const { storeInfo } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
 
@@ -93,7 +93,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 		writeFile('project.config.json', JSON.stringify({ appid: 'test-app' }))
 		writeFile('pages/index.js', 'Page({})\n')
 
-		const { storeInfo } = await import('../src/compiler/core/env.ts')
+		const { storeInfo } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
 
@@ -108,7 +108,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 	it('找不到模块 → throw', async () => {
 		writeFile('app.json', JSON.stringify({ pages: ['pages/missing'] }))
 		writeFile('project.config.json', JSON.stringify({ appid: 'test-app' }))
-		const { storeInfo } = await import('../src/compiler/core/env.ts')
+		const { storeInfo } = await import('../src/packer/store/env.ts')
 		storeInfo(tempDir)
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
 

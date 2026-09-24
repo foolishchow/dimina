@@ -20,7 +20,7 @@
 import type { Graph, PackerContext } from '../types.ts'
 import { DependencyGraph } from './dependency-graph.ts'
 import type { GraphSnapshot } from './dependency-graph.ts'
-import type { PageConfig, ComponentConfig } from '../../compiler/core/env.ts'
+import type { PageConfig, ComponentConfig } from '../store/env.ts'
 import {
 	type FixpointCtx,
 	readProjectConfig,

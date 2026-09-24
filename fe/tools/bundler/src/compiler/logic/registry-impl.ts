@@ -15,7 +15,7 @@
  */
 
 import type { Loader, LoadedModule, LoadInput, PackerContext } from '../../packer/types.ts'
-import { getContentByPath } from '../core/env.ts'
+import { getContentByPath } from '../../packer/store/env.ts'
 import { getJSAbsolutePath, logicParseWalk } from './parse-walk.ts'
 
 export const logicLoader: Loader = {

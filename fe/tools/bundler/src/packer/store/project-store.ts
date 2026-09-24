@@ -15,8 +15,8 @@
  * M-A：ctx.dependencyGraph 与 store.getDependencyGraph() 是同一引用。
  */
 
-import { getDependencyGraph, storeInfo } from '../compiler/core/env.ts'
-import type { GraphSnapshot } from '../packer/graph/dependency-graph.ts'
+import { getDependencyGraph, storeInfo } from './env.ts'
+import type { GraphSnapshot } from '../graph/dependency-graph.ts'
 
 /**
  * @param {object} [_options]

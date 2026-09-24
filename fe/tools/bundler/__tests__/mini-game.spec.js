@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import build from '../src/index.ts'
-import { getRuntimeType, storeInfo } from '../src/compiler/core/env.ts'
+import { getRuntimeType, storeInfo } from '../src/packer/store/env.ts'
 
 describe('mini game compiler entry', () => {
 	let projectDir
