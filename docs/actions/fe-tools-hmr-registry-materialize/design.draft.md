@@ -1,0 +1,107 @@
+# Design Draft — fe-tools-hmr-registry-materialize
+
+> 本文件是设计草稿。用于 D-REG-1/2/3 锁后产出正式 technical-design。
+
+Status: **draft（2026-10-09）**
+
+## §1 registry 实体化策略（D-REG-1 = D-HMR-3）
+
+### §1.1 现状：emptyRegistry stub
+
+`orchestrator.ts:54`：
+```typescript
+const emptyRegistry = {
+  register() { /* stub D-OR-2 */ },
+  get() { return undefined },
+  kinds() { return [] as string[] },
+}
+```
+三车道 stub——注册/查询全空。orchestrator 不经 registry 派发，直接调 compile-target stages。
+
+### §1.2 目标：实体 registry
+
+`types.ts:186-215` 已定义：
+- `Loader.load(input, ctx) → LoadedModule`
+- `Compiler.compile(module, ctx) → CompiledModule`
+- `Emitter.emit(entryId, modules, ctx, opts) → EmitEntry` + `produceBuckets?`
+- kind → Loader/Compiler/Emitter 映射
+
+实体化 = 注册 logic/view/style/app/component 的 Loader/Compiler/Emitter，orchestrator 经 registry.get(kind) 派发。
+
+### §1.3 方案 A（渐进）vs B（一次性）
+
+**方案 A（渐进）**：registry 实体化 + compile-target 保留 fallback（dual-path），逐步切流量。
+- **⚠️ SMPU/H1 经验**：dual-path 有验证缺口风险。H1 D-ED-2 反转推荐 A → locked B（一次性）。
+- **但 compile-target 是核心入口**（Listr 前 fail-fast + stage 组装），渐进降风险。
+
+**方案 B（一次性）**：直接删 compile-target compile 段，registry 全面接管。
+- **优势**：无 dual-path 验证缺口。
+- **风险**：compile-target 是核心入口，一次性风险高（stage 组装 + workerOptions 派生复杂）。
+
+### §1.4 D-REG-1 推荐
+
+**推荐 A（渐进）——但条件化**：
+- compile-target 静态段（createCompileTarget）保留（fail-fast + config 组装）
+- compile-target compile 段（deriveStagePlan stages → workerOptions → runCompileStage）→ registry 派发
+- registry 实体化后，compile-target compile 段变 dead code → 移除
+- **非 dual-path**：registry 派发是唯一路径（无 flag 切换），compile-target compile 段直接替换（非保留 fallback）
+
+**区别于 SMPU/H1 dual-path**：这里是「先实体化 registry + 接线 + 验证 + 删 compile-target compile 段」的单向迁移（非 flag 切换 dual-path）。与 H1 locked B 精神一致（一次性替换，无 fallback）。
+
+---
+
+## §2 load 归属（D-REG-2）
+
+### §2.1 现状：compile-target readLoadBindings
+
+`compile-target.ts:76` readLoadBindings（env 读取：getPages + getAppConfigInfo + storeInfo）。load 逻辑散在 env.ts + config-fixpoint.ts。
+
+### §2.2 目标：Loader registry
+
+load = parse + walk = 发现依赖。Loader.load(input, ctx) → LoadedModule。
+- env.ts load 函数 → Loader 注册（logic Loader = buildJSByPath parse-walk? view Loader = wxml parse?）
+- readLoadBindings → Loader.load for app/config?
+
+### §2.3 D-REG-2 design gate
+
+load 归属复杂——logic/view/style 各有不同 load 逻辑（parse-walk）。Loader 注册须映射现有 parse-walk 路径。
+
+**待实证**：现有 parse-walk（logic/view/style）能否包装为 Loader.load？readLoadBindings（config load）是否归 Loader 或独立？
+
+---
+
+## §3 stage 概念归属（D-REG-3）
+
+### §3.1 现状：stage 常量在 pipeline
+
+`compile-stages.ts` COMPILE_STAGE_ORDER + stage 常量。`compile-target.ts` deriveStagePlan 派生 stages。
+
+### §3.2 目标：stage 概念归 model/shared
+
+H2 subsume ③（model→pipeline stage/emit 概念）——stage 常量 + EmitModule 下沉 model/shared。
+
+### §3.3 D-REG-3 design gate
+
+stage 概念是否随 registry 实体化下沉？或 stage 被 registry kind 替代（Loader/Compiler/Emitter 按 kind 派发，非 stage）？
+
+**待 design.draft 详评**：registry kind 派发是否消除 stage 概念？或 stage 保留为 registry 顶层编排？
+
+---
+
+## §4 行为 0 边界
+
+### §4.1 one-shot diff=0
+
+one-shot build 不传 state → registry 派发须产同 compile-target stages 的 compile 结果。Loader/Compiler/Emitter 包装现有 parse-walk/transform/emit 路径（非新逻辑）→ 字节一致。
+
+### §4.2 watch 路径
+
+registry 派发 watch 路径同 compile-target（cache-hit skip 经 ModuleResultCache/viewCache/styleCache，H2 不改 cache 粒度）。
+
+---
+
+## §5 实证待做（升 ready 前）
+
+1. **Loader 包装可行性**：现有 parse-walk（logic/view/style）能否包装为 Loader.load？
+2. **compile-target compile 段边界**：deriveStagePlan 哪些归 registry，哪些保留（静态段）？
+3. **env.ts load 函数映射**：哪些 load 函数归 Loader registry？

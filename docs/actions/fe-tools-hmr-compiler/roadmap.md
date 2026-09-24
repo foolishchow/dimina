@@ -31,9 +31,9 @@ H4 per-module HMR push（dev server 增量）
 | --- | --- | --- | --- |
 | HMR0 本伞 | **`draft`** | — | design.draft 规模评估完成；D-HMR-2/3 design gate 待子门 formalize 锁 |
 | H1 deriveFromGraph 接线 | **`complete`**（子门 [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/README.md)） | M | emit 路径重构；行为 0（emitBuckets→graph 派生字节一致）；D-ED-1 B2+E 锁（实证 pass）+ D-ED-2 locked B 确认 |
-| H2 registry 实体化 | pending | L | 替代 legacy compile-target；最大刀 |
-| H3 per-module view/style cache | pending | M-L | G5 per-page-bundle 反转；**G5 P-G506 先例 graph 重建不可行**，须不同策略（stored order 或粒度解耦） |
-| H4 per-module HMR push | pending | S-M | runtime 协议依赖；fallback 全量 reload |
+| H2 registry 实体化 | **`draft`**（子门 [`fe-tools-hmr-registry-materialize`](../fe-tools-hmr-registry-materialize/README.md)） | L | 替代 legacy compile-target；最大刀；D-REG-1 渐进 + D-REG-2/3 load/stage 归属 |
+| H3 per-module view/style cache | **`draft`**（子门 [`fe-tools-hmr-per-module-cache`](../fe-tools-hmr-per-module-cache/README.md)） | M-L | G5 per-page-bundle 反转；D-PMC-1 stored order metadata（避开 P-G506）+ per-module invalidation |
+| H4 per-module HMR push | **`draft`**（子门 [`fe-tools-hmr-push`](../fe-tools-hmr-push/README.md)） | S-M | runtime 协议依赖；D-PUSH-1 L_HMR + D-PUSH-2 runtime-side downgrade fallback L1 + D-PUSH-3 materialize 增量；非阻塞伞 close |
 
 ## 子门依赖序
 
