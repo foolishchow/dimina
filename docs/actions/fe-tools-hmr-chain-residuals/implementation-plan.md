@@ -64,7 +64,7 @@ Status: **ready（2026-10-09）**
 - [ ] P-HR4 `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` ctx 字段全部经 typed 边界（grep ctx as { 在 ctx 字段集 = 0；result/task 局部窄化不计）
 - [ ] P-HR5 `grep -n "pipeline/" src/model/invalidation.ts` = 0
 - [ ] P-HR6 行为 0 三件套：`tsc --noEmit` 0 + vitest 全绿 + 6 项目 one-shot `diff -r` = 0
-- [ ] P-HR7 tracker 状态更新（消解项 fixed + 证据链接；③b/③c 保持 open）
+- [ ] P-HR7 tracker 状态更新：close 时 F-HR-1/3 fixed + R3 fixed + ③a fixed（③b/③c open）+ F-HR-2 fixed（通道补齐）+ 默认 true deferred（runtime 就绪）；证据链接
 
 ## Step 6 — close
 

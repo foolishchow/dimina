@@ -12,7 +12,7 @@ Status: **ready（2026-10-09）**
 | P-HR4 | ctx 断言收敛 | `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` ctx 字段全部经 typed 边界（grep ctx as { 在 ctx 字段集 = 0；result/task 局部窄化不计） | pending |
 | P-HR5 | ③ import 消解 | `grep -n "pipeline/" src/model/invalidation.ts` = 0 | pending |
 | P-HR6 | 行为 0 三件套 | `tsc --noEmit` 0；vitest 全绿；6 项目 one-shot `diff -r` = 0 | pending |
-| P-HR7 | tracker 同步 | 入档（draft 时）：F-HR-1..3 + R3 条件过期 + ③ 两分支；close 时状态更新——两阶段 tracker diff review | pending |
+| P-HR7 | tracker 同步 | **入档（draft 已做）**：F-HR-1..3 + R3 条件过期 + ③a/b/c；**close 时状态更新**：F-HR-1/3 fixed + R3 fixed + ③a fixed（③b/③c open）+ F-HR-2 fixed（通道补齐）+ 默认 true deferred | pending |
 
 ## 行为 0 边界（本 Action 特别声明）
 

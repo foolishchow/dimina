@@ -37,7 +37,7 @@ HMR-compiler 伞（H1-H4 + 全部 Phase 2）收口后，复盘核实"交付"的�
 one-shot 6 项目 diff=0 + tsc 0 errors + vitest 全绿。registry 接线 / L_HMR 通道默认态均不得改变 one-shot 产物字节。
 
 ### R-HR-7（SHOULD）— residuals tracker 同步
-**入档（draft 时即做）**：F-HR-1..3 进 tracker（open）；R3 注条件过期；③ 两分支入档（invalidation 分支本 Action 消解 / compile-cache 分支 residual）。**状态更新（close 时）**：消解项置 fixed + 证据链接。
+**入档（draft 时即做）**：F-HR-1..3 进 tracker（open）；R3 注条件过期；③a/b/c 三分支入档（③a invalidation 消解 / ③b compile-cache residual / ③c type-only residual）。**状态更新（close 时）**：F-HR-1/3 fixed + R3 fixed + ③a fixed（③b/③c open）+ F-HR-2 fixed（通道补齐）+ 默认 true deferred（runtime 就绪），证据链接。
 
 ## Constraints
 

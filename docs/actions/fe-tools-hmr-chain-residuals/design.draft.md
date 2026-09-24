@@ -37,7 +37,7 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 | **b flag-gated** | env/CLI flag（如 `DMCC_HMR=1` / `--hmr`），preview-adapter 读 flag 传 `enableHmr`；默认关（行为 = 今日） | S；激活通道真实存在 + 默认安全；与 locked 决策的差距书面 re-lock 为"flag 默认关，runtime 就绪后翻默认" |
 | **c 保持未接线** | 只文档化激活动作 | 零风险但 R-HR-2 不满足（无生产设值点） |
 
-**locked b**：激活通道存在（接线档位补齐）+ 默认字节/行为恒等；D-PUSH-2 的完整兑现（默认 true）挂在 runtime 就绪条件上，tracker 记激活条件。**回退**：flag 关即回今日行为（无状态残留——flag 只影响 synthesizeReloadLevel 入参）。
+**locked b**：激活通道存在（接线档位补齐）+ 默认字节/行为恒等；D-PUSH-2 的完整兑现（默认 true）挂在 runtime 就绪条件上，tracker 记 F-HR-2 fixed（通道补齐）+ 默认 true deferred（runtime 就绪）。**回退**：flag 关即回今日行为（无状态残留——flag 只影响 synthesizeReloadLevel 入参）。
 
 ## §4 D-HR-3：selective 验证层级（design gate）
 

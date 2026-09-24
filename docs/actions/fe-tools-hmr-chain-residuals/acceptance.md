@@ -12,7 +12,7 @@ Status: **ready（2026-10-09）**
 | A-HR4 | R-HR-4 R3 ctx 类型收敛 | **ctx 字段断言全部经 typed 边界**（grep `ctx as {` 在 stage-channel + orchestrator 的 ctx 字段集 = 0；result/task 局部窄化不计）；单一 typed 边界声明在档 | grep `ctx as {` + tsc | pending |
 | A-HR5 | R-HR-5 COMPILE_STAGE_ORDER 下沉 | **定义点迁 model**（`compile-target.ts:21` → model）+ 全消费点 import 改 model（`invalidation.ts:69` + `compile-stages.ts:1` = 0 `pipeline` import in model）；compile-cache 分支记 tracker residual（非本项） | grep + vitest + tracker diff | pending |
 | A-HR6 | R-HR-6 行为 0 | tsc 0 + vitest 全绿 + 6 项目 diff=0 | 三件套执行记录 | pending |
-| A-HR7 | R-HR-7 tracker 同步 | F-HR-1..3 入档；R3 状态更新；③ 记消解 | residuals tracker diff | pending |
+| A-HR7 | R-HR-7 tracker 同步 | **入档（draft 已做）**：F-HR-1..3 + R3 条件过期 + ③a/b/c；**close 时状态更新**：F-HR-1/3 fixed + R3 fixed + ③a fixed（③b/③c open）+ F-HR-2 fixed（通道补齐）+ 默认 true deferred（runtime 就绪） | tracker diff review（两阶段：入档 + close 状态） | pending |
 
 ## Non-acceptance（显式排除）
 
