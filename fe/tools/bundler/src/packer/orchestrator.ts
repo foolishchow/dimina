@@ -314,7 +314,9 @@ async function _orchestrate(
 					if (!skipMaterialize) {
 						materialize(ctx.buildModel as BuildModel, getTargetPath())
 					}
-					publishToDist(targetPath, useAppIdDir)
+					// H4 Phase 2 (F-H4-2): seedPath（watch/compile-cache 增量）→ 增量 sync publish
+					// （content-diff，无 rm 窗口）；否则全量（one-shot，行为不变，F8 guard）
+					publishToDist(targetPath, useAppIdDir, !!seedPath)
 					await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
 				},
 			},
