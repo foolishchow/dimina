@@ -14,7 +14,7 @@ Status: **draft（2026-10-09）**
 | 文件 | 改动 | residual | 状态 |
 |---|---|---|---|
 | `watch-runner.ts` | `:90` 后加 `if (!sessionState.viewCache) sessionState.viewCache = new Map()` + `styleCache` 同（D-IRC-1） | R1 | pending |
-| `view/index.ts` | viewCompile 返回 shape 处加注释（viewCompileResults vestigial-but-intentional，HMR-future dirty signal，D-IRC-2） | R7 | pending |
+| `view/index.ts` | 更新 `:172` 既有 stale 注释（viewCompileResults vestigial-but-intentional，HMR-future dirty signal，D-IRC-2） | R7 | pending |
 | `view/index.ts`（SHOULD） | compileML `ensureWxsScan` 移入 `hasMiss` 条件分支（D-IRC-3；非平凡则降级） | R9 | pending |
 | `docs/fe-tools/README.md` | packer-context 等状态标注与 STATUS.md 对齐 | R4 | pending |
 | architecture-notes + IRC docs | 记录 R1 接线修正 G5 A-G51 叙事超前（**G5 归档不重写**，immutable） | R-IRC-8 | pending |

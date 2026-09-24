@@ -20,7 +20,7 @@ Status: **draft（2026-10-09）**
 ## A-IRC4 — viewCompileResults 保留 + 标注（R7, D-IRC-2）
 
 - [ ] `viewCompile` 返回 shape 保留 `viewCompileResults`（不从 shape 删）
-- [ ] 注释标「HMR-future dirty signal；G5 后 stage-channel 不消费，vestigial-but-intentional」
+- [ ] 更新 `view/index.ts:172` 既有 stale 注释（标 viewCompileResults vestigial-but-intentional，HMR-future dirty signal；不从 shape 删）
 
 ## A-IRC5 — 集成测 env reset（R8）
 

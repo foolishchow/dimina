@@ -18,7 +18,7 @@ Status: **draft（2026-10-09）**
 
 ### R-IRC-3（MUST，R7）— `viewCompileResults` 保留 + 标注
 
-`viewCompileResults` 保留于 `viewCompile` 返回 shape（不从 shape 删——避免破 worker response 消费者 + HMR 未来用 dirty 信号）。加注释标「HMR-future dirty signal；G5 后 stage-channel 不消费，vestigial 但有意保留」。
+`viewCompileResults` 保留于 `viewCompile` 返回 shape（不从 shape 删——避免破 worker response 消费者 + HMR 未来用 dirty 信号）。更新 `view/index.ts:172` 既有 stale 注释（现称「供 stage-channel 写 cache」——G5 改读 viewPageBundles 后已不实）标「vestigial-but-intentional，HMR-future dirty signal」。
 
 ### R-IRC-4（MUST，R8）— 集成测 env reset
 

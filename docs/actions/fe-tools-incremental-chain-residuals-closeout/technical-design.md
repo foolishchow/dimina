@@ -36,7 +36,7 @@ if (!sessionState.styleCache) sessionState.styleCache = new Map()
 
 **不改 one-shot 创建点**（`index.ts:38` / `build-pipeline.ts:23`）——保持 undefined → orchestrator 透传 undefined → stage-channel no-op → 全量编译 → diff=0（G5 行为 0 边界延续）。
 
-### §2.2 R7 — viewCompileResults 保留 + 标注（D-IRC-2）
+### §2.2 R7 — viewCompileResults 保留 + 更新 :172 注释（D-IRC-2）
 
 ```typescript
 // view/index.ts viewCompile 返回（不改 shape）
@@ -46,14 +46,16 @@ async function viewCompile(...): Promise<{ viewCompileResults: ViewCompiledModul
 }
 ```
 
-加注释（`view/index.ts` viewCompile 返回 shape 处）：
+**更新** view/index.ts`:172` 既有注释（现 stale——称 viewCompileResults「供 stage-channel 写 cache」，但 G5 改 stage-channel 读 viewPageBundles 后该字段已不被消费）：
 
 ```typescript
-// G5 D-G5-4'：viewPageBundles 供 stage-channel 写 per-page-bundle viewCache（活跃）。
-// viewCompileResults（flattened dirty ViewCompiledModule[]）：G4 期供 stage-channel 写 per-module cache；
+// G4 D-G4-1 / G5 D-G5-3/D-G5-4': viewCompileResults（flattened dirty ViewCompiledModule[]）G4 期供 stage-channel 写 per-module cache；
 // G5 改读 viewPageBundles 后 stage-channel 不再消费，但有意保留——HMR 未来作 dirty signal。
+// viewPageBundles 供 stage-channel 写 per-page-bundle viewCache（活跃）。
 // runtime.ts:33 Object.assign(response, compileResult) 仍 postMessage（vestigial-but-intentional）。
 ```
+
+**不从 shape 删** `viewCompileResults`——runtime.ts:33 Object.assign postMessage 该字段，删可能破未知的 response 消费者；HMR 未来需 dirty 信号。vestigial-but-intentional。
 
 ### §2.3 R9 — ensureWxsScan 条件化（D-IRC-3，SHOULD）
 
