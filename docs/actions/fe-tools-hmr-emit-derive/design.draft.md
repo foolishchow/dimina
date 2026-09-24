@@ -88,7 +88,7 @@ const subModules = subPages[root].flatMap(p => deriveFromGraph(graph, cache, p.p
 
 解法 A 序重建有 G5 P-G506 先例风险（不可行）。解法 B 待实证（cache 序 == emitBuckets 序?）。解法 C 改 graph schema（超 scope）。
 
-**推荐解法 B**（cache 插入序）——最小改动 + 不改 graph schema。待 design.draft 实证 cache 序一致性。
+**推荐解法 B2**（cache 插入序，非 graph closure 序）——最小改动 + 不改 graph schema。待 design.draft §4 实证 cache 序一致性（B2 可行性）。若 fail → 解法 D（order metadata）。
 
 ---
 
@@ -126,8 +126,9 @@ one-shot build 不传 state → 无 invalidatedModules → 全量编译。derive
 
 **关键验证**：
 1. 集——deriveFromGraph 闭包 == emitBuckets modules 集（无缺无重）
-2. 序——deriveFromGraph 返回序 == emitBuckets 插入序（解法 B cache 序待实证）
+2. 序——deriveFromGraph 返回序 == emitBuckets 插入序（解法 B2 cache 序待实证）
 3. code——cache.get(id).compileInfo.code == emitBuckets CompileInfo.code（同源 ModuleResultCache，应一致）
+4. **moduleId 结构 match**（F9 补实证）：graph node id == `module.path` == `CompileInfo.path`——`addFile(currentPath, ...)` at `logic/index.ts:124`（currentPath = module.path）；`compileInfo.path = module.path` at `:113`。故 deriveFromGraph `moduleId: id` == orchestrator toEmitModule `moduleId: m.path`。EmitModule shape 全一致（moduleId/code/map/extraInfoCode 同源）。序 + 集是唯一实证 gap。
 
 ### §3.2 watch 路径（H1 不改 watch 行为）
 
@@ -137,10 +138,11 @@ H1 只改 emit 来源（emitBuckets → deriveFromGraph），watch 仍全量 emi
 
 ## §4 实证待做（升 ready 前）
 
-1. **cache 序实证**：ModuleResultCache 插入序 == emitBuckets.main 序?（解法 B 可行性）
+1. **cache 序实证**：ModuleResultCache 插入序 == emitBuckets.main 序?（解法 B2 可行性）
 2. **闭包集实证**：deriveFromGraph(graph, cache, 'app') + main pages union == emitBuckets.main 集?（去重后）
 3. **subs 映射实证**：分包 root 下页 union 闭包 == emitBuckets.subs[root]?
+4. **independent subs 实证**（F8 补）：`subPages.independent: true` 分包不共享 main modules（compileJS 传 `[]` 作 mainCompileRes）→ deriveFromGraph closure 须不含 main modules（graph 边须不连 independent sub → main）。实证 independent sub closure == emitBuckets.subs[independent-root]（无 main 混入）。
 
-实证通过 → D-ED-1 解法 B 锁 → 升 ready → 实施。
+实证通过 → D-ED-1 解法 B2 锁 → 升 ready → 实施。
 
-实证失败 → 解法 A（union + 序重建，G5 风险）or 解法 C（graph schema，超 scope）—— design gate 再评。
+实证失败 → 解法 D（cache order metadata）or 解法 A（序重建，G5 风险）or 解法 C（graph schema，超 scope）—— design gate 再评。

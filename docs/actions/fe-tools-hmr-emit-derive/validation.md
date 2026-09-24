@@ -7,7 +7,7 @@ Status: **draft（2026-10-09）**
 | ID | 验证项 | 命令/方法 | 状态 |
 | --- | --- | --- | --- |
 | P-ED1 | deriveFromGraph 接线（A-ED1） | grep orchestrator: deriveFromGraph 调用; 0 emitBuckets 读取 | pending |
-| P-ED2 | entry 映射实证（A-ED2） | 实证 cache 序 == emitBuckets 序 + 闭包集一致（design.draft §4 Step 0） | pending |
+| P-ED2 | entry 映射实证（A-ED2） | 实证 cache 序 == emitBuckets 序 + 闭包集一致（design.draft §4） | pending |
 | P-ED3 | 行为 0 三件套（A-ED3） | vitest 全绿 + tsc 0 errors + 6 项目 diff=0 | pending |
 | P-ED4 | logic-only（A-ED4） | grep view/style emit 0 改动 | pending |
 | P-ED5 | emitBuckets 移除（A-ED5） | grep emitBuckets 0 src 残留 | pending |
