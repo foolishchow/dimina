@@ -15,11 +15,11 @@
 
 **但 dev server 仍全量 reload**：`preview-adapter.notifyBuildPublished()` → 客户端全页刷新，未消费 per-module 增量结果。HMR（Hot Module Replacement）需要编译侧支持单模块 recompile + 增量推送。
 
-**编译侧 4 个缺口阻塞 HMR**：
-1. **load/compile 未分离**——`compile-target` 混 load（graph building）与 compile（per-module），HMR 无法单模块 recompile
-2. **deriveFromGraph 未接线**——production emit 走 `emitBuckets`（legacy），`deriveFromGraph`（graph→cache→EmitModule 派生）定义未调
-3. **registry 3 空壳**——`orchestrator:54` `emptyRegistry`（loader/compile/emit 全 stub），Packer shape（Loader/Compiler/Emitter）未实体化
-4. **per-module HMR push 未做**——`runtime.ts` postMessage 全量 payload，dev server 不消费增量
+**编译侧 4 个缺口阻塞 HMR**（[design.draft §1](design.draft.md) 实证）：
+1. **EMIT 全量**（emitBuckets，非增量）——`orchestrator:268` Logic emit 全量 re-emit；`deriveFromGraph`（`convergence.ts:6`）定义未调
+2. **registry 3 空壳**——`orchestrator:54` `emptyRegistry`（loader/compile/emit 全 stub），Packer shape 未实体化
+3. **view/style cache per-page-bundle**（非 per-module）——G5 D-G5-4' per-page-bundle 粒度，HMR 需 per-module
+4. **per-module HMR push 未做**——`dev-reload.ts` RELOAD_LEVELS 无 HMR level（L0-L3 page-level）；`dev-server.ts:195` 全量 reload payload
 
 ## Goal
 
@@ -37,12 +37,14 @@
 
 ```text
 本伞:     HMR 编译侧路线 + 子门顺序 + Non-goals（文档）
-子门 H1:  load/compile 分离（compile-target 拆 load 与 compile）
-子门 H2:  deriveFromGraph 接线（emit 路径从 emitBuckets 改 graph 派生）
-子门 H3:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）
+子门 H1:  deriveFromGraph 接线（emit 从 emitBuckets 全量改 graph 派生增量）
+子门 H2:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）
+子门 H3:  per-module view/style cache（G5 per-page-bundle 粒度反转）
 子门 H4:  per-module HMR push（dev server 消费增量 payload）
 不做:     runtime HMR API；整包 Packer extraction
 ```
+
+> **§8 修正**：原 H1「load/compile 分离」预判有误（增量链已分离 load/compile）。design.draft §1.1 实证后重编号：H1=deriveFromGraph（原 H2）、H2=registry（原 H3）、H3=per-module cache（新发现）、H4=push（不变）。
 
 ## 产品门（伞级）
 

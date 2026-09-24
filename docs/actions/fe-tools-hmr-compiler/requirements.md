@@ -6,35 +6,32 @@ Status: **draft（2026-10-09）**
 
 增量链 G1-G5+IRC+SMPU complete 后，watch 路径已增量编译（state reuse + cache + invalidatedModules 端到端链全通）。**但 dev server 仍全量 reload**——`preview-adapter.notifyBuildPublished()` → 客户端全页刷新，未消费 per-module 增量结果。
 
-HMR（Hot Module Replacement）需要编译侧 4 件事：
-1. 单模块 recompile（load/compile 分离）
-2. graph 派生 emit 集（deriveFromGraph 接线）
-3. Packer shape 实体化（registry 替代 legacy compile-target）
-4. 增量 payload 推送（per-module HMR push）
+**§1.1 修正**：原预判「load/compile 未分离」有误——compile-target 已两段化（createCompileTarget 静态 + readLoadBindings 动态 + deriveStagePlan 纯派生），增量链已接线 load（storeInfo graph reconcile）+ compile（cache-hit skip）。真缺口在下游 4 处（[design.draft §1](design.draft.md) 实证）：
 
-**当前编译侧 4 缺口**：
-- `compile-target` 混 load（graph building）与 compile（per-module）→ HMR 无法单模块 recompile
-- `deriveFromGraph`（`convergence.ts:6`）定义未调，production emit 走 `emitBuckets`（legacy）
-- `orchestrator:54` `emptyRegistry`（loader/compile/emit 全 stub）→ Packer shape 未实体化
-- `runtime.ts` postMessage 全量 payload，dev server 不消费增量
+1. **EMIT 全量**——`orchestrator:268` emitBuckets 全量 re-emit；`deriveFromGraph`（`convergence.ts:6`）定义未调
+2. **registry 3 空壳**——`orchestrator:54` emptyRegistry，Packer shape 未实体化
+3. **view/style cache per-page-bundle**（非 per-module）——G5 D-G5-4' 粒度，HMR 需 per-module
+4. **per-module HMR push 未做**——dev-reload L0-L3 page-level，无 HMR level
 
 ## Goal
 
-编译侧 HMR——4 子门交付（H1 load/compile 分离 → H2 deriveFromGraph 接线 → H3 registry 实体化 → H4 per-module HMR push），使 dev server 增量推送（非全量 reload）。
+编译侧 HMR——4 子门交付（H1 deriveFromGraph 接线 → H2 registry 实体化 → H3 per-module view/style cache → H4 per-module HMR push），使 dev server 增量推送（非全量 reload）。
+
+> **§8 修正**：H1 从「load/compile 分离」改为「deriveFromGraph 接线」（增量链已分离 load/compile）。原 H2-H3 顺延，新 H3 per-module cache 是 §1.3 新发现。
 
 ## Requirements
 
-### R-HMR-1（MUST）— load/compile 分离
-compile-target 拆 load（graph building：storeInfo + reconcile）与 compile（per-module：parse-walk + transform），使 HMR 能单模块 recompile（不重 load 全图）。
+### R-HMR-1（MUST）— deriveFromGraph 接线（emit 增量化）
+production emit 路径从 `emitBuckets`（全量 re-emit）改 `deriveFromGraph`（graph→cache→EmitModule 派生），使 emit 集 = graph 派生（非手动 bucket）。only emit 受影响 modules。
 
-### R-HMR-2（MUST）— deriveFromGraph 接线
-production emit 路径从 `emitBuckets`（legacy aggregated）改 `deriveFromGraph`（graph→cache→EmitModule 派生），使 emit 集 = graph 派生（非手动 bucket）。
-
-### R-HMR-3（MUST）— registry 实体化
+### R-HMR-2（MUST）— registry 实体化
 `orchestrator:54` `emptyRegistry`（loader/compile/emit 全 stub）→ 实体化 Loader/Compiler/Emitter registry，替代 legacy compile-target 路径。Packer shape（types.ts）激活。
 
+### R-HMR-3（MUST）— per-module view/style cache
+view/style cache 从 per-page-bundle（G5 D-G5-4'）改 per-module，使单组件 recompile → 单 module emit 可行。per-module 派生须保 bundle 字节一致（序重建）。
+
 ### R-HMR-4（MUST）— per-module HMR push
-`runtime.ts` postMessage 从全量 payload 改增量 payload（per-module）；dev server（preview-adapter）消费增量结果推送（非全量 reload）。
+`dev-reload.ts` 加 HMR level（per-module hot-swap）；`dev-server.ts` 增量 payload；`materialize` 增量化。dev server 消费增量结果推送（非全量 reload）。
 
 ### R-HMR-5（MUST）— 行为 0
 各子门 production 重构不破 baseline——one-shot 6 项目 diff=0 不变；watch 路径字节恒等延续（SMPU 后 production == verify baseline）。
