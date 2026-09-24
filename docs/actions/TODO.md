@@ -256,3 +256,5 @@ Packer 下一刀（当前 draft）：
 - **`orchestrate` 返回值收敛为形状 `EmitEntry[]`**（本门 D-OR-7 返回 buildResult）——前置：packer-orchestrator complete
 - HMR patch 产物（前置：watch 增量闭环）
 - deriveFromGraph 接入 production（前置：watch 增量 + HMR）
+
+- [`fe-tools-hmr-compiler`](fe-tools-hmr-compiler/README.md)（**`draft`**）— 编译侧 HMR 伞：load/compile 分离 + deriveFromGraph 接线 + registry 实体化 + per-module HMR push，使 dev server 增量推送（非全量 reload）。前置：增量链 G1-G5+IRC+SMPU complete。Non-scope: runtime HMR API（运行时侧）+ 整包 Packer extraction（已否决）。4 子门预判（H1-H4）；design.draft 规模评估待做。目录 cycle 消解（①②③）为副产品。
