@@ -1,10 +1,10 @@
 # FE Tools HMR Push（H4 子门）
 
 - Action: `fe-tools-hmr-push`
-- Status: `ready`
+- Status: `complete`
 - Updated: 2026-10-09
-- Status authority: [Action Status](../STATUS.md)
-- 父伞：[`fe-tools-hmr-compiler`](../fe-tools-hmr-compiler/README.md)（**`ready`**；H4 子门）
+- Status authority: [Action Status](../../../STATUS.md)
+- 父伞：[`fe-tools-hmr-compiler`](../../../fe-tools-hmr-compiler/README.md)（**`ready`**；H4 子门）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
 - 前置：H1+H3 `complete`（deriveFromGraph 接线 + per-module cache——增量 payload 数据源就绪）

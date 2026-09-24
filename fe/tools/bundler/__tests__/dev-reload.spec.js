@@ -175,4 +175,52 @@ describe('synthesizeReloadLevel — 矩阵', () => {
 		expect(result.appId).toBe('app-y')
 		expect(result.buildId).toBe(16)
 	})
+
+	// ── H4 D-PUSH-1: L_HMR level（enableHmr 标志）──
+	describe('L_HMR (H4 D-PUSH-1)', () => {
+		it('enableHmr=true + 增量单 kind → L_HMR', () => {
+			const result = synthesizeReloadLevel({
+				...CTX,
+				plan: incrementalPlan(['logic']),
+				appId: 'app-x',
+				buildId: 17,
+				enableHmr: true,
+			})
+			expect(result.reloadLevel).toBe(RELOAD_LEVELS.L_HMR)
+			expect(result.changedStages).toEqual(['logic'])
+			expect(result.affectedPages).toEqual(['pages/index/index'])
+		})
+
+		it('enableHmr=true + 仅 style → L_HMR（per-module CSS payload）', () => {
+			const result = synthesizeReloadLevel({
+				...CTX,
+				plan: incrementalPlan(['style']),
+				appId: 'app-x',
+				buildId: 18,
+				enableHmr: true,
+			})
+			expect(result.reloadLevel).toBe(RELOAD_LEVELS.L_HMR)
+		})
+
+		it('enableHmr=true + 非增量 → L0（L_HMR 仅增量）', () => {
+			const result = synthesizeReloadLevel({
+				...CTX,
+				plan: { skip: false, incremental: false, options: {} },
+				appId: 'app-x',
+				buildId: 19,
+				enableHmr: true,
+			})
+			expect(result.reloadLevel).toBe(RELOAD_LEVELS.L0)
+		})
+
+		it('enableHmr=false（默认）→ 返 L1/L2/L3（backward-compatible）', () => {
+			const result = synthesizeReloadLevel({
+				...CTX,
+				plan: incrementalPlan(['logic']),
+				appId: 'app-x',
+				buildId: 20,
+			})
+			expect(result.reloadLevel).toBe(RELOAD_LEVELS.L1)
+		})
+	})
 })

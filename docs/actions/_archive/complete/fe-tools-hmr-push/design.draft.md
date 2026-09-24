@@ -2,7 +2,7 @@
 
 > 设计草稿。D-PUSH-1/2/3 锁后产出 technical-design。
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 L_HMR level 设计（D-PUSH-1）— **locked**
 

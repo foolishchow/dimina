@@ -6,6 +6,9 @@
  *
  * D-BM-1：主线程持有；D-BM-4：materialize 保持产物字节与目录结构不变；
  * D-P2：entry.files[].path 为相对发布根的最终物化路径（materialize 零转换直写）。
+ *
+ * H4 D-PUSH-3：dirtyEntries set——track 自上次 materialize 后变更的 entries。
+ * materialize 增量 guard：dirty 非空 → 只写 dirty；空 → 全量（one-shot / 首次 build）。
  */
 
 import fs from 'node:fs'
@@ -14,6 +17,9 @@ import path from 'node:path'
 export class BuildModel {
 	entries: Map<string, { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }> = new Map()
 	private _artifactIndex: Map<string, { code: string }> | null = null
+	/** H4 D-PUSH-3: dirty entries set——自上次 materialize 后 add/changed 的 entry keys */
+	private _dirtyEntries: Set<string> = new Set()
+
 	constructor() {
 		/** @type {Map<string, object>} entryId → { entryId, kind, files: [{path, code}], sourcemaps?: [{path, map}] } */
 		this.entries = new Map()
@@ -27,13 +33,20 @@ export class BuildModel {
 		if (!entry || typeof entry.entryId !== 'string') {
 			throw new TypeError('BuildModel.add: entry.entryId must be a string')
 		}
-		this.entries.set(`${entry.kind}:${entry.entryId}`, entry)
+		const key = `${entry.kind}:${entry.entryId}`
+		this.entries.set(key, entry)
 		this._artifactIndex = null
+		this._dirtyEntries.add(key)  // H4 D-PUSH-3: track dirty
 	}
 
 	/** 当前持有条目数（供对账/诊断） */
 	get size() {
 		return this.entries.size
+	}
+
+	/** H4 D-PUSH-3: dirty entries 数（自上次 materialize） */
+	get dirtyCount() {
+		return this._dirtyEntries.size
 	}
 
 	/** 按相对发布根路径查产物 code。仅 dev 路径调；compile 路径不调。 */
@@ -51,11 +64,26 @@ export class BuildModel {
 		}
 		return this._artifactIndex.get(relativePath)
 	}
+
+	/** H4 D-PUSH-3: 清除 dirty set（materialize 后调） */
+	clearDirty(): void {
+		this._dirtyEntries.clear()
+	}
+
+	/** H4 D-PUSH-3: 获取 dirty entries（供 L_HMR payload 提取变更 module） */
+	getDirtyEntries(): { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }[] {
+		return [...this._dirtyEntries]
+			.map(key => this.entries.get(key))
+			.filter((e): e is { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] } => e !== undefined)
+	}
 }
 
 /**
  * materialize — 把 BuildModel 持有的产物写入 targetPath（唯一写盘出口）。
  * 每个 entry.files 按相对发布根的 path 直写；sourcemaps 同路径写入。
+ *
+ * H4 D-PUSH-3: 增量 materialize——dirty set 非空时只写 dirty entries；
+ * 空（one-shot / 首次 build）时全量写。materialize 后清 dirty。
  *
  * 字节等价前提：worker 回传的 code/map 与改造前 writeFileSync 的内容完全一致
  * （改造不触碰编译计算逻辑，仅改变"谁写盘"）。
@@ -64,7 +92,10 @@ export class BuildModel {
  * @param {string} targetPath 构建目录（getTargetPath()）
  */
 export function materialize(model: BuildModel, targetPath: string): void {
-	for (const entry of model.entries.values()) {
+	const dirty = model.getDirtyEntries()
+	const entriesToWrite = dirty.length > 0 ? dirty : [...model.entries.values()]
+
+	for (const entry of entriesToWrite) {
 		for (const file of entry.files || []) {
 			const dest = path.join(targetPath, file.path)
 			fs.mkdirSync(path.dirname(dest), { recursive: true })
@@ -76,4 +107,5 @@ export function materialize(model: BuildModel, targetPath: string): void {
 			fs.writeFileSync(dest, String(map.map))
 		}
 	}
+	model.clearDirty()  // H4 D-PUSH-3: clear after write
 }

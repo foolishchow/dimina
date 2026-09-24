@@ -1,17 +1,17 @@
 # Validation — fe-tools-hmr-push
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## Validation Plan
 
 | ID | 验证项 | 命令/方法 | 状态 |
 | --- | --- | --- | --- |
-| P-PUSH1 | L_HMR level（A-PUSH1） | grep dev-reload: L_HMR | pending |
-| P-PUSH2 | 增量 payload（A-PUSH2） | grep dev-server: 增量 payload broadcast | pending |
-| P-PUSH3 | materialize 增量（A-PUSH3） | grep publish: 增量; build-model: dirty | pending |
-| P-PUSH4 | fallback L1（A-PUSH4） | grep dev-reload: fallback | pending |
-| P-PUSH5 | 行为 0 三件套（A-PUSH5） | vitest + tsc + 6 项目 diff=0 | pending |
-| P-PUSH6 | V-PC-5 | changed files 0 新 as any / 0 索引签名 | pending |
+| P-PUSH1 | L_HMR level（A-PUSH1） | grep dev-reload: L_HMR | done |
+| P-PUSH2 | 增量 payload（A-PUSH2） | grep dev-server: 增量 payload broadcast | done |
+| P-PUSH3 | materialize 增量（A-PUSH3） | grep publish: 增量; build-model: dirty | done |
+| P-PUSH4 | fallback L1（A-PUSH4） | grep dev-reload: fallback | done |
+| P-PUSH5 | 行为 0 三件套（A-PUSH5） | vitest + tsc + 6 项目 diff=0 | done |
+| P-PUSH6 | V-PC-5 | changed files 0 新 as any / 0 索引签名 | done |
 
 ## 行为 0 三件套
 

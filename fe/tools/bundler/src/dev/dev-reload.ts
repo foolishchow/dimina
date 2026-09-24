@@ -24,18 +24,21 @@ const RELOAD_LEVELS = Object.freeze({
 	L1: 'L1',
 	L2: 'L2',
 	L3: 'L3',
+	L_HMR: 'L_HMR',  // H4 D-PUSH-1: per-module HMR payload (runtime hot-swap)
 })
 
 /**
  * @param {{ event: string, filePath: string, count: number,
  *           plan: { skip: boolean, incremental: boolean, options: object },
- *           appId: string, buildId: number }} input
+ *           appId: string, buildId: number, enableHmr?: boolean }} input
  * @returns {({ appId: string, reloadLevel: string, changedStages: string[],
  *             affectedPages: string[], buildId: number } | null)} 合成后的 ws 推送载荷；
  *   plan.skip 时为 null（不推送）。
+ *   enableHmr=true 时增量单 kind 变更返 L_HMR（per-module payload）；
+ *   默认 false（返 L1/L2/L3 backward-compatible）。
  */
-function synthesizeReloadLevel(input: { event: string, filePath: string, count: number, plan: { skip: boolean, incremental: boolean, options: { stages?: string[], affectedEntries?: string[] } }, appId: string, buildId: number }) {
-	const { plan, appId, buildId } = input
+function synthesizeReloadLevel(input: { event: string, filePath: string, count: number, plan: { skip: boolean, incremental: boolean, options: { stages?: string[], affectedEntries?: string[] } }, appId: string, buildId: number, enableHmr?: boolean }) {
+	const { plan, appId, buildId, enableHmr = false } = input
 	if (!plan || plan.skip) {
 		return null
 	}
@@ -52,6 +55,11 @@ function synthesizeReloadLevel(input: { event: string, filePath: string, count: 
 	if (affectedPages.length === 0) {
 		// 防御：增量但受页面为空时不能精确 relaunch，保守页面级。
 		return { appId, reloadLevel: RELOAD_LEVELS.L1, changedStages: stages, affectedPages, buildId }
+	}
+
+	// H4 D-PUSH-1: enableHmr=true 时增量单 kind 变更返 L_HMR
+	if (enableHmr && stages.length > 0) {
+		return { appId, reloadLevel: RELOAD_LEVELS.L_HMR, changedStages: stages, affectedPages, buildId }
 	}
 
 	let reloadLevel
