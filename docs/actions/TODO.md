@@ -259,6 +259,6 @@ Packer 下一刀（当前 draft）：
 
 - [`fe-tools-hmr-compiler`](fe-tools-hmr-compiler/README.md)（**`ready`**）— 编译侧 HMR 伞：load/compile 分离 + deriveFromGraph 接线 + registry 实体化 + per-module HMR push，使 dev server 增量推送（非全量 reload）。前置：增量链 G1-G5+IRC+SMPU complete。Non-scope: runtime HMR API（运行时侧）+ 整包 Packer extraction（已否决）。4 子门预判（H1-H4）；design.draft 规模评估待做。目录 cycle 消解（①②③）为副产品。
 
-- [`fe-tools-hmr-registry-materialize`](fe-tools-hmr-registry-materialize/README.md)（**`ready`**）— HMR-compiler H2 子门：emptyRegistry → 实体化（Loader/Compiler/Emitter 替代 compile-target）。D-REG-1/2/3 locked + F-H2-1 viewParseWalk 拆分（规模 L+）。
+- [`fe-tools-hmr-registry-materialize`](_archive/complete/fe-tools-hmr-registry-materialize/README.md)（**`complete`**）— HMR-compiler H2 子门：emptyRegistry → 实体化（Loader/Compiler/Emitter 替代 compile-target）。D-REG-1/2/3 locked + F-H2-1 viewParseWalk 拆分（规模 L+）。
 - [`fe-tools-hmr-per-module-cache`](fe-tools-hmr-per-module-cache/README.md)（**`ready`**）— HMR-compiler H3 子门：G5 per-page-bundle → per-module。D-PMC-1 stored order metadata locked（actual probe PASS 3 项目 + vant 4.86x dedup 实证）。
 - [`fe-tools-hmr-push`](fe-tools-hmr-push/README.md)（**`ready`**）— HMR-compiler H4 子门：dev-reload L_HMR + 增量 payload + materialize 增量化。runtime fallback L1。design.draft 实证待做。

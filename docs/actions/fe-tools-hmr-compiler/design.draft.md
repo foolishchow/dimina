@@ -189,7 +189,7 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 
 推荐 A（compile-target 是核心入口，渐进降风险）。
 
-**⋰ H2 子门 formalize 锁（2026-10-09）**：D-REG-1 **反转推荐 A → locked 非双路径**——compile-target compile 段直接替换（无 fallback flag），与 H1 locked B 精神一致。D-REG-2/3 locked（load 在 domain + stage 保留）。F-H2-1 viewParseWalk 拆分规模升级 L+。见 [`fe-tools-hmr-registry-materialize`](../fe-tools-hmr-registry-materialize/design.draft.md) §1/§5。
+**⋰ H2 子门 formalize 锁（2026-10-09）**：D-REG-1 **反转推荐 A → locked 非双路径**——compile-target compile 段直接替换（无 fallback flag），与 H1 locked B 精神一致。D-REG-2/3 locked（load 在 domain + stage 保留）。F-H2-1 viewParseWalk 拆分规模升级 L+。见 [`fe-tools-hmr-registry-materialize`](../_archive/complete/fe-tools-hmr-registry-materialize/design.draft.md) §1/§5。
 
 ### D-HMR-4: H3 per-module view/style cache 粒度反转
 G5 D-G5-4' per-page-bundle 是为 cache-hit 字节一致。per-module 反转需重建 bundle 序。**⚠️ G5 P-G506 实证 graph 重建不可行**（direct-only + 无 wxs + 序不一致）。H3 须用**不同策略**：① per-module 存储 + 显式序元数据（存 order list，非 graph 派生）或 ② per-module compile + per-page-bundle emit（粒度解耦）。**design gate 待 H3 formalize 时详评策略 A/B**。

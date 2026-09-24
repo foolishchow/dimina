@@ -12,8 +12,10 @@ import { Listr, PRESET_TIMER } from 'listr2'
 import type { ListrTask, ListrBaseClassOptions } from 'listr2'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from '../compiler/core/renderers.ts'
-import { createCompileTarget, deriveStagePlan, readLoadBindings, STAGE_TITLES } from '../compiler/pipeline/compile-target.ts'
+import { createCompileTarget } from '../compiler/pipeline/compile-target.ts'
 import type { PagesInfo, LoadBindings } from '../compiler/pipeline/compile-target.types.ts'
+import { createDispatchRegistry, computeStagePlan, readLoadBindings } from './registry.ts'
+import type { PackerDispatchRegistry } from './registry.ts'
 import { createDist, publishToDist } from '../compiler/pipeline/publish.ts'
 import { PackerSessionState } from './session-state.ts'
 import type { OrchestrateOptions } from './types.ts'
@@ -24,6 +26,7 @@ import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isM
 import { executeTask } from '../compiler/worker-runtime/executor.ts'
 import { emitEngine } from '../compiler/pipeline/emit-engine.ts'
 import { runCompileStage } from '../compiler/pipeline/stage-channel.ts'
+import type { RunCompileStageParams } from '../compiler/pipeline/stage-channel.ts'
 import { BuildModel, materialize } from '../model/build-model.ts'
 import { createProjectStore } from '../model/project-store.ts'
 import { deriveLogicBuckets } from '../model/convergence.ts'
@@ -52,12 +55,6 @@ let isPrinted = false
 const previousCompatibilityWarnings = new Map<string, Set<string>>()
 const MAX_WARNING_PROJECTS = 32
 
-const emptyRegistry = {
-	register() { /* stub D-OR-2 */ },
-	get() { return undefined },
-	kinds() { return [] as string[] },
-}
-
 /**
  * webview renderer 阶段级薄适配（A4 P-002）。
  */
@@ -79,18 +76,20 @@ export function createPackerOrchestrator({
 	store?: unknown
 	lifecycle?: Lifecycle
 } = {}) {
-	const loaderRegistry = { ...emptyRegistry }
-	const compileRegistry = { ...emptyRegistry }
-	const emitRegistry = { ...emptyRegistry }
+	const dispatchRegistry = createDispatchRegistry()
+	const loaderRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
+	const compileRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
+	const emitRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
-		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle))
+		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry))
 	}
 
 	return {
 		loaderRegistry,
 		compileRegistry,
 		emitRegistry,
+		dispatchRegistry,
 		orchestrate,
 	}
 }
@@ -99,6 +98,7 @@ async function _orchestrate(
 	request: OrchestrateRequest,
 	providedStore: unknown,
 	pipelineLifecycle: Lifecycle | undefined,
+	dispatchRegistry: PackerDispatchRegistry,
 ): Promise<Record<string, unknown>> {
 	const {
 		targetPath,
@@ -233,7 +233,7 @@ async function _orchestrate(
 					(ctx as { allPages: unknown }).allPages = (loadBindings as { pages?: unknown } | null)?.pages as unknown
 					(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings = new Set<string>()
 
-					const plan = deriveStagePlan(compileTarget, loadBindings as LoadBindings, {
+					const plan = computeStagePlan(dispatchRegistry, compileTarget, loadBindings as LoadBindings, {
 						cwd: process.cwd(),
 						affectedEntries,
 					})
@@ -247,9 +247,11 @@ async function _orchestrate(
 					const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs
 						? (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
 						const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]!
+						const dispatch = dispatchRegistry.get(stage)
 						return createStageTask(
 							stage,
-							STAGE_TITLES[stage]!,
+							dispatch?.title ?? stage,
+							dispatch?.engine ?? null,
 							lifecycle,
 							spec.workerOptions,
 							spec.renderer as RendererAdapter | null,
@@ -343,7 +345,7 @@ async function _orchestrate(
 	}
 }
 
-function createStageTask(stage: string, title: string, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }, workerOptions: Record<string, unknown> = {}, rendererAdapter: RendererAdapter | null = null) {
+function createStageTask(stage: string, title: string, engine: unknown, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }, workerOptions: Record<string, unknown> = {}, rendererAdapter: RendererAdapter | null = null) {
 	return {
 		title,
 		rendererOptions: { outputBar: true, persistentOutput: false },
@@ -364,7 +366,7 @@ function createStageTask(stage: string, title: string, lifecycle: { emit: (e: st
 					await runStage(ctx, task, workerOptions, lifecycle)
 				}
 				else {
-					await runCompileStage({ script: stage, ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) })
+					await runCompileStage({ script: stage, engine: engine as RunCompileStageParams['engine'], ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) })
 				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,

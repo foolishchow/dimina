@@ -2,7 +2,7 @@
 
 > 本文件是设计草稿。用于 D-REG-1/2/3 锁后产出正式 technical-design。
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 registry 实体化策略（D-REG-1 = D-HMR-3）— **locked**
 

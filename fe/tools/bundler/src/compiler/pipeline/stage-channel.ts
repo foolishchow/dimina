@@ -29,13 +29,13 @@ const ENGINES = { view: viewEngine, logic: logicEngine, style: styleEngine }
  * @param {Function} [params.onOutput]   产物流式回传
  * @returns {Promise<void>}
  */
-interface RunCompileStageParams { script: string; ctx: Record<string, unknown>; task: { output: string }; options: Record<string, unknown>; lifecycle: { emit: (e: string, p: unknown) => Promise<void> } | null; onOutput?: (entry: unknown) => void }
-export async function runCompileStage({ script, ctx, task, options = {}, lifecycle = null, onOutput }: RunCompileStageParams): Promise<void> {
+export interface RunCompileStageParams { script: string; engine?: typeof viewEngine | typeof logicEngine | typeof styleEngine; ctx: Record<string, unknown>; task: { output: string }; options: Record<string, unknown>; lifecycle: { emit: (e: string, p: unknown) => Promise<void> } | null; onOutput?: (entry: unknown) => void }
+export async function runCompileStage({ script, engine, ctx, task, options = {}, lifecycle = null, onOutput }: RunCompileStageParams): Promise<void> {
 	const pages = (options.pages || ctx.pages) as { mainPages: Record<string, unknown>[]; subPages: Record<string, { info: unknown[] }> }
 	const totalTasks = Object.keys(pages.mainPages).length
 		+ Object.values(pages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0)
 	const result = await executeTask({
-		engine: ENGINES[script as 'view' | 'logic' | 'style'],
+		engine: engine ?? ENGINES[script as 'view' | 'logic' | 'style'],
 		input: {
 			pages,
 			storeInfo: ctx.storeInfo,

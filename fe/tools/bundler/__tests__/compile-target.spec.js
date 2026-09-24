@@ -1,5 +1,8 @@
 /**
- * fe-tools-compiler-target — createCompileTarget (T1) + deriveStagePlan (T2) + P-CT05 结构锚定
+ * fe-tools-compiler-target — createCompileTarget (T1) + computeStagePlan (T2) + P-CT05 结构锚定
+ *
+ * H2 (D-REG-1): deriveStagePlan + readLoadBindings 移入 packer/registry.ts。
+ * compile-target 只留 createCompileTarget (静态段) + COMPILE_STAGE_ORDER。
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -11,13 +14,17 @@ import '../src/packer/orchestrator.ts'
 import {
 	COMPILE_STAGE_ORDER,
 	createCompileTarget,
-	deriveStagePlan,
-	readLoadBindings,
 } from '../src/compiler/pipeline/compile-target.ts'
+import {
+	computeStagePlan,
+	createDispatchRegistry,
+	readLoadBindings,
+} from '../src/packer/registry.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const sourceRoot = path.join(__dirname, '../src/compiler')
 const repoRoot = path.join(__dirname, '..')
+const packerRoot = path.join(__dirname, '../src/packer')
 
 describe('createCompileTarget (T1)', () => {
 	let workPath
@@ -104,8 +111,9 @@ describe('createCompileTarget (T1)', () => {
 	})
 })
 
-describe('deriveStagePlan (T2)', () => {
+describe('computeStagePlan (T2 — registry)', () => {
 	const adapter = { name: 'webview', runViewStage() {}, runStyleStage() {} }
+	const registry = createDispatchRegistry()
 
 	function makeTarget(overrides = {}) {
 		const compileConfig = {
@@ -142,7 +150,7 @@ describe('deriveStagePlan (T2)', () => {
 	}
 
 	it('derives all stages with full workerOptions when not mini-game', () => {
-		const plan = deriveStagePlan(makeTarget(), makeBindings(), { cwd: '/cwd' })
+		const plan = computeStagePlan(registry, makeTarget(), makeBindings(), { cwd: '/cwd' })
 		expect(plan.stages).toEqual(['view', 'logic', 'style'])
 		expect(plan.stageSpecs.view.renderer).toBe(adapter)
 		expect(plan.stageSpecs.view.workerOptions).toEqual({
@@ -159,7 +167,8 @@ describe('deriveStagePlan (T2)', () => {
 	})
 
 	it('drops view/style under mini-game (logic only)', () => {
-		const plan = deriveStagePlan(
+		const plan = computeStagePlan(
+			registry,
 			makeTarget(),
 			makeBindings({ miniGame: true }),
 			{ cwd: '/cwd' },
@@ -171,7 +180,8 @@ describe('deriveStagePlan (T2)', () => {
 	})
 
 	it('intersects requestedStages with mini-game filter', () => {
-		const plan = deriveStagePlan(
+		const plan = computeStagePlan(
+			registry,
 			makeTarget({ requestedStages: new Set(['view', 'style']) }),
 			makeBindings({ miniGame: true }),
 			{ cwd: '/cwd' },
@@ -181,7 +191,8 @@ describe('deriveStagePlan (T2)', () => {
 	})
 
 	it('honors stages subset without mini-game', () => {
-		const plan = deriveStagePlan(
+		const plan = computeStagePlan(
+			registry,
 			makeTarget({ requestedStages: new Set(['logic']) }),
 			makeBindings(),
 			{ cwd: '/cwd' },
@@ -190,7 +201,8 @@ describe('deriveStagePlan (T2)', () => {
 	})
 
 	it('omits appId dir from sourcemapTargetPath when useAppIdDir=false', () => {
-		const plan = deriveStagePlan(
+		const plan = computeStagePlan(
+			registry,
 			makeTarget({ useAppIdDir: false }),
 			makeBindings(),
 			{ cwd: '/cwd' },
@@ -199,7 +211,7 @@ describe('deriveStagePlan (T2)', () => {
 	})
 
 	it('uses affectedEntries for style synthesis when provided', () => {
-		const plan = deriveStagePlan(makeTarget(), makeBindings(), {
+		const plan = computeStagePlan(registry, makeTarget(), makeBindings(), {
 			cwd: '/cwd',
 			affectedEntries: ['pages/index/index'],
 		})
@@ -215,20 +227,21 @@ describe('deriveStagePlan (T2)', () => {
 		const compileTarget = makeTarget()
 		const bindings = makeBindings()
 		const pagesBefore = JSON.stringify(bindings.pages)
-		const plan1 = deriveStagePlan(compileTarget, bindings, { cwd: '/cwd' })
-		const plan2 = deriveStagePlan(compileTarget, bindings, { cwd: '/cwd' })
+		const plan1 = computeStagePlan(registry, compileTarget, bindings, { cwd: '/cwd' })
+		const plan2 = computeStagePlan(registry, compileTarget, bindings, { cwd: '/cwd' })
 		expect(plan1).not.toBe(plan2)
 		expect(plan1.stageSpecs).not.toBe(plan2.stageSpecs)
 		expect(JSON.stringify(bindings.pages)).toBe(pagesBefore)
 	})
 
 	it('rejects incomplete bindings (timing misuse guard)', () => {
-		expect(() => deriveStagePlan(makeTarget(), { miniGame: true }, { cwd: '/cwd' }))
+		expect(() => computeStagePlan(registry, makeTarget(), { miniGame: true }, { cwd: '/cwd' }))
 			.toThrow(/incomplete load bindings/)
 	})
 
 	it('allows undefined appId (no project appid) like pre-T2 path.resolve', () => {
-		const plan = deriveStagePlan(
+		const plan = computeStagePlan(
+			registry,
 			makeTarget(),
 			makeBindings({ appId: undefined }),
 			{ cwd: '/cwd' },
@@ -238,7 +251,7 @@ describe('deriveStagePlan (T2)', () => {
 	})
 
 	it('rejects missing cwd', () => {
-		expect(() => deriveStagePlan(makeTarget(), makeBindings(), {}))
+		expect(() => computeStagePlan(registry, makeTarget(), makeBindings(), {}))
 			.toThrow(/cwd must be a non-empty string/)
 	})
 
@@ -250,6 +263,7 @@ describe('deriveStagePlan (T2)', () => {
 describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
+	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry.ts'), 'utf8')
 
 	it('rewires _runBuild top through createCompileTarget', () => {
 		expect(pipelineSrc).toContain("from '../compiler/pipeline/compile-target.ts'")
@@ -274,27 +288,30 @@ describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 		expect(pipelineSrc).toContain('rendererAdapter')
 		expect(pipelineSrc).not.toContain('activeRenderer.name')
 		expect(targetSrc).toContain('resolveCompileConfig')
-		expect(targetSrc).toContain('E1 不变量')
 	})
 })
 
-describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
+describe('P-CT05 ②T2 — structural anchors (stage assembly via registry)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
+	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry.ts'), 'utf8')
 
-	it('rewires compile assembly through readLoadBindings + deriveStagePlan', () => {
+	it('rewires compile assembly through readLoadBindings + computeStagePlan (registry)', () => {
 		expect(pipelineSrc).toContain('readLoadBindings()')
-		expect(pipelineSrc).toContain('deriveStagePlan(')
-		expect(targetSrc).toContain('export function readLoadBindings')
-		expect(targetSrc).toContain('export function deriveStagePlan')
+		expect(pipelineSrc).toContain('computeStagePlan(')
+		expect(registrySrc).toContain('export function readLoadBindings')
+		expect(registrySrc).toContain('export function computeStagePlan')
+		// compile-target 不再含 compile 段
+		expect(targetSrc).not.toContain('export function readLoadBindings')
+		expect(targetSrc).not.toContain('deriveStagePlan')
 	})
 
 	it('clears mini-game耦合 / 内联 sourcemapTargetPath / 手工三捆 from assembly', () => {
 		// E3：不再 `&& !miniGame` 直耦 stage push
 		expect(pipelineSrc).not.toMatch(/!miniGame/)
-		// E4：sourcemapTargetPath 计算迁入 deriveStagePlan
+		// E4：sourcemapTargetPath 计算迁入 registry.computeStagePlan
 		expect(pipelineSrc).not.toMatch(/sourcemapTargetPath\s*=\s*path\.resolve/)
-		expect(targetSrc).toContain('sourcemapTargetPath')
+		expect(registrySrc).toContain('sourcemapTargetPath')
 		// E5：组装处不再内联拼三捆 workerOptions 字面量键
 		expect(pipelineSrc).not.toMatch(/compileConfig:\s*compileConfiguration/)
 		expect(pipelineSrc).not.toMatch(/pages:\s*stylePages/)
@@ -307,8 +324,20 @@ describe('P-CT05 ②T2 — structural anchors (stage assembly)', () => {
 		expect(pipelineSrc).not.toContain('getAppStyleScopeId')
 	})
 
-	it('moves filterPagesByEntries from pipeline to compile-target (S9 改道)', () => {
+	it('moves filterPagesByEntries from pipeline to registry (H2 D-REG-1)', () => {
 		expect(pipelineSrc).not.toContain('filterPagesByEntries')
-		expect(targetSrc).toContain('filterPagesByEntries')
+		expect(registrySrc).toContain('filterPagesByEntries')
+		expect(targetSrc).not.toContain('filterPagesByEntries')
+	})
+
+	it('materializes dispatch registry (D-REG-1: emptyRegistry → 实体)', () => {
+		expect(pipelineSrc).toContain('createDispatchRegistry')
+		expect(pipelineSrc).toContain('dispatchRegistry')
+		expect(registrySrc).toContain('class PackerDispatchRegistry')
+		expect(registrySrc).toContain('KindDispatch')
+		// 三个 kind 注册
+		expect(registrySrc).toContain("kind: 'view'")
+		expect(registrySrc).toContain("kind: 'logic'")
+		expect(registrySrc).toContain("kind: 'style'")
 	})
 })

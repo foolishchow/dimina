@@ -1,17 +1,17 @@
 # Validation — fe-tools-hmr-registry-materialize
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## Validation Plan
 
 | ID | 验证项 | 命令/方法 | 状态 |
 | --- | --- | --- | --- |
-| P-REG1 | registry 实体化（A-REG1） | grep orchestrator: registry.get(kind); 0 emptyRegistry | pending |
-| P-REG2 | compile-target 替代（A-REG2） | grep compile-target: 0 compile 段; registry 派发 | pending |
-| P-REG3 | 行为 0 三件套（A-REG3） | vitest + tsc + 6 项目 diff=0 | pending |
-| P-REG4 | env.ts gradual（A-REG4） | grep env.ts: load 委托 Loader | pending |
-| P-REG5 | compile-target 移除（A-REG5） | grep compile-target: 0 compile 段 | pending |
-| P-REG6 | V-PC-5 | changed files 0 新 as any / 0 索引签名 | pending |
+| P-REG1 | registry 实体化（A-REG1） | grep orchestrator: registry.get(kind); 0 emptyRegistry | done |
+| P-REG2 | compile-target 替代（A-REG2） | grep compile-target: 0 compile 段; registry 派发 | done |
+| P-REG3 | 行为 0 三件套（A-REG3） | vitest + tsc + 6 项目 diff=0 | done |
+| P-REG4 | env.ts gradual（A-REG4） | grep env.ts: load 委托 Loader | done |
+| P-REG5 | compile-target 移除（A-REG5） | grep compile-target: 0 compile 段 | done |
+| P-REG6 | V-PC-5 | changed files 0 新 as any / 0 索引签名 | done |
 
 ## 行为 0 三件套
 
