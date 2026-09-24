@@ -20,6 +20,7 @@ import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from '../compiler/
 import { viewEngine } from '../compiler/view/index.ts'
 import { logicEngine } from '../compiler/logic/index.ts'
 import { styleEngine } from '../compiler/style/index.ts'
+import type { Loader, LoaderRegistry, ModuleKind } from './types.ts'
 
 // Engine 类型——defineEngine 返回值（三车道 union）
 type Engine = typeof viewEngine | typeof logicEngine | typeof styleEngine
@@ -64,6 +65,34 @@ export function createDispatchRegistry(): PackerDispatchRegistry {
 	registry.register({ kind: 'logic', engine: logicEngine, title: '编译逻辑' })
 	registry.register({ kind: 'style', engine: styleEngine, title: '编译样式' })
 	return registry
+}
+
+// ── L/C/E registry 实体化（D-REG-2, H2 Phase 2）──
+
+/**
+ * Loader registry 实体（H2 Phase 2a：logic Loader 已注册；view/style F-H2-1 拆分后注册）。
+ *
+ * 不同于 PackerDispatchRegistry（stage 级派发），此处是 types.ts LoaderRegistry
+ * 的实体实现——管线（graph → load → compile → emit）未来接线用。
+ */
+export class LoaderRegistryImpl implements LoaderRegistry {
+	private loaders = new Map<ModuleKind, Loader>()
+
+	register(kind: ModuleKind, loader: Loader): void {
+		this.loaders.set(kind, loader)
+	}
+
+	get(kind: ModuleKind): Loader {
+		const loader = this.loaders.get(kind)
+		if (!loader) {
+			throw new Error(`[registry] no Loader registered for kind: ${kind}`)
+		}
+		return loader
+	}
+
+	kinds(): ModuleKind[] {
+		return [...this.loaders.keys()]
+	}
 }
 
 // ── stage 计算（从 compile-target.ts 移入）──

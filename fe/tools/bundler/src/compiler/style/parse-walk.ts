@@ -60,8 +60,16 @@ export function clearStyleCaches() {
 	compileRes.clear()
 }
 
-export async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> = new Set(), options: StyleOptions = {}): Promise<StyleCompileResult> {
-	const chunks: StyleCompileResult[] = []
+/**
+ * style L phase（F-H2-1 拆分）：组件树发现（显式栈 DFS，声明序）。
+ * 去重标记（compiledPaths）+ 图 component 边读取。纯发现——不编译。
+ *
+ * 遍历序 = 原建 while 循环序（父先于子，声明序 DFS）——styleCompile 按此序
+ * enhanceCSS，字节恒等（发现与编译交织与否不影响：enhanceCSS 只写 'style' 边，
+ * 展开只读 'component' 边，无干扰）。
+ */
+function styleLoad(module: StyleModule, compiledPaths: Set<string>): StyleModule[] {
+	const loadedModules: StyleModule[] = []
 	const pendingModules = [module]
 
 	while (pendingModules.length > 0) {
@@ -75,10 +83,7 @@ export async function buildCompileCss(module: StyleModule, compiledPaths: Set<st
 			continue
 		}
 		compiledPaths.add(currentPath)
-		const result = await enhanceCSS(currentModule, options)
-		if (result.code) {
-			chunks.push(result)
-		}
+		loadedModules.push(currentModule)
 
 		// Preserve the original depth-first, declaration-order traversal while
 		// using an explicit stack instead of the JavaScript call stack.
@@ -93,11 +98,43 @@ export async function buildCompileCss(module: StyleModule, compiledPaths: Set<st
 			}
 		}
 	}
+	return loadedModules
+}
+
+/**
+ * style C phase（F-H2-1 拆分）：per-module enhanceCSS（preprocess + transform + minify）。
+ * @import 子 fixpoint 保留在 enhanceCSS 内部（AtRule 递归走 buildCompileCss 组合）。
+ */
+async function styleCompile(loadedModules: StyleModule[], options: StyleOptions): Promise<StyleCompileResult[]> {
+	const chunks: StyleCompileResult[] = []
+	for (const module of loadedModules) {
+		const result = await enhanceCSS(module, options)
+		if (result.code) {
+			chunks.push(result)
+		}
+	}
+	return chunks
+}
+
+/**
+ * style E phase（F-H2-1 拆分）：装配（chunks concat + sourcemap concat）。
+ */
+function styleEmit(chunks: StyleCompileResult[], options: StyleOptions): StyleCompileResult {
 	if (options.sourcemap) {
 		const { code, sourcemap: map } = concatSourcemap(chunks)
 		return { code, map }
 	}
 	return { code: chunks.map(chunk => chunk.code).join(''), map: null }
+}
+
+/**
+ * L/C/E 组合入口（F-H2-1 拆分后）：styleLoad（发现）→ styleCompile（变换）→ styleEmit（装配）。
+ * 字节恒等于原 monolithic while 循环（发现/编译解交织安全——见 styleLoad 注释）。
+ */
+export async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> = new Set(), options: StyleOptions = {}): Promise<StyleCompileResult> {
+	const loadedModules = styleLoad(module, compiledPaths)
+	const chunks = await styleCompile(loadedModules, options)
+	return styleEmit(chunks, options)
 }
 function createExternalClassPlugin(moduleId: string): { postcssPlugin: string; Rule: (rule: postcss.Rule) => void } {
 	const scopeAttribute = `data-v-${moduleId}`

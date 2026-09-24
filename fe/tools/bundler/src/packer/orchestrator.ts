@@ -14,8 +14,9 @@ import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from '../compiler/core/renderers.ts'
 import { createCompileTarget } from '../compiler/pipeline/compile-target.ts'
 import type { PagesInfo, LoadBindings } from '../compiler/pipeline/compile-target.types.ts'
-import { createDispatchRegistry, computeStagePlan, readLoadBindings } from './registry.ts'
+import { createDispatchRegistry, computeStagePlan, readLoadBindings, LoaderRegistryImpl } from './registry.ts'
 import type { PackerDispatchRegistry } from './registry.ts'
+import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { createDist, publishToDist } from '../compiler/pipeline/publish.ts'
 import { PackerSessionState } from './session-state.ts'
 import type { OrchestrateOptions } from './types.ts'
@@ -77,7 +78,10 @@ export function createPackerOrchestrator({
 	lifecycle?: Lifecycle
 } = {}) {
 	const dispatchRegistry = createDispatchRegistry()
-	const loaderRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
+	// H2 Phase 2a（D-REG-2）：loaderRegistry 实体化——logic Loader 已注册（F-H2-1 logic 可直接包装）。
+	// view/style Loader 待 F-H2-1 拆分后注册。compile/emit registry 仍是 stub（Phase 2b/2c）。
+	const loaderRegistry = new LoaderRegistryImpl()
+	loaderRegistry.register('logic', logicLoader)
 	const compileRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
 	const emitRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
 
