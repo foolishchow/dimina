@@ -4,7 +4,7 @@ Status: **draft（2026-10-09）**
 
 ## 背景
 
-packer 架构 retrospect（[F-PA-1..6](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域逻辑散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `compiler/core/` 混合袋。散落致跨层 import 温床（③a/b/c）+ D/C 重构缺干净素材 + 北星 6 组件无物理落地。
+packer 架构 retrospect（[F-PA-1..6](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域逻辑散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `compiler/core/` 混合袋。散落致跨层 import 温床（③b/③c residual；③a 已 fixed）+ D/C 重构缺干净素材 + 北星 6 组件无物理落地。
 
 ## Requirements
 
@@ -24,7 +24,7 @@ packer 域 ~27 文件归位 `packer/` 子目录，子目录结构 mirror 北星 
 
 `compiler/core/` 混合袋解体：
 - packer 域（renderers / npm-builder / env / compatibility）→ 迁 packer/ 对应子目录
-- shared/compiler（sourcemap / expression-parser / compatibility-reference）→ 迁 `shared/` 或 `compiler/utils/`
+- shared（sourcemap / expression-parser / compatibility-reference）→ 迁 `shared/`
 
 ### R-DC-5（MUST）— compiler/ 收敛后只剩 per-kind transforms
 
@@ -37,14 +37,18 @@ packer 域 ~27 文件归位 `packer/` 子目录，子目录结构 mirror 北星 
 - vitest 全绿（当前 87 files / 646 tests）
 - 6 项目 one-shot `diff -r` baseline = 0（base/subpackages/mpx-demo/vant/weui/taro-todo）
 
-### R-DC-7（SHOULD）— ③a/b/c 跨层 import 消解
+### R-DC-7（SHOULD）— ③b/③c 跨顶层目录 import 消解
 
-同域归位自然消解 ③a/b/c（model→pipeline 反向 import）。验证：`grep -n "pipeline/" src/packer/cache/invalidation.ts src/packer/cache/compile-cache.ts src/packer/emit/convergence.ts` = 0。③b/③c 若 residual 仍存（type-only 或 runtime 无害），记 tracker 不阻塞。
+同域归位消除 model→compiler/pipeline 跨顶层目录 import。**③a 已 fixed（chain-residuals，非本 Action）**。本 Action 消解：
+- ③b：`model/compile-cache.ts → compiler/pipeline/compile-stages`（跨顶层目录）→ 搬后 `packer/cache/compile-cache → packer/pipeline/compile-stages`（intra-packer，跨顶层消除）
+- ③c：`model/convergence.ts → compiler/pipeline/emit`（跨顶层目录）→ 搬后 `packer/emit/convergence → packer/emit/emit`（同子目录，跨顶层消除）
 
-### R-DC-8（MUST）— tracker + architecture-notes 同步
+验证：`grep -rn "from '.*\(\.\./\)*compiler/pipeline" src/packer/` = 0（packer 内无 compiler/pipeline 反向 import）。若 ③b/③c 有 residual type-only/runtime 无害，记 tracker 不阻塞。
 
-- tracker（`docs/fe-tools/incremental-chain-residuals.md`）：③a/b/c 状态更新（fixed / residual）
-- architecture-notes：packer 目录收敛条目（子目录结构 + 北星 6 组件物理落地）
+### R-DC-8（MUST）— tracker + architecture-notes sync
+
+- tracker（`docs/fe-tools/incremental-chain-residuals.md`）：③b/③c 状态更新（fixed / residual）
+- architecture-notes：**新增**目录收敛条目（子目录结构 + 北星 6 组件物理落地）+ **更新既有 stale path 引用**（line 173 `pipeline/emit.js`→`packer/emit/emit.ts`、175 `pipeline/output.js`、188 `pipeline/compile-target.js`→`packer/pipeline/compile-target.ts` 等——搬迁后旧路径失效，须全量 grep `pipeline/` 在 architecture-notes 更新）
 - STATUS.md / TODO.md / navigation sync
 
 ## Non-requirements（显式排除）
@@ -59,6 +63,6 @@ packer 域 ~27 文件归位 `packer/` 子目录，子目录结构 mirror 北星 
 ## Traceability
 
 - F-PA-1..6（设计模式缺陷）→ 本 Action 解 F-PA 漂移温床（散落）→ R-DC-1..5
-- ③a/b/c（跨层 import residual）→ R-DC-7
+- ③b/③c（跨层 import residual；③a 已 fixed）→ R-DC-7
 - 行为 0 → R-DC-6
 - tracker → R-DC-8

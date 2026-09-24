@@ -13,14 +13,14 @@ Status: **draft（2026-10-09）**
 | `compiler/pipeline/` (10) | compile-target(.types), compile-stages, stage-channel, emit(-engine/-worker-entry), config-compiler, publish, build-pipeline | **全 packer** | 名实不符——是 packer 编排非 compiler |
 | `compiler/worker-runtime/` (7) | runtime, executor, define-engine, context, async-context-store, loggers, sinks | **全 packer** | D-PCS-8 通用 worker 是 packer 派发机制 |
 | `compiler/core/` (8, 混合) | renderers, npm-builder, env, compatibility | packer | 混合袋——packer 域 + shared/compiler 混杂 |
-| `compiler/core/` | sourcemap, expression-parser, compatibility-reference | shared/compiler | 应去 shared/ 或 compiler/utils/ |
+| `compiler/core/` | sourcemap, expression-parser, compatibility-reference | shared | 应去 shared/ |
 | `compiler/logic,view,style/` | per-kind transforms | **compiler 域** | 留 compiler/（不迁） |
 
 **散落数**：packer 域 ~27 文件散在 4 处 + core/ 混合袋。
 
 ### 1.2 散落后果
 
-1. **跨层 import 温床**（③a/b/c residual）：
+1. **跨层 import 温床**（③b/③c residual；③a 已 fixed）：
    - ③a `model/invalidation.ts:69` → `compiler/pipeline/compile-target`（COMPILE_STAGE_ORDER）—— chain-residuals 已 fixed（迁 model/stage-order）
    - ③b `model/compile-cache.ts:5` → `compiler/pipeline/compile-stages`（runtime）
    - ③c `model/convergence.ts:3` → `compiler/pipeline/emit`（type-only）
@@ -43,14 +43,14 @@ Status: **draft（2026-10-09）**
 | `cache/` | OrchestratorState 支撑 | module-result-cache.ts + compile-cache.ts + fingerprint.ts + invalidation.ts |
 | `emit/` | D-PCS-7 Emitter 域 | emit.ts + emit-engine.ts + emit-worker-entry.ts + build-model.ts + convergence.ts + publish.ts |
 | `worker/` | D-PCS-8 通用 worker | runtime/executor/define-engine/context/async-context-store/loggers/sinks |
-| `pipeline/` | stage 编排支撑 | compile-target(.types) + compile-stages + config-compiler + build-pipeline(legacy) |
+| `pipeline/` | stage 编排支撑 | compile-target(.types) + compile-stages + config-compiler + build-pipeline（live） + stage-order |
 | `aspect/` | C 轮 aspect home（预留） | compatibility.ts |
 
 顶层留：`types.ts`（北星形状）+ `orchestrator.ts`（PackerOrchestrator）+ `README.md`
 
 ### D-DC-2 — 纯搬迁红线（无逻辑改）
 
-**红线**：本 Action 只做文件位置搬迁 + import 路径改写。函数体、逻辑、类型签名**不动**。验证：
+**红线**：本 Action 只做文件位置搬迁 + import 路径改写。函数体、逻辑、类型签名**不动**。**文件拆分允许** IF 函数体逐字搬迁（无合并/改签名）——`registry.ts → dispatch.ts + lce.ts` 是结构归位非逻辑改。验证：
 - tsc 0（路径改写后类型检查）
 - 6 项目 diff=0（逻辑零改 → 产物字节不变）
 - 函数体 git diff 仅 import 行 + 文件位置（`git diff --stat` 行数 ~= import 改写数）
@@ -92,6 +92,7 @@ Status: **draft（2026-10-09）**
 | `packer/graph/graph.ts` | `packer/graph.ts` | ② Graph |
 | `packer/graph/config-fixpoint.ts` | `packer/config-fixpoint.ts` | ② Graph |
 | `packer/graph/dependency-graph.ts` | `model/dependency-graph.ts` | ② Graph |
+| `packer/graph/npm-resolver.ts` | `compiler/core/npm-resolver.ts` | path resolution（config-fixpoint 消费） |
 | `packer/store/env.ts` | `compiler/core/env.ts` | ① PackerContext |
 | `packer/store/project-store.ts` | `model/project-store.ts` | ① PackerContext |
 | `packer/registry/dispatch.ts` | `registry.ts` 拆（PackerDispatchRegistry + computeStagePlan + readLoadBindings） | ④ registry |
@@ -120,20 +121,23 @@ Status: **draft（2026-10-09）**
 | `packer/pipeline/compile-target.types.ts` | `compiler/pipeline/compile-target.types.ts` | stage 编排 |
 | `packer/pipeline/compile-stages.ts` | `compiler/pipeline/compile-stages.ts` | stage 编排 |
 | `packer/pipeline/config-compiler.ts` | `compiler/pipeline/config-compiler.ts` | stage 编排 |
-| `packer/pipeline/build-pipeline.ts` | `compiler/pipeline/build-pipeline.ts` | legacy live |
+| `packer/pipeline/build-pipeline.ts` | `compiler/pipeline/build-pipeline.ts` | stage 编排（live，4 导入方） |
+| `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（stage 编排支撑） |
 | `packer/aspect/compatibility.ts` | `compiler/core/compatibility.ts` | C 轮 home |
+| `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（2/3 消费者在 pipeline；③a 消费者 invalidation 在 cache——formalize 可评改 cache/） |
 
 ### 3.2 compiler/core/ 解体
 
 | 源文件 | 目标 | 说明 |
 | --- | --- | --- |
 | `core/renderers.ts` | `packer/registry/renderers.ts` | renderer 派发（packer） |
-| `core/npm-builder.ts` | `packer/pipeline/npm-builder.ts` 或 `packer/store/` | orchestration sub-step |
+| `core/npm-resolver.ts` | `packer/graph/npm-resolver.ts` | path resolution（config-fixpoint 主消费，graph 域） |
+| `core/npm-builder.ts` | `packer/pipeline/npm-builder.ts` | orchestration sub-step（imports env，intra-packer） |
 | `core/env.ts` | `packer/store/env.ts` | I/O 环境（ALS impl） |
 | `core/compatibility.ts` | `packer/aspect/compatibility.ts` | aspect |
-| `core/sourcemap.ts` | `shared/sourcemap.ts` | sourcemap 工具 |
-| `core/expression-parser.ts` | `compiler/utils/expression-parser.ts` 或 `shared/` | transform util |
-| `core/compatibility-reference.ts` | `shared/` 或 `packer/aspect/` | reference data |
+| `core/sourcemap.ts` | `shared/sourcemap.ts` | sourcemap 工具（shared infra） |
+| `core/expression-parser.ts` | `shared/expression-parser.ts` | transform util（shared infra；不建 compiler/utils/ 以守 D-DC-5） |
+| `core/compatibility-reference.ts` | `shared/compatibility-reference.ts` | reference data（shared infra） |
 
 ### 3.3 compiler/ 收敛后
 
@@ -149,7 +153,7 @@ src/compiler/
 | 维度 | 评估 |
 | --- | --- |
 | 规模 | ~27 文件迁移 + ~100+ import 路径改写 |
-| blast radius | env.ts（36 导入方）/ compatibility.ts（14）/ emit.ts（21）高 |
+| blast radius | env.ts（22 导入方：17 compiler + 1 model + 4 packer）/ compatibility.ts（5）/ emit.ts（9）—— 实测值 |
 | 行为 0 | critical（ESM 显式后缀 + tsc 全量验）；但 diff=0 应成立（逻辑零改，只 import 行变） |
 | 分批 | 5 批（B1-B5），每批行为 0 gate，避免一次性大爆炸 |
 | 回退 | 每批独立 commit，可单批 revert |
@@ -158,13 +162,15 @@ src/compiler/
 
 | 本 Action | 既有 residual |
 | --- | --- |
-| R-DC-7 ③a/b/c 消解 | ③a 已 fixed（chain-residuals）；③b/③c 本 Action 同域归位消解 |
+| R-DC-7 ③b/③c 消解 | ③a 已 fixed（chain-residuals，非本 Action）；③b/③c 本 Action 同域归位消解 |
 | 目录收敛 | F-PA-1..6 散落温床解（设计模式缺陷本体留 D/C 轮） |
 | 北星 6 组件物理落地 | types.ts 北星 → 目录对应（D-PCS 形状落地） |
 
-## §6 待 formalize 锁定项
+## §6 已闭合项（R1 review 修正）
 
-- D-DC-1..5 门锁定（formalize 审）
-- npm-builder 归 packer/pipeline/ 还是 store/（待定）
-- expression-parser 去 shared/ 还是 compiler/utils/（待定）
-- build-pipeline.ts（legacy）是否随迁或单独清死码（待定）
+- npm-builder → `packer/pipeline/npm-builder.ts`（orchestration sub-step，imports env → intra-packer）
+- expression-parser → `shared/expression-parser.ts`（不建 compiler/utils/，守 D-DC-5）
+- compatibility-reference → `shared/compatibility-reference.ts`
+- sourcemap → `shared/sourcemap.ts`
+- build-pipeline.ts → 随迁 `packer/pipeline/`（live，4 导入方，非 legacy；不清死码）
+- stage-order.ts → `packer/pipeline/stage-order.ts`（补入 §3.1）

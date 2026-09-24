@@ -15,11 +15,11 @@
 packer 架构 retrospect（F-PA-1..6）发现：packer 域逻辑散在 4 处——`packer/`（6 文件）+ `model/`（9 文件，全是 packer 域，命名误导）+ `compiler/pipeline/`（10 文件，全是 packer 编排，名实不符）+ `compiler/worker-runtime/`（7 文件，D-PCS-8 通用 worker 是 packer 派发机制）。`compiler/core/` 是混合袋（packer 域 + shared/compiler 混杂）。
 
 散落致：
-1. **跨层 import 温床**——③a/b/c（model→pipeline import residual）是散落的直接症状：model/ 的 invalidation/compile-cache/convergence 反向 import compiler/pipeline/，因边界未按域收敛
+1. **跨层 import 温床**——③b/③c（model→pipeline import residual；③a 已 fixed）是散落的直接症状：model/ 的 compile-cache/convergence 反向 import compiler/pipeline/，因边界未按域收敛
 2. **facade/aspect 重构缺干净素材**——后续 D（facade+collaborator）/ C（aspect）轮从散落 4 处拼凑，风险高
 3. **北星 6 组件形状无物理落地**——types.ts 声明 6 组件（PackerContext/Graph/LoadedModule+CompiledModule/Loader-Compiler-Emitter+3registry/OrchestratorState/PackerOrchestrator），但目录结构未对应
 
-本 Action 是 **D/C 前置结构轮（Round 0）**：纯目录搬迁 + import 路径改写，逻辑零改，给 D/C 干净素材 + 消解 ③a/b/c。
+本 Action 是 **D/C 前置结构轮（Round 0）**：纯目录搬迁 + import 路径改写，逻辑零改，给 D/C 干净素材 + 消解 ③b/③c（③a 已 fixed）。
 
 ## Scope
 
@@ -30,7 +30,7 @@ packer 架构 retrospect（F-PA-1..6）发现：packer 域逻辑散在 4 处—�
 - `compiler/worker-runtime/` 解散（7 文件迁 packer/worker/）
 - `compiler/core/` 解体（packer 域迁 packer/；sourcemap/expression-parser 去 shared/compiler）
 - `compiler/` 收敛后只剩 `logic/view/style` per-kind transforms
-- ③a/b/c 跨层 import 消解（同域归位自然消解）
+- ③b/③c 跨顶层目录 import 消解（③a 已 fixed，非本 Action）
 - 行为 0 三件套（tsc 0 + vitest 全绿 + 6 项目 diff=0）
 
 **Non-scope**：
@@ -42,7 +42,7 @@ packer 架构 retrospect（F-PA-1..6）发现：packer 域逻辑散在 4 处—�
 
 ## 切法
 
-切法 1（窄，纯搬迁）。分批搬迁按依赖序：graph+store（底层）→ cache+registry → emit+worker → pipeline+state → aspect，每批 tsc + vitest + 6 项目 diff 行为 0 gate。design gates D-DC-1..5（formalize 锁定）。
+切法：纯搬迁（含受控文件拆分 `registry.ts → dispatch.ts + lce.ts` + `core/` 解体）。分批搬迁按依赖序：graph+store（底层）→ cache+registry → emit+worker → pipeline+state → aspect+core解体，每批 tsc + vitest + 6 项目 diff 行为 0 gate。design gates D-DC-1..5（formalize 锁定）。
 
 ## Deliverables
 
@@ -53,4 +53,4 @@ packer 架构 retrospect（F-PA-1..6）发现：packer 域逻辑散在 4 处—�
 - `src/compiler/` 只剩 `logic/view/style/`
 - 全量 import 路径改写（~100+ 处，ESM 显式后缀 + tsc 全量验）
 - 行为 0 三件套验证档
-- tracker ③a/b/c 状态更新 + architecture-notes 目录收敛条目
+- tracker ③b/③c 状态更新（③a 已 fixed） + architecture-notes 目录收敛条目 + stale path 引用更新
