@@ -27,6 +27,8 @@ one-shot 6 项目 diff=0 + tsc 0 + vitest 全绿。watch 字节恒等（per-modu
 ### R-PMC-5（SHOULD）— per-module invalidation
 单组件 dirty → 单 module cache-miss（非全 bundle miss）。
 
+**⚠️ F-H3-2**：invalidation 触发按文件类型分——.wxml 改（结构变）→ order list 失效 + 全量 viewParseWalk；.js component 改（代码变）→ per-module cache 失效 only（order list 稳定）。
+
 ## Constraints
 
 - **G5 P-G506 先例**：graph 重建不可行（direct-only + 无 wxs + 序不一致）

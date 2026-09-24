@@ -18,6 +18,8 @@ emptyRegistry → 实体 registry。Loader/Compiler/Emitter 按 kind 注册（lo
 ### R-REG-2（MUST）— compile-target compile 段替代
 compile-target 的 compile 编排（deriveStagePlan stages + workerOptions）→ registry 派发（Loader.load → Compiler.compile → Emitter.emit）。
 
+**⚠️ F-H2-1**：viewParseWalk/buildCompileCss 是 monolithic（parse+compile+emit 一函数）。registry 分离须拆分 monolithic 为 L/C/E 三阶段——非"包装现有路径"。view/style 拆分是主要工作量。
+
 ### R-REG-3（MUST）— 行为 0
 one-shot 6 项目 diff=0 + tsc 0 + vitest 全绿。
 

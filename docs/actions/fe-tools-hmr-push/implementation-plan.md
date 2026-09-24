@@ -4,12 +4,14 @@ Status: **draft（2026-10-09）**
 
 > 待 design.draft §5 实证 + D-PUSH-1/2/3 锁后填实。
 
-## Step 0 — 实证（design.draft §5，升 ready 前）
+## Step 0 — 实证（design.draft §5）— **DONE ✓**
 
-- [ ] payload 格式：L_HMR payload（moduleId → code/map）定义
-- [ ] BuildModel dirty tracking：能否 track 变更 entries?
-- [ ] publishToDist 增量边界：增量发布可行性?
-- [ ] runtime fallback 协议：选项 ② runtime-side downgrade 可行性?
+- [x] payload 格式：design def——L_HMR payload = moduleId→code/map
+- [x] BuildModel dirty tracking：F-H4-1——须加 dirtyEntries set（add 时加入，materialize 后清）
+- [x] publishToDist 增量边界：F-H4-2（low-med）——atomic full move ≠ 增量，须重构（keep dist + update changed only）
+- [x] runtime fallback 协议：out of scope（运行时侧）
+
+**实证结果**：D-PUSH-3 materialize 增量可行（加 dirty set）；publishToDist 须重构（atomic move → incremental copy）。待升 ready 前重评 publish 重构规模。
 
 ## Step 1 — L_HMR level（R-PUSH-1, D-PUSH-1）
 

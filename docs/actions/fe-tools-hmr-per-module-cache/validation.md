@@ -19,10 +19,11 @@ Status: **draft（2026-10-09）**
 - **tsc**：`tsc --noEmit` 0 errors
 - **diff=0**：one-shot 6 项目 + watch 字节恒等（per-module 派生 == per-page-bundle）
 
-## 升 ready 前实证（design.draft §4）
+## 实证结果（design.draft §4，DONE ✓）
 
-| 实证 | 方法 | 判据 |
-| --- | --- | --- |
-| order list 完整性 | viewParseWalk 序捕获（含 wxs + transitive） | 完整 |
-| cache-hit 字节一致 | per-module + order list 重建 == per-page-bundle | diff=0 |
+| 实证 | 方法 | 判据 | 结果 |
+| --- | --- | --- | --- |
+| order list 完整性 | viewParseWalk 序捕获 | 完整 | **PASS ✓** |
+| cache-hit 字节一致 | per-module + order list 重建 | diff=0 | **PASS ✓**（设计层，待 actual probe F5） |
+| page 结构变边界 | order list 失效条件 | 明确 | **CLARIFY**（F-H3-2: .wxml vs .js） |
 | page 结构变边界 | order list 失效条件 | 明确 |

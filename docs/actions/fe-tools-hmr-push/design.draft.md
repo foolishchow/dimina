@@ -77,6 +77,8 @@ dev server 如何知 runtime 未就绪 → downgrade L_HMR→L1？
 
 **⚠️ F5 补：现状实现**：`publish.ts:8` `publishToDist` 用 `fs.readdirSync(src)` + `copyFileSync`（**全目录拷贝**，非 entry 级）。`build-model.ts:15` `entries: Map<string, ...>` 不 track dirty。增量 materialize 须：① BuildModel 加 dirty set（track 变更 entries）② publishToDist 改 entry 级增量拷贝（只 copy dirty entries）。
 
+**⚠️ F6 补：deletion handling**：增量 materialize 须 handle entries removed（page deleted）→ 对应 files 须从 dist 删除。全量 materialize 隐式处理（overwrite all）；增量须显式 deletion tracking（dirty set 含 deletions，非仅 additions/changes）。D-BM-4（字节不变）+ D-P2（path 零转换）不违反——增量只改写盘集，不改字节/path。
+
 ### §3.3 D-PUSH-3 design gate
 
 materialize 增量化边界：

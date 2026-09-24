@@ -19,10 +19,11 @@ Status: **draft（2026-10-09）**
 - **tsc**：`tsc --noEmit` 0 errors
 - **diff=0**：one-shot 6 项目 production 路径 diff=0 对 baseline
 
-## 升 ready 前实证（design.draft §5）
+## 实证结果（design.draft §5，DONE ✓）
 
-| 实证 | 方法 | 判据 |
-| --- | --- | --- |
-| Loader 包装 | parse-walk → Loader.load 包装 | 可包装（现有路径不重写） |
-| compile-target 边界 | deriveStagePlan 哪些归 registry | compile 段可替代 |
+| 实证 | 方法 | 判据 | 结果 |
+| --- | --- | --- | --- |
+| Loader 包装 | parse-walk → Loader.load | 可包装 | **PARTIAL**（F-H2-1: viewParseWalk monolithic 须拆分） |
+| compile-target 边界 | deriveStagePlan 段划分 | compile 段可替代 | **PASS ✓** |
+| env.ts load 映射 | load 函数归 Loader | gradual 可行 | **CLARIFY**（F-H2-2: load 在 domain） |
 | env.ts load 映射 | load 函数归 Loader | gradual 可行 |

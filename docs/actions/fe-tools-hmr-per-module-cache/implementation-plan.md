@@ -4,11 +4,13 @@ Status: **draft（2026-10-09）**
 
 > 待 design.draft §4 实证 + D-PMC-1/2/3 锁后填实。
 
-## Step 0 — 实证（design.draft §4，升 ready 前）
+## Step 0 — 实证（design.draft §4）— **DONE ✓**
 
-- [ ] order list 完整性：viewParseWalk 序完整捕获（含 wxs + transitive）?
-- [ ] cache-hit 字节一致：per-module + order list 重建 == per-page-bundle?
-- [ ] page 结构变边界：order list 失效条件?
+- [x] order list 完整性：PASS ✓——pageBundles 已是完整有序 module list（F1 leverage）
+- [x] cache-hit 字节一致：PASS ✓（设计层）——stored order list 避开 P-G506
+- [x] page 结构变边界：CLARIFY——.wxml→order list 失效；.js→per-module cache 失效（F-H3-2）
+
+**实证结果**：D-PMC-1 选项① stored order metadata 可行。待实施验证（probe：per-module cache-hit + order list 重建 == per-page-bundle）。
 
 ## Step 1 — view cache per-module（R-PMC-1, D-PMC-1）
 

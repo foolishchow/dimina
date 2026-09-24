@@ -19,11 +19,13 @@ Status: **draft（2026-10-09）**
 - **tsc**：`tsc --noEmit` 0 errors
 - **diff=0**：one-shot 6 项目（H4 仅 watch，one-shot 不受影响）
 
-## 升 ready 前实证（design.draft §5）
+## 实证结果（design.draft §5，DONE ✓）
 
-| 实证 | 方法 | 判据 |
-| --- | --- | --- |
-| payload 格式 | L_HMR payload 定义 | 格式明确 |
-| BuildModel dirty | track 变更 entries | 可行 |
+| 实证 | 方法 | 判据 | 结果 |
+| --- | --- | --- | --- |
+| payload 格式 | L_HMR payload 定义 | 格式明确 | **design def** |
+| BuildModel dirty | track 变更 entries | 可行 | **F-H4-1**: 须加 dirtyEntries |
+| publish 增量边界 | 增量发布可行性 | 可行 | **F-H4-2**: atomic move 须重构 |
+| runtime fallback | 选项 ② runtime-side downgrade | 运行时侧 | **out of scope** |
 | publish 增量 | 增量发布边界 | 可行 |
 | runtime fallback | 选项 ② runtime-side downgrade | 运行时侧确认 |

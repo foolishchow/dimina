@@ -4,11 +4,13 @@ Status: **draft（2026-10-09）**
 
 > 待 design.draft §5 实证 + D-REG-1/2/3 锁后填实。
 
-## Step 0 — 实证（design.draft §5，升 ready 前）
+## Step 0 — 实证（design.draft §5）— **DONE ✓**
 
-- [ ] Loader 包装可行性：parse-walk（logic/view/style）→ Loader.load?
-- [ ] compile-target compile 段边界：deriveStagePlan 哪些归 registry?
-- [ ] env.ts load 函数映射：哪些归 Loader registry?
+- [x] Loader 包装可行性：PARTIAL——viewParseWalk/buildCompileCss monolithic 须拆分（F-H2-1 medium）
+- [x] compile-target compile 段边界：PASS ✓（F4 段划分）
+- [x] env.ts load 函数映射：CLARIFY——load 在 domain parse-walk，env.ts 提供 PackerContext（F-H2-2）
+
+**实证结果**：H2 规模升级——view/style parse-walk 拆分为 L/C/E 三阶段是主要工作量（非"包装"）。待升 ready 前重评规模。
 
 ## Step 1 — registry 实体化（R-REG-1, D-REG-1）
 

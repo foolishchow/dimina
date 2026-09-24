@@ -104,3 +104,11 @@ order list invalidation 触发须按文件类型分：
 | 3 | page 结构变边界 | **CLARIFY** | .wxml → order list 失效；.js → per-module cache 失效（F-H3-2） |
 
 **D-PMC-1 gate**：选项① stored order metadata 可行（order list 已存在 + 序确定 + invalidation 按文件类型分）。待 H3 升 ready 前实施验证（probe：per-module cache-hit + order list 重建 == per-page-bundle）。
+
+**⚠️ F5 补：实证 gap**——H3.2 "cache-hit 字节一致" 是设计层 reasoning，非 actual probe。H1 先例：升 ready 前跑 instrumented probe（dump emitBuckets + cache + graph → compare）。H3 须类似 pre-implementation probe：
+1. build base（G5 per-page-bundle）→ dump pageBundles（module paths + code per page）
+2. 模拟 per-module cache split（`Map<moduleId, ViewCompiledModule>`）+ order list（`pagePath → moduleId[]`）
+3. 按	order list 重建 bundle → compare == 原 pageBundles 字节级
+4. 若 diff=0 → H3.2 升 actual PASS（非设计层）→ D-PMC-1 锁 → 升 ready
+
+待 H3 升 ready 前跑此 probe（非实施后验证）。
