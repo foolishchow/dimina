@@ -17,12 +17,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { parseSync } from 'oxc-parser'
 import { walk } from 'oxc-walker'
-import { isObjectEmpty, resolveAssetSourcePath, uuid, errorMessage } from '../shared/utils.ts'
-import { NpmResolver } from '../compiler/core/npm-resolver.ts'
-import { DependencyGraph } from '../model/dependency-graph.ts'
+import { isObjectEmpty, resolveAssetSourcePath, uuid, errorMessage } from '../../shared/utils.ts'
+import { NpmResolver } from './npm-resolver.ts'
+import { DependencyGraph } from './dependency-graph.ts'
 import type { GraphConfigData } from './graph.ts'
-import type { PackerContext, PackerFileTypes } from './types.ts'
-import type { PageConfig, ComponentConfig } from '../compiler/core/env.ts'
+import type { PackerContext, PackerFileTypes } from '../types.ts'
+import type { PageConfig, ComponentConfig } from '../../compiler/core/env.ts'
 
 // ── 常量（从 env.ts 迁移）──
 

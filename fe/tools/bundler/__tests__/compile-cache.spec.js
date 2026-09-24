@@ -8,7 +8,7 @@ import {
 	createDependencyFileFingerprints,
 	getProjectFileManifest,
 } from '../src/model/compile-cache.ts'
-import { DependencyGraph } from '../src/model/dependency-graph.ts'
+import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
 
 describe('persistent compiler cache', () => {
 	let tempDir

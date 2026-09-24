@@ -16,7 +16,7 @@
  */
 
 import { getDependencyGraph, storeInfo } from '../compiler/core/env.ts'
-import type { GraphSnapshot } from '../model/dependency-graph.ts'
+import type { GraphSnapshot } from '../packer/graph/dependency-graph.ts'
 
 /**
  * @param {object} [_options]

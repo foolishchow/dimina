@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { DependencyGraph } from '../src/model/dependency-graph.ts'
+import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
 import { createIgnoredPathMatcher, createWatchBuildPlan, createWatchRebuildScheduler, getPublishedOutputPath } from '../src/watch/watch-plan.ts'
 
 describe('compiler watch scheduler', () => {

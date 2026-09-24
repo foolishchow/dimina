@@ -1,4 +1,4 @@
-import type { DependencyGraph } from './dependency-graph.ts'
+import type { DependencyGraph } from '../packer/graph/dependency-graph.ts'
 import type { ModuleResultCache } from './module-result-cache.ts'
 import type { EmitModule } from '../compiler/pipeline/emit.ts'
 

@@ -4,9 +4,9 @@ import path from 'node:path'
 import process from 'node:process'
 import { AsyncContextStore } from '../worker-runtime/async-context-store.ts'
 import { uuid } from '../../shared/utils.ts'
-import { NpmResolver } from './npm-resolver.ts'
-import { DependencyGraph } from '../../model/dependency-graph.ts'
-import { PackerGraph } from '../../packer/graph.ts'
+import { NpmResolver } from '../../packer/graph/npm-resolver.ts'
+import { DependencyGraph } from '../../packer/graph/dependency-graph.ts'
+import { PackerGraph } from '../../packer/graph/graph.ts'
 import type { PackerContext } from '../../packer/types.ts'
 import {
 	type FixpointCtx,
@@ -16,7 +16,7 @@ import {
 	buildInitialGraph,
 	getPagesImpl,
 	resolveAppAlias as resolveAppAliasImpl,
-} from '../../packer/config-fixpoint.ts'
+} from '../../packer/graph/config-fixpoint.ts'
 
 const packerALS = new AsyncContextStore<CompilerContext>({ name: 'packer' })
 let defaultCompilerContext: CompilerContext | undefined

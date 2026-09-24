@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { NpmResolver } from '../src/compiler/core/npm-resolver.ts'
+import { NpmResolver } from '../src/packer/graph/npm-resolver.ts'
 
 describe('NpmResolver', () => {
 	let tempDir

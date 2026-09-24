@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { getCompileStagesForFiles } from '../compiler/pipeline/compile-stages.ts'
-import { DependencyGraph } from './dependency-graph.ts'
+import { DependencyGraph } from '../packer/graph/dependency-graph.ts'
 
 const COMPILE_CACHE_VERSION = 2
 
