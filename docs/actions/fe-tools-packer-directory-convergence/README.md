@@ -1,7 +1,7 @@
 # FE Tools Packer Directory Convergence
 
 - Action: `fe-tools-packer-directory-convergence`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-10-09
 - 设计门：D-DC-1..5（draft 提议，formalize 锁定）
 - Status authority: [Action Status](../STATUS.md)

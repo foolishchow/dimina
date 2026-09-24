@@ -19,7 +19,7 @@
 
 ## 架构候选（2026-10-09 · packer 重构轨道）
 
-### Round 0 — packer 目录收敛 —— `ready`（formalize locked）（2026-10-09）
+### Round 0 — packer 目录收敛 —— `in_progress`（实施授权，B1a 未起）（2026-10-09）
 
 packer 架构 retrospect（[F-PA-1..6](../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域 ~27 文件散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `core/` 混合袋。散落致 ③a/b/c 跨层 import + D/C 重构缺干净素材 + 北星 6 组件无物理落地。
 

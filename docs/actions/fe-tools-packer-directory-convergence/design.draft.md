@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-packer-directory-convergence
 
-Status: **ready（formalize locked 2026-10-09）**
+Status: **in_progress（实施授权 2026-10-09）**
 
 ## §1 问题诊断（来自 [retrospect](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）
 
