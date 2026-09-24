@@ -26,7 +26,7 @@ G1–G5 逐门算法 + 接线 + invalidatedModules 端到端链路均已坐实�
 
 ## Non-goals
 
-- R3（ctx 类型三分 + cache 三套）——HMR 前接受，架构笔记保持可见（见 [architecture-notes](../../fe-tools/architecture-notes.md)）。
+- R3（ctx 类型三分 + cache 三套）——HMR 前接受，[residuals tracker](../../fe-tools/incremental-chain-residuals.md) 保持可见。
 - R5（首次 state 路径一律 reconcile）——非缺陷（行为正确，可读性绕）。
 - X1（G4 归档 acceptance A-G43 per-module→per-page-bundle drift）——归档不可变（"complete=终态"），architecture-notes G5 条目已 bridge。
 - R2（logic cache / static-copy watch diff）——已降级（人工空 invalidated 场景假象，真实路径 diff=0，广回顾 §3 验证）。

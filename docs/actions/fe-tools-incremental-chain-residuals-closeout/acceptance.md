@@ -48,7 +48,7 @@ Status: **draft（2026-10-09）**
 
 ## Non-acceptance
 
-- R3（ctx 类型三分）——HMR 前接受（架构笔记保持可见）
+- R3（ctx 类型三分）——HMR 前接受（[residuals tracker](../../fe-tools/incremental-chain-residuals.md) 保持可见）
 - R5（首次 reconcile 可读性）——非缺陷
 - X1（G4 归档 acceptance A-G43 per-page-bundle drift）——归档不可变（"complete=终态"），architecture-notes G5 条目 bridge
 - R2（logic/static watch diff）——已降级（人工空 invalidated 场景假象，真实路径 diff=0）

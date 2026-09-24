@@ -120,6 +120,8 @@ R1 接线后：one-shot（`index.ts:38`/`build-pipeline.ts:23` 不改）→ unde
 
 注入 `state: new PackerSessionState()`（viewCache 未设）+ mock build（避免真实 build 重量）→ watch-runner R1 接线（`:90` `if(!sessionState.viewCache) sessionState.viewCache = new Map()`）赋值 → 断言 `state.viewCache` 是 `Map` instance（非 undefined）+ `styleCache` 同。**不手建 Map**（Map 由 watch-runner R1 接线赋值，非测试手设）。锁接线，防回退。
 
+**与 residuals tracker R1 建议动作的偏差**（review 修正）：tracker 原建议「真实 watcher 回归测 + 回写 G5 文档」；IRC 改用 ① mock build 接线测（F2：真实 watcher 对 `size>0` 断言 infeasible——build mock 不写 cache；接线赋值在 watch-runner:91 同步于 build 前可验）+ ② G5 归档不重写（F1/X1 原则：archived complete immutable，改回 architecture-notes + IRC docs）。偏差有理，tracker 于 IRC closeout 时 R1→fixed 同步更新。
+
 ## §4 风险
 
 | 风险 | 缓解 |
