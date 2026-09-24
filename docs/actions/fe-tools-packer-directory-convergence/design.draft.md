@@ -10,7 +10,7 @@ Status: **ready（formalize locked 2026-10-09）**
 | --- | --- | --- | --- |
 | `packer/` (6) | types, orchestrator, registry, session-state, graph, config-fixpoint | packer ✓ | 已就位（但无子目录） |
 | `model/` (9) | dependency-graph, build-model, module-result-cache, fingerprint, invalidation, convergence, project-store, compile-cache, stage-order | **全 packer** | 命名误导——无独立 "model" 层 |
-| `compiler/pipeline/` (10) | compile-target(.types), compile-stages, stage-channel, emit(-engine/-worker-entry), config-compiler, publish, build-pipeline | **全 packer** | 名实不符——是 packer 编排非 compiler |
+| `compiler/pipeline/` (9) | compile-target(.types), compile-stages, stage-channel, emit(-engine/-worker-entry), config-compiler, publish | **全 packer** | 名实不符——是 packer 编排非 compiler |
 | `compiler/worker-runtime/` (7) | runtime, executor, define-engine, context, async-context-store, loggers, sinks | **全 packer** | D-PCS-8 通用 worker 是 packer 派发机制 |
 | `compiler/core/` (8, 混合) | renderers, npm-builder, env, compatibility | packer | 混合袋——packer 域 + shared/compiler 混杂 |
 | `compiler/core/` | sourcemap, expression-parser, compatibility-reference | shared | 应去 shared/ |
@@ -43,7 +43,7 @@ Status: **ready（formalize locked 2026-10-09）**
 | `cache/` | OrchestratorState 支撑 | module-result-cache.ts + compile-cache.ts + fingerprint.ts + invalidation.ts |
 | `emit/` | D-PCS-7 Emitter 域 | emit.ts + emit-engine.ts + emit-worker-entry.ts + build-model.ts + convergence.ts + publish.ts |
 | `worker/` | D-PCS-8 通用 worker | runtime/executor/define-engine/context/async-context-store/loggers/sinks |
-| `pipeline/` | stage 编排支撑 | compile-target(.types) + compile-stages + config-compiler + build-pipeline（live） + stage-order |
+| `pipeline/` | stage 编排支撑 | compile-target(.types) + compile-stages + config-compiler + stage-order |
 | `aspect/` | C 轮 aspect home（预留） | compatibility.ts |
 
 顶层留：`types.ts`（北星形状）+ `orchestrator.ts`（PackerOrchestrator）+ `README.md`
@@ -66,7 +66,7 @@ Status: **ready（formalize locked 2026-10-09）**
 | B1 | `graph/` + `store/` | graph.ts, config-fixpoint.ts, dependency-graph.ts, env.ts, project-store.ts | 底层（graph + I/O），无 packer 内部依赖 |
 | B2 | `cache/` + `registry/` | module-result-cache, compile-cache, fingerprint, invalidation + registry.ts 拆 dispatch/lce + renderers | 依赖 graph/store |
 | B3 | `emit/` + `worker/` | emit(-engine/-worker-entry), build-model, convergence, publish + worker-runtime 7 文件 | 依赖 cache/registry + worker |
-| B4 | `pipeline/` + `state/` | compile-target(.types), compile-stages, config-compiler, build-pipeline + session-state, stage-channel | 依赖 emit/worker |
+| B4 | `pipeline/` + `state/` | compile-target(.types), compile-stages, config-compiler + session-state, stage-channel | 依赖 emit/worker |
 | B5 | `aspect/` | compatibility.ts（+ core/ 解体：sourcemap/expression-parser 去 shared/compiler） | 收尾 |
 
 每批结束：tsc 0 + vitest 全绿 + 6 项目 diff=0（行为 0 gate）+ grep 验子目录归位。
@@ -123,10 +123,8 @@ Status: **ready（formalize locked 2026-10-09）**
 | `packer/pipeline/compile-target.types.ts` | `compiler/pipeline/compile-target.types.ts` | stage 编排 |
 | `packer/pipeline/compile-stages.ts` | `compiler/pipeline/compile-stages.ts` | stage 编排 |
 | `packer/pipeline/config-compiler.ts` | `compiler/pipeline/config-compiler.ts` | stage 编排 |
-| `packer/pipeline/build-pipeline.ts` | `compiler/pipeline/build-pipeline.ts` | stage 编排（live，4 导入方） |
-| `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（stage 编排支撑） |
-| `packer/aspect/compatibility.ts` | `compiler/core/compatibility.ts` | C 轮 home |
 | `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（**formalize 锁**：放 pipeline/ 非 cache/——2/3 消费者在 pipeline + 概念属 stage 编排 + 最小跨子目录 import=1 vs cache/ 的 2） |
+| `packer/aspect/compatibility.ts` | `compiler/core/compatibility.ts` | C 轮 home |
 
 ### 3.2 compiler/core/ 解体
 
@@ -175,5 +173,5 @@ src/compiler/
 - expression-parser → `shared/expression-parser.ts`（不建 compiler/utils/，守 D-DC-5）
 - compatibility-reference → `shared/compatibility-reference.ts`
 - sourcemap → `shared/sourcemap.ts`
-- build-pipeline.ts → 随迁 `packer/pipeline/`（live，4 导入方，非 legacy；不清死码）
+- build-pipeline.ts：**phantom**——源文件不存在（4 处引用全为注释；file 早已删，逻辑迁入 orchestrator.ts:4 自承）。从收敛表删除
 - stage-order.ts → `packer/pipeline/stage-order.ts`（补入 §3.1）

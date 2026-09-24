@@ -21,7 +21,7 @@ Status: **ready（formalize locked 2026-10-09；implementation-plan 出具）**
 | B1b | `store/` | 2（env + project-store）| **~62**（env 57 = 22 src + 35 test；project-store 5）| **env（5 module-level state）** | **最高**（dual-instance 陷阱 + 最大 blast）|
 | B2 | `cache/` + `registry/` | 4 cache + 3 registry（拆 dispatch/lce + renderers）| ~17（module-result-cache 6 + fingerprint 3 + invalidation 1 + compile-cache 1 + registry 1 + renderers 5）| renderers（registry Map）| 中 |
 | B3 | `emit/` + `worker/` | 6 emit + 7 worker | ~16（emit 9 + worker-runtime 7）| 无 | 中 |
-| B4 | `pipeline/` + `state/` | 6 pipeline + 2 state | ~15（compile-target/stages/channel/session-state/build-pipeline）| 无 | 中 |
+| B4 | `pipeline/` + `state/` | 5 pipeline + 2 state | ~15（compile-target/stages/channel/session-state）| 无 | 中 |
 | B5 | `aspect/` + core 解体 | 1 aspect + 3 shared | ~10（compatibility 5 + sourcemap/expression-parser/compatibility-reference）| compatibility（cachedReference）| 中 |
 
 **B1b 是 crux**——env.ts 57 导入方 + stateful + dual-instance 陷阱。须最谨慎。
@@ -134,7 +134,18 @@ Status: **ready（formalize locked 2026-10-09；implementation-plan 出具）**
 | `packer/worker/loggers.ts` | `compiler/worker-runtime/loggers.ts` |
 | `packer/worker/sinks.ts` | `compiler/worker-runtime/sinks.ts` |
 
-**import 改写**（~16 处）：emit 9 导入方 + worker-runtime 7（互相 import 改 intra `./`）。emit.ts 自身 import `../core/env` → B1b 后 `../store/env`；`../core/sourcemap` → B5 后 `../../shared/sourcemap`（本批 sourcemap 未迁，暂保）。
+**import 改写**（~16 处）：emit 9 导入方 + worker-runtime 7（互相 import 改 intra `./`）。
+
+**emit.ts 自身 import（迁后 packer/emit/emit.ts）**：
+- `../core/env.ts` → `../store/env.ts`（B1b 后）
+- `../core/sourcemap.ts` → `../../shared/sourcemap.ts`（B5 后；本批暂保）
+- `../worker-runtime/context.ts`（abilityALS）→ `../worker/context.ts`
+- `../../shared/compile-config.ts`（effectiveJsMinify）→ 不变（packer/emit/ 到 shared/ 仍 `../../shared/`，深度同）
+
+**convergence.ts 自身 import（迁后 packer/emit/convergence.ts）**：
+- `./dependency-graph.ts`（type-only）→ `../graph/dependency-graph.ts`（B1a 后）
+- `./module-result-cache.ts`（type-only）→ `../cache/module-result-cache.ts`（B2 后）
+- `../compiler/pipeline/emit.ts`（③c，type-only EmitModule）→ `./emit.ts`（同子目录，**③c 消解**）
 
 **③c 消解**：convergence（packer/emit/）import emit（packer/emit/）→ 同子目录 `./emit` ✓（本批全消解）。
 
@@ -151,7 +162,6 @@ Status: **ready（formalize locked 2026-10-09；implementation-plan 出具）**
 | `packer/pipeline/compile-target.types.ts` | `compiler/pipeline/compile-target.types.ts` |
 | `packer/pipeline/compile-stages.ts` | `compiler/pipeline/compile-stages.ts` |
 | `packer/pipeline/config-compiler.ts` | `compiler/pipeline/config-compiler.ts` |
-| `packer/pipeline/build-pipeline.ts` | `compiler/pipeline/build-pipeline.ts` |
 | `packer/pipeline/stage-order.ts` | `model/stage-order.ts` |
 | `packer/state/session-state.ts` | `packer/session-state.ts` |
 | `packer/state/stage-channel.ts` | `compiler/pipeline/stage-channel.ts` |
@@ -161,7 +171,7 @@ Status: **ready（formalize locked 2026-10-09；implementation-plan 出具）**
 - `packer/state/stage-channel.ts`（迁后）：`../../packer/types.ts` → `../types.ts`；`../../compiler/worker-runtime/executor` → `../worker/executor`（B3）
 - `model/invalidation.ts`（迁后 cache/）：`./stage-order` → `../pipeline/stage-order`（③a 路径 intra-packer 化）
 - `packer/cache/compile-cache.ts`（B2 迁）：`../compiler/pipeline/compile-stages` → `../pipeline/compile-stages`（**③b 全消解**）
-- `__tests__/compile-target.spec.js`、`watch-runner.ts`、`build-pipeline.ts`（迁后 pipeline/）等 import 路径更新
+- `__tests__/compile-target.spec.js`、`watch-runner.ts` 等 import 路径更新（注：build-pipeline.ts **不存在**——orchestrator.ts:4 自承逻辑已迁入，无文件可搬）
 
 **stage-order 放置（F-R5-2 locked）**：`packer/pipeline/stage-order.ts`——2/3 消费者在 pipeline/ + 概念属 stage 编排 + 最小跨子目录（invalidation cache→pipeline 1 处 vs cache/ 的 2 处）
 
