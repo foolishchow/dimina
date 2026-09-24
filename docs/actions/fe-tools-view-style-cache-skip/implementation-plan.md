@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-view-style-cache-skip
 
-Status: **draft（2026-10-08）**
+Status: **ready（2026-10-09）**
 
 > 前置：design gate RG5-1..4 review 解决（readiness）后方可升 `ready` + 实施。RG5-1（view cache-hit 递归 emit）= 核心 readiness blocker。
 

@@ -1,6 +1,6 @@
 # Requirements — fe-tools-view-style-cache-skip
 
-Status: **draft（2026-10-08）**
+Status: **ready（2026-10-09）**
 
 ## R-G5-1: PackerSessionState view/style cache 字段
 

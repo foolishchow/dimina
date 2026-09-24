@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-view-style-cache-skip
 
-Status: **draft（2026-10-08）**
+Status: **ready（2026-10-09）**
 
 ## A-G51 — PackerSessionState view/style cache 字段（R-G5-1, D-G5-1）
 

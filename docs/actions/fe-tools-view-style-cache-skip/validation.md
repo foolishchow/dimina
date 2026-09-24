@@ -1,6 +1,6 @@
 # Validation — fe-tools-view-style-cache-skip
 
-Status: **draft（2026-10-08）**
+Status: **ready（2026-10-09）**
 
 ## 验证方法
 

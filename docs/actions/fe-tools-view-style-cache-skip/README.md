@@ -1,7 +1,7 @@
 # FE Tools View/Style Cache-Skip（G5 — incremental-unify 重激活）
 
 - Action: `fe-tools-view-style-cache-skip`
-- Status: `draft`
+- Status: `ready`
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-graph-persist`](../_archive/complete/fe-tools-graph-persist/README.md)（**complete**；G1——storeInfo state 路径走 reconcile）
 - 前置：[`fe-tools-fingerprints-persist`](../_archive/complete/fe-tools-fingerprints-persist/README.md)（**complete**；G2——watch-plan content-based dedup）

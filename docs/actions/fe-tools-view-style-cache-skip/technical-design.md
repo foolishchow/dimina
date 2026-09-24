@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-view-style-cache-skip
 
-Status: **draft（2026-10-08）**
+Status: **ready（2026-10-09）**
 
 ## §1 现状（G4 落地后）
 
