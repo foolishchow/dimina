@@ -8,7 +8,7 @@ Status: **ready（2026-10-09）**
 
 - [ ] 确认 H2 Phase 2 阶段函数 + registry 实现就位（`logicLoader` / `viewLoadModule` / `styleLoad`/`styleCompile`/`styleEmit` / `LoaderRegistryImpl`）
 - [ ] 确认 F-HR-1..3 + ③a/b/c + R3 tracker 状态 open（draft 已入档）
-- [ ] **实施期评项预研（D-HR-1 §2 待评）**：Loader 接口 vs storeInfo graph reconcile 衔接点——load 写图 vs storeInfo 写图唯一权威（PS2 约束）。选项 B 的 load 接线在 storeInfo 现有 graph 写入点内；衔接形状（Loader.dependencies → graph edge 写入点 vs storeInfo reconcile）须在 Step 1 前定型
+- [ ] **实施期评项预研（D-HR-1 §2 待评）**：Loader 接口 vs storeInfo graph reconcile 衔接点——load 写图 vs storeInfo 写图唯一权威（PS2 约束）。选项 B 的 load 接线在 storeInfo 现有 graph 写入点内；衔接形状（Loader.dependencies → graph edge 写入点 vs storeInfo reconcile）须在 Step 1 前定型。**⚠️ one-shot 等价性为保证条件**——one-shot build() 也走 orchestrator（`index.ts:9` → orchestrator:189 `_store.load` 产 graph），Step 1 load 接线对 one-shot 同样生效；Loader 写图必须 == storeInfo.load graph 产出（one-shot diff=0 的核心保证）
 - [ ] **view/style Loader 形状适配（D-HR-1 §2 待评②）**：logicLoader 是整段包装，view/style 是逐模块函数——两种形状共存于一 registry 的接口一致性方案定型
 - [ ] **StageChannelContext 字段类型来源（R-HR-4 预研）**：`storeInfo` 字段类型来源未定——types.ts 现 import `emit.ts`/`dependency-graph.ts`（type-only，合规）；`storeInfo` 若需 `env.ts` 层类型 → 破“Packer 形状纪律：types.ts 不从 env.ts import”。须定型：从 `env.ts` 提取 `StoreInfo` 类型到 model/shared，或用 opaque/局部类型避免跨层 import
 
@@ -46,11 +46,13 @@ Status: **ready（2026-10-09）**
 
 **不改**：`result as`/`task as`/`loadBindings as` 局部窄化（非 R3 范围）；`model/compile-cache.ts:5`（③b residual——D-HR-1 后续门评）；`model/convergence.ts:3`（③c type-only——runtime 无害）。
 
+**行为 0 局部保证**：R-HR-4 是类型改动（typed interface 替代 as-assertion，erased at runtime）+ R-HR-5 是常量迁移（import 路径改，运行时语义不变）→ one-shot 产物字节恒等（P-HR6 全局验）。
+
 ## Step 4 — D-HR-3 selective 链路级测试（locked 边界级）
 
 | 文件 | 改动 | 要求 |
 |---|---|---|
-| 新 `__tests__/view-selective-stages.spec.js` | 两轮 build 经 stage-channel 边界：① priming（viewCache/orderList 长驻——IRC R1 接线保证）② invalidate（invalidatedModules）；断言 (a) selective flag 触发 (b) pageBundles 只含 dirty 子集 + orderList 全量 (c) 产物与全量重编字节恒等 (d) dirty 子集规模（IPC 经济 dump 断言） | R-HR-3 / A-HR3 |
+| 新 `__tests__/view-selective-stages.spec.js` | 两轮 build 经 stage-channel 边界：① priming（viewCache/orderList 长驻——复用 `view-selective-recompile.spec.js` 既有的 `state.viewCache = new Map()` + `build(..., { state })` 模式，IRC R1 接线保证 watch 生产 path 同）② invalidate（`invalidatedModules`）；断言 (a) selective flag 触发 (b) pageBundles 只含 dirty 子集 + orderList 全量 (c) 产物与全量重编字节恒等 (d) dirty 子集规模（IPC 经济 dump 断言） | R-HR-3 / A-HR3 |
 
 **不起进程**（避 flaky——compile-cli-cache 先例）；覆盖 worker 序列化边界（msg → viewCompile → pageBundles → stage-channel 消费全链）。
 
