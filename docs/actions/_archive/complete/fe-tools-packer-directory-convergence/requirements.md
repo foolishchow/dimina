@@ -1,10 +1,10 @@
 # Requirements — fe-tools-packer-directory-convergence
 
-Status: **in_progress（实施授权 2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## 背景
 
-packer 架构 retrospect（[F-PA-1..6](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域逻辑散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `compiler/core/` 混合袋。散落致跨层 import 温床（③b/③c residual；③a 已 fixed）+ D/C 重构缺干净素材 + 北星 6 组件无物理落地。
+packer 架构 retrospect（[F-PA-1..6](../../../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域逻辑散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `compiler/core/` 混合袋。散落致跨层 import 温床（③b/③c residual；③a 已 fixed）+ D/C 重构缺干净素材 + 北星 6 组件无物理落地。
 
 ## Requirements
 

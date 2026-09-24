@@ -8,7 +8,7 @@
 - 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../../../fe-tools/architecture-notes.md)（Packer / Scheme）
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [acceptance](acceptance.md) · [roadmap](roadmap.md) · [validation](validation.md)
 - 工作分支：`feature/fe-tools-sidecar`
-- 前置：增量链 G1–G5 + IRC + SMPU 全 `complete`（[navigation](../../../../fe-tools/README.md)）；Packer shape（[types](../../../../../fe/tools/bundler/src/packer/types.ts) · [convergence](../../../../../fe/tools/bundler/src/model/convergence.ts)）已定义未接线
+- 前置：增量链 G1–G5 + IRC + SMPU 全 `complete`（[navigation](../../../../fe-tools/README.md)）；Packer shape（[types](../../../../../fe/tools/bundler/src/packer/types.ts) · [convergence](../../../../../fe/tools/bundler/src/packer/emit/convergence.ts)）已定义未接线
 
 ## 背景
 

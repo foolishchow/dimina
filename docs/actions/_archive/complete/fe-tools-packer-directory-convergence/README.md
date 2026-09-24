@@ -1,13 +1,13 @@
 # FE Tools Packer Directory Convergence
 
 - Action: `fe-tools-packer-directory-convergence`
-- Status: `in_progress`
+- Status: `complete`
 - Updated: 2026-10-09
 - 设计门：D-DC-1..5（draft 提议，formalize 锁定）
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-hmr-chain-residuals`](../_archive/complete/fe-tools-hmr-chain-residuals/README.md)（complete 2026-10-09；HMR 编译侧链路收尾）
-- 触发文档：[2026-10-09-packer-facade-aspect-retrospect.md](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)（F-PA-1..6 设计模式缺陷诊断）
-- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-hmr-chain-residuals`](../fe-tools-hmr-chain-residuals/README.md)（complete 2026-10-09；HMR 编译侧链路收尾）
+- 触发文档：[2026-10-09-packer-facade-aspect-retrospect.md](../../../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)（F-PA-1..6 设计模式缺陷诊断）
+- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../../../fe-tools/architecture-notes.md)
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [acceptance](acceptance.md) · [validation](validation.md) · [implementation-plan](implementation-plan.md)
 
 ## Background

@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-packer-directory-convergence
 
-Status: **in_progress（实施授权 2026-10-09；implementation-plan 出具）**
+Status: **complete（2026-10-09；B1a-B5 全实施 + 行为 0）**
 
 设计门：[D-DC-1..5 locked](design.draft.md#§2-设计门formalize-locked-2026-10-09d-dc-15-锁定)
 前置 review：2 批 18 轮严格收敛（R8+R9 + R17+R18 连续 0）
