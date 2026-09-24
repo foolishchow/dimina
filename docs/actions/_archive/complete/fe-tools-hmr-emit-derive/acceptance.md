@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-hmr-emit-derive
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## Acceptance
 

@@ -37,7 +37,7 @@
 
 ```text
 本伞:     HMR 编译侧路线 + 子门顺序 + Non-goals（文档）
-子门 H1:  deriveFromGraph 接线（emit 从 emitBuckets 全量改 graph 派生增量）→ [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/README.md)（**`draft`**）
+子门 H1:  deriveFromGraph 接线（emit 从 emitBuckets 全量改 graph 派生增量）→ [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/README.md)（**`complete`**）
 子门 H2:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）
 子门 H3:  per-module view/style cache（G5 per-page-bundle 粒度反转）
 子门 H4:  per-module HMR push（dev server 消费增量 payload）

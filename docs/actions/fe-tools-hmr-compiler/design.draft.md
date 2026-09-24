@@ -180,7 +180,7 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 
 推荐 A（渐进，降风险，类比 SMPU dual-path 过渡）。
 
-**⋰ H1 子门 formalize 锁（2026-10-09）**：D-ED-2 **反转推荐 A → locked B（一次性）**——SMPU 经验启示 dual-path 验证缺口风险 > 一次性风险。locked B 条件化（F4）：须 §4 实证 pass（cache 序 == emitBuckets 序）。见 [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/design.draft.md) §2。
+**⋰ H1 子门 formalize 锁（2026-10-09）**：D-ED-2 **反转推荐 A → locked B（一次性）**——SMPU 经验启示 dual-path 验证缺口风险 > 一次性风险。locked B 条件化（F4）：须 §4 实证 pass（cache 序 == emitBuckets 序）。见 [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/design.draft.md) §2。
 
 ### D-HMR-3: H2 registry 替代 compile-target 策略
 **design gate 待定**：

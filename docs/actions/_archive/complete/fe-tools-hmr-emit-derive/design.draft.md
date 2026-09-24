@@ -2,7 +2,7 @@
 
 > 本文件是设计草稿，非正式文档。用于 entry 映射 + 策略锁后产出正式 technical-design。
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 entry 映射挑战（D-ED-1）
 

@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-hmr-emit-derive
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 > 待 design.draft §4 实证 + D-ED-1/D-ED-2 锁后填实。
 
@@ -36,6 +36,6 @@ Status: **ready（2026-10-09）**
 
 ## Step 4 — 回流
 
-- [ ] architecture-notes: H1 条目（deriveFromGraph 接线 + emitBuckets 移除 + D-ED-2 locked B 反转 D-HMR-2 推荐 A + B2 cache 插入序 + E cross-bucket dedup）
-- [ ] residuals tracker（如有）
-- [ ] docs/fe-tools/README.md 导航补 H1 链
+- [x] architecture-notes: H1 条目（deriveFromGraph 接线 + emitBuckets 移除 + D-ED-2 locked B 反转 D-HMR-2 推荐 A + B2 cache 插入序 + E cross-bucket dedup）
+- [x] residuals tracker（如有）
+- [x] docs/fe-tools/README.md 导航补 H1 链
