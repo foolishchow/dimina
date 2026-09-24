@@ -2,7 +2,7 @@
 
 > 设计草稿。D-PMC-1/2/3 锁后产出 technical-design。
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 bundle 重建策略（D-PMC-1 = D-HMR-4）
 

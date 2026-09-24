@@ -47,6 +47,7 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 			cache: (() => { const c = (ctx as { cache?: { toJSON: () => [string, unknown][] } }).cache; return c ? new Map(c.toJSON()) : null })(),
 			// G5 D-G5-2/F12: view/style cache 快照——bare Map 用 new Map(c)（非 toJSON——ModuleResultCache 有 toJSON，bare Map 没有）
 			viewCache: (() => { const c = (ctx as { viewCache?: Map<string, unknown> }).viewCache; return c ? new Map(c) : null })(),
+			viewOrderList: (() => { const c = (ctx as { viewOrderList?: Map<string, string[]> }).viewOrderList; return c ? new Map(c) : null })(),
 			styleCache: (() => { const c = (ctx as { styleCache?: Map<string, unknown> }).styleCache; return c ? new Map(c) : null })(),
 			invalidatedModules: (ctx as { invalidatedModules?: string[] }).invalidatedModules ?? null,
 		},
@@ -78,12 +79,18 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 		}
 	}
 
-	// G4 D-G4-3 / G5 D-G5-4'：view cache 写入（per-page-bundle——存 viewParseWalk 完整有序 bundle，cache-hit re-emit 原序保字节一致；guarded——G4 期 ctx 无实例→no-op）
+	// H3 D-PMC-1: split pageBundles into per-module viewCache + viewOrderList
+	// (was G5 per-page-bundle: viewCache.set(pagePath, modules))
 	const viewPageBundles = (result as { viewPageBundles?: Array<{ pagePath: string; modules: Array<{ moduleId: string; code: string; map: string | null }> }> }).viewPageBundles
 	const viewCache = (ctx as { viewCache?: { set: (id: string, val: unknown) => void } }).viewCache
+	const viewOrderList = (ctx as { viewOrderList?: { set: (id: string, val: string[]) => void } }).viewOrderList
 	if (viewCache && viewPageBundles) {
 		for (const b of viewPageBundles) {
-			viewCache.set(b.pagePath, b.modules)
+			const orderList = b.modules.map(m => m.moduleId)
+			if (viewOrderList) viewOrderList.set(b.pagePath, orderList)
+			for (const m of b.modules) {
+				viewCache.set(m.moduleId, { moduleId: m.moduleId, kind: 'view' as const, code: m.code, map: m.map, dependencies: [] })
+			}
 		}
 	}
 	const styleResults = (result as { styleCompileResults?: Array<{ moduleId: string }> }).styleCompileResults

@@ -32,7 +32,7 @@ H4 per-module HMR push（dev server 增量）
 | HMR0 本伞 | **`draft`** | — | design.draft 规模评估完成；D-HMR-2/3 design gate 待子门 formalize 锁 |
 | H1 deriveFromGraph 接线 | **`complete`**（子门 [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/README.md)） | M | emit 路径重构；行为 0（emitBuckets→graph 派生字节一致）；D-ED-1 B2+E 锁（实证 pass）+ D-ED-2 locked B 确认 |
 | H2 registry 实体化 | **`complete`**（子门 [`fe-tools-hmr-registry-materialize`](../_archive/complete/fe-tools-hmr-registry-materialize/README.md)） | L+ | 替代 legacy compile-target；**F-H2-1 viewParseWalk/buildCompileCss monolithic 须拆分 L/C/E 三阶段**；D-REG-1/2/3 locked（渐进非 dual-path + load 在 domain + stage 保留） |
-| H3 per-module view/style cache | **`ready`**（子门 [`fe-tools-hmr-per-module-cache`](../fe-tools-hmr-per-module-cache/README.md)） | M-L | G5 per-page-bundle 反转；D-PMC-1 stored order metadata locked（actual probe PASS 3 项目 + vant 4.86x dedup）+ per-module invalidation |
+| H3 per-module view/style cache | **`complete`**（子门 [`fe-tools-hmr-per-module-cache`](../_archive/complete/fe-tools-hmr-per-module-cache/README.md)） | M-L | G5 per-page-bundle 反转；D-PMC-1 stored order metadata locked（actual probe PASS 3 项目 + vant 4.86x dedup）+ per-module invalidation |
 | H4 per-module HMR push | **`ready`**（子门 [`fe-tools-hmr-push`](../fe-tools-hmr-push/README.md)） | M | runtime 协议依赖；D-PUSH-1/2/3 locked（L_HMR payload + runtime-side downgrade fallback L1 + materialize 增量 + publishToDist 重构 F-H4-2）；非阻塞伞 close |
 
 ## 子门依赖序

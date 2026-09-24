@@ -26,13 +26,14 @@ import { viewEngine } from '../src/compiler/view/index.ts'
 import { styleEngine } from '../src/compiler/style/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 
-function makeCtx({ cache, viewCache, styleCache } = {}) {
+function makeCtx({ cache, viewCache, viewOrderList, styleCache } = {}) {
 	const ctx = {
 		dependencyGraph: { merge: vi.fn() },
 		compatibilityWarnings: new Set(),
 	}
 	if (cache) (ctx).cache = cache
 	if (viewCache) (ctx).viewCache = viewCache
+	if (viewOrderList) (ctx).viewOrderList = viewOrderList
 	if (styleCache) (ctx).styleCache = styleCache
 	return ctx
 }
@@ -43,16 +44,17 @@ const STYLE_MOD = { moduleId: 'pages/a/index', kind: 'style', code: '/*s*/', map
 describe('stage-channel cache write (G4 D-G4-3)', () => {
 	beforeEach(() => { vi.clearAllMocks() })
 
-	it('① writes view/style results to ctx.viewCache (per-page-bundle, G5 D-G5-4\') / styleCache (bare, G4 D-G4-3)', async () => {
+	it('① writes view/style results to ctx.viewCache (per-module, H3 D-PMC-1) / viewOrderList / styleCache (bare, G4 D-G4-3)', async () => {
 		executeTask.mockResolvedValue({
 			dependencyGraph: { toJSON: () => [] },
 			compatibilityWarnings: [],
-			viewPageBundles: [{ pagePath: 'pages/a/index', modules: [VIEW_MOD] }],  // G5: per-page-bundle
+			viewPageBundles: [{ pagePath: 'pages/a/index', modules: [VIEW_MOD] }],  // worker 仍返 pageBundles
 			styleCompileResults: [STYLE_MOD],  // G4: style 仍 per-module（无 transitive subs）
 		})
 		const viewCache = new Map()
+		const viewOrderList = new Map()
 		const styleCache = new Map()
-		const ctx = makeCtx({ viewCache, styleCache })
+		const ctx = makeCtx({ viewCache, viewOrderList, styleCache })
 		await runCompileStage({
 			script: 'view',
 			ctx,
@@ -60,7 +62,8 @@ describe('stage-channel cache write (G4 D-G4-3)', () => {
 			options: { pages: { mainPages: [], subPages: {} } },
 			lifecycle: null,
 		})
-		expect(viewCache.get('pages/a/index')).toEqual([VIEW_MOD])  // G5: per-page-bundle（ViewCompiledModule[]）
+		expect(viewCache.get('pages/a/index')).toEqual(VIEW_MOD)  // H3: per-module（ViewCompiledModule）
+		expect(viewOrderList.get('pages/a/index')).toEqual(['pages/a/index'])  // H3: order list
 		expect(styleCache.get('pages/a/index')).toEqual(STYLE_MOD)  // G4: per-module bare
 	})
 

@@ -68,14 +68,15 @@ interface ViewCompileMLResult {
 	pageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[] }>
 }
 
-async function compileML(pages: ViewModule[], root: string | null, progress: Progress, viewCache?: Map<string, ViewCompiledModule[]> | null, invalidated?: string[] | null): Promise<ViewCompileMLResult> {
+async function compileML(pages: ViewModule[], root: string | null, progress: Progress, viewCache?: Map<string, ViewCompiledModule> | null, viewOrderList?: Map<string, string[]> | null, invalidated?: string[] | null): Promise<ViewCompileMLResult> {
 	const workPath = getWorkPath()
 
 	// IRC D-IRC-3/R9：仅当至少一 page cache-miss 时才扫 wxs（全 cache-hit 跳过——hit 不消费 wxsFilePathMap）。
-	// 预检式须与 loop cache-hit 逻辑逐字同式（bundle 存在 + bundle 内任一 module invalidated → miss），避免 hasMiss=false 但 loop miss → viewParseWalk 缺 wxs。
+	// H3 D-PMC-1: per-module cache-miss 预检——order list 存在 + 全 module cached + 无 invalidated → hit
 	const hasMiss = pages.some(p => {
-		const b = viewCache?.get(p.path)
-		return !b || b.some(m => invalidated?.includes(m.moduleId) ?? false)
+		const orderList = viewOrderList?.get(p.path)
+		if (!orderList) return true
+		return orderList.some(id => !viewCache?.has(id) || (invalidated?.includes(id) ?? false))
 	})
 	if (hasMiss) ensureWxsScan(workPath)
 
@@ -103,13 +104,19 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 			relPrefix,
 		}
 
-		// G5 D-G5-4'：cache-hit 预检——page bundle cached 且 bundle 内任一 module 均未 invalidated → re-emit 原序 bundle（字节一致）
-		const cachedBundle = viewCache?.get(page.path)
-		const bundleInvalidated = cachedBundle ? cachedBundle.some(m => invalidated?.includes(m.moduleId) ?? false) : false
+		// H3 D-PMC-1: per-module cache-hit 预检——order list 存在 + 全 module cached + 无 invalidated → assemble via order list
+		const orderList = viewOrderList?.get(page.path)
+		const allCached = orderList && orderList.every(id => {
+			const m = viewCache?.get(id)
+			return m && !invalidated?.includes(id)
+		})
 
-		if (cachedBundle && !bundleInvalidated) {
-			// ★ G5 cache-hit：跳 viewParseWalk，re-emit 原序 bundle（= cache-miss 结构，保 watch 产物粒度+字节一致）
-			const modules = cachedBundle.map(m => ({ moduleId: m.moduleId, code: m.code, map: m.map }))
+		if (allCached && orderList) {
+			// ★ H3 cache-hit：assemble per-module cache via order list（= cache-miss 结构，保字节一致）
+			const modules = orderList.map(id => {
+				const m = viewCache!.get(id)!
+				return { moduleId: m.moduleId, code: m.code, map: m.map }
+			})
 			await emitEntry({ ...emitParams, modules })
 			// 不 push——D-G5-3 cache-hit 不返（已在 main-thread cache）
 		} else {
@@ -168,7 +175,7 @@ export {
 
 // P-WR02: engine export（不动调度，F47；onMessage 旧版保留，compile 函数声明供 export）
 async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{ viewCompileResults: ViewCompiledModule[]; viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[] }> }> {
-	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: ViewModule[]; subPages: Record<string, { info: ViewModule[]; independent: boolean }> }; viewCache?: Map<string, ViewCompiledModule[]> | null; invalidatedModules?: string[] | null }
+	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: ViewModule[]; subPages: Record<string, { info: ViewModule[]; independent: boolean }> }; viewCache?: Map<string, ViewCompiledModule> | null; viewOrderList?: Map<string, string[]> | null; invalidatedModules?: string[] | null }
 	resetStoreInfo(m.storeInfo)
 	setEnableSourcemap(!!m.sourcemap)
 	activeCompileConfig = config as { minify: boolean; sourcemap: boolean; esTarget: { logic: string; view: string } }
@@ -179,11 +186,11 @@ async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{
 	// viewPageBundles 供 stage-channel 写 per-page-bundle viewCache（活跃）；runtime.ts:33 Object.assign(response, compileResult) 仍 postMessage（vestigial-but-intentional）。
 	const viewCompileResults: ViewCompiledModule[] = []
 	const viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[] }> = []
-	const main = await compileML(m.pages.mainPages, null, progress as Progress, m.viewCache ?? undefined, m.invalidatedModules)
+	const main = await compileML(m.pages.mainPages, null, progress as Progress, m.viewCache ?? undefined, m.viewOrderList ?? undefined, m.invalidatedModules)
 	viewCompileResults.push(...main.results)
 	viewPageBundles.push(...main.pageBundles)
 	for (const [root, subPages] of Object.entries(m.pages.subPages)) {
-		const sub = await compileML(subPages.info as ViewModule[], root, progress as Progress, m.viewCache ?? undefined, m.invalidatedModules)
+		const sub = await compileML(subPages.info as ViewModule[], root, progress as Progress, m.viewCache ?? undefined, m.viewOrderList ?? undefined, m.invalidatedModules)
 		viewCompileResults.push(...sub.results)
 		viewPageBundles.push(...sub.pageBundles)
 	}

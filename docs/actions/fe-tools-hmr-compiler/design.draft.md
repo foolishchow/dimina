@@ -194,7 +194,7 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 ### D-HMR-4: H3 per-module view/style cache 粒度反转
 G5 D-G5-4' per-page-bundle 是为 cache-hit 字节一致。per-module 反转需重建 bundle 序。**⚠️ G5 P-G506 实证 graph 重建不可行**（direct-only + 无 wxs + 序不一致）。H3 须用**不同策略**：① per-module 存储 + 显式序元数据（存 order list，非 graph 派生）或 ② per-module compile + per-page-bundle emit（粒度解耦）。**design gate 待 H3 formalize 时详评策略 A/B**。
 
-**⋰ H3 子门 formalize 锁（2026-10-09）**：D-PMC-1 **locked 选项① stored order metadata**——actual probe PASS（3 项目 base+subpackages+vant，per-module split + order list reassembly == per-page-bundle 字节级恒等；vant 4.86x dedup 实证）。避开 P-G506。见 [`fe-tools-hmr-per-module-cache`](../fe-tools-hmr-per-module-cache/design.draft.md) §1/§4。
+**⋰ H3 子门 formalize 锁（2026-10-09）**：D-PMC-1 **locked 选项① stored order metadata**——actual probe PASS（3 项目 base+subpackages+vant，per-module split + order list reassembly == per-page-bundle 字节级恒等；vant 4.86x dedup 实证）。避开 P-G506。见 [`fe-tools-hmr-per-module-cache`](../_archive/complete/fe-tools-hmr-per-module-cache/design.draft.md) §1/§4。
 
 ### D-HMR-5: H4 runtime fallback
 编译侧增量 payload 先交付，dev server fallback L1 reload，runtime 就绪后激活 L_HMR。**非阻塞**。

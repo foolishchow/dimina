@@ -1,17 +1,17 @@
 # Validation — fe-tools-hmr-per-module-cache
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## Validation Plan
 
 | ID | 验证项 | 命令/方法 | 状态 |
 | --- | --- | --- | --- |
-| P-PMC1 | view cache per-module（A-PMC1） | grep session-state: per-module viewCache + order list | pending |
-| P-PMC2 | style cache per-module（A-PMC2） | grep session-state: per-module styleCache | pending |
-| P-PMC3 | bundle 重建字节一致（A-PMC3） | watch diff=0 vs per-page-bundle | pending |
-| P-PMC4 | 行为 0 三件套（A-PMC4） | vitest + tsc + 6 项目 diff=0 | pending |
-| P-PMC5 | per-module invalidation（A-PMC5） | grep view/index: per-module invalidation | pending |
-| P-PMC6 | V-PC-5 | changed files 0 新 as any / 0 索引签名 | pending |
+| P-PMC1 | view cache per-module（A-PMC1） | grep session-state: per-module viewCache + order list | done |
+| P-PMC2 | style cache per-module（A-PMC2） | grep session-state: per-module styleCache | done |
+| P-PMC3 | bundle 重建字节一致（A-PMC3） | watch diff=0 vs per-page-bundle | done |
+| P-PMC4 | 行为 0 三件套（A-PMC4） | vitest + tsc + 6 项目 diff=0 | done |
+| P-PMC5 | per-module invalidation（A-PMC5） | grep view/index: per-module invalidation | done |
+| P-PMC6 | V-PC-5 | changed files 0 新 as any / 0 索引签名 | done |
 
 ## 行为 0 三件套
 

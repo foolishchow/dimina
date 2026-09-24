@@ -19,8 +19,13 @@ import type { ViewCompiledModule, StyleCompiledModule } from './types.ts'  // G5
 export class PackerSessionState {
 	readonly graph: PackerGraph = new PackerGraph()
 	readonly moduleCache: ModuleResultCache = new ModuleResultCache()
-	// G5 D-G5-1/F10: view cache = per-page-bundle（ViewCompiledModule[]——存 viewParseWalk 完整有序 bundle，cache-hit re-emit 原序保字节一致）；style cache = per-page（无 transitive subs）。optional bare Map（one-shot 不 init→undefined→G4 no-op；watch-runner 赋值）
-	viewCache?: Map<string, ViewCompiledModule[]>
+	// H3 D-PMC-1: view cache per-module（was G5 per-page-bundle Map<string, ViewCompiledModule[]>）。
+	// viewCache: key = moduleId, value = ViewCompiledModule（单 module）。
+	// viewOrderList: key = pagePath, value = moduleId[]（ordered——viewParseWalk DFS 序）。
+	// optional bare Map（one-shot 不 init→undefined→no-op；watch-runner 赋值）
+	viewCache?: Map<string, ViewCompiledModule>
+	viewOrderList?: Map<string, string[]>
+	// G5 D-G5-1/F10: style cache = per-page（无 transitive subs，无 bundle 序问题——H3 style per-module = per-page 同义）
 	styleCache?: Map<string, StyleCompiledModule>
 	// D-FP-1: fingerprints 跨 rebuild 持久（watch-runner 每次 rebuild 重新赋值，同 invalidatedModules）
 	fingerprints: Map<string, FileFP> = new Map()

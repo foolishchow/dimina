@@ -173,6 +173,7 @@ async function _orchestrate(
 		const cache = state.moduleCache
 		// G5 D-G5-2: view/style cache plumbing（optional——one-shot undefined→ctx undefined→stage-channel 写 no-op；watch-runner init 实例）
 		const viewCache = state.viewCache
+		const viewOrderList = state.viewOrderList
 		const styleCache = state.styleCache
 
 		const initPhases = [
@@ -186,6 +187,7 @@ async function _orchestrate(
 					;(ctx as { cache: unknown }).cache = cache
 				// G5 D-G5-2: plumbing view/style cache（镜像 logic cache 模式）
 				;(ctx as { viewCache?: unknown }).viewCache = viewCache
+				;(ctx as { viewOrderList?: unknown }).viewOrderList = viewOrderList
 				;(ctx as { styleCache?: unknown }).styleCache = styleCache
 					if (invalidatedModules) (ctx as { invalidatedModules: string[] }).invalidatedModules = invalidatedModules
 					const allPages = getPages()

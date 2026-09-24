@@ -89,9 +89,10 @@ describe('compileSS cache-hit (G5 D-G5-5)', () => {
 describe('compileML cache-hit (G5 D-G5-4/F6)', () => {
 	it('cache-hit allCached（page bundle cached 无 invalidated）：跳 viewParseWalk，不返 results', async () => {
 		const page = { path: 'pages/home/index' }
-		const viewCache = new Map([['pages/home/index', [viewMod('pages/home/index')]]])  // per-page-bundle
+		const viewCache = new Map([['pages/home/index', viewMod('pages/home/index')]])  // H3 per-module
+		const viewOrderList = new Map([['pages/home/index', ['pages/home/index']]])  // H3 order list
 		const { results } = await runWithAbilities(outDir, () =>
-			compileML([page], null, { completedTasks: 0 }, viewCache, null),
+			compileML([page], null, { completedTasks: 0 }, viewCache, viewOrderList, null),
 		)
 		expect(results).toEqual([])  // cache-hit 不返
 	})
@@ -100,9 +101,10 @@ describe('compileML cache-hit (G5 D-G5-4/F6)', () => {
 		const { getPages: gp } = await import('../src/compiler/core/env.ts')
 		const pages = gp().mainPages
 		const pagePath = pages[0].path
-		const viewCache = new Map([[pagePath, [viewMod(pagePath, 'OLD')]]])  // per-page-bundle
+		const viewCache = new Map([[pagePath, viewMod(pagePath, 'OLD')]])  // H3 per-module
+		const viewOrderList = new Map([[pagePath, [pagePath]]])  // H3 order list
 		const { results } = await runWithAbilities(outDir, () =>
-			compileML(pages, null, { completedTasks: 0 }, viewCache, [pagePath]),
+			compileML(pages, null, { completedTasks: 0 }, viewCache, viewOrderList, [pagePath]),
 		)
 		expect(results.length).toBeGreaterThan(0)  // bundle invalidated → 全量 viewParseWalk
 		expect(results.some(r => r.moduleId === pagePath)).toBe(true)
@@ -166,6 +168,7 @@ describe('integration: state-reuse cache-hit byte-identity', () => {
 	it('view cache-hit 含 transitive subs：bundle 含子组件 + 字节一致（D-G5-4\'）', async () => {
 		const state = new PackerSessionState()
 		state.viewCache = new Map()
+		state.viewOrderList = new Map()
 		state.styleCache = new Map()
 		// build1：填 cache（page bundle = page + sub-component，经 viewParseWalk transitive 发现）
 		await build(out1, srcDir, true, { state })
@@ -195,6 +198,7 @@ describe('integration: state-reuse cache-hit byte-identity', () => {
 	it('真实路径字节一致：非空 invalidated（单 page 变更）→ 全 diff=0', async () => {
 		const state = new PackerSessionState()
 		state.viewCache = new Map()
+		state.viewOrderList = new Map()
 		state.styleCache = new Map()
 		await build(out1, srcDir, true, { state })
 		// build2：真实 watch 路径——单 page invalidated（page 逻辑变更）

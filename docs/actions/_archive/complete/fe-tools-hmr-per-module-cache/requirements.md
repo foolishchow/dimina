@@ -1,6 +1,6 @@
 # Requirements — fe-tools-hmr-per-module-cache
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## 问题陈述
 
