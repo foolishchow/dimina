@@ -9,9 +9,9 @@
  */
 
 import path from 'node:path'
-import { computeAffectedEntries, computeStagesForFiles, computeInvalidatedModules } from '../model/invalidation.ts'
-import { fingerprintFile } from '../model/fingerprint.ts'
-import type { FileFP } from '../model/fingerprint.ts'
+import { computeAffectedEntries, computeStagesForFiles, computeInvalidatedModules } from '../packer/cache/invalidation.ts'
+import { fingerprintFile } from '../packer/cache/fingerprint.ts'
+import type { FileFP } from '../packer/cache/fingerprint.ts'
 
 const WATCH_FILE_EVENTS = new Set(['add', 'change', 'unlink'])
 

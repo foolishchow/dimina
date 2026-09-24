@@ -1,7 +1,7 @@
 /**
  * fe-tools-compiler-target — createCompileTarget (T1) + computeStagePlan (T2) + P-CT05 结构锚定
  *
- * H2 (D-REG-1): deriveStagePlan + readLoadBindings 移入 packer/registry.ts。
+ * H2 (D-REG-1): deriveStagePlan + readLoadBindings 移入 packer/registry/dispatch.ts。
  * compile-target 只留 createCompileTarget (静态段) + COMPILE_STAGE_ORDER。
  */
 import fs from 'node:fs'
@@ -19,7 +19,7 @@ import {
 	computeStagePlan,
 	createDispatchRegistry,
 	readLoadBindings,
-} from '../src/packer/registry.ts'
+} from '../src/packer/registry/dispatch.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const sourceRoot = path.join(__dirname, '../src/compiler')
@@ -263,7 +263,7 @@ describe('computeStagePlan (T2 — registry)', () => {
 describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
-	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry.ts'), 'utf8')
+	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
 	it('rewires _runBuild top through createCompileTarget', () => {
 		expect(pipelineSrc).toContain("from '../compiler/pipeline/compile-target.ts'")
@@ -294,7 +294,7 @@ describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 describe('P-CT05 ②T2 — structural anchors (stage assembly via registry)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
-	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry.ts'), 'utf8')
+	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + computeStagePlan (registry)', () => {
 		expect(pipelineSrc).toContain('readLoadBindings()')

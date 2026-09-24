@@ -16,7 +16,7 @@ import type { CompileTarget } from './compile-target.types.ts'
 
 import { resolveCompileConfig } from '../../shared/compile-config.ts'
 import { assertRendererSupportsPlatform } from '../../shared/platforms.ts'
-import { getRenderer, resolveProjectRenderers } from '../core/renderers.ts'
+import { getRenderer, resolveProjectRenderers } from '../../packer/registry/renderers.ts'
 
 import { COMPILE_STAGE_ORDER } from '../../model/stage-order.ts'
 

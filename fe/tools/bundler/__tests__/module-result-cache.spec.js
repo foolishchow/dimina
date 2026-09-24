@@ -4,7 +4,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { getPages, storeInfo } from '../src/packer/store/env.ts'
 import { compileJS } from '../src/compiler/logic/index.ts'
-import { ModuleResultCache } from '../src/model/module-result-cache.ts'
+import { ModuleResultCache } from '../src/packer/cache/module-result-cache.ts'
 
 /**
  * M2 module-result-cache 测试：验证 cache hit 输出与无 cache 一致（行为 0），

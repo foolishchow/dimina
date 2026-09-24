@@ -8,7 +8,7 @@
  * cache hit dep 发现用 cached.logicDependencies（非 graph，避免 stale edge）。
  */
 
-import type { CompileInfo } from '../compiler/logic/index.ts'
+import type { CompileInfo } from '../../compiler/logic/index.ts'
 
 export interface CachedModuleResult {
 	compileInfo: CompileInfo

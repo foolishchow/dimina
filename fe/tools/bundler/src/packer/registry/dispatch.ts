@@ -1,26 +1,18 @@
 /**
  * PackerDispatchRegistry — orchestrator 派发配置（D-REG-1, D-PCS-5）。
  *
- * H2 Phase 1：materialize emptyRegistry → 实体 dispatch registry。
- * kind → {engine, title} 映射，替代 ENGINES + STAGE_TITLES 散落查表。
- *
- * D-REG-1：compile-target compile 段（deriveStagePlan + filterPagesByEntries）
- * 移入 registry.computeStagePlan——compile-target 只留静态段（createCompileTarget）。
- *
- * D-REG-2：Loader registry 包装 domain parse-walk（load 在 domain，env.ts 提供 ctx）。
- * Phase 2（F-H2-1 L/C/E 拆分）将实体化 Loader/Compiler/Emitter 接口实现。
- *
- * D-REG-3：registry kind 派发保留 stage 概念——kinds() 返回有序 kind 列表
- * （view → logic → style），与 COMPILE_STAGE_ORDER 一致。
+ * 拆分自 registry.ts（fe-tools-packer-directory-convergence D-DC-1 packer/registry/ 收敛）。
+ * 本文件含 dispatch registry + stage 计算（createDispatchRegistry / computeStagePlan /
+ * readLoadBindings / assertLoadBindings / filterPagesByEntries）。
+ * L/C/E registry 实体（LoaderRegistryImpl/CompileRegistryImpl/EmitRegistryImpl）移入 lce.ts。
  */
 
 import path from 'node:path'
-import type { CompileTarget, LoadBindings, PagesInfo, StageSpec, SubPackage } from '../compiler/pipeline/compile-target.types.ts'
-import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from './store/env.ts'
-import { viewEngine } from '../compiler/view/index.ts'
-import { logicEngine } from '../compiler/logic/index.ts'
-import { styleEngine } from '../compiler/style/index.ts'
-import type { Loader, LoaderRegistry, CompileRegistry, EmitRegistry, Compiler, Emitter, ModuleKind } from './types.ts'
+import type { CompileTarget, LoadBindings, PagesInfo, StageSpec, SubPackage } from '../../compiler/pipeline/compile-target.types.ts'
+import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from '../store/env.ts'
+import { viewEngine } from '../../compiler/view/index.ts'
+import { logicEngine } from '../../compiler/logic/index.ts'
+import { styleEngine } from '../../compiler/style/index.ts'
 
 // Engine 类型——defineEngine 返回值（三车道 union）
 type Engine = typeof viewEngine | typeof logicEngine | typeof styleEngine
@@ -65,68 +57,6 @@ export function createDispatchRegistry(): PackerDispatchRegistry {
 	registry.register({ kind: 'logic', engine: logicEngine, title: '编译逻辑' })
 	registry.register({ kind: 'style', engine: styleEngine, title: '编译样式' })
 	return registry
-}
-
-// ── L/C/E registry 实体化（D-REG-2, H2 Phase 2）──
-
-/**
- * Loader registry 实体（H2 Phase 2a：logic Loader 已注册；view/style F-H2-1 拆分后注册）。
- *
- * 不同于 PackerDispatchRegistry（stage 级派发），此处是 types.ts LoaderRegistry
- * 的实体实现——管线（graph → load → compile → emit）未来接线用。
- */
-export class LoaderRegistryImpl implements LoaderRegistry {
-	private loaders = new Map<ModuleKind, Loader>()
-
-	register(kind: ModuleKind, loader: Loader): void {
-		this.loaders.set(kind, loader)
-	}
-
-	get(kind: ModuleKind): Loader {
-		const loader = this.loaders.get(kind)
-		if (!loader) {
-			throw new Error(`[registry] no Loader registered for kind: ${kind}`)
-		}
-		return loader
-	}
-
-	kinds(): ModuleKind[] {
-		return [...this.loaders.keys()]
-	}
-}
-
-// ── CompileRegistry / EmitRegistry 实体化（D-HR-1：阶段函数注册基座）──
-// 阶段函数（compileModuleRender / styleCompile / viewEmit / styleEmit）签名需
-// page/继承上下文，不直接 fit Compiler/Emitter 单 module 接口——形状适配
-// 是后续门（types.ts 接口演进）。本 registry 实体化满足"非空"档位，
-// dispatch 未接线（compile/emit 维持 worker 路径，D-HR-1 locked B）。
-
-export class CompileRegistryImpl implements CompileRegistry {
-	private compilers = new Map<ModuleKind, Compiler>()
-
-	register(kind: ModuleKind, compiler: Compiler): void {
-		this.compilers.set(kind, compiler)
-	}
-
-	get(kind: ModuleKind): Compiler {
-		const c = this.compilers.get(kind)
-		if (!c) throw new Error(`[registry] no Compiler registered for kind: ${kind}`)
-		return c
-	}
-}
-
-export class EmitRegistryImpl implements EmitRegistry {
-	private emitters = new Map<ModuleKind, Emitter>()
-
-	register(kind: ModuleKind, emitter: Emitter): void {
-		this.emitters.set(kind, emitter)
-	}
-
-	get(kind: ModuleKind): Emitter {
-		const e = this.emitters.get(kind)
-		if (!e) throw new Error(`[registry] no Emitter registered for kind: ${kind}`)
-		return e
-	}
 }
 
 // ── stage 计算（从 compile-target.ts 移入）──

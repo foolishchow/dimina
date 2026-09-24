@@ -66,7 +66,7 @@ export function entryNeedsRebuild(entryId: string, affectedEntries: Set<string>)
  * @param {string[]} allStages 可用 stages 列表（默认 ['view','logic','style']）
  * @returns {Set<string>} 需要跑的 stage 集合（空 = 全部需要，表示全量）
  */
-import { COMPILE_STAGE_ORDER } from './stage-order.ts'
+import { COMPILE_STAGE_ORDER } from '../../model/stage-order.ts'
 
 export function computeStagesForFiles(graph: { getFileKinds: (f: string) => string[] }, changedFiles: string[], allStages: string[] = COMPILE_STAGE_ORDER): Set<string> {
 	const stages = new Set<string>()

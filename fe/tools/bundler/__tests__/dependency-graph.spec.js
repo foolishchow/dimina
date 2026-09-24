@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
-import { computeInvalidatedModules } from '../src/model/invalidation.ts'
+import { computeInvalidatedModules } from '../src/packer/cache/invalidation.ts'
 import build from '../src/index.ts'
 import { getDependencyGraph, storeInfo } from '../src/packer/store/env.ts'
 

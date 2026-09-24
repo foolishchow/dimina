@@ -12,8 +12,8 @@
  */
 
 import { PackerGraph } from './graph/graph.ts'
-import { ModuleResultCache } from '../model/module-result-cache.ts'
-import type { FileFP } from '../model/fingerprint.ts'
+import { ModuleResultCache } from './cache/module-result-cache.ts'
+import type { FileFP } from '../packer/cache/fingerprint.ts'
 import type { ViewCompiledModule, StyleCompiledModule } from './types.ts'  // G5 D-G5-1: view/style cache value 类型
 
 export class PackerSessionState {

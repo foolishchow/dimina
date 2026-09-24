@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
-import { ModuleResultCache } from '../src/model/module-result-cache.ts'
+import { ModuleResultCache } from '../src/packer/cache/module-result-cache.ts'
 import { deriveFromGraph } from '../src/model/convergence.ts'
 
 /**

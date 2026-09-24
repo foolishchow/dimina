@@ -7,7 +7,7 @@ import {
 	createCachedAppBuildPlan,
 	createDependencyFileFingerprints,
 	getProjectFileManifest,
-} from '../src/model/compile-cache.ts'
+} from '../src/packer/cache/compile-cache.ts'
 import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
 
 describe('persistent compiler cache', () => {

@@ -121,7 +121,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 
 describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () => {
 	it('registry 注册/get/kinds + 未注册 kind throw', async () => {
-		const { LoaderRegistryImpl } = await import('../src/packer/registry.js')
+		const { LoaderRegistryImpl } = await import('../src/packer/registry/lce.ts')
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
 
 		const registry = new LoaderRegistryImpl()
