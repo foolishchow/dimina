@@ -89,7 +89,8 @@ const subModules = subPages[root].flatMap(p => deriveFromGraph(graph, cache, p.p
 - deriveFromGraph for sub bucket = sub entries union closure **MINUS main bucket modules**（cross-bucket dedup）
 - 实证：subPackageA closure=7 minus `app`=1 == emit=6 ✓
 - emitBuckets 去重源：`hasCompileInfo(module.path, compileRes, mainCompileRes)`——compileJS for subs 传 mainCompileRes，已在 main 的不 push 到 sub
-- **非独立解法**——是 B2 的补充（sub bucket 须 B2 + cross-bucket dedup）
+- **⚠️ independent subs exception**（F1 fix）：`subPages.independent: true` 分包 compileJS 传 `[]` 作 mainCompileRes（不 dedup main）→ deriveLogicBuckets 须跳 cross-bucket dedup（independent subs 保留完整闭包）
+- **非独立解法**——是 B2 的补充（sub bucket 须 B2 + cross-bucket dedup，independent 除外）
 
 ### §1.5 D-ED-1 design gate
 

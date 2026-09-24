@@ -51,7 +51,7 @@ export function deriveLogicBuckets(
 	graph: DependencyGraph,
 	cache: ModuleResultCache,
 	mainEntryIds: string[],
-	subBuckets: { root: string; entryIds: string[] }[],
+	subBuckets: { root: string; entryIds: string[]; independent?: boolean }[],
 ): { main: EmitModule[]; subs: { root: string; modules: EmitModule[] }[] } {
 	// main closure union
 	const mainClosureSet = new Set<string>()
@@ -69,15 +69,18 @@ export function deriveLogicBuckets(
 			extraInfoCode: cached.compileInfo.extraInfoCode,
 		})
 	}
-	// sub buckets: sub closure union MINUS main closure set（cross-bucket dedup E）
+	// sub buckets: sub closure union; non-independent MINUS main closure（cross-bucket dedup E）
+	// independent subs: compileJS 传 [] 作 mainCompileRes → 不 dedup main（保留完整闭包）
 	const subs: { root: string; modules: EmitModule[] }[] = []
-	for (const { root, entryIds } of subBuckets) {
+	for (const { root, entryIds, independent } of subBuckets) {
 		const subClosureSet = new Set<string>()
 		for (const entryId of entryIds) {
 			for (const dep of graph.getDependencyClosure(entryId)) subClosureSet.add(dep)
 		}
-		// cross-bucket dedup: remove modules already in main bucket
-		for (const id of mainClosureSet) subClosureSet.delete(id)
+		// cross-bucket dedup: non-independent subs remove modules already in main bucket
+		if (!independent) {
+			for (const id of mainClosureSet) subClosureSet.delete(id)
+		}
 		const subModules: EmitModule[] = []
 		for (const [id, cached] of cache.entries()) {
 			if (!subClosureSet.has(id)) continue

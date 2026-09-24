@@ -278,8 +278,8 @@ async function _orchestrate(
 					// B2+E: graph closure union → cache 插入序迭代 → cross-bucket dedup
 					const innerGraph = state.graph.getInnerGraph()
 					const mainEntryIds = pages.mainPages.map(p => p.path)
-					const subBuckets = (Object.entries(pages.subPages ?? {}) as [string, { info: { path: string }[] }][])
-						.map(([root, sub]) => ({ root, entryIds: sub.info.map(p => p.path) }))
+					const subBuckets = (Object.entries(pages.subPages ?? {}) as [string, { info: { path: string }[]; independent?: boolean }][])
+						.map(([root, sub]) => ({ root, entryIds: sub.info.map(p => p.path), independent: sub.independent }))
 					const { main, subs } = deriveLogicBuckets(innerGraph, state.moduleCache, mainEntryIds, subBuckets)
 					try {
 						for (const { root, modules } of subs) {
