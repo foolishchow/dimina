@@ -100,9 +100,38 @@ watch 路径加 L_HMR——runtime 就绪时 per-module push，未就绪 fallbac
 
 ---
 
-## §5 实证待做（升 ready 前）
+## §5 实证结果（2026-10-09）
 
-1. **payload 格式**：L_HMR payload（moduleId → code/map）格式定义
-2. **BuildModel dirty tracking**：能否 track 变更 entries？
-3. **publishToDist 增量边界**：增量发布可行性
-4. **runtime fallback 协议**：选项 ② runtime-side downgrade 可行性（运行时侧确认）
+### H4.1 BuildModel dirty tracking — **F-H4-1 补**
+
+`BuildModel`（build-model.ts）：`entries: Map<string, {entryId, kind, files, sourcemaps}>` + `add(entry)`（set entry + invalidate _artifactIndex）。**无 dirty set**——不 track 哪些 entries 自上次 materialize 后变更。
+
+**H4 须加**：`dirtyEntries: Set<string>`（或 `dirtyFiles: Set<string>`）——`add()` 时加入，`materialize()` 后清。直接扩展（add 已 invalidate _artifactIndex，同点加 dirty）。
+
+### H4.2 publishToDist 增量边界 — **F-H4-2 补（low-med）**
+
+`publishToDist`（publish.ts）：**atomic full move** —— `rmSync(absolutePath)` → `mkdirSync` → `renameSync`（临时目录）或 `copyDir`（全目录拷贝）。当前模式 "rm dist + move/copy all" ≠ 增量。
+
+**H4 增量 publish 须重构**："keep dist + update changed files only"（no rmSync）。但 `renameSync`（atomic move）无法增量——须改为 `copyDir` + 只 copy dirty files。语义变更（dist 不再 rmSync 重建，而是原地更新）。**待 H4 升 ready 前重评**。
+
+### H4.3 payload 格式 — **design definition**
+
+L_HMR payload = 变更 module 集（`moduleId → {code, map}`）。源：H1 `deriveLogicBuckets` 增量（logic emit 变更）+ H3 per-module cache 增量（view/style 变更）。格式：
+```typescript
+{ type: 'hmr', level: 'L_HMR', modules: { [moduleId]: { code: string, map?: string } }, entries: string[] }
+```
+
+### H4.4 runtime fallback 协议 — **out of scope**（运行时侧）
+
+选项 ② runtime-side downgrade 可行性需运行时侧确认（非编译侧实证）。F3 风险已记（runtime 未实现 downgrade → payload 丢失）。
+
+### 实证总结
+
+| # | 实证 | 结果 | 影响 |
+| --- | --- | --- | --- |
+| 1 | payload 格式 | **design def** | L_HMR payload = moduleId→code/map |
+| 2 | BuildModel dirty | **F-H4-1** | 须加 dirtyEntries set |
+| 3 | publish 增量边界 | **F-H4-2**（low-med） | publishToDist atomic move ≠ 增量，须重构 |
+| 4 | runtime fallback | **out of scope** | 运行时侧确认 |
+
+**D-PUSH-3 gate**：materialize 增量化可行（BuildModel 加 dirty set）；publishToDist 增量化须重构（atomic move → incremental copy）。待 H4 升 ready 前重评 publish 重构规模。

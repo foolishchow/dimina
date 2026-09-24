@@ -109,8 +109,34 @@ registry 派发 watch 路径同 compile-target（cache-hit skip 经 ModuleResult
 
 ---
 
-## §5 实证待做（升 ready 前）
+## §5 实证结果（2026-10-09）
 
-1. **Loader 包装可行性**：现有 parse-walk（logic/view/style）能否包装为 Loader.load？
-2. **compile-target compile 段边界**：deriveStagePlan 哪些归 registry，哪些保留（静态段）？
-3. **env.ts load 函数映射**：哪些 load 函数归 Loader registry？
+### H2.1 Loader 包装可行性 — **PARTIAL: 须拆分 monolithic parse-walk**
+
+parse-walk 签名 vs Loader 接口（`load(LoadInput) → Promise<LoadedModule{moduleId,kind,source,dependencies,metadata}>`）：
+- `logicParseWalk(source, modulePath, ...) → Promise<LogicParseWalkResult>`——可包装（返 dependencies）
+- `viewParseWalk(pageModule, options) → EmitModule[]`——**monolithic**（parse+compile+emit 一函数返 EmitModule[]）
+- `buildCompileCss(module, ...) → Promise<StyleCompileResult>`——monolithic（parse @import + compile）
+
+**F-H2-1(medium)**：viewParseWalk / buildCompileCss 是 monolithic（parse+compile+emit 一函数）。H2 registry 分离（Loader.load → Compiler.compile → Emitter.emit）**须拆分 monolithic 函数为 3 阶段**，非"包装现有路径"。design.draft §1.4 "Loader/Compiler/Emitter 包装现有路径（非新逻辑）" understates view/style 复杂度。logic 可包装；view/style 须拆分。
+
+### H2.2 compile-target 段边界 — **PASS ✓**（F4 已验证）
+
+- **保留**：`createCompileTarget`（静态验证——stages fail-fast）
+- **替换**：`readLoadBindings`（env 读取）+ `deriveStagePlan`（纯派生 stages/workerOptions/paths）→ registry 派发
+
+### H2.3 env.ts load 函数映射 — **CLARIFY**
+
+env.ts 无 "load"（parse/walk）函数——有 config/accessor（`getCompilerContext`/`getContentByPath`/`getProjectConfig`）。load（parse-walk）在 domain 文件（logic/view/style parse-walk.ts）。
+
+**F-H2-2(low)**：D-REG-2 "env.ts load 函数 → Loader" 不精确——load 在 domain parse-walk，env.ts 提供 PackerContext（config+accessor），Loader.load 接收 ctx 参数。D-REG-2 须 clarify：Loader registry 包装 domain parse-walk，env.ts 退为 PackerContext 提供。
+
+### 实证总结
+
+| # | 实证 | 结果 | 影响 |
+| --- | --- | --- | --- |
+| 1 | Loader 包装 | PARTIAL | view/style monolithic 须拆分（F-H2-1） |
+| 2 | compile-target 边界 | PASS ✓ | F4 段划分确认 |
+| 3 | env.ts load 映射 | CLARIFY | load 在 domain，非 env.ts（F-H2-2） |
+
+**D-REG-1 gate**：H2 规模升级——view/style parse-walk 拆分为 L/C/E 三阶段是主要工作量（非"包装"）。待 H2 升 ready 前重评规模。
