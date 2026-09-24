@@ -10,6 +10,7 @@ Status: **ready（2026-10-09）**
 - [ ] 确认 F-HR-1..3 + ③a/b/c + R3 tracker 状态 open（draft 已入档）
 - [ ] **实施期评项预研（D-HR-1 §2 待评）**：Loader 接口 vs storeInfo graph reconcile 衔接点——load 写图 vs storeInfo 写图唯一权威（PS2 约束）。选项 B 的 load 接线在 storeInfo 现有 graph 写入点内；衔接形状（Loader.dependencies → graph edge 写入点 vs storeInfo reconcile）须在 Step 1 前定型
 - [ ] **view/style Loader 形状适配（D-HR-1 §2 待评②）**：logicLoader 是整段包装，view/style 是逐模块函数——两种形状共存于一 registry 的接口一致性方案定型
+- [ ] **StageChannelContext 字段类型来源（R-HR-4 预研）**：`storeInfo` 字段类型来源未定——types.ts 现 import `emit.ts`/`dependency-graph.ts`（type-only，合规）；`storeInfo` 若需 `env.ts` 层类型 → 破“Packer 形状纪律：types.ts 不从 env.ts import”。须定型：从 `env.ts` 提取 `StoreInfo` 类型到 model/shared，或用 opaque/局部类型避免跨层 import
 
 ## Step 1 — D-HR-1 registry 接线（locked B）
 
