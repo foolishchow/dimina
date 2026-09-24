@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-incremental-chain-residuals-closeout
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## §1 现状（G5 complete 后）
 

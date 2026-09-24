@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-incremental-chain-residuals-closeout
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## A-IRC1 — watch-runner 实例化 view/style cache（R1, D-IRC-1）
 

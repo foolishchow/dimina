@@ -1,7 +1,7 @@
 # FE Tools Incremental Chain Residuals Closeout
 
 - Action: `fe-tools-incremental-chain-residuals-closeout`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-09
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-view-style-cache-skip`](../_archive/complete/fe-tools-view-style-cache-skip/README.md)（**complete**；G5——view/style cache-hit skip 算法）
