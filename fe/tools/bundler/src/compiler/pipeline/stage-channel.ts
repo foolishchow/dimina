@@ -14,6 +14,7 @@ import { executeTask } from '../worker-runtime/executor.ts'
 import { viewEngine } from '../view/index.ts'
 import { logicEngine } from '../logic/index.ts'
 import { styleEngine } from '../style/index.ts'
+import type { StageChannelContext } from '../../packer/types.ts'
 
 const ENGINES = { view: viewEngine, logic: logicEngine, style: styleEngine }
 
@@ -31,25 +32,28 @@ const ENGINES = { view: viewEngine, logic: logicEngine, style: styleEngine }
  */
 export interface RunCompileStageParams { script: string; engine?: typeof viewEngine | typeof logicEngine | typeof styleEngine; ctx: Record<string, unknown>; task: { output: string }; options: Record<string, unknown>; lifecycle: { emit: (e: string, p: unknown) => Promise<void> } | null; onOutput?: (entry: unknown) => void }
 export async function runCompileStage({ script, engine, ctx, task, options = {}, lifecycle = null, onOutput }: RunCompileStageParams): Promise<void> {
-	const pages = (options.pages || ctx.pages) as { mainPages: Record<string, unknown>[]; subPages: Record<string, { info: unknown[] }> }
+	// R-HR-4（fe-tools-hmr-chain-residuals）：单一 typed 边界——替代 12 处 `ctx as { field }`。
+	// ctx 入参保持 Record<string,unknown>（避免 RunCompileStageParams 签名级联）；本处一次窄化。
+	const sctx = ctx as unknown as StageChannelContext
+	const pages = (options.pages || sctx.pages) as { mainPages: Record<string, unknown>[]; subPages: Record<string, { info: unknown[] }> }
 	const totalTasks = Object.keys(pages.mainPages).length
 		+ Object.values(pages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0)
 	const result = await executeTask({
 		engine: engine ?? ENGINES[script as 'view' | 'logic' | 'style'],
 		input: {
 			pages,
-			storeInfo: ctx.storeInfo,
+			storeInfo: sctx.storeInfo,
 			sourcemap: !!options.sourcemap,
 			sourcemapTargetPath: options.sourcemapTargetPath,
 			compileConfig: options.compileConfig,
 			stageTimeoutMs: options.stageTimeoutMs as number | undefined,
 			collectOutput: typeof onOutput === 'function',  // 兼容字段（worker onMessage 旧版解构，runtime 不用）
-			cache: (() => { const c = (ctx as { cache?: { toJSON: () => [string, unknown][] } }).cache; return c ? new Map(c.toJSON()) : null })(),
+			cache: (() => { const c = sctx.cache as { toJSON: () => [string, unknown][] } | undefined; return c ? new Map(c.toJSON()) : null })(),
 			// G5 D-G5-2/F12: view/style cache 快照——bare Map 用 new Map(c)（非 toJSON——ModuleResultCache 有 toJSON，bare Map 没有）
-			viewCache: (() => { const c = (ctx as { viewCache?: Map<string, unknown> }).viewCache; return c ? new Map(c) : null })(),
-			viewOrderList: (() => { const c = (ctx as { viewOrderList?: Map<string, string[]> }).viewOrderList; return c ? new Map(c) : null })(),
-			styleCache: (() => { const c = (ctx as { styleCache?: Map<string, unknown> }).styleCache; return c ? new Map(c) : null })(),
-			invalidatedModules: (ctx as { invalidatedModules?: string[] }).invalidatedModules ?? null,
+			viewCache: (() => { const c = sctx.viewCache as Map<string, unknown> | undefined; return c ? new Map(c) : null })(),
+			viewOrderList: (() => { const c = sctx.viewOrderList as Map<string, string[]> | undefined; return c ? new Map(c) : null })(),
+			styleCache: (() => { const c = sctx.styleCache as Map<string, unknown> | undefined; return c ? new Map(c) : null })(),
+			invalidatedModules: sctx.invalidatedModules ?? null,
 		},
 		onOutput,
 		onProgress: (completed: number, total: number) => {
@@ -60,16 +64,16 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 	});
 
 	// F35：executor 不碰 ctx，调用方写 ctx
-	((ctx as { dependencyGraph: { merge: (g: unknown) => void } }).dependencyGraph).merge((result as { dependencyGraph: unknown }).dependencyGraph);
+	(sctx.dependencyGraph as { merge: (g: unknown) => void }).merge((result as { dependencyGraph: unknown }).dependencyGraph);
 	for (const warning of (result as { compatibilityWarnings?: string[] }).compatibilityWarnings || []) {
-		((ctx as { compatibilityWarnings: Set<string> }).compatibilityWarnings).add(warning)
+		sctx.compatibilityWarnings?.add(warning)
 		if (lifecycle) {
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_WARNING, { message: warning })
 		}
 	}
 
 	// M2 D-RC-3：从 worker 响应更新 cache（仅 dirty 模块）
-	const cacheInstance = (ctx as { cache?: { set: (id: string, val: unknown) => void } }).cache
+	const cacheInstance = sctx.cache as { set: (id: string, val: unknown) => void } | undefined
 	const compileRes = (result as { compileRes?: Array<{ path: string }> }).compileRes
 	const logicDeps = (result as { logicDependencies?: Record<string, string[]> }).logicDependencies
 	if (cacheInstance && compileRes) {
@@ -83,8 +87,8 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 	// (was G5 per-page-bundle: viewCache.set(pagePath, modules))
 	// H3 Phase 2: selective 条目（modules 只带 dirty 子集）——orderList 显式回传（不从子集派生）
 	const viewPageBundles = (result as { viewPageBundles?: Array<{ pagePath: string; modules: Array<{ moduleId: string; code: string; map: string | null }>; selective?: boolean; orderList?: string[] }> }).viewPageBundles
-	const viewCache = (ctx as { viewCache?: { set: (id: string, val: unknown) => void } }).viewCache
-	const viewOrderList = (ctx as { viewOrderList?: { set: (id: string, val: string[]) => void } }).viewOrderList
+	const viewCache = sctx.viewCache as { set: (id: string, val: unknown) => void } | undefined
+	const viewOrderList = sctx.viewOrderList as { set: (id: string, val: string[]) => void } | undefined
 	if (viewCache && viewPageBundles) {
 		for (const b of viewPageBundles) {
 			const orderList = b.selective && b.orderList ? b.orderList : b.modules.map(m => m.moduleId)
@@ -95,7 +99,7 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 		}
 	}
 	const styleResults = (result as { styleCompileResults?: Array<{ moduleId: string }> }).styleCompileResults
-	const styleCache = (ctx as { styleCache?: { set: (id: string, val: unknown) => void } }).styleCache
+	const styleCache = sctx.styleCache as { set: (id: string, val: unknown) => void } | undefined
 	if (styleCache && styleResults) {
 		for (const mod of styleResults) {
 			styleCache.set(mod.moduleId, mod)

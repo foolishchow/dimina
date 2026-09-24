@@ -19,7 +19,7 @@ import type { PackerDispatchRegistry } from './registry.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { createDist, publishToDist } from '../compiler/pipeline/publish.ts'
 import { PackerSessionState } from './session-state.ts'
-import type { OrchestrateOptions, LoaderRegistry } from './types.ts'
+import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 import { NpmBuilder } from '../compiler/core/npm-builder.ts'
 import compileConfig from '../compiler/pipeline/config-compiler.ts'
@@ -62,9 +62,9 @@ const MAX_WARNING_PROJECTS = 32
 const webviewRenderer = {
 	name: 'webview',
 	runViewStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
+		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => ((ctx as unknown as StageChannelContext).buildModel as { add: (e: unknown) => void }).add(entry) }),
 	runStyleStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) }),
+		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => ((ctx as unknown as StageChannelContext).buildModel as { add: (e: unknown) => void }).add(entry) }),
 }
 if (!getRenderer('webview')) {
 	registerRenderer(webviewRenderer)
@@ -187,23 +187,24 @@ async function _orchestrate(
 			{
 				title: '收集配置信息',
 				task: async (ctx: Record<string, unknown>) => {
-					(ctx as { buildModel: unknown }).buildModel = new BuildModel()
+					const sctx = ctx as unknown as StageChannelContext
+					sctx.buildModel = new BuildModel()
 					const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
-					;(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, graph: state.graph });
-					(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
-					;(ctx as { cache: unknown }).cache = cache
+					sctx.storeInfo = _store.load(workPath, { fileTypes, graph: state.graph });
+					sctx.dependencyGraph = _store.getDependencyGraph()
+					sctx.cache = cache
 					// D-HR-1（fe-tools-hmr-chain-residuals）：loaderRegistry 生产消费点——
 					// kinds() 派发配置查询（grep 非零）。阶段函数形状适配是后续门，
 					// dispatch 不接线（locked B：compile/emit 维持 worker）。loadedModules 供后续门消费。
-					;(ctx as { loadedModules?: Map<string, unknown> }).loadedModules = new Map()
+					sctx.loadedModules = new Map()
 					for (const kind of loaderRegistry.kinds()) {
 						void loaderRegistry.get(kind as 'logic' | 'view' | 'style' | 'config')
 					}
 				// G5 D-G5-2: plumbing view/style cache（镜像 logic cache 模式）
-				;(ctx as { viewCache?: unknown }).viewCache = viewCache
-				;(ctx as { viewOrderList?: unknown }).viewOrderList = viewOrderList
-				;(ctx as { styleCache?: unknown }).styleCache = styleCache
-					if (invalidatedModules) (ctx as { invalidatedModules: string[] }).invalidatedModules = invalidatedModules
+				sctx.viewCache = viewCache
+				sctx.viewOrderList = viewOrderList
+				sctx.styleCache = styleCache
+					if (invalidatedModules) sctx.invalidatedModules = invalidatedModules
 					const allPages = getPages()
 					await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
 						fileTypes: ((ctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),
@@ -230,7 +231,8 @@ async function _orchestrate(
 			...(shouldPrepareNpm ? [{
 				title: '构建 npm 包',
 				task: async (ctx: Record<string, unknown>) => {
-					const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), (ctx as { dependencyGraph?: { addFile: (n: string, f: string, k: string) => void } }).dependencyGraph ?? null)
+					const sctx = ctx as unknown as StageChannelContext
+					const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null)
 					await npmBuilder.buildNpmPackages()
 					await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
 				},
@@ -245,20 +247,21 @@ async function _orchestrate(
 			{
 				title: `编译项目 · ${path.basename(path.resolve(workPath))}`,
 				task: (ctx: Record<string, unknown>, task: unknown): unknown => {
+					const sctx = ctx as unknown as StageChannelContext
 					loadBindings = readLoadBindings() as { pages: unknown; appId: string } | null
-					(ctx as { allPages: unknown }).allPages = (loadBindings as { pages?: unknown } | null)?.pages as unknown
-					(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings = new Set<string>()
+					sctx.allPages = (loadBindings as { pages?: unknown } | null)?.pages as unknown
+					sctx.compatibilityWarnings = new Set<string>()
 
 					const plan = computeStagePlan(dispatchRegistry, compileTarget, loadBindings as LoadBindings, {
 						cwd: process.cwd(),
 						affectedEntries,
 					})
-					;(ctx as { pages: unknown }).pages = (plan as { filteredPages: PagesInfo }).filteredPages
+					sctx.pages = (plan as { filteredPages: PagesInfo }).filteredPages
 					const logicOpts = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown> }> }).stageSpecs.logic?.workerOptions
 					if (logicOpts) {
-						(ctx as { compileConfig?: unknown }).compileConfig = logicOpts.compileConfig as unknown
-						(ctx as { sourcemap?: boolean }).sourcemap = logicOpts.sourcemap as boolean | undefined
-						(ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath = logicOpts.sourcemapTargetPath as string | undefined
+						sctx.compileConfig = logicOpts.compileConfig as unknown
+						sctx.sourcemap = logicOpts.sourcemap as boolean | undefined
+						sctx.sourcemapTargetPath = logicOpts.sourcemapTargetPath as string | undefined
 					}
 					const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs
 						? (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
@@ -284,14 +287,15 @@ async function _orchestrate(
 			{
 				title: 'Logic emit',
 				task: async (ctx: Record<string, unknown>) => {
+					const sctx = ctx as unknown as StageChannelContext
 					// H1 (D-ED-1 B2+E): deriveFromGraph 接线 — graph + cache 派生 logic emit buckets (非 ctx.emitBuckets)
-					const pages = (ctx as { pages?: PagesInfo }).pages
-					const compileConfigOpts = (ctx as { compileConfig?: { minify: boolean; esTarget: { logic: string } } }).compileConfig
+					const pages = sctx.pages as PagesInfo | undefined
+					const compileConfigOpts = sctx.compileConfig as { minify: boolean; esTarget: { logic: string } } | undefined
 					if (!pages || !compileConfigOpts) return  // logic stage 未跑（partial-stage）→ skip emit
 					const buildModel = ctx.buildModel as BuildModel
 					const storeInfo = ctx.storeInfo
-					const sourcemap = !!(ctx as { sourcemap?: boolean }).sourcemap
-					const sourcemapTargetPath = (ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath!
+					const sourcemap = !!sctx.sourcemap
+					const sourcemapTargetPath = sctx.sourcemapTargetPath as string | undefined
 					const transform = { strategy: 'perModule', minify: compileConfigOpts.minify, target: compileConfigOpts.esTarget.logic, platform: 'neutral' }
 					// B2+E: graph closure union → cache 插入序迭代 → cross-bucket dedup
 					const innerGraph = state.graph.getInnerGraph()
@@ -368,13 +372,14 @@ function createStageTask(stage: string, title: string, engine: unknown, lifecycl
 		title,
 		rendererOptions: { outputBar: true, persistentOutput: false },
 		task: async (ctx: Record<string, unknown>, task: unknown) => {
-			const pages = workerOptions.pages || ctx.pages
+			const sctx = ctx as unknown as StageChannelContext
+			const pages = workerOptions.pages || sctx.pages
 			await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_BEFORE, {
 				stage,
 				pages,
 				sourcemap: !!workerOptions.sourcemap,
 			})
-			const warningsBefore = new Set((ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings ?? new Set())
+			const warningsBefore = new Set(sctx.compatibilityWarnings ?? new Set())
 			const startedAt = Date.now()
 			const runStage = stage === 'view' || stage === 'style'
 				? (rendererAdapter as { runViewStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void>; runStyleStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void> })?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
@@ -384,11 +389,11 @@ function createStageTask(stage: string, title: string, engine: unknown, lifecycl
 					await runStage(ctx, task, workerOptions, lifecycle)
 				}
 				else {
-					await runCompileStage({ script: stage, engine: engine as RunCompileStageParams['engine'], ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => (ctx as { buildModel: { add: (e: unknown) => void } }).buildModel.add(entry) })
+					await runCompileStage({ script: stage, engine: engine as RunCompileStageParams['engine'], ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => ((sctx.buildModel) as { add: (e: unknown) => void }).add(entry) })
 				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,
-					compatibilityWarnings: [...(ctx as { compatibilityWarnings?: Set<string> }).compatibilityWarnings ?? new Set()].filter(warning =>
+					compatibilityWarnings: [...(sctx.compatibilityWarnings ?? new Set())].filter(warning =>
 						!warningsBefore.has(warning)),
 					durationMs: Date.now() - startedAt,
 				})

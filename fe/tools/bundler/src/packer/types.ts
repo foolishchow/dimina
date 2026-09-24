@@ -83,6 +83,39 @@ export interface PackerContext {
 }
 
 // ════════════════════════════════════════════════════════════════════
+// §2b StageChannelContext（R-HR-4, fe-tools-hmr-chain-residuals）
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * stage-channel 边界 typed context（R-HR-4）。
+ *
+ * 替代 stage-channel.ts / orchestrator.ts 中 `ctx as { field }` 字段断言——
+ * 单一 typed 边界声明在档。storeInfo 保持 opaque（unknown，不引 env.ts 层类型，
+ * 维 types.ts 纯形状纪律）；消费点窄化（ctx.storeInfo as {x}）属局部窄化。
+ *
+ * 字段跨 load/compile/emit 三 stage 增量写入，故全 optional。
+ */
+export interface StageChannelContext {
+	// load stage（orchestrator）
+	buildModel?: unknown
+	storeInfo?: unknown
+	dependencyGraph?: unknown
+	loadedModules?: Map<string, unknown>
+	cache?: unknown
+	viewCache?: Map<string, unknown> | undefined
+	styleCache?: Map<string, unknown> | undefined
+	// compile stage
+	viewOrderList?: Map<string, unknown> | undefined
+	invalidatedModules?: string[] | undefined
+	compatibilityWarnings?: Set<string> | undefined
+	allPages?: unknown
+	pages?: unknown
+	compileConfig?: unknown
+	sourcemap?: boolean
+	sourcemapTargetPath?: unknown
+}
+
+// ════════════════════════════════════════════════════════════════════
 // §3 LoadedModule + CompiledModule（D-PCS-10）
 // ════════════════════════════════════════════════════════════════════
 
