@@ -249,6 +249,15 @@ interface ViewParseWalkOptions {
 }
 
 /**
+ * H3 Phase 2: 选择性重编译上下文——clean + cached 的 module 跳过 compile（seed from cache）。
+ * dirtySet = invalidated moduleIds（本 run 须重编译的集）。
+ */
+export interface ViewSelectContext {
+	viewCache: Map<string, { code: string; map: string | null }>
+	dirtySet: Set<string>
+}
+
+/**
  * view L phase（F-H2-1 拆分）：per-module 模板加载（parse WXML + 组件/wxs 发现）。
  * 包装 toCompileTemplate——纯发现，不含 render 编译。
  *
@@ -306,12 +315,13 @@ function viewEmit(scriptRes: Map<string, string>, sourceMapRes: Map<string, stri
  * 编排接管原 buildCompileView 的 activePaths / inheritedTemplatePaths / MC1 error caching。
  *
  * F-H2-1 拆分后：compileViewTree（交错编排，L/C per-module）+ viewEmit（E 阶段）。
+ * H3 Phase 2：select 可选——clean + cached module 跳过 compile（selective recompile）。
  */
-export function viewParseWalk(pageModule: ViewModule, options: ViewParseWalkOptions): EmitModule[] {
+export function viewParseWalk(pageModule: ViewModule, options: ViewParseWalkOptions, select?: ViewSelectContext): EmitModule[] {
 	void options // sourcemap flag consumed via enableSourcemap in inner functions
 	const scriptRes = new Map<string, string>()
 	const sourceMapRes = new Map<string, string>()
-	compileViewTree(pageModule, false, scriptRes, new Set(), new Set(), sourceMapRes)
+	compileViewTree(pageModule, false, scriptRes, new Set(), new Set(), sourceMapRes, select)
 	return viewEmit(scriptRes, sourceMapRes)
 }
 
@@ -372,7 +382,7 @@ function registerWxsModule(modulePath: string): void {
 function isRegisteredWxsModule(modulePath: string): boolean {
 	return wxsModuleRegistry.has(modulePath)
 }
-function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map()): Record<string, unknown> | null {
+function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map(), select?: ViewSelectContext): Record<string, unknown> | null {
 	const currentPath = module.path
 
 	// Recursive component declarations are valid. Stop only the duplicate edge
@@ -393,6 +403,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 		currentInstruction = compileModule(module, isComponent, scriptRes, {
 			skipTemplatePaths: isComponent ? inheritedTemplatePaths : new Set(),
 			sourceMapRes,
+			select,
 		})
 	}
 	catch (error) {
@@ -432,7 +443,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 				continue
 			}
 			// 递归编译组件，并收集其 wxs 模块
-			const componentInstruction = compileViewTree(componentModule as ViewModule, true, scriptRes, activePaths, childInheritedTemplatePaths, sourceMapRes)
+			const componentInstruction = compileViewTree(componentModule as ViewModule, true, scriptRes, activePaths, childInheritedTemplatePaths, sourceMapRes, select)
 			if (componentInstruction && componentInstruction.scriptModule) {
 				// 将组件的 wxs 模块添加到当前模块的 wxs 模块列表中
 				for (const sm of (componentInstruction.scriptModule as unknown[])) {
@@ -457,7 +468,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 		// 重新编译页面，包含所有收集到的 wxs 模块
 		// F3：此二次编译失败不进失败缓存（不在 MC1 try 内）——无行为影响（页面同 stage 不二次编译）
 		// D-ET-9：compileModuleWithAllWxs 合并进 compileModule（allScriptModules 参数）
-		compileModule(module, false, scriptRes, { skipTemplatePaths: new Set(), sourceMapRes, allScriptModules })
+		compileModule(module, false, scriptRes, { skipTemplatePaths: new Set(), sourceMapRes, allScriptModules, select })
 	}
 
 	activePaths.delete(currentPath)
@@ -645,13 +656,31 @@ function finalizeModule(
  *
  * F-H2-1 拆分后：viewLoadModule（L）→ tryModuleCache → compileModuleRender（C）→ finalizeModule（缓存+装配）。
  */
-function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: { skipTemplatePaths?: Set<string>; sourceMapRes?: Map<string, string>; allScriptModules?: Array<{ path: string; code: string; originalName?: string }> } = {}): Record<string, unknown> | null {
+function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: { skipTemplatePaths?: Set<string>; sourceMapRes?: Map<string, string>; allScriptModules?: Array<{ path: string; code: string; originalName?: string }>; select?: ViewSelectContext } = {}): Record<string, unknown> | null {
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
 	const sourceMapRes = options.sourceMapRes as Map<string, string> || new Map<string, string>()
 	// L 阶段：模板加载（parse + 发现）
 	const { loaded, instruction, templateModule, compileInstruction: loadedCompileInstruction, canUseCache } = viewLoadModule(isComponent, module, skipTemplatePaths as Set<string>)
 	if (!loaded) {
 		return null
+	}
+	// ★ H3 Phase 2: selective skip——clean + cached → seed scriptRes from cache，跳过 compile。
+	// load 仍执行（instruction 供父级 wxs 聚合 + templateModule 供继承链）。
+	// seed 语义：module code 从 viewCache；wxs entries 从 instruction.scriptModule（load 产物，
+	// 字节同源——正常路径中 scriptRes[wxs] 也是 buildWxsDeclarations 从同一 instruction 写入）。
+	const select = options.select
+	if (select && !select.dirtySet.has(module.path) && select.viewCache.has(module.path)) {
+		const cached = select.viewCache.get(module.path)!
+		scriptRes.set(module.path, cached.code)
+		if (cached.map) {
+			sourceMapRes.set(module.path, cached.map)
+		}
+		for (const sm of (instruction.scriptModule as Array<{ path: string; code: string }>) || []) {
+			if (!scriptRes.has(sm.path)) {
+				scriptRes.set(sm.path, sm.code)
+			}
+		}
+		return { ...instruction }
 	}
 	const compileInstruction = {
 		...loadedCompileInstruction,

@@ -81,12 +81,13 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 
 	// H3 D-PMC-1: split pageBundles into per-module viewCache + viewOrderList
 	// (was G5 per-page-bundle: viewCache.set(pagePath, modules))
-	const viewPageBundles = (result as { viewPageBundles?: Array<{ pagePath: string; modules: Array<{ moduleId: string; code: string; map: string | null }> }> }).viewPageBundles
+	// H3 Phase 2: selective 条目（modules 只带 dirty 子集）——orderList 显式回传（不从子集派生）
+	const viewPageBundles = (result as { viewPageBundles?: Array<{ pagePath: string; modules: Array<{ moduleId: string; code: string; map: string | null }>; selective?: boolean; orderList?: string[] }> }).viewPageBundles
 	const viewCache = (ctx as { viewCache?: { set: (id: string, val: unknown) => void } }).viewCache
 	const viewOrderList = (ctx as { viewOrderList?: { set: (id: string, val: string[]) => void } }).viewOrderList
 	if (viewCache && viewPageBundles) {
 		for (const b of viewPageBundles) {
-			const orderList = b.modules.map(m => m.moduleId)
+			const orderList = b.selective && b.orderList ? b.orderList : b.modules.map(m => m.moduleId)
 			if (viewOrderList) viewOrderList.set(b.pagePath, orderList)
 			for (const m of b.modules) {
 				viewCache.set(m.moduleId, { moduleId: m.moduleId, kind: 'view' as const, code: m.code, map: m.map, dependencies: [] })
