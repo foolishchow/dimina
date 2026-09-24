@@ -258,3 +258,5 @@ Packer 下一刀（当前 draft）：
 - deriveFromGraph 接入 production（前置：watch 增量 + HMR）
 
 - [`fe-tools-hmr-compiler`](fe-tools-hmr-compiler/README.md)（**`ready`**）— 编译侧 HMR 伞：load/compile 分离 + deriveFromGraph 接线 + registry 实体化 + per-module HMR push，使 dev server 增量推送（非全量 reload）。前置：增量链 G1-G5+IRC+SMPU complete。Non-scope: runtime HMR API（运行时侧）+ 整包 Packer extraction（已否决）。4 子门预判（H1-H4）；design.draft 规模评估待做。目录 cycle 消解（①②③）为副产品。
+
+- [`fe-tools-hmr-emit-derive`](fe-tools-hmr-emit-derive/README.md)（**`draft`**）— HMR-compiler H1 子门：orchestrator Logic emit task 改调 deriveFromGraph（非 emitBuckets）。entry 映射（per-entry→per-bucket）挑战 + D-ED-2 locked B（一次性）。logic-only。design.draft 实证 cache 序 + 闭包集待做。
