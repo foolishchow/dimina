@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-hmr-chain-residuals
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## Acceptance（实施后填实）
 

@@ -1,8 +1,10 @@
 # FE Tools HMR Chain Residuals
 
 - Action: `fe-tools-hmr-chain-residuals`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-09
+- 终态决定：—（实施期）
+- 设计门：D-HR-1 **locked B** / D-HR-2 **locked b** / D-HR-3 **locked stage-channel 边界级**（2026-10-09 formalize 锁定）
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-hmr-compiler`](../_archive/complete/fe-tools-hmr-compiler/README.md)（伞 **complete** 2026-10-09；子门 H1-H4 + 全部 Phase 2 交付）
 - 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)
@@ -53,11 +55,16 @@ HMR 编译侧血缘**全量收口**：registry 管线接线（loader 真消费 +
 5. `COMPILE_STAGE_ORDER` 下沉（`model/invalidation.ts:69` upward import 消解）
 6. 行为 0 三件套验证 + residuals tracker 更新（F-HR-1..3 入档/闭合）
 
+## Design decisions（locked 2026-10-09）
+
+- **D-HR-1 locked B**——registry 接线走 load 首消费点渐进（loaderRegistry.get 真调写图，compile/emit 维持 worker）；C/E 注册阶段函数，dispatch 留下门。先例 D-REG-1（非双路径）。
+- **D-HR-2 locked b**——L_HMR flag-gated（env/CLI flag 透传 preview-adapter，默认关 = 今日行为）。D-PUSH-2 完整兑现（默认 true）挂 runtime 就绪。回退 = flag 关即今日。
+- **D-HR-3 locked stage-channel 边界级**——两轮 build（priming + invalidate）经 stage-channel 边界，不起进程（避 flaky）。先例 G5 state 长驻 + IRC R1。
+
 ## Readiness gaps
 
-- **D-HR-1** registry 接线程度（A 全替换 worker dispatch / B 首消费点渐进 / C 注册+单域消费）——design.draft §2 评
-- **D-HR-2** L_HMR 激活策略（直接 true / flag-gated / 保持未接线）——design.draft §3 评；F3 风险（runtime downgrade 未实现时 preview 行为）须评估
-- **D-HR-3** selective 测试层级（watch-runner 级 vs stage-channel 边界级）——design.draft §4 评
+- 无（design gates 已锁）
+- 实施期评项：D-HR-1 Loader 接口与 storeInfo 图权威衔接点（design.draft §2 待评项）——不阻塞 ready（选项 B 的 load 接线在 storeInfo 现有 graph 写入点内）
 
 ## Closure conditions
 
@@ -71,3 +78,5 @@ HMR 编译侧血缘**全量收口**：registry 管线接线（loader 真消费 +
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-09 | 立项 `draft`：伞 close 后复盘讨论浮出"三档证据分级"（代码/接线/证据）+ F-HR-1..3 + 伞注记残留；切法 2（血缘全量收口） |
+| 2026-10-09 | 3 轮 review 收敛（9 findings 全修）+ tracker F-HR/③ 入档 |
+| 2026-10-09 | draft → **`ready`**：D-HR-1 locked B / D-HR-2 locked b / D-HR-3 locked stage-channel 边界级 |

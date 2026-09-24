@@ -1,6 +1,6 @@
 # Validation — fe-tools-hmr-chain-residuals
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## Validation Plan（实施后执行）
 

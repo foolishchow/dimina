@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-hmr-chain-residuals
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## §1 实证：三档证据分级（2026-10-09 复盘核实）
 
@@ -23,7 +23,7 @@ Status: **draft（2026-10-09）**
 | **B 首消费点渐进** | load 侧接线：orchestrator Logic/View/Style stage 前置经 `loaderRegistry.get(kind)` 取 Loader 执行发现（dependencies 写图），compile/emit 维持现有 worker 路径；C/E registry 注册阶段函数（供后续门消费）但生产 dispatch 仅 load | M；单路径（load 发现归 registry，编译归 worker——域不重叠）；行为 0 可守（load 结果与 storeInfo 现状等价） |
 | **C 注册+单域** | 仅再注册 view/style Loader + C/E 阶段函数注册；生产消费仅一处演示性调用（如 CLI inspect） | S；但"演示性调用"近乎自欺——R-HR-1 的"非零消费"要求勉强过、价值近零 |
 
-**推荐 B**：与 D-REG-1 渐进先例一致（每次接线一个域、非双路径）；load 是三段中最薄（发现+依赖写图），worker 编译主流不动。C/E 注册是"代码在"档提升，dispatch 留给下个门。
+**locked B**：与 D-REG-1 渐进先例一致（每次接线一个域、非双路径）；load 是三段中最薄（发现+依赖写图），worker 编译主流不动。C/E 注册是"代码在"档提升，dispatch 留给下个门。
 
 **待 formalize 详评**：① Loader 接口与 storeInfo graph reconcile 的衔接点（loader 写图 vs storeInfo 写图的唯一权威——PS2 约束）；② **view/style Loader 形状适配**——viewLoadModule 虽 per-module 可调（H2 Phase 2 基座），但 wxs 聚合/继承上下文与 Loader 接口语义的边界（logicLoader 是整段包装，view 是逐模块函数——两种形状共存于一 registry 的接口一致性）。
 
@@ -37,7 +37,7 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 | **b flag-gated** | env/CLI flag（如 `DMCC_HMR=1` / `--hmr`），preview-adapter 读 flag 传 `enableHmr`；默认关（行为 = 今日） | S；激活通道真实存在 + 默认安全；与 locked 决策的差距书面 re-lock 为"flag 默认关，runtime 就绪后翻默认" |
 | **c 保持未接线** | 只文档化激活动作 | 零风险但 R-HR-2 不满足（无生产设值点） |
 
-**推荐 b**：激活通道存在（接线档位补齐）+ 默认字节/行为恒等；D-PUSH-2 的完整兑现（默认 true）挂在 runtime 就绪条件上，tracker 记激活条件。**回退**：flag 关即回今日行为（无状态残留——flag 只影响 synthesizeReloadLevel 入参）。
+**locked b**：激活通道存在（接线档位补齐）+ 默认字节/行为恒等；D-PUSH-2 的完整兑现（默认 true）挂在 runtime 就绪条件上，tracker 记激活条件。**回退**：flag 关即回今日行为（无状态残留——flag 只影响 synthesizeReloadLevel 入参）。
 
 ## §4 D-HR-3：selective 验证层级（design gate）
 
@@ -47,7 +47,7 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 | **stage-channel 边界级** | 直调 compile-target/stage-channel 两次（首轮 priming state：viewCache/orderList；次轮 invalidatedModules），断言 selective flag + dirty 子集 + 字节恒等 | 中；覆盖 worker 序列化边界（msg → viewCompile → pageBundles → stage-channel 消费全链），不起进程 |
 | **compileML 级（现状）** | 已有 4 tests | 不满足 R-HR-3（缺 stage-channel/worker 段） |
 
-**推荐 stage-channel 边界级**：覆盖增量链 G5 已验证的 state 长驻边界（IRC R1 先例——watch-runner 实例化 cache）+ selective 触发，不起进程避免 flaky。IPC 经济实测（dirty 子集规模）以 dump 断言形式并入（非生产 instrument）。
+**locked stage-channel 边界级**：覆盖增量链 G5 已验证的 state 长驻边界（IRC R1 先例——watch-runner 实例化 cache）+ selective 触发，不起进程避免 flaky。IPC 经济实测（dirty 子集规模）以 dump 断言形式并入（非生产 instrument）。
 
 ## §5 小修设计
 
@@ -68,6 +68,6 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 
 ## §7 Readiness
 
-- D-HR-1/2/3 推荐 B/b/边界级——formalize 时 review 锁定
-- Loader 接口与 storeInfo 图权威衔接点（§2 待评项）是 D-HR-1 唯一实质设计风险
+- D-HR-1 locked B / D-HR-2 locked b / D-HR-3 locked stage-channel 边界级（2026-10-09 formalize 锁定）
+- Loader 接口与 storeInfo 图权威衔接点（§2 待评项）是 D-HR-1 唯一实质设计风险——实施期评（不阻塞 ready：选项 B 的 load 接线在 storeInfo 现有 graph 写入点内，衔接形状可在 implementation-plan 详述）
 - 无外部阻塞；runtime 依赖被 D-HR-2(b) 隔离
