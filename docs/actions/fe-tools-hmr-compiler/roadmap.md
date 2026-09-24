@@ -1,6 +1,6 @@
 # Roadmap — fe-tools-hmr-compiler
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 > **§8 修正**：H1 从「load/compile 分离」改为「deriveFromGraph 接线」（增量链已分离 load/compile）。原 H2-H3 顺延，新 H3 per-module cache 是 design.draft §1.3 新发现。
 

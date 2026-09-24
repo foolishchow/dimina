@@ -1,6 +1,6 @@
 # Validation — fe-tools-hmr-compiler
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 > **§8 修正**：H1-H4 重编号（见 [design.draft §8](design.draft.md)）。P-HMR1..4 映射同步。
 

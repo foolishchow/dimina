@@ -1,7 +1,7 @@
 # FE Tools HMR Compiler（Umbrella）
 
 - Action: `fe-tools-hmr-compiler`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-09
 - Status authority: [Action Status](../STATUS.md)
 - 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)（Packer / Scheme）
