@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkTemplateCompatibility, getWxMemberName, loadReference, parseApiReference, warnUnsupportedWxApi } from '../src/compiler/core/compatibility.ts'
+import { checkTemplateCompatibility, getWxMemberName, loadReference, parseApiReference, warnUnsupportedWxApi } from '../src/packer/aspect/compatibility.ts'
 
 describe('compatibility diagnostics', () => {
 	afterEach(() => {

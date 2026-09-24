@@ -5,7 +5,7 @@ import { BufferingLogger } from '../src/packer/worker/loggers.ts'
 const {
 	checkTemplateCompatibility,
 	warnUnsupportedWxApi,
-} = await import('../src/compiler/core/compatibility.ts')
+} = await import('../src/packer/aspect/compatibility.ts')
 
 describe('worker compatibility diagnostics', () => {
 	afterEach(() => {

@@ -1,4 +1,4 @@
-import { getTemplateDirectiveName } from '../../../core/compatibility.ts'
+import { getTemplateDirectiveName } from '../../../../packer/aspect/compatibility.ts'
 import { createElement, type WxmlNode } from '../common/document.ts'
 import {
 	append,

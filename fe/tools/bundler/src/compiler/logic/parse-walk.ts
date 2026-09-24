@@ -5,7 +5,7 @@ import { walk } from 'oxc-walker'
 import MagicString from 'magic-string'
 import type { Node } from 'oxc-parser'
 type AstNode = Node & { loc?: { start?: { line?: number } } }
-import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
+import { getWxMemberName, warnUnsupportedWxApi } from '../../packer/aspect/compatibility.ts'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
 import { getAppId, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, resolveAppAlias } from '../../packer/store/env.ts'
 import { errorMessage } from '../../shared/utils.ts'

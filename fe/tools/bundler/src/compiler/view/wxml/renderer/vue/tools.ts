@@ -1,9 +1,9 @@
 import * as htmlparser2 from 'htmlparser2'
 import { compileTemplate } from '@vue/compiler-sfc'
 import type { CompilerOptions } from '@vue/compiler-sfc'
-import { getTemplateDirectiveName } from '../../../../core/compatibility.ts'
-import { parseBindings } from '../../../../core/expression-parser.ts'
-import { createLineSourcemap } from '../../../../core/sourcemap.ts'
+import { getTemplateDirectiveName } from '../../../../../packer/aspect/compatibility.ts'
+import { parseBindings } from '../../../../../shared/expression-parser.ts'
+import { createLineSourcemap } from '../../../../../shared/sourcemap.ts'
 import { tagWhiteList, transformRpx } from '../../../../../shared/utils.ts'
 import { attrsToRecord } from '../../common/document.ts'
 import {

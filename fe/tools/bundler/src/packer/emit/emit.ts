@@ -1,7 +1,7 @@
 import { transform } from 'esbuild'
 import { relative, resolve, sep } from 'node:path'
 import { getWorkPath } from '../store/env.ts'
-import { mergeSourcemap } from '../../compiler/core/sourcemap.ts'
+import { mergeSourcemap } from '../../shared/sourcemap.ts'
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
 import { abilityALS } from '../worker/context.ts'  // P-WR03：收敛点 tryGet
 

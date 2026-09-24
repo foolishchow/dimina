@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getStyleExts, getTemplateExts, getViewScriptExts } from '../../packer/store/env.ts'
+import { getStyleExts, getTemplateExts, getViewScriptExts } from '../store/env.ts'
 import { errorMessage } from '../../shared/utils.ts'
 
 /**

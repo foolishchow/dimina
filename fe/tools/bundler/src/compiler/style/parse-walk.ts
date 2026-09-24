@@ -16,7 +16,7 @@ import type { Attribute as SelectorAttribute, AttributeOptions } from 'postcss-s
 import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.ts'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath } from '../../packer/store/env.ts'
-import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
+import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../../shared/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { StyleCompileError } from '../../shared/utils.ts'
 import { minifyCss, loadCssnano } from './emit.ts'
