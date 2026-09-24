@@ -1,7 +1,7 @@
 # FE Tools HMR Push（H4 子门）
 
 - Action: `fe-tools-hmr-push`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-09
 - Status authority: [Action Status](../STATUS.md)
 - 父伞：[`fe-tools-hmr-compiler`](../fe-tools-hmr-compiler/README.md)（**`ready`**；H4 子门）

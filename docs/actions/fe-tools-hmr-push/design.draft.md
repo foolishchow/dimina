@@ -2,9 +2,9 @@
 
 > 设计草稿。D-PUSH-1/2/3 锁后产出 technical-design。
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
-## §1 L_HMR level 设计（D-PUSH-1）
+## §1 L_HMR level 设计（D-PUSH-1）— **locked**
 
 ### §1.1 现状：RELOAD_LEVELS L0-L3
 
@@ -25,7 +25,9 @@ const RELOAD_LEVELS = Object.freeze({
 - payload = 变更 module 集（H1 deriveLogicBuckets 增量 + H3 per-module cache 增量）
 - runtime 收 L_HMR → per-module hot-swap（非 page reload）
 
-### §1.3 D-PUSH-1 design gate
+### §1.3 D-PUSH-1 design gate — **locked**
+
+**D-PUSH-1 locked**：L_HMR level = per-module payload 推送（`{ type:'hmr', level:'L_HMR', modules:{[moduleId]:{code,map}}, entries:string[] }`）。触发条件：单/少 module 变更 + runtime 就绪。L_HMR vs L1：L_HMR = per-module update（runtime hot-swap），L1 = page reload（fallback）。
 
 L_HMR 语义边界：
 - L_HMR vs L1：L_HMR = per-module update（runtime 就绪），L1 = page reload（fallback）
@@ -36,7 +38,7 @@ L_HMR 语义边界：
 
 ---
 
-## §2 fallback downgrade 机制（D-PUSH-2 = D-HMR-5）
+## §2 fallback downgrade 机制（D-PUSH-2 = D-HMR-5）— **locked 选项②**
 
 ### §2.1 问题
 
@@ -63,7 +65,7 @@ dev server 如何知 runtime 未就绪 → downgrade L_HMR→L1？
 
 ---
 
-## §3 materialize 增量化（D-PUSH-3）
+## §3 materialize 增量化（D-PUSH-3）— **locked**
 
 ### §3.1 现状：publishToDist 全量
 
@@ -79,7 +81,10 @@ dev server 如何知 runtime 未就绪 → downgrade L_HMR→L1？
 
 **⚠️ F6 补：deletion handling**：增量 materialize 须 handle entries removed（page deleted）→ 对应 files 须从 dist 删除。全量 materialize 隐式处理（overwrite all）；增量须显式 deletion tracking（dirty set 含 deletions，非仅 additions/changes）。D-BM-4（字节不变）+ D-P2（path 零转换）不违反——增量只改写盘集，不改字节/path。
 
-### §3.3 D-PUSH-3 design gate
+### §3.3 D-PUSH-3 design gate — **locked**
+
+**D-PUSH-3 locked**：materialize 增量化可行（BuildModel 加 dirtyEntries set，F-H4-1）；publishToDist 须重构（atomic full move → incremental copy，F-H4-2）。增量 materialize guard：`if (dirtySet) 增量写入 else 全量`（one-shot 全量，F8）。deletion handling（F6）：entries removed → files 从 dist 删除。规模升级：publishToDist 重构是主要工作量（S-M → M）。
+
 
 materialize 增量化边界：
 - BuildModel 须 track 变更 entries（dirty set）

@@ -38,9 +38,9 @@
 ```text
 本伞:     HMR 编译侧路线 + 子门顺序 + Non-goals（文档）
 子门 H1:  deriveFromGraph 接线（emit 从 emitBuckets 全量改 graph 派生增量）→ [`fe-tools-hmr-emit-derive`](../_archive/complete/fe-tools-hmr-emit-derive/README.md)（**`complete`**）
-子门 H2:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）→ [`fe-tools-hmr-registry-materialize`](../fe-tools-hmr-registry-materialize/README.md)（**`draft`**）
+子门 H2:  registry 实体化（Loader/Compiler/Emitter 替代 legacy compile-target）→ [`fe-tools-hmr-registry-materialize`](../fe-tools-hmr-registry-materialize/README.md)（**`ready`**）
 子门 H3:  per-module view/style cache（G5 per-page-bundle 粒度反转）→ [`fe-tools-hmr-per-module-cache`](../fe-tools-hmr-per-module-cache/README.md)（**`ready`**）
-子门 H4:  per-module HMR push（dev server 消费增量 payload）→ [`fe-tools-hmr-push`](../fe-tools-hmr-push/README.md)（**`draft`**）
+子门 H4:  per-module HMR push（dev server 消费增量 payload）→ [`fe-tools-hmr-push`](../fe-tools-hmr-push/README.md)（**`ready`**）
 不做:     runtime HMR API；整包 Packer extraction
 ```
 

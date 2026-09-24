@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-hmr-push
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 > 待 design.draft §5 实证 + D-PUSH-1/2/3 锁后填实。
 

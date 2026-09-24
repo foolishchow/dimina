@@ -2,9 +2,9 @@
 
 > 本文件是设计草稿。用于 D-REG-1/2/3 锁后产出正式 technical-design。
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
-## §1 registry 实体化策略（D-REG-1 = D-HMR-3）
+## §1 registry 实体化策略（D-REG-1 = D-HMR-3）— **locked**
 
 ### §1.1 现状：emptyRegistry stub
 
@@ -38,7 +38,7 @@ const emptyRegistry = {
 - **优势**：无 dual-path 验证缺口。
 - **风险**：compile-target 是核心入口，一次性风险高（stage 组装 + workerOptions 派生复杂）。
 
-### §1.4 D-REG-1 推荐
+### §1.4 D-REG-1 推荐 — **locked 非双路径**
 
 **推荐 A（渐进）——但条件化**：
 - compile-target 静态段（createCompileTarget）保留（fail-fast + config 组装）
@@ -57,7 +57,7 @@ const emptyRegistry = {
 
 ---
 
-## §2 load 归属（D-REG-2）
+## §2 load 归属（D-REG-2）— **locked**
 
 ### §2.1 现状：compile-target readLoadBindings
 
@@ -69,7 +69,9 @@ load = parse + walk = 发现依赖。Loader.load(input, ctx) → LoadedModule。
 - env.ts load 函数 → Loader 注册（logic Loader = buildJSByPath parse-walk? view Loader = wxml parse?）
 - readLoadBindings → Loader.load for app/config?
 
-### §2.3 D-REG-2 design gate
+### §2.3 D-REG-2 design gate — **locked**
+
+**D-REG-2 locked**：Loader registry 包装 domain parse-walk（logic/view/style parse-walk.ts），非 env.ts 函数。env.ts 退为 PackerContext 提供（config + accessor）。Loader.load 接收 PackerContext 作 ctx 参数。logic parse-walk 可直接包装（返 dependencies）；view/style parse-walk 须拆分（F-H2-1）。
 
 load 归属复杂——logic/view/style 各有不同 load 逻辑（parse-walk）。Loader 注册须映射现有 parse-walk 路径。
 
@@ -77,7 +79,7 @@ load 归属复杂——logic/view/style 各有不同 load 逻辑（parse-walk）
 
 ---
 
-## §3 stage 概念归属（D-REG-3）
+## §3 stage 概念归属（D-REG-3）— **locked**
 
 ### §3.1 现状：stage 常量在 pipeline
 
@@ -87,7 +89,9 @@ load 归属复杂——logic/view/style 各有不同 load 逻辑（parse-walk）
 
 H2 subsume ③（model→pipeline stage/emit 概念）——stage 常量 + EmitModule 下沉 model/shared。
 
-### §3.3 D-REG-3 design gate
+### §3.3 D-REG-3 design gate — **locked**
+
+**D-REG-3 locked**：registry kind 派发（Loader/Compiler/Emitter 按 kind）**保留** stage 概念作 registry 顶层编排——不消除 stage，而是 stage 经 registry 派发（stage = kind 组的顶层序：collect-config → compile → emit）。COMPILE_STAGE_ORDER 保留 model/shared（stage 常量下沉），registry 按 stage 内 kind 派发。
 
 stage 概念是否随 registry 实体化下沉？或 stage 被 registry kind 替代（Loader/Compiler/Emitter 按 kind 派发，非 stage）？
 
