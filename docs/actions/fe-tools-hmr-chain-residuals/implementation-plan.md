@@ -70,7 +70,7 @@ Status: **ready（2026-10-09）**
 
 - [ ] architecture-notes 回流（D-HR-1 衔接形状 + D-HR-2 激活条件 + R-HR-4 typed 边界 + R-HR-5 下沉）
 - [ ] STATUS/TODO/archive 同步；validator 0/0
-- [ ] residuals tracker：F-HR-1..3 fixed；R3 fixed；③a fixed（③b/③c open）；F-HR-2 **fixed（通道补齐）+ 激活条件 deferred（默认 true 待 runtime 就绪）**
+- [ ] residuals tracker：F-HR-1..3 fixed；R3 fixed；③a fixed（③b/③c open）；F-HR-2 **fixed（通道补齐）+ 默认 true deferred（runtime 就绪）**
 
 ## 依赖序图
 
