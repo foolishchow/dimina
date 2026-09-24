@@ -19,6 +19,14 @@ Status: **ready（2026-10-09）**
 | `packer/orchestrator.ts:54` | emptyRegistry → 实体 registry（Loader/Compiler/Emitter 注册） | pending |
 | `packer/types.ts` | registry 实现（非接口——接口已冻） | pending |
 
+## Step 1.5 — viewParseWalk/buildCompileCss monolithic 拆分（F-H2-1，L+主要工作量）
+
+| 文件 | 改动 | 状态 |
+| --- | --- | --- |
+| `compiler/view/parse-walk.ts` | viewParseWalk 拆分为 Loader.load（parse/discover）→ Compiler.compile（transform）→ Emitter.emit（bundle）三阶段 | pending |
+| `compiler/style/parse-walk.ts` | buildCompileCss 拆分为 L/C/E 三阶段 | pending |
+| `compiler/logic/parse-walk.ts` | logicParseWalk 包装为 Loader.load（可直接包装，返 dependencies） | pending |
+
 ## Step 2 — compile-target compile 段替代（R-REG-2, D-REG-2/3）
 
 | 文件 | 改动 | 状态 |

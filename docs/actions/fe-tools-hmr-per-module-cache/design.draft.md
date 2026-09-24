@@ -63,6 +63,8 @@ page 结构变（增删 component）→ order list 失效 → 全量 viewParseWa
 
 ## §3 watch 字节恒等（D-PMC-3）
 
+**⚠️ F7 补：one-shot 也非平凡**——H3 改 compileML return（per-module results + order list），emit 须 reassemble via order list（非仅 cache-hit skip）。one-shot 无 cache-hit（viewCache undefined），但 emit 路径仍变（per-module → reassemble）。actual probe confirmed reassembly byte-identity（3 项目 PASS）→ one-shot diff=0 holds，但非"平凡成立"——须验证 emit reassembly。
+
 ### §3.1 风险
 
 per-module 派生须保 bundle 字节一致。G5 P-G506 证 graph 重建不可行。H3 stored order metadata 避开 graph，但须验证：

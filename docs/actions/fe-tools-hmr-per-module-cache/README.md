@@ -9,6 +9,8 @@
 - 工作分支：`feature/fe-tools-sidecar`
 - 前置：H2 `complete`（registry 实体化——compile 路径经 registry 派发）
 
+**⚠️ F6 补：H2→H3 依赖可放松**——H3（per-module cache 粒度）改 session-state + compileML/compileSS cache 逻辑，不依赖 H2（registry compile dispatch）。H2→H3 依赖是伞 D-HMR-1 默认跟踪序，但 H3 可与 H2 并行实施（cache 粒度独立于 compile dispatch）。
+
 ## 背景
 
 HMR-compiler 伞 H3 子门。design.draft §1.3 新发现：G5 per-page-bundle cache（`ViewCompiledModule[]` 存完整有序 bundle）阻碍 per-module HMR——单组件 recompile → 全 bundle re-emit。H3 反转粒度（per-page-bundle → per-module），使单组件 recompile → 单 module emit。

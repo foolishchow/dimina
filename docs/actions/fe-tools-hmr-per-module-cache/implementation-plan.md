@@ -19,12 +19,14 @@ Status: **ready（2026-10-09）**
 | `packer/session-state.ts:23` | viewCache `Map<string, ViewCompiledModule[]>` → `Map<string, ViewCompiledModule>` + order list `Map<string, string[]>` | pending |
 | `compiler/view/index.ts` | compileML cache-hit per-module（按 order list 重建） | pending |
 
-## Step 2 — style cache per-module（R-PMC-2）
+## Step 2 — style cache per-module（R-PMC-2）— **style 与 view 不同**
 
 | 文件 | 改动 | 状态 |
 | --- | --- | --- |
 | `packer/session-state.ts` | styleCache per-page → per-module | pending |
 | `compiler/style/index.ts` | compileSS cache-hit per-module | pending |
+
+**⚠️ F2 补：style cache 与 view cache 不同**——view cache 是 per-page-bundle（`ViewCompiledModule[]`，有序 bundle，须 order list 重建）；style cache 是 per-page（`StyleCompiledModule`，无 bundle 序问题）。style per-module 转换更简单（无 order list，直接 per-module cache + per-page emit）。invalidation 同 view（.wxss 改 → per-module cache 失效）。
 
 ## Step 3 — invalidation per-module（R-PMC-5, D-PMC-2）
 
