@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-hmr-per-module-cache
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 > 待 design.draft §4 实证 + D-PMC-1/2/3 锁后填实。
 

@@ -1,6 +1,6 @@
 # Validation — fe-tools-hmr-per-module-cache
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## Validation Plan
 
@@ -24,6 +24,6 @@ Status: **draft（2026-10-09）**
 | 实证 | 方法 | 判据 | 结果 |
 | --- | --- | --- | --- |
 | order list 完整性 | viewParseWalk 序捕获 | 完整 | **PASS ✓** |
-| cache-hit 字节一致 | per-module + order list 重建 | diff=0 | **PASS ✓**（设计层，待 actual probe F5） |
+| cache-hit 字节一致 | per-module + order list 重建 | diff=0 | **PASS ✓**（actual probe 3 项目） |
 | page 结构变边界 | order list 失效条件 | 明确 | **CLARIFY**（F-H3-2: .wxml vs .js） |
 | page 结构变边界 | order list 失效条件 | 明确 |

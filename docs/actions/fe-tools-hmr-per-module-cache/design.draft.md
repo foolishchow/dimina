@@ -2,7 +2,7 @@
 
 > 设计草稿。D-PMC-1/2/3 锁后产出 technical-design。
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## §1 bundle 重建策略（D-PMC-1 = D-HMR-4）
 
@@ -112,3 +112,19 @@ order list invalidation 触发须按文件类型分：
 4. 若 diff=0 → H3.2 升 actual PASS（非设计层）→ D-PMC-1 锁 → 升 ready
 
 待 H3 升 ready 前跑此 probe（非实施后验证）。
+
+### H3 actual probe 结果（2026-10-09，base + subpackages + vant）— **PASS ✓**
+
+跑 instrumented probe（init state.viewCache → build → dump pageBundles → simulate per-module split + order list reassembly → compare bytes）：
+
+| 项目 | pages | module refs | unique | shared | dedup ratio | reassembly == original? |
+| --- | --- | --- | --- | --- | --- | --- |
+| base | 43 | 55 | 55 | 0 | 1.00x | **PASS ✓** |
+| subpackages | 62 | 62 | 62 | 0 | 1.00x | **PASS ✓** |
+| vant | 13 | 340 | 70 | 43 | 4.86x | **PASS ✓** |
+
+**结论**：
+- **H3.2 actual PASS**（非设计层）——per-module cache split + order list reassembly == per-page-bundle 字节级恒等，3 项目全 PASS
+- **vant 4.86x dedup**——H3 per-module cache 可消除跨页重复存储（340 refs → 70 unique），H3 效益实证
+- **shared modules 正确处理**——vant 43 shared modules（跨页共享组件），order list per-page 引用同一 per-module cache entry，reassembled bundle 字节一致
+- **D-PMC-1 选项① locked**——stored order metadata 可行（actual probe 证）

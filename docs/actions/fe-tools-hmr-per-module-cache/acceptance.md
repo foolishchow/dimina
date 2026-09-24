@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-hmr-per-module-cache
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 | ID | Requirement | Observable condition | Planned evidence | Status |
 | --- | --- | --- | --- | --- |
