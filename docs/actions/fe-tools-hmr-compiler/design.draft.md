@@ -43,6 +43,10 @@ G5 D-G5-4'：viewCache = `Map<string, ViewCompiledModule[]>`（per-page-bundle�
 
 **影响**：view/style HMR 粒度停在 page 级（非 module 级）。logic 已是 per-module（ModuleResultCache）。
 
+**⚠️ G5 P-G506 先例**（H3 须认）：G5 实施期发现 per-module view cache 经 **graph 重建不可行**——graph 'component' 边仅 direct（非 transitive）+ 不含 wxs modules（wxs 走 'view' kind）+ 序不一致（graph 序 vs viewParseWalk DFS）→ cache-hit bundle 缺 transitive subs + wxs → 字节差异（实测 base/pages_index.js b1=10525 vs b2=3049）。G5 反转 F6→D-G5-4' per-page-bundle（存原序 bundle，cache-hit re-emit 保字节一致）。
+
+**H3 ≠ G5 F6**（不可走 graph 重建路径）：H3 须用**不同策略**——per-module 存储 + **显式序元数据**（存 bundle order list，非 graph 派生），cache-hit 时按 stored order reassemble。或：per-module compile 结果 + per-page-bundle emit（解耦 compile 粒度与 emit 粒度）。**design gate 待 H3 formalize 详评**。
+
 ### §1.4 真缺口 3：materialize 全量 + dev server 全量 reload
 
 `orchestrator.ts:316` materialize task：
@@ -57,7 +61,7 @@ publishToDist(targetPath, useAppIdDir)        // 全量发布
 
 ### §1.5 真缺口 4：registry 3 空壳（Packer shape 未激活）
 
-`orchestrator.ts:54` `emptyRegistry`（loader/compile/emit 全 stub）。production 走 legacy compile-target → stage-channel → domain engines。Packer shape（types.ts Loader/Compiler/Emitter）定义未消费。
+`orchestrator.ts:54` `emptyRegistry`（loader/compile/emit 全 stub，**D-OR-2 硬编码三车道 stub**）。production 走 legacy compile-target → stage-channel → domain engines。Packer shape（types.ts Loader/Compiler/Emitter）定义未消费。**H2 registry 实体化反转 D-OR-2**。
 
 ---
 
@@ -71,7 +75,7 @@ H1 预判"load/compile 分离"有误（已分离）。重新拆分：
 | --- | --- | --- | --- |
 | **H1** deriveFromGraph 接线 | emit 从 emitBuckets（全量）改 graph→cache→EmitModule 派生（增量）；orchestrator Logic emit task 改调 deriveFromGraph | **M**（deriveFromGraph 已定义，接线 + 移 emitBuckets + 行为 0） | 增量链（done） |
 | **H2** registry 实体化 | emptyRegistry → real Loader/Compiler/Emitter；compile-target → registry 路径；Packer shape 激活 | **L**（替代 legacy compile-target，改 orchestrator + stage-channel） | H1（emit 路径已 graph 派生后，registry compile 侧才能接） |
-| **H3** per-module view/style cache | view/style cache 从 per-page-bundle → per-module（使单组件 recompile 可行） | **M-L**（G5 D-G5-4' per-page-bundle 设计需反转——per-module 派生 + 序重建） | H2（registry 实体化后 per-module compile 路径就绪） |
+| **H3** per-module view/style cache | view/style cache 从 per-page-bundle → per-module（使单组件 recompile 可行）；**⚠️ G5 P-G506 先例**：graph 重建不可行，须不同策略（stored order metadata 或 compile/emit 粒度解耦） | **M-L**（G5 D-G5-4' 反转 + 新策略设计） | H2（registry 实体化后 per-module compile 路径就绪） |
 | **H4** per-module HMR push | dev-reload 加 HMR level（per-module hot-swap）；dev-server 增量 payload；materialize 增量化 | **S-M**（runtime 协议依赖——fallback 全量 reload） | H1-H3（编译侧 per-module 就绪） |
 
 ### §2.2 依赖序
@@ -95,6 +99,7 @@ H4 per-module HMR push（dev server 增量）
 
 **⚠️ 依赖序非严格线性**（F2 修正）：
 - H1（Emitter 侧，deriveFromGraph）+ H2（3 registry 实体化）+ H3（cache 粒度反转）三者**主题独立**——H1 是 emit 路径、H2 是 compile 路径、H3 是 cache 粒度，可并行 formalize。
+- **H1/H2 共享 `orchestrator.ts`**（H1 触及 :266-288 Logic emit task；H2 触及 :54,81-92 registry）——不同 section，非硬阻塞，但是协调点（并行实施时须 sync orchestrator.ts 改动）。
 - **H4 真依赖 H1+H3**（per-module push 需 per-module emit（H1）+ per-module cache（H3）就绪）。
 - 线性序 H1→H2→H3→H4 是默认跟踪序（简化伞管），子门可并行 formalize。
 
@@ -104,7 +109,7 @@ H4 per-module HMR push（dev server 增量）
 | --- | --- | --- | --- |
 | H1 | M | 中（emit 路径重构） | one-shot diff=0（emitBuckets→deriveFromGraph 输出字节须一致） |
 | H2 | L | 中高（compile-target 是核心入口，替代需渐进） | one-shot diff=0（registry 路径输出 == legacy 路径） |
-| H3 | M-L | 高（G5 per-page-bundle 设计反转，cache 粒度变） | watch 字节恒等（per-module 派生须保 bundle 字节一致） |
+| H3 | M-L | 高（G5 per-page-bundle 设计反转，cache 粒度变；**G5 P-G506 先例 graph 重建不可行**，须不同策略） | watch 字节恒等（per-module 派生须保 bundle 字节一致） |
 | H4 | S-M | 低（编译侧 payload，runtime fallback） | one-shot 不变（HMR 仅 watch 路径） |
 
 **总规模**：L（4 子门，H2 是最大刀；类比增量链 G1-G5 单门规模）。
@@ -157,6 +162,8 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 - runtime 就绪后激活 per-module hot-swap（L_HMR level）
 - architecture-notes 记 runtime 依赖状态
 
+**⚠️ fallback 机制待 H4 formalize 指定**：dev server 如何知 runtime 未就绪 → downgrade L_HMR→L1？选项：① runtime capability probe（feature flag）② 编译侧始终发 L_HMR payload，runtime 侧忽略 → 自降 L1（runtime-side downgrade）。H4 formalize 时锁。
+
 **H4 不阻塞伞 close**——编译侧 HMR 完成交付（增量 payload），runtime 激活是外部时序。
 
 ---
@@ -181,7 +188,7 @@ H4 per-module push 需 runtime 协议（mini-program 运行时 partial update）
 推荐 A（compile-target 是核心入口，渐进降风险）。
 
 ### D-HMR-4: H3 per-module view/style cache 粒度反转
-G5 D-G5-4' per-page-bundle 是为 cache-hit 字节一致。per-module 反转需重建 bundle 序（deriveFromGraph 派生时保序）。**design gate 待 H3 formalize 时详评**。
+G5 D-G5-4' per-page-bundle 是为 cache-hit 字节一致。per-module 反转需重建 bundle 序。**⚠️ G5 P-G506 实证 graph 重建不可行**（direct-only + 无 wxs + 序不一致）。H3 须用**不同策略**：① per-module 存储 + 显式序元数据（存 order list，非 graph 派生）或 ② per-module compile + per-page-bundle emit（粒度解耦）。**design gate 待 H3 formalize 时详评策略 A/B**。
 
 ### D-HMR-5: H4 runtime fallback
 编译侧增量 payload 先交付，dev server fallback L1 reload，runtime 就绪后激活 L_HMR。**非阻塞**。

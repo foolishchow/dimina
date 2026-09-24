@@ -28,7 +28,7 @@ production emit 路径从 `emitBuckets`（全量 re-emit）改 `deriveFromGraph`
 `orchestrator:54` `emptyRegistry`（loader/compile/emit 全 stub）→ 实体化 Loader/Compiler/Emitter registry，替代 legacy compile-target 路径。Packer shape（types.ts）激活。
 
 ### R-HMR-3（MUST）— per-module view/style cache
-view/style cache 从 per-page-bundle（G5 D-G5-4'）改 per-module，使单组件 recompile → 单 module emit 可行。per-module 派生须保 bundle 字节一致（序重建）。
+view/style cache 从 per-page-bundle（G5 D-G5-4'）改 per-module，使单组件 recompile → 单 module emit 可行。**⚠️ G5 P-G506 先例**：graph 重建不可行（direct-only + 无 wxs + 序不一致），须不同策略（stored order metadata 或 compile/emit 粒度解耦），非 graph 派生。
 
 ### R-HMR-4（MUST）— per-module HMR push
 `dev-reload.ts` 加 HMR level（per-module hot-swap）；`dev-server.ts` 增量 payload；`materialize` 增量化。dev server 消费增量结果推送（非全量 reload）。

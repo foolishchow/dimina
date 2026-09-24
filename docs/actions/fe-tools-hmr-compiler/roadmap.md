@@ -32,7 +32,7 @@ H4 per-module HMR push（dev server 增量）
 | HMR0 本伞 | **`draft`** | — | design.draft 规模评估完成；D-HMR-2/3 design gate 待子门 formalize 锁 |
 | H1 deriveFromGraph 接线 | pending | M | emit 路径重构；行为 0（emitBuckets→graph 派生字节一致） |
 | H2 registry 实体化 | pending | L | 替代 legacy compile-target；最大刀 |
-| H3 per-module view/style cache | pending | M-L | G5 per-page-bundle 反转；序重建保字节一致 |
+| H3 per-module view/style cache | pending | M-L | G5 per-page-bundle 反转；**G5 P-G506 先例 graph 重建不可行**，须不同策略（stored order 或粒度解耦） |
 | H4 per-module HMR push | pending | S-M | runtime 协议依赖；fallback 全量 reload |
 
 ## 子门依赖序
