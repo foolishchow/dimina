@@ -17,6 +17,20 @@
 
 ---
 
+## 架构候选（2026-10-09 · packer 重构轨道）
+
+### Round 0 — packer 目录收敛 —— `draft`（2026-10-09）
+
+packer 架构 retrospect（[F-PA-1..6](../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域 ~27 文件散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `core/` 混合袋。散落致 ③a/b/c 跨层 import + D/C 重构缺干净素材 + 北星 6 组件无物理落地。
+
+**Round 0 = 纯搬迁结构轮**（D/C 前置）：packer 域归位 `packer/` 9 子目录（mirror 北星 6 组件形状：graph/store/registry/state/cache/emit/worker/pipeline/aspect）。`model/` + `compiler/pipeline/` + `compiler/worker-runtime/` 解散；`core/` 解体。纯搬迁无逻辑改（D-DC-2 红线）+ 分批行为 0 gate（B1-B5）。消解 ③a/b/c。
+
+后续轮（Round 0 后 checkpoint 再定）：Round 1 D（facade + collaborator）/ Round 2 C（aspect）/ Round 2 后评估 B（ALS 闭合）+ A（renderer 注入点）+ E（dispatch wiring，runtime 就绪后）。
+
+→ [fe-tools-packer-directory-convergence](fe-tools-packer-directory-convergence/README.md)
+
+---
+
 ## 近端顺序（2026-09-20 · 已约定）
 
 先收旁路战略伞，再开 Module 中心。**不并行**开 Packer 整包抽取。
