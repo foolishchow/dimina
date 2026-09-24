@@ -1,8 +1,8 @@
 # fe-tools-style-minify-path-unify
 
-- Status: `ready`
-- 前置：[`fe-tools-style-minify-gate`](../_archive/complete/fe-tools-style-minify-gate/README.md)（**complete**；D-SM-1..4 minifyCss esbuild gate `DIMINA_COMPILER_DIFF_VERIFY`）· [`fe-tools-style-cssnano-gate`](../_archive/complete/fe-tools-style-cssnano-gate/README.md)（**complete**；D-CN-1..5 cssnano gate 同开关）
-- 参照：[Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证 · [architecture-notes](../../fe-tools/architecture-notes.md)
+- Status: `complete`
+- 前置：[`fe-tools-style-minify-gate`](../fe-tools-style-minify-gate/README.md)（**complete**；D-SM-1..4 minifyCss esbuild gate `DIMINA_COMPILER_DIFF_VERIFY`）· [`fe-tools-style-cssnano-gate`](../fe-tools-style-cssnano-gate/README.md)（**complete**；D-CN-1..5 cssnano gate 同开关）
+- 参照：[Experience-Review.md](../../../../Experience-Review.md) §12 行为 0 全量验证 · [architecture-notes](../../../../fe-tools/architecture-notes.md)
 
 ## Background
 

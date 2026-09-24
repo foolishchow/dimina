@@ -1,41 +1,41 @@
 # Acceptance — fe-tools-style-minify-path-unify
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## A-SMPU1 — 统一 minify 路径（R-SMPU-1, D-SMPU-1/2）
 
-- [ ] style minify 单一路径（per-module minify + 保留模块间 `\n`）
-- [ ] production 路径 == baseline（字节恒等）
-- [ ] D-SMPU-2（A/B）经 design gate 定 + 实施
+- [x] style minify 单一路径（per-module minify + 保留模块间 `\n`）
+- [x] production 路径 == baseline（字节恒等）
+- [x] D-SMPU-2（A/B）经 design gate 定 + 实施
 
 ## A-SMPU2 — 下线 `DIMINA_COMPILER_DIFF_VERIFY`（R-SMPU-2, D-SMPU-3）
 
-- [ ] 删 `style/emit.ts` `isDiffVerifyMode()` 函数
-- [ ] 删 `style/parse-walk.ts:377,390` `isDiffVerifyMode()` 调用
-- [ ] 删 `style/emit.ts:63,75` `!isDiffVerifyMode()` guards
-- [ ] `DIMINA_COMPILER_DIFF_VERIFY` env var 无 src/_tests 引用
+- [x] 删 `style/emit.ts` `isDiffVerifyMode()` 函数
+- [x] 删 `style/parse-walk.ts:377,390` `isDiffVerifyMode()` 调用
+- [x] 删 `style/emit.ts:63,75` `!isDiffVerifyMode()` guards
+- [x] `DIMINA_COMPILER_DIFF_VERIFY` env var 无 src/_tests 引用
 
 ## A-SMPU3 — verify 脚本验 production 路径（R-SMPU-3, D-SMPU-4）
 
-- [ ] `/tmp/verify-*.mjs` 删 `process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'`
-- [ ] `__tests__/view-style-cache-skip.spec.js` integration 删 setEnv/deleteEnv
-- [ ] `__tests__/style-sourcemap.spec.js` 删 env 设置（若有）
+- [x] `/tmp/verify-*.mjs` 删 `process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'`
+- [x] `__tests__/view-style-cache-skip.spec.js` integration 删 setEnv/deleteEnv
+- [x] `__tests__/style-sourcemap.spec.js` 删 env 设置（若有）
 
 ## A-SMPU4 — 反转 Non-scope + bridge 迁移反转（R-SMPU-4）
 
-- [ ] architecture-notes SMPU 条目记：① D-SM-4/D-CN-4 "Non-scope 不要求字节一致" 反转——字节一致为要求；② 方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）均反转——canonical 回 parse-walk
+- [x] architecture-notes SMPU 条目记：① D-SM-4/D-CN-4 "Non-scope 不要求字节一致" 反转——字节一致为要求；② 方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）均反转——canonical 回 parse-walk
 
 ## A-SMPU5 — 行为 0 production 路径（R-SMPU-5）
 
-- [ ] 6 项目 one-shot diff=0 对 baseline（**不设 env**，验 production 真实路径）
-- [ ] tsc 0 errors；vitest 全绿
-- [ ] V-PC-5：changed files 0 `as any` / 0 `[key: string]: unknown` 新增
+- [x] 6 项目 one-shot diff=0 对 baseline（**不设 env**，验 production 真实路径）
+- [x] tsc 0 errors；vitest 全绿
+- [x] V-PC-5：changed files 0 `as any` / 0 `[key: string]: unknown` 新增
 
 ## A-SMPU6 — minify 算法不变（R-SMPU-6）
 
-- [ ] esbuild `minifyCss` 配置不动（仅改位置/聚合方式）
-- [ ] cssnano 配置参数不动
-- [ ] sourcemap=true 仍 cssnano，sourcemap=false 仍 esbuild（路径切换不变）
+- [x] esbuild `minifyCss` 配置不动（仅改位置/聚合方式）
+- [x] cssnano 配置参数不动
+- [x] sourcemap=true 仍 cssnano，sourcemap=false 仍 esbuild（路径切换不变）
 
 ## Non-acceptance
 

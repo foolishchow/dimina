@@ -157,11 +157,9 @@ describe('integration: state-reuse cache-hit byte-identity', () => {
 		setupProjectWithComponent(srcDir)
 		out1 = path.join(srcDir, '_out1')
 		out2 = path.join(srcDir, '_out2')
-		process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'
 	})
 	afterEach(() => {
 		// IRC R8: 防泄漏后续 test
-		delete process.env.DIMINA_COMPILER_DIFF_VERIFY
 		if (srcDir && fs.existsSync(srcDir)) fs.rmSync(srcDir, { recursive: true, force: true })
 	})
 

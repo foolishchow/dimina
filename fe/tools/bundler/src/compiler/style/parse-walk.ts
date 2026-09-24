@@ -19,7 +19,7 @@ import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleE
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../core/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { StyleCompileError } from '../../shared/utils.ts'
-import { minifyCss, isDiffVerifyMode, loadCssnano } from './emit.ts'
+import { minifyCss, loadCssnano } from './emit.ts'
 
 export interface StyleModule {
 	path: string
@@ -373,8 +373,8 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		const postcssPlugins = [createExternalClassPlugin(moduleId!), autoprefixerPlugin] as postcss.Plugin[]
 		const shouldMinify = options.minify !== false
 		if (options.sourcemap) {
-			// D-CN-2: cssnano 仅验证模式留 parse-walk（legacy fallback）；生产模式由 emitStyle 做（D-CN-3）
-			if (shouldMinify && isDiffVerifyMode()) {
+			// D-SMPU-2: cssnano per-module（sourcemap=true 路径，canonical）
+			if (shouldMinify) {
 				const cssnano = await loadCssnano()
 				postcssPlugins.push(cssnano() as unknown as postcss.Plugin)
 			}
@@ -385,9 +385,8 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		}
 		else {
 			const prefixedResult = await postcss(postcssPlugins).process(scopedResult.code, { from: undefined })
-			// esbuild CSS minify per-module（行为 0：保留模块间 \n）
-			// D-SM-2: 验证模式（isDiffVerifyMode）留 parse-walk；生产模式不 minify，让 emitStyle 做
-			if (shouldMinify && isDiffVerifyMode()) {
+			// D-SMPU-2: esbuild CSS minify per-module（sourcemap=false 路径，canonical；保留模块间 \n）
+			if (shouldMinify) {
 				const minifiedCode = await minifyCss(prefixedResult.css)
 				finalResult = { css: minifiedCode, map: null }
 			}

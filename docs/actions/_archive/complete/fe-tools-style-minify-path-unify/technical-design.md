@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-style-minify-path-unify
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 现状（dual-path 代码位置）
 
