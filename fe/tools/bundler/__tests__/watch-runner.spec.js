@@ -16,6 +16,7 @@ vi.mock('chokidar', () => ({
 }))
 
 const { createBuildWatcher } = await import('../src/watch/watch-runner.ts')
+const { PackerSessionState } = await import('../src/packer/session-state.ts')
 
 function createFakeWatcher() {
 	const emitter = new EventEmitter()
@@ -228,5 +229,30 @@ describe('createBuildWatcher', () => {
 		expect(store.getDependencyGraph).not.toHaveBeenCalled()
 		const plan = beforeBuild.mock.calls[0][0].plan
 		expect(plan.skip).toBe(false)
+	})
+
+	it('IRC D-IRC-5: R1 接线——注入 state（viewCache 未设）→ watch-runner R1 接线赋值 viewCache/styleCache（不手建 Map）', async () => {
+		const fsWatcher = createFakeWatcher()
+		chokidarWatch.mockReturnValue(fsWatcher)
+
+		// 注入 state（viewCache/styleCache 未设——不手建 Map）
+		const state = new PackerSessionState()
+		expect(state.viewCache).toBeUndefined()
+		expect(state.styleCache).toBeUndefined()
+
+		const watcher = createBuildWatcher({
+			targetPath: '/dist',
+			workPath: '/project',
+			useAppIdDir: true,
+			store: { load: vi.fn().mockReturnValue({ compilerOptions: {} }), getDependencyGraph: vi.fn().mockReturnValue({ hasFile: () => false, toJSON: () => emptyGraph() }) },
+			state,
+			options: { sourcemap: true },
+		})
+
+		await watcher.start()
+
+		// R1 接线：watch-runner :91 赋值 viewCache/styleCache（非测试手设）
+		expect(state.viewCache).toBeInstanceOf(Map)
+		expect(state.styleCache).toBeInstanceOf(Map)
 	})
 })

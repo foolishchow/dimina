@@ -1,10 +1,10 @@
 # Requirements — fe-tools-incremental-chain-residuals-closeout
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## 问题
 
-三轮回顾（[9-24](../../fe-tools/2026-09-24-packer-incremental-retrospect.md) / [10-09 G5](../../fe-tools/2026-10-09-g5-impl-closeout-retrospect.md) / [10-09 G1-G5](../../fe-tools/2026-10-09-g1-g5-broad-retrospect.md)）consolidate 10 条 residual（[tracker](../../fe-tools/incremental-chain-residuals.md)）。核心缺口 R1：G5 算法齐备但 watch-runner 不实例化 cache → 生产效能空转。余皆 low/info 小修。
+三轮回顾（[9-24](../../../../fe-tools/2026-09-24-packer-incremental-retrospect.md) / [10-09 G5](../../../../fe-tools/2026-10-09-g5-impl-closeout-retrospect.md) / [10-09 G1-G5](../../../../fe-tools/2026-10-09-g1-g5-broad-retrospect.md)）consolidate 10 条 residual（[tracker](../../../../fe-tools/incremental-chain-residuals.md)）。核心缺口 R1：G5 算法齐备但 watch-runner 不实例化 cache → 生产效能空转。余皆 low/info 小修。
 
 ## 需求
 

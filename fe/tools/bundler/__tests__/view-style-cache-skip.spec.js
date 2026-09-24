@@ -160,6 +160,8 @@ describe('integration: state-reuse cache-hit byte-identity', () => {
 		process.env.DIMINA_COMPILER_DIFF_VERIFY = '1'
 	})
 	afterEach(() => {
+		// IRC R8: 防泄漏后续 test
+		delete process.env.DIMINA_COMPILER_DIFF_VERIFY
 		if (srcDir && fs.existsSync(srcDir)) fs.rmSync(srcDir, { recursive: true, force: true })
 	})
 
@@ -183,6 +185,13 @@ describe('integration: state-reuse cache-hit byte-identity', () => {
 		expect(c1).toContain('render:')  // view render fn
 		// cache-hit 字节一致：build2 re-emit = build1 全量
 		expect(c1).toBe(c2)
+
+		// IRC R6: style cache-hit .css 字节恒等
+		const s1 = findFile(out1, 'pages_home_index.css')
+		const s2 = findFile(out2, 'pages_home_index.css')
+		expect(s1).not.toBeNull()
+		expect(s2).not.toBeNull()
+		expect(fs.readFileSync(s1, 'utf8')).toBe(fs.readFileSync(s2, 'utf8'))
 	}, 30000)
 
 	it('真实路径字节一致：非空 invalidated（单 page 变更）→ 全 diff=0', async () => {

@@ -88,6 +88,10 @@ export function createBuildWatcher({
 		const activeStore = store ?? createProjectStore()
 		// D-OS-1: session-scoped state（可注入；未传入时内部创建）
 		const sessionState = state ?? new PackerSessionState()
+		// IRC D-IRC-1: watch 路径启用 cross-rebuild view/style cache（闭合 G5 R1 缺口——watch-runner 此前不实例化 → cache 永远 miss、G5 效能空转）。
+		// one-shot 创建点（index.ts/build-pipeline.ts）保持 undefined → no-op → diff=0 边界延续。
+		if (!sessionState.viewCache) sessionState.viewCache = new Map()
+		if (!sessionState.styleCache) sessionState.styleCache = new Map()
 		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, state: sessionState }) as { appId: string; [key: string]: unknown }
 		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId))
 

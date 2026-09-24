@@ -1,12 +1,12 @@
 # Technical Design — fe-tools-incremental-chain-residuals-closeout
 
-Status: **ready（2026-10-09）**
+Status: **complete（2026-10-09）**
 
 ## §1 现状（G5 complete 后）
 
 ### §1.1 R1 缺口（核心）
 
-3 个 `PackerSessionState` 创建点（[广回顾 §3.1](../../fe-tools/2026-10-09-g1-g5-broad-retrospect.md)）：
+3 个 `PackerSessionState` 创建点（[广回顾 §3.1](../../../../fe-tools/2026-10-09-g1-g5-broad-retrospect.md)）：
 
 | 路径 | 行 | viewCache/styleCache | 性质 |
 | --- | --- | --- | --- |

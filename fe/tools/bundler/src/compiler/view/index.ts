@@ -71,8 +71,13 @@ interface ViewCompileMLResult {
 async function compileML(pages: ViewModule[], root: string | null, progress: Progress, viewCache?: Map<string, ViewCompiledModule[]> | null, invalidated?: string[] | null): Promise<ViewCompileMLResult> {
 	const workPath = getWorkPath()
 
-	// 主包和所有分包共享同一 npm WXS 索引；一次 Worker 任务只扫描一次。
-	ensureWxsScan(workPath)
+	// IRC D-IRC-3/R9：仅当至少一 page cache-miss 时才扫 wxs（全 cache-hit 跳过——hit 不消费 wxsFilePathMap）。
+	// 预检式须与 loop cache-hit 逻辑逐字同式（bundle 存在 + bundle 内任一 module invalidated → miss），避免 hasMiss=false 但 loop miss → viewParseWalk 缺 wxs。
+	const hasMiss = pages.some(p => {
+		const b = viewCache?.get(p.path)
+		return !b || b.some(m => invalidated?.includes(m.moduleId) ?? false)
+	})
+	if (hasMiss) ensureWxsScan(workPath)
 
 	// G4 D-G4-1 / G5 D-G5-3: 收集 cache-miss ViewCompiledModule[]（cache-hit 不返——D-IU-5 只返 dirty）
 	const results: ViewCompiledModule[] = []
@@ -169,7 +174,9 @@ async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{
 	activeCompileConfig = config as { minify: boolean; sourcemap: boolean; esTarget: { logic: string; view: string } }
 	resetWxsScan()
 
-	// G4 D-G4-1 / G5 D-G5-3/D-G5-4': compile 返 { viewCompileResults }（cache-miss dirty，供 stage-channel 写 cache）+ { viewPageBundles }（per-page-bundle，供 stage-channel 写 viewCache）；successPayload 由 runtime.ts:30 单独调并合并
+	// G4 D-G4-1 / G5 D-G5-3/D-G5-4' + IRC D-IRC-2: viewCompileResults（flattened dirty ViewCompiledModule[]）G4 期供 stage-channel 写 per-module cache；
+	// G5 改 stage-channel 读 viewPageBundles 后 stage-channel 不再消费该字段，但有意保留——HMR 未来作 dirty signal（vestigial-but-intentional）。
+	// viewPageBundles 供 stage-channel 写 per-page-bundle viewCache（活跃）；runtime.ts:33 Object.assign(response, compileResult) 仍 postMessage（vestigial-but-intentional）。
 	const viewCompileResults: ViewCompiledModule[] = []
 	const viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[] }> = []
 	const main = await compileML(m.pages.mainPages, null, progress as Progress, m.viewCache ?? undefined, m.invalidatedModules)
