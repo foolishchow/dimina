@@ -30,7 +30,7 @@ Status: **ready（2026-10-09）**
 | `bin/dev.ts` | `--hmr` CLI option（默认 false）；env `DMCC_HMR=1` 备选通道 | R-HR-2 / A-HR2 |
 | `session/resolve.ts` / `session/index.ts` | flag 透传 dev config → preview-adapter | R-HR-2 |
 | `session/preview-adapter.ts:43` | `synthesizeReloadLevel({ ...watchCtx, buildId, enableHmr: flag })`（默认 false = 今日行为） | R-HR-2 / A-HR2 |
-| tracker | D-PUSH-2 完整兑现（默认 true）激活条件记入（runtime 就绪后翻默认） | R-HR-7 |
+| tracker | D-PUSH-2 完整兑现（默认 true）激活条件——F-HR-2 fixed（通道补齐）+ 默认 true deferred（runtime 就绪后翻） | R-HR-7 |
 
 **回退**：flag 关即回今日行为（无状态残留——flag 只影响 synthesizeReloadLevel 入参）。
 
@@ -41,8 +41,8 @@ Status: **ready（2026-10-09）**
 | `packer/types.ts` | `StageChannelContext` typed interface 声明（~14 ctx 字段：viewCache/viewOrderList/styleCache/invalidatedModules/cache/buildModel/storeInfo/dependencyGraph/pages/allPages/compileConfig/sourcemap/sourcemapTargetPath/compatibilityWarnings）——types.ts 纯形状层（不从 env.ts import，Packer 形状纪律） | R-HR-4 / A-HR4 |
 | `compiler/pipeline/stage-channel.ts` | ctx 字段断言收敛（删 `ctx as { ... }` 改 typed 引用；**result/task 局部窄化不动**——非边界 typing） | R-HR-4 / A-HR4 |
 | `packer/orchestrator.ts` | 同 ctx 字段断言收敛 | R-HR-4 / A-HR4 |
-| `model/`（新或 shared） | `COMPILE_STAGE_ORDER` 常量迁 model（invalidation 是唯一 model 消费者）；compile-target re-export 保兼容或更新全消费点 | R-HR-5 / A-HR5 |
-| `model/invalidation.ts:69` | import 改 model 内（`compiler/pipeline` import = 0） | R-HR-5 / A-HR5 |
+| `model/`（新或 shared） | `COMPILE_STAGE_ORDER` **定义点**迁 model（`compile-target.ts:21` → model）；`compile-target.ts` 内部引用同步 | R-HR-5 / A-HR5 |
+| `model/invalidation.ts:69` + `compiler/pipeline/compile-stages.ts:1` | 全消费点 import 改 model（`compiler/pipeline` import = 0 in model；compile-stages import 改 model） | R-HR-5 / A-HR5 |
 
 **不改**：`result as`/`task as`/`loadBindings as` 局部窄化（非 R3 范围）；`model/compile-cache.ts:5`（③b residual——D-HR-1 后续门评）；`model/convergence.ts:3`（③c type-only——runtime 无害）。
 
@@ -52,7 +52,7 @@ Status: **ready（2026-10-09）**
 
 | 文件 | 改动 | 要求 |
 |---|---|---|
-| 新 `__tests__/view-selective-stages.spec.js` | 两轮 build 经 stage-channel 边界：① priming（viewCache/orderList 长驻——复用 `view-selective-recompile.spec.js` 既有的 `state.viewCache = new Map()` + `build(..., { state })` 模式，IRC R1 接线保证 watch 生产 path 同）② invalidate（`invalidatedModules`）；断言 (a) selective flag 触发 (b) pageBundles 只含 dirty 子集 + orderList 全量 (c) 产物与全量重编字节恒等 (d) dirty 子集规模（IPC 经济 dump 断言） | R-HR-3 / A-HR3 |
+| 新 `__tests__/view-selective-stages.spec.js` | 两轮 build 经 stage-channel 边界：① priming（viewCache/orderList 长驻——复用 `view-selective-recompile.spec.js` 既有的 `state.viewCache = new Map()` + `build(..., { state })` 模式，IRC R1 接线保证 watch 生产 path 同）② invalidate（`invalidatedModules`）；断言 (a) selective flag 触发 (b) pageBundles 只含 dirty 子集 + orderList 全量 (c) pageBundles（dirty 子集 + cached clean 经 orderList 组装）与全量重编 pageBundles 字节恒等 (d) dirty 子集规模（IPC 经济 dump 断言） | R-HR-3 / A-HR3 |
 
 **不起进程**（避 flaky——compile-cli-cache 先例）；覆盖 worker 序列化边界（msg → viewCompile → pageBundles → stage-channel 消费全链）。
 
@@ -61,7 +61,7 @@ Status: **ready（2026-10-09）**
 - [ ] P-HR1 `grep -rn "loaderRegistry\.\(get\|kinds\)" src/`（非零且非测试）+ kinds/get 单测断言（logic/view/style）
 - [ ] P-HR2 L_HMR flag 两态单测：默认关 payload == baseline（dev-reload.spec.js 既有 18 tests + H4 L_HMR 4 tests，复用/扩展）；开 + 增量（stages>0，非限定单 kind——dev-reload.ts:62） → L_HMR + changedStages + affectedPages
 - [ ] P-HR3 view-selective-stages.spec.js pass（触发/子集/字节三断言）
-- [ ] P-HR4 `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` 收敛为 typed 边界消费（result/task 局部窄化不计）
+- [ ] P-HR4 `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` ctx 字段全部经 typed 边界（grep ctx as { 在 ctx 字段集 = 0；result/task 局部窄化不计）
 - [ ] P-HR5 `grep -n "pipeline/" src/model/invalidation.ts` = 0
 - [ ] P-HR6 行为 0 三件套：`tsc --noEmit` 0 + vitest 全绿 + 6 项目 one-shot `diff -r` = 0
 - [ ] P-HR7 tracker 状态更新（消解项 fixed + 证据链接；③b/③c 保持 open）
@@ -70,7 +70,7 @@ Status: **ready（2026-10-09）**
 
 - [ ] architecture-notes 回流（D-HR-1 衔接形状 + D-HR-2 激活条件 + R-HR-4 typed 边界 + R-HR-5 下沉）
 - [ ] STATUS/TODO/archive 同步；validator 0/0
-- [ ] residuals tracker：F-HR-1..3 fixed；R3 fixed；③a fixed（③b/③c open）；F-HR-2 条件记入
+- [ ] residuals tracker：F-HR-1..3 fixed；R3 fixed；③a fixed（③b/③c open）；F-HR-2 **fixed（通道补齐）+ 激活条件 deferred（默认 true 待 runtime 就绪）**
 
 ## 依赖序图
 

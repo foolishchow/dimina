@@ -9,7 +9,7 @@ Status: **ready（2026-10-09）**
 | P-HR1 | registry 生产消费 | `grep -rn "loaderRegistry\.\(get\|kinds\)" src/`（非零且非测试）+ registry 注册内容单测 | pending |
 | P-HR2 | L_HMR flag 两态 | 单测：默认关 payload == baseline（**baseline = `dev-reload.spec.js` 既有 18 tests 的 L1/L2/L3 语义**，不变）；开 + 增量（stages>0，非限定单 kind——dev-reload.ts:62） → L_HMR + changedStages + affectedPages | pending |
 | P-HR3 | selective 链路级 | 新 spec：两轮 build（priming + invalidate）经 stage-channel 边界；断言 selective/dirty/orderList/字节恒等 | pending |
-| P-HR4 | ctx 断言收敛 | `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` 收敛为 typed 边界消费（result/task 局部窄化不计） | pending |
+| P-HR4 | ctx 断言收敛 | `grep -n "ctx as {" src/compiler/pipeline/stage-channel.ts src/packer/orchestrator.ts` ctx 字段全部经 typed 边界（grep ctx as { 在 ctx 字段集 = 0；result/task 局部窄化不计） | pending |
 | P-HR5 | ③ import 消解 | `grep -n "pipeline/" src/model/invalidation.ts` = 0 | pending |
 | P-HR6 | 行为 0 三件套 | `tsc --noEmit` 0；vitest 全绿；6 项目 one-shot `diff -r` = 0 | pending |
 | P-HR7 | tracker 同步 | 入档（draft 时）：F-HR-1..3 + R3 条件过期 + ③ 两分支；close 时状态更新——两阶段 tracker diff review | pending |

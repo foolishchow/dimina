@@ -52,7 +52,7 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 ## §5 小修设计
 
 - **R3 类型收敛**：stage ctx 单一接口（建议 `model/` 或 `packer/types.ts` 声明 `StageChannelContext`），`stage-channel.ts:49` / `orchestrator.ts:187` 消费点删结构断言改 typed 引用。纯类型改动（erased at runtime）——行为 0 天然。
-- **③ 下沉**：`COMPILE_STAGE_ORDER` 迁 `model/`（invalidation 是唯一 model 消费者；compile-target re-export 保兼容或更新全消费点——倾向后者，消费点少）。
+- **③ 下沉**：`COMPILE_STAGE_ORDER` 定义点迁 `model/`（消费点：invalidation.ts + compile-stages.ts + compile-target 内部；全消费点 import 更新）。
 
 ## §6 规模评估
 

@@ -25,13 +25,13 @@ HMR-compiler 伞（H1-H4 + 全部 Phase 2）收口后，复盘核实"交付"的�
 `enableHmr` 有生产设值点（非默认参数孤立存在）；激活策略由 D-HR-2 锁；默认态安全（未显式激活时 reload 行为与今日一致）；与 D-PUSH-2 locked 决策的差距消除或书面 re-lock。
 
 ### R-HR-3（MUST）— selective watch 链路级验证
-测试覆盖真实生产链（至少 stage-channel → worker → compileML 边界，层级由 D-HR-3 锁）：(a) selective 分支真实触发；(b) pageBundles 只含 dirty 子集 + orderList 全量；(c) selective 产物与全量重编字节恒等。
+测试覆盖真实生产链（至少 stage-channel → worker → compileML 边界，层级由 D-HR-3 锁）：(a) selective 分支真实触发；(b) pageBundles 只含 dirty 子集 + orderList 全量；(c) selective pageBundles（dirty 子集 + cached clean 经 orderList 组装）与全量重编 pageBundles 字节恒等。
 
 ### R-HR-4（MUST）— R3 ctx 类型收敛
 `stage-channel.ts` / `orchestrator.ts` 的 **ctx 字段断言**（`ctx as { viewCache? }` 等 ~14 字段跨 2 文件多处）收敛为单一 typed 边界（`StageChannelContext` 类型声明一处，消费点窄化）。**范围限定 ctx 字段集**——`result as`/`task as`/`loadBindings as` 等局部窄化不在内（非边界 typing）。cache 三套结构统一**不在**本项（见 Non-scope）。
 
 ### R-HR-5（MUST）— COMPILE_STAGE_ORDER 下沉
-`model/invalidation.ts:69` 不再 import `compiler/pipeline/*`——常量迁 model 或 shared（消费点同步）。**③ 含两分支**：`invalidation.ts:69`（COMPILE_STAGE_ORDER——本项消解）+ `model/compile-cache.ts:5`（`getCompileStagesForFiles`——**记 residual，非本项**：stage 概念归位依赖 registry dispatch 深化，D-HR-1 后续门评）。
+`COMPILE_STAGE_ORDER` 定义点迁 model 或 shared（`compile-target.ts:21` 定义 → model）；全消费点 import 更新（`invalidation.ts:69` + `compile-stages.ts:1`；`compile-target.ts` 内部引用同步）。**③ 含两分支**：`invalidation.ts:69` + `compile-cache.ts:5`（`getCompileStagesForFiles`——**记 residual，非本项**：stage 概念归位依赖 registry dispatch 深化，D-HR-1 后续门评）。
 
 ### R-HR-6（MUST）— 行为 0
 one-shot 6 项目 diff=0 + tsc 0 errors + vitest 全绿。registry 接线 / L_HMR 通道默认态均不得改变 one-shot 产物字节。
