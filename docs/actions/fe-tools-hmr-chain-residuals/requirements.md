@@ -31,13 +31,13 @@ HMR-compiler 伞（H1-H4 + 全部 Phase 2）收口后，复盘核实"交付"的�
 `stage-channel.ts:49` / `orchestrator.ts:187` 结构断言（`ctx as { viewCache? }` 等）收敛为单一 typed 边界（类型声明一处，消费点窄化）。cache 三套结构统一**不在**本项（见 Non-scope）。
 
 ### R-HR-5（MUST）— COMPILE_STAGE_ORDER 下沉
-`model/invalidation.ts:69` 不再 import `compiler/pipeline/*`——常量迁 model 或 shared（消费点同步），③ 缺口消解。
+`model/invalidation.ts:69` 不再 import `compiler/pipeline/*`——常量迁 model 或 shared（消费点同步）。**③ 含两分支**：`invalidation.ts:69`（COMPILE_STAGE_ORDER——本项消解）+ `model/compile-cache.ts:5`（`getCompileStagesForFiles`——**记 residual，非本项**：stage 概念归位依赖 registry dispatch 深化，D-HR-1 后续门评）。
 
 ### R-HR-6（MUST）— 行为 0
 one-shot 6 项目 diff=0 + tsc 0 errors + vitest 全绿。registry 接线 / L_HMR 通道默认态均不得改变 one-shot 产物字节。
 
 ### R-HR-7（SHOULD）— residuals tracker 同步
-F-HR-1..3 入档（编号/状态/位置）；R3 更新为 fixed（或重新接受并注明新条件）；③ 记消解。
+**入档（draft 时即做）**：F-HR-1..3 进 tracker（open）；R3 注条件过期；③ 两分支入档（invalidation 分支本 Action 消解 / compile-cache 分支 residual）。**状态更新（close 时）**：消解项置 fixed + 证据链接。
 
 ## Constraints
 

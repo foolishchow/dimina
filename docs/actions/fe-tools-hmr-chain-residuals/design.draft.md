@@ -25,7 +25,7 @@ Status: **draft（2026-10-09）**
 
 **推荐 B**：与 D-REG-1 渐进先例一致（每次接线一个域、非双路径）；load 是三段中最薄（发现+依赖写图），worker 编译主流不动。C/E 注册是"代码在"档提升，dispatch 留给下个门。
 
-**待 formalize 详评**：Loader 接口与 storeInfo graph reconcile 的衔接点（loader 写图 vs storeInfo 写图的唯一权威——PS2 约束）。
+**待 formalize 详评**：① Loader 接口与 storeInfo graph reconcile 的衔接点（loader 写图 vs storeInfo 写图的唯一权威——PS2 约束）；② **view/style Loader 形状适配**——viewLoadModule 虽 per-module 可调（H2 Phase 2 基座），但 wxs 聚合/继承上下文与 Loader 接口语义的边界（logicLoader 是整段包装，view 是逐模块函数——两种形状共存于一 registry 的接口一致性）。
 
 ## §3 D-HR-2：L_HMR 激活策略（design gate）
 
@@ -37,7 +37,7 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 | **b flag-gated** | env/CLI flag（如 `DMCC_HMR=1` / `--hmr`），preview-adapter 读 flag 传 `enableHmr`；默认关（行为 = 今日） | S；激活通道真实存在 + 默认安全；与 locked 决策的差距书面 re-lock 为"flag 默认关，runtime 就绪后翻默认" |
 | **c 保持未接线** | 只文档化激活动作 | 零风险但 R-HR-2 不满足（无生产设值点） |
 
-**推荐 b**：激活通道存在（接线档位补齐）+ 默认字节/行为恒等；D-PUSH-2 的完整兑现（默认 true）挂在 runtime 就绪条件上，tracker 记激活条件。
+**推荐 b**：激活通道存在（接线档位补齐）+ 默认字节/行为恒等；D-PUSH-2 的完整兑现（默认 true）挂在 runtime 就绪条件上，tracker 记激活条件。**回退**：flag 关即回今日行为（无状态残留——flag 只影响 synthesizeReloadLevel 入参）。
 
 ## §4 D-HR-3：selective 验证层级（design gate）
 
@@ -61,8 +61,8 @@ D-PUSH-2 locked 选项②要求编译侧发 L_HMR、runtime 自降 L1。当前 p
 | D-HR-1 选项 B | M | load 接线 + 3 Loader 注册 + C/E 注册 |
 | D-HR-2 选项 b | S | flag 透传 preview-adapter |
 | D-HR-3 边界级测试 | S-M | 测试编排 + 字节恒等断言 |
-| R3 + ③ | S | 类型 + 常量迁移 |
-| **合计** | **M** | 单 Action 可承载（切法 2 用户已选） |
+| R3 + ③ | M | 类型（ctx 字段集 ~14 跨 2 文件，实证 R2 上调）+ 常量迁移 |
+| **合计** | **M** | 单 Action 可承载（切法 2 用户已选）；R3 规模实证上调（S→M） |
 
 依赖序：③（独立）∥ R3（独立）→ D-HR-2 → D-HR-3；D-HR-1 最大可并行先行。
 
