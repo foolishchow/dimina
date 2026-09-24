@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-packer-directory-convergence
 
-Status: **draft（2026-10-09）**
+Status: **ready（formalize locked 2026-10-09）**
 
 ## §1 问题诊断（来自 [retrospect](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）
 
@@ -28,9 +28,9 @@ Status: **draft（2026-10-09）**
 2. **D/C 重构缺干净素材**：D（collaborator 抽取）/ C（aspect）从散落 4 处拼凑，blast radius 不可控
 3. **北星 6 组件无物理落地**：types.ts 声明 6 组件，目录结构未对应——类型层是文档，物理结构是现实
 
-## §2 设计门（draft 提议，formalize 锁定）
+## §2 设计门（**formalize locked 2026-10-09**；D-DC-1..5 锁定）
 
-### D-DC-1 — 子目录 mirror 北星 6 组件形状
+### D-DC-1 — 子目录 mirror 北星 6 组件形状（locked）
 
 子目录结构对应 packer README "6 组件形状" + 支撑结构：
 
@@ -48,7 +48,7 @@ Status: **draft（2026-10-09）**
 
 顶层留：`types.ts`（北星形状）+ `orchestrator.ts`（PackerOrchestrator）+ `README.md`
 
-### D-DC-2 — 纯搬迁红线（无逻辑改）
+### D-DC-2 — 纯搬迁红线（无逻辑改）（locked）
 
 **红线**：本 Action 只做文件位置搬迁 + import 路径改写。函数体、逻辑、类型签名**不动**。**文件拆分允许** IF 函数体逐字搬迁（无合并/改签名）——`registry.ts → dispatch.ts + lce.ts` 是结构归位非逻辑改。验证：
 - tsc 0（路径改写后类型检查）
@@ -57,7 +57,7 @@ Status: **draft（2026-10-09）**
 
 **禁止**：借机重构函数体 / 改类型 / 抽 collaborator / 抽 aspect（那是 D/C 轮）。若搬迁中发现需重构，记入 tracker residual，不在本 Action 做。
 
-### D-DC-3 — 分批搬迁序（按依赖序 + 每批行为 0 gate）
+### D-DC-3 — 分批搬迁序（按依赖序 + 每批行为 0 gate）（locked）
 
 按子目录依赖序（底层先行），每批 tsc + vitest + 6 项目 diff 行为 0 gate：
 
@@ -73,13 +73,13 @@ Status: **draft（2026-10-09）**
 
 **⚠️ 原子性红线（stateful module 搬迁）**：env.ts / compatibility.ts / renderers.ts 含 module-level mutable state——**dual-instance 陷阱**：每批搬此类文件须**单 commit 原子**完成（① 更新全 static import 路径 ② 更新全 dynamic `import('...')` 字符串路径 ③ 删旧文件），不留中间态。旧文件若残留 + 新旧路径并存 → ESM 双实例 → ALS state 隔离 → 行为破（vitest 会 catch 但须 prevent）。验：`grep -rn "compiler/core/env" src/ __tests__/` = 0（旧路径全清）。
 
-### D-DC-4 — packer→compiler 跨域依赖保留
+### D-DC-4 — packer→compiler 跨域依赖保留（locked）
 
 搬迁后 `compiler/logic|view|style/` 仍 import `packer/store/env.ts` 等——**这是真依赖**（domain 用 I/O 环境 + graph + worker），非散落。packer 提供 I/O 给 compiler 域消费，**方向正确**（packer→compiler 单向）。保留，不消除。
 
 **验证方向**：`grep -rn "from '.*packer/" src/compiler/logic src/compiler/view src/compiler/style` 非零且方向单向（packer→compiler）。反向（compiler→packer 内部非 I/O）须消除。
 
-### D-DC-5 — compiler per-kind 子结构不动
+### D-DC-5 — compiler per-kind 子结构不动（locked）
 
 本 Action 只收敛 packer 域 + 解体 `compiler/core/`。`compiler/logic|view|style/` 内部子结构调整（parse-walk 拆分 / registry-impl 形状等）**不在本 Action**——留待后续（D/C 轮或独立 Action）。
 
@@ -126,7 +126,7 @@ Status: **draft（2026-10-09）**
 | `packer/pipeline/build-pipeline.ts` | `compiler/pipeline/build-pipeline.ts` | stage 编排（live，4 导入方） |
 | `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（stage 编排支撑） |
 | `packer/aspect/compatibility.ts` | `compiler/core/compatibility.ts` | C 轮 home |
-| `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（2/3 消费者在 pipeline；③a 消费者 invalidation 在 cache——formalize 可评改 cache/） |
+| `packer/pipeline/stage-order.ts` | `model/stage-order.ts` | COMPILE_STAGE_ORDER 常量（**formalize 锁**：放 pipeline/ 非 cache/——2/3 消费者在 pipeline + 概念属 stage 编排 + 最小跨子目录 import=1 vs cache/ 的 2） |
 
 ### 3.2 compiler/core/ 解体
 

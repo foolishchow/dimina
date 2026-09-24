@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-packer-directory-convergence
 
-Status: **draft（2026-10-09）**
+Status: **ready（formalize locked 2026-10-09）**
 
 ## Acceptance（实施后填实）
 
