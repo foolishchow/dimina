@@ -59,4 +59,4 @@ D-SM-4 / D-CN-4 显式记录："per-module 保留模块间 `\n`，aggregated 删
 - 单一 minify 路径（无 dual-path + 无 `isDiffVerifyMode` + 无 env var）
 - 6 项目 production 路径 diff=0 对 baseline
 - verify 脚本不再设 env
-- D-SM-4/D-CN-4 Non-scope 反转记入 architecture-notes
+- D-SM-4/D-CN-4 Non-scope 反转 + 若选方案 A 的 D-SM-2/D-CN-1/D-CN-3 迁移反转 记入 architecture-notes

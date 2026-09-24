@@ -33,14 +33,14 @@ Status: **draft（2026-10-09）**
 | `__tests__/view-style-cache-skip.spec.js` integration（**committed**） | 删 `:160` setEnv + `:164` deleteEnv（afterEach 仅留 fs cleanup） | pending |
 | `__tests__/style-sourcemap.spec.js`（**committed**，不设 env——现测 production cssnano aggregated） | 方案 A 后 cssnano 统一 parse-walk per-module → 输出变 → empirical 验 token-offset 断言是否破；若破则更新期望 | pending |
 
-## Step 4 — 验证（P-SMPU-1..6）
+## Step 4 — 验证（P-SMPU1..6）
 
-- [ ] P-SMPU-1 代码审阅（dual-path 全删 + 单一路径 + 无 `isDiffVerifyMode` 残留）
-- [ ] P-SMPU-2 grep `DIMINA_COMPILER_DIFF_VERIFY` + `isDiffVerifyMode` 全 src/_tests 0 引用
-- [ ] P-SMPU-3 行为 0 production 路径：6 项目 diff=0（**不设 env**，验 production 真实路径）
-- [ ] P-SMPU-4 tsc 0 errors + vitest 全绿
-- [ ] P-SMPU-5 V-PC-5（changed files 0 `as any` / 0 索引签名新增）
-- [ ] P-SMPU-6 cssnano sourcemap=true 路径回归（style-sourcemap.spec.js pass）
+- [ ] P-SMPU1 代码审阅（dual-path 全删 + 单一路径 + 无 `isDiffVerifyMode` 残留）
+- [ ] P-SMPU2 grep `DIMINA_COMPILER_DIFF_VERIFY` + `isDiffVerifyMode` 全 src/_tests 0 引用
+- [ ] P-SMPU3 行为 0 production 路径：6 项目 diff=0（**不设 env**，验 production 真实路径）
+- [ ] P-SMPU4 tsc 0 errors + vitest 全绿
+- [ ] P-SMPU5 V-PC-5（changed files 0 `as any` / 0 索引签名新增）
+- [ ] P-SMPU6 cssnano sourcemap=true 路径回归（style-sourcemap.spec.js pass）
 
 ## Step 5 — 回流
 
