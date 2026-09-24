@@ -1,6 +1,6 @@
 # Validation — fe-tools-style-minify-path-unify
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## 验证方法
 

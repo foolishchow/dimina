@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-style-minify-path-unify
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## A-SMPU1 — 统一 minify 路径（R-SMPU-1, D-SMPU-1/2）
 
@@ -23,7 +23,7 @@ Status: **draft（2026-10-09）**
 
 ## A-SMPU4 — 反转 Non-scope + bridge 迁移反转（R-SMPU-4）
 
-- [ ] architecture-notes SMPU 条目记：① D-SM-4/D-CN-4 "Non-scope 不要求字节一致" 反转——字节一致为要求；② 若选方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）均反转——canonical 回 parse-walk
+- [ ] architecture-notes SMPU 条目记：① D-SM-4/D-CN-4 "Non-scope 不要求字节一致" 反转——字节一致为要求；② 方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）均反转——canonical 回 parse-walk
 
 ## A-SMPU5 — 行为 0 production 路径（R-SMPU-5）
 
@@ -41,8 +41,8 @@ Status: **draft（2026-10-09）**
 
 - CSS minify 算法 / cssnano 配置参数（不改）
 - logic / view minify（已在 emit 且无 dual-path）
-- D-SM-2 迁移目标（若选方案 A，esbuild minify 归 emit 的迁移放弃——load/compile 拆时重做；architecture-notes 记）
-- D-CN-1/D-CN-3（若选方案 A，cssnano 正本/canonical 归 emit 反转——cssnano 回 parse-walk per-module；canonical 在 load/compile 拆时重定）
+- D-SM-2 迁移目标（方案 A，esbuild minify 归 emit 的迁移放弃——load/compile 拆时重做；architecture-notes 记）
+- D-CN-1/D-CN-3（方案 A，cssnano 正本/canonical 归 emit 反转——cssnano 回 parse-walk per-module；canonical 在 load/compile 拆时重定）
 - HMR / load-compile 拆 / deriveFromGraph 接入（后续门）
 - 重写 style-minify-gate / style-cssnano-gate 归档文档（immutable，architecture-notes bridge）
 
@@ -50,4 +50,4 @@ Status: **draft（2026-10-09）**
 
 - R-SMPU-1..6 ↔ A-SMPU1..6 ↔ P-SMPU1..6（implementation-plan Step 4）
 - 反转 D-SM-4（style-minify-gate）+ D-CN-4（style-cssnano-gate）Non-scope → architecture-notes bridge
-- 若选方案 A：bridge D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）反转 → canonical 回 parse-walk
+- 方案 A：bridge D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano canonical in emit）反转 → canonical 回 parse-walk

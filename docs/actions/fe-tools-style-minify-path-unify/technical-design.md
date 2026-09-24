@@ -1,6 +1,6 @@
 # Technical Design — fe-tools-style-minify-path-unify
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## §1 现状（dual-path 代码位置）
 
@@ -44,7 +44,7 @@ parse-walk per `buildCompileCss` 调用 = **per-module** minify（每个模块�
 
 production 路径须 == baseline（per-module minify + `\n` 保留）。D-SM-4/D-CN-4 的"Non-scope 不要求字节一致"反转。
 
-### D-SMPU-2: 统一路径选 A 还是 B（**design gate 待定**）
+### D-SMPU-2: 统一路径选 A 还是 B（**locked: 方案 A**）
 
 > **`\n` 保留机制**（empirically confirmed）：esbuild `minifyCss` 输出尾部带 `\n`（实测 `.a{color:red}\n`）。parse-walk `buildCompileCss` per-module minify 后 `.join('')`（:416）——模块间 `\n` 来自各模块 minified code 尾部 `\n`，**非显式 `.join('\\n')`**。这是脆弱不变式：若 esbuild/cssnano 改尾部 `\n` 行为，`\n` 保留破。方案 A/B 均依赖此机制。
 
@@ -80,7 +80,7 @@ if (options.minify && !sourcemap) {
 - ❌ 改动大（parse-walk join 逻辑 + emitStyle 输入 + cssnano per-module 在 emit + map 合并）
 - ⚠️ **style-sourcemap.spec.js 同样受影响**（B 也改 cssnano aggregated→per-module，输出变 → token-offset 断言 likely 破，同 A）——该影响 A/B 共享，非 A-specific
 
-**推荐 A**（最小改动 + 字节恒等已证 + 接受放弃 D-SM-2 迁移——emit 统一 minify 策略在 load/compile 拆时再做）。design gate 决。
+**locked A**（最小改动 + 字节恒等已证 + 接受放弃 D-SM-2 迁移——emit 统一 minify 策略在 load/compile 拆时再做）。
 
 ### D-SMPU-3: 删 `isDiffVerifyMode` + env var
 
@@ -104,8 +104,8 @@ verify 脚本不再设 env → 直接验 production（emit 或 parse-walk，取�
 ### D-SMPU-1: 字节一致为要求
 反转 D-SM-4/D-CN-4 Non-scope。production == baseline（per-module + `\n`）。
 
-### D-SMPU-2: 路径选 A/B（design gate 待定）
-A（revert，minify 留 parse-walk）vs B（emit per-module）。推荐 A（最小 + 已证恒等）。
+### D-SMPU-2: 路径选 A/B（**locked: A**）
+A（revert，minify 留 parse-walk）vs B（emit per-module）。**locked A**（最小 + 已证恒等）。
 
 ### D-SMPU-3: 删 dual-path + env var
 `isDiffVerifyMode` + `DIMINA_COMPILER_DIFF_VERIFY` + 所有 guards。

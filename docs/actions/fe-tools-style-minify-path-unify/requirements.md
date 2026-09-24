@@ -1,6 +1,6 @@
 # Requirements — fe-tools-style-minify-path-unify
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## 问题
 
@@ -22,7 +22,7 @@ style minify 统一到**单一字节恒等路径**：per-module minify + 保留�
 
 ### R-SMPU-4（MUST）— 反转 D-SM-4/D-CN-4 Non-scope + bridge D-SM-2/D-CN-1/D-CN-3 反转
 
-architecture-notes 记：① D-SM-4/D-CN-4 的"Non-scope 不要求字节一致"反转——字节一致为要求（production == baseline）；② 若选方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano PostCSS in emit canonical）均反转——canonical 回 parse-walk，load/compile 拆时重定。SMPU 条目作 bridge。
+architecture-notes 记：① D-SM-4/D-CN-4 的"Non-scope 不要求字节一致"反转——字节一致为要求（production == baseline）；② 方案 A，D-SM-2（esbuild minify 归 emit）+ D-CN-1（cssnano 正本归 emit）+ D-CN-3（cssnano PostCSS in emit canonical）均反转——canonical 回 parse-walk，load/compile 拆时重定。SMPU 条目作 bridge。
 
 ### R-SMPU-5（MUST）— 行为 0（production 路径）
 

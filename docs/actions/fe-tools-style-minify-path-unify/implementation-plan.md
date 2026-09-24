@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-style-minify-path-unify
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 > 前置：style-minify-gate ✅ + style-cssnano-gate ✅ complete。readiness gap = D-SMPU-2（A/B）需 design gate 决。
 
@@ -44,7 +44,7 @@ Status: **draft（2026-10-09）**
 
 ## Step 5 — 回流
 
-- [ ] architecture-notes：SMPU 条目（① 反转 D-SM-4/D-CN-4 Non-scope 字节一致为要求；② 若选 A，bridge D-SM-2/D-CN-1/D-CN-3 反转 canonical 回 parse-walk；③ 统一路径 + 下线 env var）
+- [ ] architecture-notes：SMPU 条目（① 反转 D-SM-4/D-CN-4 Non-scope 字节一致为要求；② 方案 A，bridge D-SM-2/D-CN-1/D-CN-3 反转 canonical 回 parse-walk；③ 统一路径 + 下线 env var）
 
 ## Step 6 — 归档（Close workflow）
 

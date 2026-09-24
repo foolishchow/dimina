@@ -1,6 +1,6 @@
 # fe-tools-style-minify-path-unify
 
-- Status: `draft`
+- Status: `ready`
 - 前置：[`fe-tools-style-minify-gate`](../_archive/complete/fe-tools-style-minify-gate/README.md)（**complete**；D-SM-1..4 minifyCss esbuild gate `DIMINA_COMPILER_DIFF_VERIFY`）· [`fe-tools-style-cssnano-gate`](../_archive/complete/fe-tools-style-cssnano-gate/README.md)（**complete**；D-CN-1..5 cssnano gate 同开关）
 - 参照：[Experience-Review.md](../../Experience-Review.md) §12 行为 0 全量验证 · [architecture-notes](../../fe-tools/architecture-notes.md)
 
@@ -59,4 +59,4 @@ D-SM-4 / D-CN-4 显式记录："per-module 保留模块间 `\n`，aggregated 删
 - 单一 minify 路径（无 dual-path + 无 `isDiffVerifyMode` + 无 env var）
 - 6 项目 production 路径 diff=0 对 baseline
 - verify 脚本不再设 env
-- D-SM-4/D-CN-4 Non-scope 反转 + 若选方案 A 的 D-SM-2/D-CN-1/D-CN-3 迁移反转 记入 architecture-notes
+- D-SM-4/D-CN-4 Non-scope 反转 + 方案 A 的 D-SM-2/D-CN-1/D-CN-3 迁移反转 记入 architecture-notes
