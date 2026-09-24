@@ -257,8 +257,12 @@ Packer 下一刀（当前 draft）：
 - HMR patch 产物（前置：watch 增量闭环）
 - deriveFromGraph 接入 production（前置：watch 增量 + HMR）
 
-- [`fe-tools-hmr-compiler`](_archive/complete/fe-tools-hmr-compiler/README.md)（**`ready`**）— 编译侧 HMR 伞：load/compile 分离 + deriveFromGraph 接线 + registry 实体化 + per-module HMR push，使 dev server 增量推送（非全量 reload）。前置：增量链 G1-G5+IRC+SMPU complete。Non-scope: runtime HMR API（运行时侧）+ 整包 Packer extraction（已否决）。4 子门预判（H1-H4）；design.draft 规模评估待做。目录 cycle 消解（①②③）为副产品。
+- [`fe-tools-hmr-compiler`](_archive/complete/fe-tools-hmr-compiler/README.md)（**`complete`**）— 编译侧 HMR 伞（H1-H4 全 complete + Phase 2 全交付）：load/compile 分离 + deriveFromGraph 接线 + registry 实体化 + per-module HMR push，使 dev server 增量推送（非全量 reload）。前置：增量链 G1-G5+IRC+SMPU complete。Non-scope: runtime HMR API（运行时侧）+ 整包 Packer extraction（已否决）。4 子门预判（H1-H4）；design.draft 规模评估待做。目录 cycle 消解（①②③）为副产品。
 
 - [`fe-tools-hmr-registry-materialize`](_archive/complete/fe-tools-hmr-registry-materialize/README.md)（**`complete`**）— HMR-compiler H2 子门：emptyRegistry → 实体化（Loader/Compiler/Emitter 替代 compile-target）。D-REG-1/2/3 locked + F-H2-1 viewParseWalk 拆分（规模 L+）。
 - [`fe-tools-hmr-per-module-cache`](_archive/complete/fe-tools-hmr-per-module-cache/README.md)（**`complete`**）— HMR-compiler H3 子门：G5 per-page-bundle → per-module。D-PMC-1 stored order metadata locked（actual probe PASS 3 项目 + vant 4.86x dedup 实证）。
 - [`fe-tools-hmr-push`](_archive/complete/fe-tools-hmr-push/README.md)（**`complete`**）— HMR-compiler H4 子门：dev-reload L_HMR + 增量 payload + materialize 增量化。runtime fallback L1。design.draft 实证待做。
+
+### HMR 血缘 residuals（2026-10-09 · draft 已立项）
+
+- [`fe-tools-hmr-chain-residuals`](fe-tools-hmr-chain-residuals/README.md)（**`draft`**）— 伞 close 后复盘浮出"三档证据分级"（代码/接线/证据）：F-HR-1 loaderRegistry 注册零消费、F-HR-2 enableHmr 无生产设值点（与 D-PUSH-2 locked 不符）、F-HR-3 selective 仅 compileML 直调无链路证据；+ R3（条件过期）+ ③ 下沉。design gates：D-HR-1 接线程度（荐 B 首消费点渐进）、D-HR-2 激活策略（荐 b flag-gated 默认关）、D-HR-3 测试层级（荐 stage-channel 边界级）。
