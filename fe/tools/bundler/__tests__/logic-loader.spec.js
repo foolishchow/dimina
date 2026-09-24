@@ -139,8 +139,11 @@ describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () =>
 		const orch = createPackerOrchestrator()
 		expect(orch.loaderRegistry.get('logic')).toBe(logicLoader)
 		expect(orch.loaderRegistry.kinds()).toContain('logic')
-		// compile/emit registry 仍是 stub（Phase 2b/2c）
-		expect(orch.compileRegistry.get('logic')).toBeUndefined()
-		expect(orch.emitRegistry.get('logic')).toBeUndefined()
+		// D-HR-1（fe-tools-hmr-chain-residuals）：compile/emit registry 实体化（CompileRegistryImpl/EmitRegistryImpl）
+		// ——阶段函数形状适配是后续门，未注册 → get throws（与 LoaderRegistryImpl 一致）
+		expect(() => orch.compileRegistry.get('logic')).toThrow()
+		expect(() => orch.emitRegistry.get('logic')).toThrow()
+		expect(orch.compileRegistry instanceof Object).toBe(true)
+		expect(orch.emitRegistry instanceof Object).toBe(true)
 	})
 })

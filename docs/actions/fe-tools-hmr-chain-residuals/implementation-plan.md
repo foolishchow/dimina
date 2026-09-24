@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-hmr-chain-residuals
 
-Status: **ready（2026-10-09）**
+Status: **in_progress（2026-10-09）**
 
 > 前置：无 readiness blocker（D-HR-1/2/3 locked B/b/边界级）。依赖序：③∥R3 独立 → D-HR-2 → D-HR-3；D-HR-1 最大可并行先行。
 

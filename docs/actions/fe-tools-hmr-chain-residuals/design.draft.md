@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-hmr-chain-residuals
 
-Status: **ready（2026-10-09）**
+Status: **in_progress（2026-10-09）**
 
 ## §1 实证：三档证据分级（2026-10-09 复盘核实）
 

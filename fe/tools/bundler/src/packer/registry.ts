@@ -20,7 +20,7 @@ import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from '../compiler/
 import { viewEngine } from '../compiler/view/index.ts'
 import { logicEngine } from '../compiler/logic/index.ts'
 import { styleEngine } from '../compiler/style/index.ts'
-import type { Loader, LoaderRegistry, ModuleKind } from './types.ts'
+import type { Loader, LoaderRegistry, CompileRegistry, EmitRegistry, Compiler, Emitter, ModuleKind } from './types.ts'
 
 // Engine 类型——defineEngine 返回值（三车道 union）
 type Engine = typeof viewEngine | typeof logicEngine | typeof styleEngine
@@ -92,6 +92,40 @@ export class LoaderRegistryImpl implements LoaderRegistry {
 
 	kinds(): ModuleKind[] {
 		return [...this.loaders.keys()]
+	}
+}
+
+// ── CompileRegistry / EmitRegistry 实体化（D-HR-1：阶段函数注册基座）──
+// 阶段函数（compileModuleRender / styleCompile / viewEmit / styleEmit）签名需
+// page/继承上下文，不直接 fit Compiler/Emitter 单 module 接口——形状适配
+// 是后续门（types.ts 接口演进）。本 registry 实体化满足"非空"档位，
+// dispatch 未接线（compile/emit 维持 worker 路径，D-HR-1 locked B）。
+
+export class CompileRegistryImpl implements CompileRegistry {
+	private compilers = new Map<ModuleKind, Compiler>()
+
+	register(kind: ModuleKind, compiler: Compiler): void {
+		this.compilers.set(kind, compiler)
+	}
+
+	get(kind: ModuleKind): Compiler {
+		const c = this.compilers.get(kind)
+		if (!c) throw new Error(`[registry] no Compiler registered for kind: ${kind}`)
+		return c
+	}
+}
+
+export class EmitRegistryImpl implements EmitRegistry {
+	private emitters = new Map<ModuleKind, Emitter>()
+
+	register(kind: ModuleKind, emitter: Emitter): void {
+		this.emitters.set(kind, emitter)
+	}
+
+	get(kind: ModuleKind): Emitter {
+		const e = this.emitters.get(kind)
+		if (!e) throw new Error(`[registry] no Emitter registered for kind: ${kind}`)
+		return e
 	}
 }
 

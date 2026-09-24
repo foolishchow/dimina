@@ -1,7 +1,7 @@
 # FE Tools HMR Chain Residuals
 
 - Action: `fe-tools-hmr-chain-residuals`
-- Status: `ready`
+- Status: `in_progress`
 - Updated: 2026-10-09
 - 设计门：D-HR-1 **locked B** / D-HR-2 **locked b** / D-HR-3 **locked stage-channel 边界级**（2026-10-09 formalize 锁定）
 - Status authority: [Action Status](../STATUS.md)

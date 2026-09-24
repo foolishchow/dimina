@@ -72,6 +72,7 @@ export interface DevOpts {
 	previewAdapter?: ReturnType<typeof createWebPreviewAdapter>
 	onError?: (error: Error) => void
 	onRebuild?: (ctx: Record<string, unknown>) => void
+	hmr?: boolean
 }
 
 /**
@@ -214,6 +215,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 				previewAdapter,
 				onError,
 				onRebuild,
+				hmr,
 				...unknown
 			} = devOpts
 			const unknownKeys = Object.keys(unknown)
@@ -221,7 +223,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 				throw new TypeError(`dev opts: unknown keys ${unknownKeys.join(', ')}`)
 			}
 
-			const adapter = previewAdapter ?? createWebPreviewAdapter()
+			const adapter = previewAdapter ?? createWebPreviewAdapter({ hmr: hmr ?? false })
 
 			const watcher = session.watch({
 				autoListen: false,

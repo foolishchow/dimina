@@ -1,4 +1,4 @@
-import { COMPILE_STAGE_ORDER } from './compile-target.ts'
+import { COMPILE_STAGE_ORDER } from '../../model/stage-order.ts'
 
 const COMPILE_STAGE_SET = new Set(COMPILE_STAGE_ORDER)
 

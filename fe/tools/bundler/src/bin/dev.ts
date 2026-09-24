@@ -68,6 +68,7 @@ export function registerDevCommand(program: Command): void {
 						// build:error 已由 lifecycle 监听推送；此处仅记录诊断（R-006：服务不退出）
 						console.error(`${workPath} 编译出错: ${error.message}`)
 					},
+					hmr: !!options.hmr || !!process.env.DMCC_HMR,
 				})
 			}
 			catch (error) {

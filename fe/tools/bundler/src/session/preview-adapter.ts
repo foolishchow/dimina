@@ -21,11 +21,12 @@ import { resolveSdkRoot } from '../dev/sdk-root.ts'
 type DevServerHandle = ReturnType<typeof createDevServer>
 export interface ReloadContext { event: string; filePath: string; count: number; plan: { skip: boolean; incremental: boolean; options: { stages?: string[]; affectedEntries?: string[] } }; appId: string }
 
-export function createWebPreviewAdapter() {
-	const state: { devServer: DevServerHandle | undefined; buildIdCounter: number } = {
+export function createWebPreviewAdapter({ hmr = false }: { hmr?: boolean } = {}) {
+	const state: { devServer: DevServerHandle | undefined; buildIdCounter: number; hmr: boolean } = {
 		/** @type {ReturnType<typeof createDevServer> | undefined} */
 		devServer: undefined,
 		buildIdCounter: 0,
+		hmr,
 	}
 
 	return {
@@ -43,6 +44,7 @@ export function createWebPreviewAdapter() {
 			const payload = synthesizeReloadLevel({
 				...watchCtx,
 				buildId: ++state.buildIdCounter,
+				enableHmr: state.hmr,
 			})
 			state.devServer.setPendingReload(payload)
 		},

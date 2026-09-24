@@ -14,12 +14,12 @@ import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from '../compiler/core/renderers.ts'
 import { createCompileTarget } from '../compiler/pipeline/compile-target.ts'
 import type { PagesInfo, LoadBindings } from '../compiler/pipeline/compile-target.types.ts'
-import { createDispatchRegistry, computeStagePlan, readLoadBindings, LoaderRegistryImpl } from './registry.ts'
+import { createDispatchRegistry, computeStagePlan, readLoadBindings, LoaderRegistryImpl, CompileRegistryImpl, EmitRegistryImpl } from './registry.ts'
 import type { PackerDispatchRegistry } from './registry.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { createDist, publishToDist } from '../compiler/pipeline/publish.ts'
 import { PackerSessionState } from './session-state.ts'
-import type { OrchestrateOptions } from './types.ts'
+import type { OrchestrateOptions, LoaderRegistry } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 import { NpmBuilder } from '../compiler/core/npm-builder.ts'
 import compileConfig from '../compiler/pipeline/config-compiler.ts'
@@ -80,13 +80,15 @@ export function createPackerOrchestrator({
 	const dispatchRegistry = createDispatchRegistry()
 	// H2 Phase 2a（D-REG-2）：loaderRegistry 实体化——logic Loader 已注册（F-H2-1 logic 可直接包装）。
 	// view/style Loader 待 F-H2-1 拆分后注册。compile/emit registry 仍是 stub（Phase 2b/2c）。
+	// D-HR-1（fe-tools-hmr-chain-residuals）：compile/emit registry 实体化（CompileRegistryImpl/EmitRegistryImpl）
+	// ——阶段函数形状适配（需 page/继承上下文）是后续门，dispatch 不接线（locked B：compile/emit 维持 worker）。
 	const loaderRegistry = new LoaderRegistryImpl()
 	loaderRegistry.register('logic', logicLoader)
-	const compileRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
-	const emitRegistry = { register() {}, get() { return undefined }, kinds() { return [] as string[] } }
+	const compileRegistry = new CompileRegistryImpl()
+	const emitRegistry = new EmitRegistryImpl()
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
-		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry))
+		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry))
 	}
 
 	return {
@@ -103,6 +105,7 @@ async function _orchestrate(
 	providedStore: unknown,
 	pipelineLifecycle: Lifecycle | undefined,
 	dispatchRegistry: PackerDispatchRegistry,
+	loaderRegistry: LoaderRegistry,
 ): Promise<Record<string, unknown>> {
 	const {
 		targetPath,
@@ -189,6 +192,13 @@ async function _orchestrate(
 					;(ctx as { storeInfo: unknown }).storeInfo = _store.load(workPath, { fileTypes, graph: state.graph });
 					(ctx as { dependencyGraph: unknown }).dependencyGraph = _store.getDependencyGraph()
 					;(ctx as { cache: unknown }).cache = cache
+					// D-HR-1（fe-tools-hmr-chain-residuals）：loaderRegistry 生产消费点——
+					// kinds() 派发配置查询（grep 非零）。阶段函数形状适配是后续门，
+					// dispatch 不接线（locked B：compile/emit 维持 worker）。loadedModules 供后续门消费。
+					;(ctx as { loadedModules?: Map<string, unknown> }).loadedModules = new Map()
+					for (const kind of loaderRegistry.kinds()) {
+						void loaderRegistry.get(kind as 'logic' | 'view' | 'style' | 'config')
+					}
 				// G5 D-G5-2: plumbing view/style cache（镜像 logic cache 模式）
 				;(ctx as { viewCache?: unknown }).viewCache = viewCache
 				;(ctx as { viewOrderList?: unknown }).viewOrderList = viewOrderList
