@@ -94,10 +94,6 @@ export async function runCompileStage({ script, ctx, task, options = {}, lifecyc
 		}
 	}
 
-	// D-ER-3：logic 阶段存 emitBuckets 到 ctx（供 3.5 task 按桶发 emit-worker）
-	if ((result as { emitBuckets?: unknown }).emitBuckets) {
-		(ctx as { emitBuckets?: unknown }).emitBuckets = (result as { emitBuckets?: unknown }).emitBuckets
-	}
 
 	if (process.stdout.isTTY && (totalTasks as number) > 0) {
 		task.output = formatCompileProgress(totalTasks as number, totalTasks as number)

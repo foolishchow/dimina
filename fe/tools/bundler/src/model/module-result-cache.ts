@@ -34,6 +34,11 @@ export class ModuleResultCache {
 		this.map.delete(moduleId)
 	}
 
+	/** 有序迭代（B2: cache 插入序——deriveFromGraph 按此序派生保字节一致）。 */
+	entries(): IterableIterator<[string, CachedModuleResult]> {
+		return this.map.entries()
+	}
+
 	clear(dirtyIds: Iterable<string>): void {
 		for (const id of dirtyIds) {
 			this.map.delete(id)

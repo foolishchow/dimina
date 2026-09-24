@@ -26,6 +26,7 @@ import { emitEngine } from '../compiler/pipeline/emit-engine.ts'
 import { runCompileStage } from '../compiler/pipeline/stage-channel.ts'
 import { BuildModel, materialize } from '../model/build-model.ts'
 import { createProjectStore } from '../model/project-store.ts'
+import { deriveLogicBuckets } from '../model/convergence.ts'
 
 interface RendererAdapter {
 	runViewStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
@@ -265,27 +266,31 @@ async function _orchestrate(
 			{
 				title: 'Logic emit',
 				task: async (ctx: Record<string, unknown>) => {
-					const emitBuckets = (ctx as { emitBuckets?: { main: Array<{ path: string; code: string; map?: string | null; extraInfoCode?: string }>; subs: { root: string; modules: Array<{ path: string; code: string; map?: string | null; extraInfoCode?: string }> }[] } }).emitBuckets
-					if (!emitBuckets) return
+					// H1 (D-ED-1 B2+E): deriveFromGraph 接线 — graph + cache 派生 logic emit buckets (非 ctx.emitBuckets)
+					const pages = (ctx as { pages?: PagesInfo }).pages
+					const compileConfigOpts = (ctx as { compileConfig?: { minify: boolean; esTarget: { logic: string } } }).compileConfig
+					if (!pages || !compileConfigOpts) return  // logic stage 未跑（partial-stage）→ skip emit
 					const buildModel = ctx.buildModel as BuildModel
 					const storeInfo = ctx.storeInfo
-					const compileConfigOpts = (ctx as { compileConfig?: { minify: boolean; esTarget: { logic: string } } }).compileConfig!
 					const sourcemap = !!(ctx as { sourcemap?: boolean }).sourcemap
 					const sourcemapTargetPath = (ctx as { sourcemapTargetPath?: string }).sourcemapTargetPath!
-					const toEmitModule = (m: { path: string; code: string; map?: string | null; extraInfoCode?: string }) => ({
-						moduleId: m.path, code: m.code, map: m.map || null, extraInfoCode: m.extraInfoCode,
-					})
 					const transform = { strategy: 'perModule', minify: compileConfigOpts.minify, target: compileConfigOpts.esTarget.logic, platform: 'neutral' }
+					// B2+E: graph closure union → cache 插入序迭代 → cross-bucket dedup
+					const innerGraph = state.graph.getInnerGraph()
+					const mainEntryIds = pages.mainPages.map(p => p.path)
+					const subBuckets = (Object.entries(pages.subPages ?? {}) as [string, { info: { path: string }[] }][])
+						.map(([root, sub]) => ({ root, entryIds: sub.info.map(p => p.path) }))
+					const { main, subs } = deriveLogicBuckets(innerGraph, state.moduleCache, mainEntryIds, subBuckets)
 					try {
-						for (const { root, modules } of emitBuckets.subs) {
+						for (const { root, modules } of subs) {
 							const { entry } = await executeTask({ engine: emitEngine, input: {
-								entryId: 'logic:' + root, kind: 'logic' as const, modules: modules.map(toEmitModule),
+								entryId: 'logic:' + root, kind: 'logic' as const, modules,
 								transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: root, storeInfo,
 							} }) as { entry: Parameters<typeof buildModel.add>[0] }
 							buildModel.add(entry)
 						}
 						const { entry } = await executeTask({ engine: emitEngine, input: {
-							entryId: 'logic', kind: 'logic' as const, modules: emitBuckets.main.map(toEmitModule),
+							entryId: 'logic', kind: 'logic' as const, modules: main,
 							transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: 'main', storeInfo,
 						} }) as { entry: Parameters<typeof buildModel.add>[0] }
 						buildModel.add(entry)

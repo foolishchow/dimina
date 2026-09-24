@@ -271,7 +271,7 @@ function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minif
 		},
 	}
 }
-async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ emitBuckets: { main: CompileInfo[], subs: { root: string, modules: CompileInfo[] }[] }, compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
+async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
 	resetStoreInfo((msg as { storeInfo: Parameters<typeof resetStoreInfo>[0] }).storeInfo)
 	enableSourcemap = !!(msg as { sourcemap?: boolean }).sourcemap
 	activeCompileConfig = config as ActiveCompileConfig
@@ -294,7 +294,7 @@ async function logicCompile({ msg, progress, config }: CompileOptions): Promise<
 	const compileRes = [...mainCompileRes, ...subs.flatMap(s => s.modules)]  // 循环后拼（修早快照漏 putMain）
 
 	processedModules.clear()
-	return { emitBuckets: { main: mainCompileRes, subs }, compileRes, logicDependencies }
+	return { compileRes, logicDependencies }
 }
 function logicSuccessPayload({ logger }: { logger: { warn: (msg: string) => void; flush: () => string[] } }): Record<string, unknown> {
 	return {

@@ -6,11 +6,11 @@ Status: **ready（2026-10-09）**
 
 | ID | Requirement | Observable condition | Planned evidence | Status |
 | --- | --- | --- | --- | --- |
-| A-ED1 | R-ED-1 deriveFromGraph 接线 | orchestrator Logic emit task 调 deriveFromGraph（非 ctx.emitBuckets） | grep orchestrator: deriveFromGraph; 0 emitBuckets 读取 | pending |
-| A-ED2 | R-ED-2 entry 映射 | main bucket = app + main pages union 闭包；subs = root 下页 union 闭包；序一致 | 实证 cache 序 == emitBuckets 序 + 集一致 | pending |
-| A-ED3 | R-ED-3 行为 0 | one-shot 6 项目 diff=0 + tsc 0 + vitest 全绿 | diff -r baseline == 0; tsc 0; vitest pass | pending |
-| A-ED4 | R-ED-4 logic-only | view/style emit 不动（emitEntry/emitStyle 不变） | grep view/style emit 0 改动 | pending |
-| A-ED5 | R-ED-5 emitBuckets 移除 | logicCompile 不返 emitBuckets；stage-channel 不存；orchestrator 不读 | grep emitBuckets 0 src 残留 | pending |
+| A-ED1 | R-ED-1 deriveFromGraph 接线 | orchestrator Logic emit task 调 deriveFromGraph（非 ctx.emitBuckets） | grep orchestrator: deriveFromGraph; 0 emitBuckets 读取 | done |
+| A-ED2 | R-ED-2 entry 映射 | main bucket = app + main pages union 闭包；subs = root 下页 union 闭包；序一致 | 实证 cache 序 == emitBuckets 序 + 集一致 | done |
+| A-ED3 | R-ED-3 行为 0 | one-shot 6 项目 diff=0 + tsc 0 + vitest 全绿 | diff -r baseline == 0; tsc 0; vitest pass | done |
+| A-ED4 | R-ED-4 logic-only | view/style emit 不动（emitEntry/emitStyle 不变） | grep view/style emit 0 改动 | done |
+| A-ED5 | R-ED-5 emitBuckets 移除 | logicCompile 不返 emitBuckets；stage-channel 不存；orchestrator 不读 | grep emitBuckets 0 src 残留 | done |
 
 ## Non-acceptance
 

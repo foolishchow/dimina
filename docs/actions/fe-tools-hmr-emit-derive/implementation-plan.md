@@ -11,31 +11,31 @@ Status: **ready（2026-10-09）**
 - [x] subs 映射实证：分包 root 下页 union 闭包 == emitBuckets.subs[root]? — **FAIL → 解法 E cross-bucket dedup**
 - [x] independent subs 实证（F8）：`subPages.independent: true` closure 不含 main modules（无 main 混入）— **N/A**（base 无 independent；code-level reasoning）
 
-## Step 1 — deriveFromGraph 接线（R-ED-1, D-ED-1 解法 B2+E）
+## Step 1 — deriveFromGraph 接线（R-ED-1, D-ED-1 解法 B2+E）— **DONE ✓**
 
 | 文件 | 改动 | 状态 |
 | --- | --- | --- |
-| `packer/orchestrator.ts:266-296` | Logic emit task 改调 deriveFromGraph（非 ctx.emitBuckets）；main bucket = main entries union closure（cache 插入序）；subs = sub entries union closure MINUS main bucket modules（cross-bucket dedup，解法 E） | pending |
-| `model/convergence.ts` | **F15 修正**：非仅去 `.sort()`——改 deriveFromGraph 迭代源：`graph.getDependencyClosure` → cache 插入序迭代（closure set membership filter，须加 cache 迭代方法如 `entries()`/iterator）。去 `.sort()` 得 B1 graph DFS序 ≠ B2 cache插入序（F2）。实证 #1 pass → B2 确认（无需解法 D order metadata） | pending |
-| `model/module-result-cache.ts` | 加 `entries()` / `keys()` 有序迭代方法（deriveFromGraph B2 须按 cache 插入序迭代，非 `toJSON()` array copy） | pending |
+| `model/convergence.ts` | deriveFromGraph 改 B2 cache 插入序迭代（非 graph closure .sort()）；新增 `deriveLogicBuckets`（main closure union + sub closure union MINUS main cross-bucket dedup E） | **done** |
+| `model/module-result-cache.ts` | 加 `entries()` 有序迭代方法（B2 cache 插入序） | **done** |
+| `packer/orchestrator.ts:266-296` | Logic emit task 改调 `deriveLogicBuckets`（非 ctx.emitBuckets）；guard 改 `!pages \|\| !compileConfigOpts`（partial-stage safe） | **done** |
 
-## Step 2 — emitBuckets 移除（R-ED-5, D-ED-2 locked B **条件化**——F4：须 §4 实证 pass）
+## Step 2 — emitBuckets 移除（R-ED-5, D-ED-2 locked B **条件化**——F4：须 §4 实证 pass）— **DONE ✓**
 
 | 文件 | 改动 | 状态 |
 | --- | --- | --- |
-| `compiler/logic/index.ts:274-297` | logicCompile 不再返 emitBuckets（移除 emitBuckets 字段） | pending |
-| `compiler/pipeline/stage-channel.ts:97-99` | 移除 emitBuckets→ctx 存储 | pending |
-| `packer/orchestrator.ts:268` | 移除 ctx.emitBuckets 读取 | pending |
+| `compiler/logic/index.ts:274-297` | logicCompile 不再返 emitBuckets（移除 emitBuckets 字段 + return） | **done** |
+| `compiler/pipeline/stage-channel.ts:97-99` | 移除 emitBuckets→ctx 存储（D-ER-3 dead） | **done** |
+| `packer/orchestrator.ts:268` | 移除 ctx.emitBuckets 读取（改调 deriveLogicBuckets） | **done** |
 
-## Step 3 — 验证（行为 0 三件套）
+## Step 3 — 验证（行为 0 三件套）— **DONE ✓**
 
-- [ ] tsc 0 errors
-- [ ] vitest 全绿（84 files / 626 tests baseline）
-- [ ] one-shot 6 项目 diff=0（deriveFromGraph 派生 == emitBuckets baseline）
-- [ ] V-PC-5: 0 新 as any / 索引签名
+- [x] tsc 0 errors
+- [x] vitest 全绿（84 files / 626 tests；compile-cli-cache flaky timeout 已知，单独重跑 pass）
+- [x] one-shot 6 项目 diff=0（deriveLogicBuckets 派生 == emitBuckets baseline）
+- [x] V-PC-5: 0 新 as any / 索引签名
 
 ## Step 4 — 回流
 
-- [ ] architecture-notes: H1 条目（deriveFromGraph 接线 + emitBuckets 移除 + D-ED-2 locked B 反转 D-HMR-2 推荐 A）
+- [ ] architecture-notes: H1 条目（deriveFromGraph 接线 + emitBuckets 移除 + D-ED-2 locked B 反转 D-HMR-2 推荐 A + B2 cache 插入序 + E cross-bucket dedup）
 - [ ] residuals tracker（如有）
 - [ ] docs/fe-tools/README.md 导航补 H1 链
