@@ -1,22 +1,23 @@
 # Implementation Plan — fe-tools-hmr-emit-derive
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 > 待 design.draft §4 实证 + D-ED-1/D-ED-2 锁后填实。
 
-## Step 0 — 实证（design.draft §4，升 ready 前）
+## Step 0 — 实证（design.draft §4，升 ready 前）— **DONE ✓**
 
-- [ ] cache 序实证：ModuleResultCache 插入序 == emitBuckets.main 序?
-- [ ] 闭包集实证：deriveFromGraph union == emitBuckets.main 集（去重后）?
-- [ ] subs 映射实证：分包 root 下页 union 闭包 == emitBuckets.subs[root]?
-- [ ] independent subs 实证（F8）：`subPages.independent: true` closure 不含 main modules（无 main 混入）
+- [x] cache 序实证：ModuleResultCache 插入序 == emitBuckets.main 序? — **PASS ✓**
+- [x] 闭包集实证：deriveFromGraph union == emitBuckets.main 集（去重后）? — **PASS ✓**
+- [x] subs 映射实证：分包 root 下页 union 闭包 == emitBuckets.subs[root]? — **FAIL → 解法 E cross-bucket dedup**
+- [x] independent subs 实证（F8）：`subPages.independent: true` closure 不含 main modules（无 main 混入）— **N/A**（base 无 independent；code-level reasoning）
 
-## Step 1 — deriveFromGraph 接线（R-ED-1, D-ED-1 解法 B2）
+## Step 1 — deriveFromGraph 接线（R-ED-1, D-ED-1 解法 B2+E）
 
 | 文件 | 改动 | 状态 |
 | --- | --- | --- |
-| `packer/orchestrator.ts:266-296` | Logic emit task 改调 deriveFromGraph（非 ctx.emitBuckets）；main bucket = app + main pages union；subs = root 下页 union | pending |
-| `model/convergence.ts` | **F15 修正**：非仅去 `.sort()`——改 deriveFromGraph 迭代源：`graph.getDependencyClosure` → cache 插入序迭代（closure set membership filter，须加 cache 迭代方法如 `entries()`/iterator）。去 `.sort()` 得 B1 graph DFS序 ≠ B2 cache插入序（F2）。if 实证 B2 序不一致 → 解法 D（order metadata） | pending |
+| `packer/orchestrator.ts:266-296` | Logic emit task 改调 deriveFromGraph（非 ctx.emitBuckets）；main bucket = main entries union closure（cache 插入序）；subs = sub entries union closure MINUS main bucket modules（cross-bucket dedup，解法 E） | pending |
+| `model/convergence.ts` | **F15 修正**：非仅去 `.sort()`——改 deriveFromGraph 迭代源：`graph.getDependencyClosure` → cache 插入序迭代（closure set membership filter，须加 cache 迭代方法如 `entries()`/iterator）。去 `.sort()` 得 B1 graph DFS序 ≠ B2 cache插入序（F2）。实证 #1 pass → B2 确认（无需解法 D order metadata） | pending |
+| `model/module-result-cache.ts` | 加 `entries()` / `keys()` 有序迭代方法（deriveFromGraph B2 须按 cache 插入序迭代，非 `toJSON()` array copy） | pending |
 
 ## Step 2 — emitBuckets 移除（R-ED-5, D-ED-2 locked B **条件化**——F4：须 §4 实证 pass）
 

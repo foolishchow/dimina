@@ -30,7 +30,7 @@ H4 per-module HMR push（dev server 增量）
 | 门 / 子门 | 状态 | 规模 | 备注 |
 | --- | --- | --- | --- |
 | HMR0 本伞 | **`draft`** | — | design.draft 规模评估完成；D-HMR-2/3 design gate 待子门 formalize 锁 |
-| H1 deriveFromGraph 接线 | **`draft`**（子门 [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/README.md)） | M | emit 路径重构；行为 0（emitBuckets→graph 派生字节一致）；D-ED-1 entry 映射 + D-ED-2 locked B 待实证 |
+| H1 deriveFromGraph 接线 | **`ready`**（子门 [`fe-tools-hmr-emit-derive`](../fe-tools-hmr-emit-derive/README.md)） | M | emit 路径重构；行为 0（emitBuckets→graph 派生字节一致）；D-ED-1 B2+E 锁（实证 pass）+ D-ED-2 locked B 确认 |
 | H2 registry 实体化 | pending | L | 替代 legacy compile-target；最大刀 |
 | H3 per-module view/style cache | pending | M-L | G5 per-page-bundle 反转；**G5 P-G506 先例 graph 重建不可行**，须不同策略（stored order 或粒度解耦） |
 | H4 per-module HMR push | pending | S-M | runtime 协议依赖；fallback 全量 reload |

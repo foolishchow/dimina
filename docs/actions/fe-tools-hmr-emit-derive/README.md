@@ -1,7 +1,7 @@
 # FE Tools HMR Emit Derive（H1 子门）
 
 - Action: `fe-tools-hmr-emit-derive`
-- Status: `draft`
+- Status: `ready`
 - Updated: 2026-10-09
 - Status authority: [Action Status](../STATUS.md)
 - 父伞：[`fe-tools-hmr-compiler`](../fe-tools-hmr-compiler/README.md)（**`ready`**；H1 子门）

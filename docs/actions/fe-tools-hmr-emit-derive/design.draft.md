@@ -2,7 +2,7 @@
 
 > 本文件是设计草稿，非正式文档。用于 entry 映射 + 策略锁后产出正式 technical-design。
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-09）**
 
 ## §1 entry 映射挑战（D-ED-1）
 
@@ -84,6 +84,13 @@ const subModules = subPages[root].flatMap(p => deriveFromGraph(graph, cache, p.p
 - **B2 失败时的 fallback**（cache 插入序 ≠ emitBuckets序）——介于 B2 与 C 之间，不改 graph schema
 - **⚠️ cache shape 变更**：D 改 ModuleResultCache WRITE 路径（compileJS 加 orderIndex 字段），非 deriveFromGraph READ。cache shape 变更有 G4 先例（D-G4-1..9 view cache shape）——须显式决策（非 silent 改）。deriveFromGraph 仍只读。
 
+**解法 E（cross-bucket dedup）**（F19 补，实证 #3 发现）：
+- sub bucket closure 含共享依赖（如 `app`），但 emitBuckets.subs 不含（app 属 main bucket）
+- deriveFromGraph for sub bucket = sub entries union closure **MINUS main bucket modules**（cross-bucket dedup）
+- 实证：subPackageA closure=7 minus `app`=1 == emit=6 ✓
+- emitBuckets 去重源：`hasCompileInfo(module.path, compileRes, mainCompileRes)`——compileJS for subs 传 mainCompileRes，已在 main 的不 push 到 sub
+- **非独立解法**——是 B2 的补充（sub bucket 须 B2 + cross-bucket dedup）
+
 ### §1.5 D-ED-1 design gate
 
 解法 A 序重建有 G5 P-G506 先例风险（不可行）。解法 B 待实证（cache 序 == emitBuckets 序?）。解法 C 改 graph schema（超 scope）。
@@ -136,13 +143,47 @@ H1 只改 emit 来源（emitBuckets → deriveFromGraph），watch 仍全量 emi
 
 ---
 
-## §4 实证待做（升 ready 前）
+## §4 实证结果（base project，2026-10-09）
 
-1. **cache 序实证**：ModuleResultCache 插入序 == emitBuckets.main 序?（解法 B2 可行性）
-2. **闭包集实证**：deriveFromGraph(graph, cache, 'app') + main pages union == emitBuckets.main 集?（去重后）
-3. **subs 映射实证**：分包 root 下页 union 闭包 == emitBuckets.subs[root]?
-4. **independent subs 实证**（F8 补）：`subPages.independent: true` 分包不共享 main modules（compileJS 传 `[]` 作 mainCompileRes）→ deriveFromGraph closure 须不含 main modules（graph 边须不连 independent sub → main）。实证 independent sub closure == emitBuckets.subs[independent-root]（无 main 混入）。
+实证方法：临时 instrument orchestrator Logic emit task dump emitBuckets + cache + graph closures；跑 base one-shot build；分析 /tmp/h1-probe.json。Instrument 已 revert（tsc 0）。
 
-实证通过 → D-ED-1 解法 B2 锁 → 升 ready → 实施。
+### 实证 #1: cache 序 == emitBuckets 序? — **PASS ✓**
+- cacheKeys (58) == emitBuckets 全序 (main++subs = 58)
+- cache 插入序 (filter to emit集) == emitBuckets 全序 **完美序匹配**
+- **结论：B2 可行**——deriveFromGraph 按 cache 插入序迭代即可匹配 emitBuckets 序。无需解法 D（order metadata）。
 
-实证失败 → 解法 D（cache order metadata）or 解法 A（序重建，G5 风险）or 解法 C（graph schema，超 scope）—— design gate 再评。
+### 实证 #2: main 闭包集 == emitBuckets.main 集? — **PASS ✓**
+- main entries (42 main pages) closure union (cached) = 52 modules
+- emitBuckets.main = 52 modules
+- set match ✓（无缺无重）
+- **结论：main bucket = main entries union closure（cache 插入序）**
+
+### 实证 #3: subs 映射? — **FAIL → 可解（cross-bucket dedup）**
+- subPackageA: closure (cached) = 7 vs emit = 6
+- **`app` 在 sub closure 但不在 emitBuckets.subs**（app 属 main bucket）
+- 原因：subpackage page depends on `app`（graph 边），但 emitBuckets.subs 不含 `app`（compileJS for subs 传 mainCompileRes，已在 main 的不 push 到 sub）
+- **解法 E（cross-bucket dedup）**：sub bucket = sub entries union closure **MINUS main bucket modules**
+- 验证：7 minus `app` = 6 == emit ✓
+- subPackageB/commonPackage: 0 pages → closure=0 == emit=0 ✓
+
+### 实证 #4: independent subs — **N/A**
+- base 无 `independent: true` subPackages
+- code-level reasoning：compileJS for independent subs 传 `[]` 作 mainCompileRes → sub closure 不应含 main modules（graph 边须不连 independent sub → main）
+- 待 independent subs 项目实证（或接受 code-level reasoning）
+
+### 实证总结
+
+| # | 实证 | 结果 | 影响 |
+| --- | --- | --- | --- |
+| 1 | cache 序 == emitBuckets 序 | **PASS ✓** | B2 可行；D-ED-2 locked B 安全 |
+| 2 | main 闭包集 == emitBuckets.main | **PASS ✓** | main bucket = main entries union closure |
+| 3 | subs 映射 | **FAIL → 可解** | 须解法 E cross-bucket dedup（sub minus main） |
+| 4 | independent subs | N/A | code-level reasoning（compileJS 传 [] for independent） |
+
+**D-ED-1 锁**：解法 **B2 + E**（cache 插入序 + cross-bucket dedup）。
+- main bucket = main entries union closure（cache 插入序，无 dedup）
+- sub bucket = sub entries union closure MINUS main bucket modules（cache 插入序，cross-bucket dedup）
+
+**D-ED-2 锁**：**locked B 确认**（实证 #1 pass → cache 序一致 → 一次性安全）。F4 条件满足。
+
+实证 pass → 升 ready → 实施。
