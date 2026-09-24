@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { abilityALS } from '../src/compiler/worker-runtime/context.ts'
-import { BufferingLogger } from '../src/compiler/worker-runtime/loggers.ts'
+import { abilityALS } from '../src/packer/worker/context.ts'
+import { BufferingLogger } from '../src/packer/worker/loggers.ts'
 
 const {
 	checkTemplateCompatibility,

@@ -1,6 +1,6 @@
-import type { DependencyGraph } from '../packer/graph/dependency-graph.ts'
-import type { ModuleResultCache } from '../packer/cache/module-result-cache.ts'
-import type { EmitModule } from '../compiler/pipeline/emit.ts'
+import type { DependencyGraph } from '../graph/dependency-graph.ts'
+import type { ModuleResultCache } from '../cache/module-result-cache.ts'
+import type { EmitModule } from './emit.ts'
 
 /**
  * deriveFromGraph — Packer 核心形状：entry → 遍历 GraphNode → 取 module 集 → ModuleResult 取 code → [EmitModule]

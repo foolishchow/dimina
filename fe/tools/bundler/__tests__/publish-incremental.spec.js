@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { publishToDist } from '../src/compiler/pipeline/publish.ts'
+import { publishToDist } from '../src/packer/emit/publish.ts'
 
 // H4 Phase 2 (F-H4-2): publishToDist 增量 sync——content-diff（无 rm 窗口）+ deletion handling (F6)。
 // 测试用 TARGET_PATH 环境变量（temporaryTargetPath=false → copy 路径）+ useAppIdDir=false（免 config）。

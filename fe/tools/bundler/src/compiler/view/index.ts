@@ -4,8 +4,8 @@
  */
 
 import { getDependencyGraph, getWorkPath, resetStoreInfo } from '../../packer/store/env.ts'
-import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
-import type { CompileOptions } from '../worker-runtime/define-engine.ts'
+import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
+import type { CompileOptions } from '../../packer/worker/define-engine.ts'
 import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'
 import { vueWxmlRenderer, VUE_RENDERER_ID } from './wxml/renderer/vue/index.ts'
 import {
@@ -17,7 +17,7 @@ import { processIncludeConditionalAttrs } from './wxml/load/include.ts'
 import { bindTransformOrchestrator } from './wxml/load/orchestrator-live.ts'
 import { bindVueToolsLive } from './wxml/renderer/vue/live.ts'
 import { enableSourcemap, setEnableSourcemap } from './wxml/renderer/vue/state.ts'
-import { emitEntry } from '../pipeline/emit.ts'
+import { emitEntry } from '../../packer/emit/emit.ts'
 import type { ViewModule } from './parse-walk.ts'
 import type { ViewCompiledModule } from '../../packer/types.ts'  // G4 D-G4-1: view compile-res 返回类型
 import {

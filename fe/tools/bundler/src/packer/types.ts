@@ -23,7 +23,7 @@
 
 // ── 现有类型引用（import type，tsc 擦除，不产生运行时依赖）──
 // R-PCS-11: 新类型用 import type 引用现有类型，不复制
-import type { EmitEntry, EmitTransformConfig } from '../compiler/pipeline/emit.ts'
+import type { EmitEntry, EmitTransformConfig } from './emit/emit.ts'
 import type { GraphSnapshot } from './graph/dependency-graph.ts'
 
 // ════════════════════════════════════════════════════════════════════

@@ -1,7 +1,7 @@
 import path from 'node:path'
 import process from 'node:process'
 import fs from 'node:fs'
-import { getAppId, getTargetPath, isTemporaryTargetPath } from '../../packer/store/env.ts'
+import { getAppId, getTargetPath, isTemporaryTargetPath } from '../store/env.ts'
 
 function copyDir(src: string, dest: string): void {
 	fs.mkdirSync(dest, { recursive: true })

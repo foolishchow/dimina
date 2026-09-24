@@ -1,7 +1,7 @@
 import { resetStoreInfo } from '../../packer/store/env.ts'
-import { defineEngine } from '../worker-runtime/define-engine.ts'  // P-WR02
-import type { CompileOptions } from '../worker-runtime/define-engine.ts'
-import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03
+import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
+import type { CompileOptions } from '../../packer/worker/define-engine.ts'
+import { abilityALS } from '../../packer/worker/context.ts'  // P-WR03
 import type { EnhancedError } from '../../shared/utils.ts'
 import { emitStyle } from './emit.ts'
 import { buildCompileCss, clearStyleCaches } from './parse-walk.ts'

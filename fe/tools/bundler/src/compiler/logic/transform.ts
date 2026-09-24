@@ -2,7 +2,7 @@ import { transform } from 'esbuild'
 import type { TransformOptions } from 'esbuild'
 import { remapSourcemap } from '../core/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
-import type { EmitModule } from '../pipeline/emit.ts'
+import type { EmitModule } from '../../packer/emit/emit.ts'
 
 export interface CjsTransformOptions {
 	target: string // esTarget.logic

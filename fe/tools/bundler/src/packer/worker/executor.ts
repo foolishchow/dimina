@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const EXECUTOR_DIR = path.dirname(fileURLToPath(import.meta.url))
 // F49: dist 是 .js，src 是 .ts（worker 需 --experimental-strip-types）
 const WORKER_EXT = import.meta.url.includes('/src/') ? '.ts' : '.js'
-const ENTRY_PATH = { view: `../view/worker-entry${WORKER_EXT}`, logic: `../logic/worker-entry${WORKER_EXT}`, style: `../style/worker-entry${WORKER_EXT}`, emit: `../pipeline/emit-worker-entry${WORKER_EXT}` }
+const ENTRY_PATH = { view: `../../compiler/view/worker-entry${WORKER_EXT}`, logic: `../../compiler/logic/worker-entry${WORKER_EXT}`, style: `../../compiler/style/worker-entry${WORKER_EXT}`, emit: `../emit/emit-worker-entry${WORKER_EXT}` }
 
 // F33/F37：消息分流 + 生命周期照 stage-channel 现状搬军（D-BM-7 协议知识单点）
 // F36：executeTask 包在 workerPool.runWorker 里（限流协同）

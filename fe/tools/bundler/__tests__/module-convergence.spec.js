@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DependencyGraph } from '../src/packer/graph/dependency-graph.ts'
 import { ModuleResultCache } from '../src/packer/cache/module-result-cache.ts'
-import { deriveFromGraph } from '../src/model/convergence.ts'
+import { deriveFromGraph } from '../src/packer/emit/convergence.ts'
 
 /**
  * MC3a deriveFromGraph 测试：验证 Packer 核心形状——

@@ -32,7 +32,7 @@ import {
 	compileTemplateModuleRender,
 } from './wxml/renderer/vue/tools.ts'
 import { enableSourcemap, templateRenderCache } from './wxml/renderer/vue/state.ts'
-import type { EmitModule } from '../pipeline/emit.ts'
+import type { EmitModule } from '../../packer/emit/emit.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { EnhancedError } from '../../shared/utils.ts'
 

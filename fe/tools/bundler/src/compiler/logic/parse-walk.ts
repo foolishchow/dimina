@@ -9,7 +9,7 @@ import { getWxMemberName, warnUnsupportedWxApi } from '../core/compatibility.ts'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
 import { getAppId, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, resolveAppAlias } from '../../packer/store/env.ts'
 import { errorMessage } from '../../shared/utils.ts'
-import type { EmitModule } from '../pipeline/emit.ts'
+import type { EmitModule } from '../../packer/emit/emit.ts'
 
 // 用于缓存已处理的模块
 export const processedModules = new Set()

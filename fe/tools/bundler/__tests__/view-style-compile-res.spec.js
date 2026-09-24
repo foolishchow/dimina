@@ -15,11 +15,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  */
 
 // ── ①② mock executeTask（避免 worker spawn）──
-vi.mock('../src/compiler/worker-runtime/executor.ts', () => ({
+vi.mock('../src/packer/worker/executor.ts', () => ({
 	executeTask: vi.fn(),
 }))
 
-import { executeTask } from '../src/compiler/worker-runtime/executor.ts'
+import { executeTask } from '../src/packer/worker/executor.ts'
 import { runCompileStage } from '../src/compiler/pipeline/stage-channel.ts'
 import { storeInfo, getPages } from '../src/packer/store/env.ts'
 import { viewEngine } from '../src/compiler/view/index.ts'

@@ -4,8 +4,8 @@ import { isHTMLTag } from '@vue/shared'
 import { getTemplateDirectivePrefixes, getViewScriptTags } from '../../packer/store/env.ts'
 import { supportedBuiltinComponents, supportedWxApis } from './compatibility-reference.ts'
 import { miniProgramBuiltinTags, tagWhiteList } from '../../shared/utils.ts'
-import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03：收敛点 getStore
-import { consoleFallback } from '../worker-runtime/loggers.ts'  // P-WR03：D-WR-4 兜底
+import { abilityALS } from '../../packer/worker/context.ts'  // P-WR03：收敛点 getStore
+import { consoleFallback } from '../../packer/worker/loggers.ts'  // P-WR03：D-WR-4 兜底
 
 let cachedReference: { supportedBuiltinComponents: Set<string>; supportedWxApis: Set<string> } | null = null
 const warnedItems = new Set()

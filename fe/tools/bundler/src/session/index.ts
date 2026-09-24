@@ -36,7 +36,7 @@ import { createProjectStore } from '../packer/store/project-store.ts'
 import { createSessionRunner, COMPILE_KEYS } from './runner.ts'
 import type { ResolvedBundlerInput } from './resolve.ts'
 import type { ReloadContext } from './preview-adapter.ts'
-import type { BuildModel } from '../model/build-model.ts'
+import type { BuildModel } from '../packer/emit/build-model.ts'
 
 /** server on Resolved / session — host/port only (D-R3) */
 const SERVER_KEYS = Object.freeze(['host', 'port'])

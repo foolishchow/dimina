@@ -1,5 +1,5 @@
 import { transform } from 'esbuild'
-import type { EmitModule, EmitEntry, EmitEntryFile, EmitEntrySourcemap } from '../pipeline/emit.ts'
+import type { EmitModule, EmitEntry, EmitEntryFile, EmitEntrySourcemap } from '../../packer/emit/emit.ts'
 
 /**
  * esbuild CSS minify（单模块，parse-walk per-module 调用）。

@@ -1,4 +1,4 @@
-import { getDependencyGraph } from '../../packer/store/env.ts'  // F26：successPayload 默认读 dependencyGraph（业务状态）
+import { getDependencyGraph } from '../store/env.ts'  // F26：successPayload 默认读 dependencyGraph（业务状态）
 
 // 共享引擎类型：worker-entry → runWorker、defineEngine → executor 选 thin entry 均引用
 export interface EngineBuildConfig {

@@ -1,9 +1,9 @@
 import { transform } from 'esbuild'
 import { relative, resolve, sep } from 'node:path'
-import { getWorkPath } from '../../packer/store/env.ts'
-import { mergeSourcemap } from '../core/sourcemap.ts'
+import { getWorkPath } from '../store/env.ts'
+import { mergeSourcemap } from '../../compiler/core/sourcemap.ts'
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
-import { abilityALS } from '../worker-runtime/context.ts'  // P-WR03：收敛点 tryGet
+import { abilityALS } from '../worker/context.ts'  // P-WR03：收敛点 tryGet
 
 export interface EmitModule {
 	moduleId: string
