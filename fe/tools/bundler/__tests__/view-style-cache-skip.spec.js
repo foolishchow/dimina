@@ -8,7 +8,7 @@ import { compileML } from '../src/compiler/view/index.ts'
 import { compileSS } from '../src/compiler/style/index.ts'
 import { runWithAbilities } from './helpers/run-with-abilities.js'
 import build from '../src/index.ts'
-import { PackerSessionState } from '../src/packer/session-state.ts'
+import { PackerSessionState } from '../src/packer/state/session-state.ts'
 
 /**
  * G5 (fe-tools-view-style-cache-skip) 测试：

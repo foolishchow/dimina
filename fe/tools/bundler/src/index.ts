@@ -5,7 +5,7 @@
  * 过程体与 ALS 在 orch 内；本文件不持 Listr / 写权。
  */
 import { createProjectStore } from './packer/store/project-store.ts'
-import { PackerSessionState } from './packer/session-state.ts'
+import { PackerSessionState } from './packer/state/session-state.ts'
 import { createPackerOrchestrator } from './packer/orchestrator.ts'
 
 const ORCH_OPTION_KEYS = new Set([

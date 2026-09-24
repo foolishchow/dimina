@@ -20,7 +20,7 @@ vi.mock('../src/packer/worker/executor.ts', () => ({
 }))
 
 import { executeTask } from '../src/packer/worker/executor.ts'
-import { runCompileStage } from '../src/compiler/pipeline/stage-channel.ts'
+import { runCompileStage } from '../src/packer/state/stage-channel.ts'
 import { storeInfo, getPages } from '../src/packer/store/env.ts'
 import { viewEngine } from '../src/compiler/view/index.ts'
 import { styleEngine } from '../src/compiler/style/index.ts'

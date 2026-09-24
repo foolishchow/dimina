@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import build from '../src/index.ts'
-import { PackerSessionState } from '../src/packer/session-state.ts'
+import { PackerSessionState } from '../src/packer/state/session-state.ts'
 
 /**
  * D-HR-3（fe-tools-hmr-chain-residuals）：selective recompile 链路级验证。

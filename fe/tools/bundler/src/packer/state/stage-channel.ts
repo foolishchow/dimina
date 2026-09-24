@@ -10,11 +10,11 @@
 
 import { formatCompileProgress } from '../../shared/compile-progress.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
-import { executeTask } from '../../packer/worker/executor.ts'
-import { viewEngine } from '../view/index.ts'
-import { logicEngine } from '../logic/index.ts'
-import { styleEngine } from '../style/index.ts'
-import type { StageChannelContext } from '../../packer/types.ts'
+import { executeTask } from '../worker/executor.ts'
+import { viewEngine } from '../../compiler/view/index.ts'
+import { logicEngine } from '../../compiler/logic/index.ts'
+import { styleEngine } from '../../compiler/style/index.ts'
+import type { StageChannelContext } from '../types.ts'
 
 const ENGINES = { view: viewEngine, logic: logicEngine, style: styleEngine }
 

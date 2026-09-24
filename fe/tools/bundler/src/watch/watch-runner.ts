@@ -1,7 +1,7 @@
 import chokidar from 'chokidar'
 import build from '../index.ts'
 import { createProjectStore } from '../packer/store/project-store.ts'
-import { PackerSessionState } from '../packer/session-state.ts'
+import { PackerSessionState } from '../packer/state/session-state.ts'
 import {
 	createIgnoredPathMatcher,
 	createWatchBuildPlan,

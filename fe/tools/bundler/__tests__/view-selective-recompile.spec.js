@@ -4,7 +4,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import build from '../src/index.ts'
-import { PackerSessionState } from '../src/packer/session-state.ts'
+import { PackerSessionState } from '../src/packer/state/session-state.ts'
 
 /**
  * H3 Phase 2 (fe-tools-hmr-per-module-cache Phase 2): selective recompile 测试。

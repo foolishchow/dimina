@@ -14,7 +14,7 @@ import '../src/packer/orchestrator.ts'
 import {
 	COMPILE_STAGE_ORDER,
 	createCompileTarget,
-} from '../src/compiler/pipeline/compile-target.ts'
+} from '../src/packer/pipeline/compile-target.ts'
 import {
 	computeStagePlan,
 	createDispatchRegistry,
@@ -262,11 +262,11 @@ describe('computeStagePlan (T2 — registry)', () => {
 
 describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
-	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
+	const targetSrc = fs.readFileSync(path.join(packerRoot, 'pipeline/compile-target.ts'), 'utf8')
 	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
 	it('rewires _runBuild top through createCompileTarget', () => {
-		expect(pipelineSrc).toContain("from '../compiler/pipeline/compile-target.ts'")
+		expect(pipelineSrc).toContain("from './pipeline/compile-target.ts'")
 		expect(pipelineSrc).toContain('createCompileTarget(runOptions)')
 		expect(targetSrc).toContain('export function createCompileTarget')
 	})
@@ -293,7 +293,7 @@ describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 
 describe('P-CT05 ②T2 — structural anchors (stage assembly via registry)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
-	const targetSrc = fs.readFileSync(path.join(sourceRoot, 'pipeline/compile-target.ts'), 'utf8')
+	const targetSrc = fs.readFileSync(path.join(packerRoot, 'pipeline/compile-target.ts'), 'utf8')
 	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + computeStagePlan (registry)', () => {

@@ -16,9 +16,9 @@ import type { CompileTarget } from './compile-target.types.ts'
 
 import { resolveCompileConfig } from '../../shared/compile-config.ts'
 import { assertRendererSupportsPlatform } from '../../shared/platforms.ts'
-import { getRenderer, resolveProjectRenderers } from '../../packer/registry/renderers.ts'
+import { getRenderer, resolveProjectRenderers } from '../registry/renderers.ts'
 
-import { COMPILE_STAGE_ORDER } from '../../model/stage-order.ts'
+import { COMPILE_STAGE_ORDER } from './stage-order.ts'
 
 /**
  * 从单次 run 选项构建静态 CompileTarget（fail-fast，消息与改道前逐字一致）。

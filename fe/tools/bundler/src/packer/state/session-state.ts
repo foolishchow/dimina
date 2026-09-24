@@ -11,10 +11,10 @@
  * 当前用结构类型——字段名与形状一致，运行时行为正确。
  */
 
-import { PackerGraph } from './graph/graph.ts'
-import { ModuleResultCache } from './cache/module-result-cache.ts'
-import type { FileFP } from '../packer/cache/fingerprint.ts'
-import type { ViewCompiledModule, StyleCompiledModule } from './types.ts'  // G5 D-G5-1: view/style cache value 类型
+import { PackerGraph } from '../graph/graph.ts'
+import { ModuleResultCache } from '../cache/module-result-cache.ts'
+import type { FileFP } from '../cache/fingerprint.ts'
+import type { ViewCompiledModule, StyleCompiledModule } from '../types.ts'  // G5 D-G5-1: view/style cache value 类型
 
 export class PackerSessionState {
 	readonly graph: PackerGraph = new PackerGraph()

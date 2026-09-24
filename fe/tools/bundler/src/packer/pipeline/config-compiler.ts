@@ -6,7 +6,7 @@ import {
 	getPageConfigInfo,
 	getTargetPath,
 	getWorkPath,
-} from '../../packer/store/env.ts'
+} from '../store/env.ts'
 import { collectAssets } from '../../shared/utils.ts'
 
 /**
