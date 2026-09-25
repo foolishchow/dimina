@@ -19,9 +19,10 @@
 
 ## 架构候选（2026-10-09 · packer 重构轨道）
 
-### Round 1 — packer facade + collaborator 抽取 —— `draft`（2026-10-09）
-  - fe-tools-packer-facade-collaborator: orchestrator god object → 6 collaborator + facade 契约（F-PA-1）
-  - rigor 红线: collaborator 拥有逻辑非包壳; ALS 保留（B 留后）
+### Round 1 — packer facade + collaborator 抽取 —— `ready`（2026-10-10 formalize，4 批 19 轮 review）
+  - fe-tools-packer-facade-collaborator: orchestrator god object → 7 collaborator + facade 契约（F-PA-1）
+  - rigor 红线: collaborator 拥有逻辑非包壳; ALS 保留（B 留后）; 6 无状态闭包复用 + NpmBuilder 有状态每次 new
+  - sctx 字段所有权矩阵 + ctx→sctx 统一 + loadBindings 跨 task 迁移 + result→EmitEntry[] reconcile
   - 5 切法序: D（本 Action）→ C（aspect）→ B（ALS 闭合）→ A（renderer）→ E（dispatch wiring, runtime 就绪后）
 
 ### Round 0 — packer 目录收敛 —— `complete`（B1a-B5 全实施，行为 0）（2026-10-09）

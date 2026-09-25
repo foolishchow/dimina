@@ -1,6 +1,6 @@
 # Requirements — fe-tools-packer-facade-collaborator
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-10 formalize，D-FC-1..5 locked）**
 
 ## 背景
 

@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-packer-facade-collaborator
 
-Status: **draft（2026-10-09）**
+Status: **ready（2026-10-10 formalize，D-FC-1..5 locked；4 批 19 轮 review 严格收敛）**
 
 ## §1 问题诊断（来自 [retrospect](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md) F-PA-1）
 

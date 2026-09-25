@@ -1,13 +1,15 @@
 # fe-tools-packer-facade-collaborator
 
-- Status: `draft`
+- Status: `ready`
+- Formalize: 2026-10-10（D-FC-1..5 locked，4 批 19 轮 review）
 - Created: 2026-10-09
-- 设计门：D-FC-1..5（draft 提议，formalize 待锁）
+- 设计门：[D-FC-1..5 locked](design.draft.md#§2-设计门draft-提议formalize-待锁)（4 批 19 轮 review 严格收敛）
+- 实施计划：[implementation-plan.md](implementation-plan.md)（FC-P0..P7b 分相）
 - Status authority: [Action Status](../STATUS.md)
 - 前置：[`fe-tools-packer-directory-convergence`](../_archive/complete/fe-tools-packer-directory-convergence/README.md)（complete 2026-10-09；packer/ 9 子目录就位，给本 Action 干净素材）
 - 触发文档：[2026-10-09-packer-facade-aspect-retrospect.md](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)（**F-PA-1 critical** orchestrator god object + 北星 facade 契约未落地）
 - 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)
-- 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [acceptance](acceptance.md) · [validation](validation.md)
+- 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [implementation-plan](implementation-plan.md) · [acceptance](acceptance.md) · [validation](validation.md)
 
 ## 目标
 
