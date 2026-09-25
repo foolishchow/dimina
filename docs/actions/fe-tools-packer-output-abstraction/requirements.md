@@ -81,7 +81,7 @@ P-O3 后退役（grep 验 caller=0）：
 - **F-R26-2 publisher.ts import 演进**：删 materialize/publishToDist/BuildModel + 加 `import type { Output }`
 - **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }` → `import type { Output }`（L37 as Output）
 - `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
-- **F-R30-1 skipMaterialize → outputMode 字段迁移**（P-O3）：types L437 `skipMaterialize?: boolean` → `outputMode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.outputMode === 'dev'`；session L235 `outputMode: previewAdapter ? 'disk' : 'dev'`；compile.ts `outputMode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 outputMode
+- **F-R30-1 skipMaterialize → outputMode 字段迁移**（P-O3）：types L437 `skipMaterialize?: boolean` → `outputMode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.outputMode === 'dev'`；session L235 `outputMode: previewAdapter ? 'disk' : 'dev'`；compile.ts `outputMode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 outputMode（**入 PIPELINE_OPTION_KEYS L40，不入 COMPILE_KEYS L30——compile 配置层，mode 是 compile mode**，F-R38-1）
 - compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）+ **F-R11-2 `isTemporaryTargetPath()` ALS getter 删**（只 publish.ts 用，DiskOutput.publish hardcode temporary=true 后不调）+ **F-R19-4 `getAppId()` ALS getter 保留**（compiler/* parse-walk 仍用，worker 侧；publish.ts fallback 死但 getter 本身不删）
 - `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删
 - `BuildResult.entries`（types.ts L496）→ sourced from `output.getEntries()`（F-R4-2）

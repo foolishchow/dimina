@@ -68,7 +68,7 @@ Status authority: [Action Status](../STATUS.md)
    - **F-R26-2 publisher.ts import 演进**：删 materialize（L11）+ publishToDist（L12）+ BuildModel（L16）+ 加 `import type { Output } from './output.ts'`
    - **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }` → `import type { Output }`（L37 as Output）
    - `artifactResolver` callback + dev-server createServer params 注入点
-   - `skipMaterialize` flag 全 caller 退役 + **F-R30-1 outputMode 字段迁移**：types.ts L437 `skipMaterialize?: boolean` → `outputMode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.outputMode === 'dev'`；session L235 `outputMode: previewAdapter ? 'disk' : 'dev'`；compile.ts `outputMode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 outputMode
+   - `skipMaterialize` flag 全 caller 退役 + **F-R30-1 outputMode 字段迁移**：types.ts L437 `skipMaterialize?: boolean` → `outputMode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.outputMode === 'dev'`；session L235 `outputMode: previewAdapter ? 'disk' : 'dev'`；compile.ts `outputMode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 outputMode（**入 PIPELINE_OPTION_KEYS L40，不入 COMPILE_KEYS L30——compile 配置层**，F-R38-1）
    - **sctx.buildModel 消费者迁移验**（F-R7-1）：stage-dispatcher L54（dispatch onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）→ sctx.output（grep `sctx.buildModel` src/ caller=0）
 2. grep 验 compat 写 output 消费方死：
    - `getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（grep 验 env.ts getter caller 在 emit/* = 0）
