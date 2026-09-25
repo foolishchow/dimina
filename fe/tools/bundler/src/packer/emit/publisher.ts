@@ -20,13 +20,14 @@ export interface PublisherDeps {
 	useAppIdDir: boolean
 	seedPath?: string
 	skipMaterialize?: boolean
+	appId?: string
 	lifecycle: Lifecycle
 }
 
 export function createPublisher(): BuildCollaborator<PublisherDeps> {
 	return {
 		async run(sctx: StageChannelContext, deps: PublisherDeps) {
-			const { targetPath, useAppIdDir, seedPath, skipMaterialize, lifecycle } = deps
+			const { targetPath, useAppIdDir, seedPath, skipMaterialize, appId, lifecycle } = deps
 			if (!skipMaterialize) {
 				// B 切法（PC-B2）：build dir 从 sctx.storeInfo 显式读（非 ALS getTargetPath）
 				const buildDir = (sctx.storeInfo as { pathInfo: { targetPath: string } }).pathInfo.targetPath
@@ -34,7 +35,9 @@ export function createPublisher(): BuildCollaborator<PublisherDeps> {
 			}
 			// H4 Phase 2 (F-H4-2): seedPath（watch/compile-cache 增量）→ 增量 sync publish
 			// （content-diff，无 rm 窗口）；否则全量（one-shot，行为不变，F8 guard）
-			publishToDist(targetPath, useAppIdDir, !!seedPath)
+			// B 切法（PC-B2/B4c3）：build dir + appId + isTemporary 从 sctx.storeInfo + deps 显式传（非 ALS）
+			const pathInfo = (sctx.storeInfo as { pathInfo: { targetPath: string; temporaryTargetPath?: boolean } }).pathInfo
+			publishToDist(targetPath, useAppIdDir, !!seedPath, pathInfo.targetPath, appId, pathInfo.temporaryTargetPath)
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
 		},
 	}

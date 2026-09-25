@@ -20,7 +20,7 @@ import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
-import { getAppName, runWithCompilerContext } from './store/env.ts'
+import { runWithCompilerContext } from './store/env.ts'
 import { runCompileStage } from './state/stage-channel.ts'
 import { BuildModel } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
@@ -222,7 +222,7 @@ async function _orchestrate(
 			...(shouldPrepareConfig ? [{
 				title: '编译配置信息',
 				task: async (ctx: Record<string, unknown>) => {
-					await collaborators.configCompiler.run(ctx as unknown as StageChannelContext, { lifecycle })
+					await collaborators.configCompiler.run(ctx as unknown as StageChannelContext, { state, lifecycle })
 				},
 			}] : []),
 			...(shouldPrepareNpm ? [{
@@ -263,7 +263,7 @@ async function _orchestrate(
 			{
 				title: '写入编译产物',
 				task: async (ctx: Record<string, unknown>) => {
-					await collaborators.publisher.run(ctx as unknown as StageChannelContext, { targetPath, useAppIdDir, seedPath, skipMaterialize, lifecycle })
+					await collaborators.publisher.run(ctx as unknown as StageChannelContext, { targetPath, useAppIdDir, seedPath, skipMaterialize, appId: state.graph.getAppId(), lifecycle })
 				},
 			},
 		] as ListrTask<Record<string, unknown>>[]),
@@ -282,7 +282,7 @@ async function _orchestrate(
 		printCompatibilityWarnings(workPath, (context as { compatibilityWarnings?: Set<string> }).compatibilityWarnings)
 		const result = {
 			appId: ((context as { loadBindings?: { appId?: string } | null }).loadBindings)?.appId,
-			name: getAppName(),
+			name: state.graph.getAppName(),
 			path: state.graph.getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
 			dependencyGraph: ((context as { dependencyGraph?: { toJSON: () => unknown } }).dependencyGraph?.toJSON()),
 			buildModel: (context as { buildModel?: BuildModel }).buildModel,

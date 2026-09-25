@@ -1,13 +1,18 @@
 import fs from 'node:fs'
-import {
-	getAppConfigInfo,
-	getAppId,
-	getAppName,
-	getPageConfigInfo,
-	getTargetPath,
-	getWorkPath,
-} from '../store/env.ts'
 import { collectAssets } from '../../shared/utils.ts'
+import type { PackerGraph } from '../graph/graph.ts'
+
+/**
+ * B 切法（PC-B4c4）：config-compiler 主线程路由——
+ * workPath/targetPath 从 pathInfo（storeInfo 产物）读，appId/appConfig/pageConfig/
+ * appName 从 graph 读（非 ALS getAppId/getAppConfigInfo/getAppName/getPageConfigInfo）。
+ */
+
+/** storeInfo.pathInfo 形状（PC-B4c4 显式读）。 */
+interface ConfigCompilerPathInfo {
+	workPath: string
+	targetPath: string
+}
 
 /**
  * 处理 tabBar.list 中的 iconPath / selectedIconPath。
@@ -17,15 +22,12 @@ import { collectAssets } from '../../shared/utils.ts'
  * 注意：会在原 app 配置上原地修改，不影响后续输出（compileConfig 是
  * 整个流水线最后才走到的环节，不会被再次读取）。
  */
-function processTabBarIcons(app: Record<string, unknown>) {
+function processTabBarIcons(app: Record<string, unknown>, workPath: string, targetPath: string, appId: string | undefined) {
 	// @ts-expect-error P-TM04: type narrowing needed
 	const list = app?.tabBar?.list
 	if (!Array.isArray(list) || list.length === 0) {
 		return
 	}
-	const workPath = getWorkPath()
-	const targetPath = getTargetPath()
-	const appId = getAppId()
 
 	for (const item of list) {
 		// 第二参数 pagePath 留空 → collectAssets 内部 relativePath = ''，
@@ -45,11 +47,11 @@ function processTabBarIcons(app: Record<string, unknown>) {
  *
  * 编译项目配置文件 app-config.json
  */
-function compileConfig(): void {
-	const app = getAppConfigInfo()
+function compileConfig(graph: PackerGraph, pathInfo: ConfigCompilerPathInfo): void {
+	const app = graph.getAppConfigInfo()
 
 	// 把 tabBar 图标复制到产物目录并改写 iconPath
-	processTabBarIcons(app)
+	processTabBarIcons(app, pathInfo.workPath, pathInfo.targetPath, graph.getAppId())
 
 	// 微信 app.json 通常无 entryPagePath；入口为 pages[0]。容器冷启动依赖该字段。
 	if (!app.entryPagePath && Array.isArray(app.pages) && app.pages.length > 0) {
@@ -58,12 +60,12 @@ function compileConfig(): void {
 
 	const compileResInfo = {
 		app,
-		modules: getPageConfigInfo(),
-		projectName: getAppName(),
+		modules: graph.getPageConfigInfo(),
+		projectName: graph.getAppName(),
 	}
 
 	const json = JSON.stringify(compileResInfo, null, 4)
-	const mainDir = `${getTargetPath()}/main`
+	const mainDir = `${pathInfo.targetPath}/main`
 	if (!fs.existsSync(mainDir)) {
 		fs.mkdirSync(mainDir, { recursive: true })
 	}

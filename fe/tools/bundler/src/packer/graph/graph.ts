@@ -164,6 +164,11 @@ export class PackerGraph implements Graph {
 		return this.configData.appInfo!
 	}
 
+	/** 获取页面配置信息（PC-B4c4：主线程路由，消除 ALS getPageConfigInfo）。 */
+	getPageConfigInfo(): Record<string, PageConfig> {
+		return this.configData.pageInfo!
+	}
+
 	/** 获取运行时类型。 */
 	getRuntimeType(): string {
 		return this.configData.runtimeType || MINI_PROGRAM_RUNTIME_TYPE
@@ -172,6 +177,20 @@ export class PackerGraph implements Graph {
 	/** 是否为小游戏。 */
 	isMiniGame(): boolean {
 		return this.getRuntimeType() === MINI_GAME_RUNTIME_TYPE
+	}
+
+	/** 获取 appId（PC-B4c：主线程路由，消除 ALS getAppId）。 */
+	getAppId(): string | undefined {
+		return (this.configData.projectInfo as { appid?: string } | undefined)?.appid
+	}
+
+	/** 获取项目名（PC-B4c：主线程路由，消除 ALS getAppName）。 */
+	getAppName(): string | undefined {
+		const projectname = (this.configData.projectInfo as { projectname?: string } | undefined)?.projectname
+		if (projectname) {
+			return decodeURIComponent(projectname)
+		}
+		return this.getAppId()
 	}
 
 	// ── 快照 ──

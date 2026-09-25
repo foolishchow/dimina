@@ -321,8 +321,8 @@ describe('P-CT05 ②T2 — structural anchors (stage assembly via registry)', ()
 		// BUILD_END appId 经 bindings
 		expect(pipelineSrc).toContain('loadBindings')
 		expect(pipelineSrc).not.toMatch(/appId:\s*getAppId\(\)/)
-		// 阶段组装侧不再直接 getAppId / getAppStyleScopeId
-		expect(pipelineSrc).not.toContain('getAppId')
+		// 阶段组装侧不再直接 ALS getAppId / getAppStyleScopeId（PC-B4c：state.graph.getAppId() 是 graph 方法，允许）
+		expect(pipelineSrc).not.toMatch(/[^.]getAppId\(\)/)
 		expect(pipelineSrc).not.toContain('getAppStyleScopeId')
 	})
 

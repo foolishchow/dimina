@@ -103,11 +103,12 @@ function syncIncremental(srcDir: string, destDir: string): void {
  * @param {boolean} incremental H4 Phase 2 (F-H4-2)：true = 增量 sync（watch/compile-cache
  *   seedPath 路径，content-diff，无 rm 窗口）；false/缺省 = 全量（one-shot，行为不变）
  */
-function publishToDist(dist: string, useAppIdDir: boolean = true, incremental: boolean = false) {
-	const distPath = getTargetPath()
-	const appId = getAppId()
+function publishToDist(dist: string, useAppIdDir: boolean = true, incremental: boolean = false, buildDir?: string, appId?: string, isTemporary?: boolean) {
+	const distPath = buildDir ?? getTargetPath()
+	const resolvedAppId = appId ?? getAppId()
+	const temporary = isTemporary ?? isTemporaryTargetPath()
 	const absolutePath = useAppIdDir
-		? `${path.resolve(process.cwd(), dist)}${path.sep}${appId}`
+		? `${path.resolve(process.cwd(), dist)}${path.sep}${resolvedAppId}`
 		: `${path.resolve(process.cwd(), dist)}`
 	
 	if (path.resolve(distPath) === path.resolve(absolutePath)) {
@@ -127,7 +128,7 @@ function publishToDist(dist: string, useAppIdDir: boolean = true, incremental: b
 
 	// 默认构建目录由编译器独占，并且通常与发布目录位于同一磁盘。
 	// 直接移动可避免把 npm、静态资源和三阶段产物完整复制第二遍。
-	if (isTemporaryTargetPath()) {
+	if (temporary) {
 		try {
 			fs.renameSync(distPath, absolutePath)
 			return

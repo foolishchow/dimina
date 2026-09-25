@@ -5,7 +5,7 @@
  *   compileConfig() + CONFIG_COMPILED 事件（条件 shouldPrepareConfig）
  *
  * 无状态 collaborator（createPackerOrchestrator 闭包内一次构造复用）。
- * 不读写 sctx（纯 compileConfig 调用）。
+ * 读写 sctx.storeInfo.pathInfo + deps.state.graph（PC-B4c4 闭合 ALS）。
  *
  * 文件名 config-compiler-collab.ts 区别于既有 config-compiler.ts（compileConfig 实现）。
  */
@@ -14,16 +14,20 @@ import compileConfig from './config-compiler.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
 import type { BuildCollaborator } from '../types.ts'
+import type { PackerSessionState } from '../state/session-state.ts'
 
 export interface ConfigCompilerDeps {
+	state: PackerSessionState
 	lifecycle: Lifecycle
 }
 
 export function createConfigCompiler(): BuildCollaborator<ConfigCompilerDeps> {
 	return {
-		async run(_sctx, deps) {
-			const { lifecycle } = deps
-			compileConfig()
+		async run(sctx, deps) {
+			const { state, lifecycle } = deps
+			// B 切法（PC-B4c4）：workPath/targetPath 从 sctx.storeInfo.pathInfo 读，appId/appConfig/pageConfig/appName 从 state.graph 读（非 ALS）
+			const pathInfo = (sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string } }).pathInfo
+			compileConfig(state.graph, pathInfo)
 			await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COMPILED, {})
 		},
 	}
