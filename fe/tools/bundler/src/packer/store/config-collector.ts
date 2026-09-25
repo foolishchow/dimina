@@ -12,7 +12,7 @@
  */
 
 import { BuildModel } from '../emit/build-model.ts'
-import { getPages, isMiniGame } from './env.ts'
+import { getPages } from './env.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
 import type { BuildCollaborator, LoaderRegistry, StageChannelContext } from '../types.ts'
@@ -54,7 +54,7 @@ export function createConfigCollector(): BuildCollaborator<ConfigCollectorDeps> 
 				fileTypes: ((sctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),
 				pagesCount: allPages.mainPages.length
 					+ Object.values(allPages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0),
-				miniGame: isMiniGame(),
+				miniGame: state.graph.isMiniGame(),
 			})
 		},
 	}
