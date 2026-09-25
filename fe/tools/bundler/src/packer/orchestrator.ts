@@ -23,8 +23,7 @@ import { publishToDist } from './emit/publish.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
-import { NpmBuilder } from './pipeline/npm-builder.ts'
-import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from './store/env.ts'
+import { getAppConfigInfo, getAppName, getPages, getTargetPath, isMiniGame, runWithCompilerContext } from './store/env.ts'
 import { executeTask } from './worker/executor.ts'
 import { emitEngine } from './emit/emit-engine.ts'
 import { runCompileStage } from './state/stage-channel.ts'
@@ -36,6 +35,8 @@ import { createDistPreparer } from './emit/dist-preparer.ts'
 import type { DistPreparerDeps } from './emit/dist-preparer.ts'
 import { createConfigCompiler } from './pipeline/config-compiler-collab.ts'
 import type { ConfigCompilerDeps } from './pipeline/config-compiler-collab.ts'
+import { createNpmBuilderCollaborator } from './pipeline/npm-builder.ts'
+import type { NpmBuilderDeps } from './pipeline/npm-builder.ts'
 import type { BuildCollaborator } from './types.ts'
 
 interface RendererAdapter {
@@ -47,6 +48,7 @@ interface RendererAdapter {
 interface PackerCollaborators {
 	distPreparer: BuildCollaborator<DistPreparerDeps>
 	configCompiler: BuildCollaborator<ConfigCompilerDeps>
+	npmBuilder: BuildCollaborator<NpmBuilderDeps>
 }
 
 /** orch 内部调用面（D-OR-8）：非 OrchestrateOptions 的装配参数。 */
@@ -101,6 +103,7 @@ export function createPackerOrchestrator({
 	const collaborators = {
 		distPreparer: createDistPreparer(),
 		configCompiler: createConfigCompiler(),
+		npmBuilder: createNpmBuilderCollaborator(),
 	}
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
@@ -246,10 +249,7 @@ async function _orchestrate(
 			...(shouldPrepareNpm ? [{
 				title: '构建 npm 包',
 				task: async (ctx: Record<string, unknown>) => {
-					const sctx = ctx as unknown as StageChannelContext
-					const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null)
-					await npmBuilder.buildNpmPackages()
-					await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
+					await collaborators.npmBuilder.run(ctx as unknown as StageChannelContext, { lifecycle })
 				},
 			}] : []),
 		]

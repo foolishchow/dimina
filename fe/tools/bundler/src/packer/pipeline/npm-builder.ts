@@ -267,3 +267,29 @@ class NpmBuilder {
 }
 
 export { NpmBuilder }
+
+// ── facade-collaborator D-FC-1 接线（FC-P2）──────────────────────────
+// NpmBuilder 有状态（builtPackages/packageDependencies/miniprogramExts）→
+// 每次 build 重新 new（不在 createPackerOrchestrator 闭包构造）。
+// collaborator 自身无状态（factory），run() 内 new NpmBuilder + buildNpmPackages + emit.
+
+import type { BuildCollaborator } from '../types.ts'
+import type { StageChannelContext } from '../types.ts'
+import type { Lifecycle } from '../../shared/lifecycle.ts'
+import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
+import { getWorkPath, getTargetPath } from '../store/env.ts'
+
+export interface NpmBuilderDeps {
+	lifecycle: Lifecycle
+}
+
+export function createNpmBuilderCollaborator(): BuildCollaborator<NpmBuilderDeps> {
+	return {
+		async run(sctx: StageChannelContext, deps: NpmBuilderDeps) {
+			const { lifecycle } = deps
+			const npmBuilder = new NpmBuilder(getWorkPath(), getTargetPath(), (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null)
+			await npmBuilder.buildNpmPackages()
+			await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
+		},
+	}
+}
