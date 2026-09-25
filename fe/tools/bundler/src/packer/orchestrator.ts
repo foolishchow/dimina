@@ -23,13 +23,14 @@ import { publishToDist } from './emit/publish.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
-import { getAppConfigInfo, getAppName, getPages, getTargetPath, isMiniGame, runWithCompilerContext } from './store/env.ts'
+import { getAppConfigInfo, getAppName, getTargetPath, runWithCompilerContext } from './store/env.ts'
 import { executeTask } from './worker/executor.ts'
 import { emitEngine } from './emit/emit-engine.ts'
 import { runCompileStage } from './state/stage-channel.ts'
 import type { RunCompileStageParams } from './state/stage-channel.ts'
 import { BuildModel, materialize } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
+import type { ProjectStore } from './store/project-store.ts'
 import { deriveLogicBuckets } from './emit/convergence.ts'
 import { createDistPreparer } from './emit/dist-preparer.ts'
 import type { DistPreparerDeps } from './emit/dist-preparer.ts'
@@ -37,6 +38,8 @@ import { createConfigCompiler } from './pipeline/config-compiler-collab.ts'
 import type { ConfigCompilerDeps } from './pipeline/config-compiler-collab.ts'
 import { createNpmBuilderCollaborator } from './pipeline/npm-builder.ts'
 import type { NpmBuilderDeps } from './pipeline/npm-builder.ts'
+import { createConfigCollector } from './store/config-collector.ts'
+import type { ConfigCollectorDeps } from './store/config-collector.ts'
 import type { BuildCollaborator } from './types.ts'
 
 interface RendererAdapter {
@@ -46,6 +49,7 @@ interface RendererAdapter {
 
 /** D-FC-1 collaborator 装配 bag（orchestrator 内部接线，非 collaborator deps bag）。渐进填充。 */
 interface PackerCollaborators {
+	configCollector: BuildCollaborator<ConfigCollectorDeps>
 	distPreparer: BuildCollaborator<DistPreparerDeps>
 	configCompiler: BuildCollaborator<ConfigCompilerDeps>
 	npmBuilder: BuildCollaborator<NpmBuilderDeps>
@@ -101,6 +105,7 @@ export function createPackerOrchestrator({
 
 	// D-FC-1: 无状态 collaborator 在闭包内一次构造复用（共享闭包 registry）
 	const collaborators = {
+		configCollector: createConfigCollector(),
 		distPreparer: createDistPreparer(),
 		configCompiler: createConfigCompiler(),
 		npmBuilder: createNpmBuilderCollaborator(),
@@ -197,40 +202,18 @@ async function _orchestrate(
 			isPrinted = true
 		}
 
-		const cache = state.moduleCache
-		// G5 D-G5-2: view/style cache plumbing（optional——one-shot undefined→ctx undefined→stage-channel 写 no-op；watch-runner init 实例）
-		const viewCache = state.viewCache
-		const viewOrderList = state.viewOrderList
-		const styleCache = state.styleCache
-
 		const initPhases = [
 			{
 				title: '收集配置信息',
 				task: async (ctx: Record<string, unknown>) => {
-					const sctx = ctx as unknown as StageChannelContext
-					sctx.buildModel = new BuildModel()
-					const _store = store as { load: (w: string, o: unknown) => Record<string, unknown>; getDependencyGraph: () => unknown }
-					sctx.storeInfo = _store.load(workPath, { fileTypes, graph: state.graph });
-					sctx.dependencyGraph = _store.getDependencyGraph()
-					sctx.cache = cache
-					// D-HR-1（fe-tools-hmr-chain-residuals）：loaderRegistry 生产消费点——
-					// kinds() 派发配置查询（grep 非零）。阶段函数形状适配是后续门，
-					// dispatch 不接线（locked B：compile/emit 维持 worker）。loadedModules 供后续门消费。
-					sctx.loadedModules = new Map()
-					for (const kind of loaderRegistry.kinds()) {
-						void loaderRegistry.get(kind as 'logic' | 'view' | 'style' | 'config')
-					}
-				// G5 D-G5-2: plumbing view/style cache（镜像 logic cache 模式）
-				sctx.viewCache = viewCache
-				sctx.viewOrderList = viewOrderList
-				sctx.styleCache = styleCache
-					if (invalidatedModules) sctx.invalidatedModules = invalidatedModules
-					const allPages = getPages()
-					await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
-						fileTypes: ((ctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),
-						pagesCount: allPages.mainPages.length
-							+ Object.values(allPages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0),
-						miniGame: isMiniGame(),
+					await collaborators.configCollector.run(ctx as unknown as StageChannelContext, {
+						store: store as ProjectStore,
+						state,
+						lifecycle,
+						loaderRegistry,
+						workPath,
+						fileTypes,
+						invalidatedModules,
 					})
 				},
 			},
