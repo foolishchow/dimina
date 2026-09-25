@@ -243,7 +243,7 @@ describe('dev server — artifactResolver 注入', () => {
 			serveRoot,
 			sdkRoot: serveRoot,
 			appId: 'wx_test',
-			artifactResolver: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null,
+			outputRef: { output: { read: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null } },
 		})
 		await devServer.listen(0, '127.0.0.1')
 		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`
@@ -267,7 +267,7 @@ describe('dev server — artifactResolver 注入', () => {
 			serveRoot,
 			sdkRoot: serveRoot,
 			appId: 'wx_test',
-			artifactResolver: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null,
+			outputRef: { output: { read: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null } },
 		})
 		await devServer.listen(0, '127.0.0.1')
 		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`
@@ -312,7 +312,7 @@ describe('dev server — artifactResolver 注入', () => {
 			serveRoot,
 			sdkRoot: serveRoot,
 			appId: 'wx_test',
-			artifactResolver: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null,
+			outputRef: { output: { read: (p) => p === 'main/logic.js' ? { code: '/* memory logic */' } : null } },
 		})
 		await devServer.listen(0, '127.0.0.1')
 		baseUrl = `http://127.0.0.1:${devServer.server.address().port}`

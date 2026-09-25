@@ -121,6 +121,7 @@ export interface PackerContext {
 export interface StageChannelContext {
 	// load stage（orchestrator）
 	buildModel?: unknown
+	output?: unknown
 	storeInfo?: unknown
 	dependencyGraph?: unknown
 	loadedModules?: Map<string, unknown>
@@ -406,7 +407,43 @@ export interface ModuleResultCache<V = CachedModuleResult> {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// §8 PackerOrchestrator（D-PCS-5, D-PCS-8, D-PCS-9）
+// §8 Output 抽象（D-O1——统一 memfs/disk 路径，坍缩 BuildModel/materialize/publishToDist/createDist/artifactResolver/skipMaterialize）
+// ════════════════════════════════════════════════════════════════════
+
+/** publish 选项（D-O3——DiskOutput.publish 收参数；MemOutput.publish no-op 忽略）。 */
+export interface PublishOpts {
+	/** app 子目录（useAppIdDir）。 */
+	useAppIdDir?: boolean
+	/** seed 路径（incremental sync 前提——F-R13-1：scratch 预 seed copy）。 */
+	seedPath?: string
+	/** app id（useAppIdDir 子目录名）。 */
+	appId?: string
+	/** incremental sync（!!seedPath——dirty guard + incremental sync）。 */
+	incremental?: boolean
+}
+
+/**
+ * Output 抽象（D-O1）——统一 memfs（dev）与 disk（one-shot）产物路径。
+ *
+ * - add(entry)：累积产物（stage onOutput 调，全 4 路径——orchestrator L83/85 + stage-dispatcher L54 + logic-emitter L42）
+ * - read(path)：读累积内存 lazy index（dev server 调，miss → fs.readFile fallback；F-R4-1：previewAdapter-dev 须即时内存读，不等 publish）
+ * - publish(target, opts?)：写盘（MemOutput no-op；DiskOutput mkdtemp+seed+write+publish+clearDirty）
+ * - getEntries()：返累积 EmitEntry[]（BuildResult.entries 契约，F-R4-2）
+ */
+export interface Output {
+	add(entry: EmitEntry): void
+	read(relativePath: string): { code: string } | null
+	publish(target: string, opts?: PublishOpts): void
+	getEntries(): EmitEntry[]
+}
+
+/** dev server 窄接口（D-OL4/F-R5-2——避免暴露整个 PackerSessionState 类型依赖）。 */
+export interface OutputRef {
+	/** optional——session 传 state（state.output optional 满足结构子类型）；dev server 读 outputRef?.output?.read。 */
+	output?: Output | undefined
+}
+
+// ════════════════════════════════════════════════════════════════════
 // §8a BuildResult（D-NS-3：北星 return type composite——Promise<EmitEntry[]> → Promise<BuildResult>）
 // ════════════════════════════════════════════════════════════════════
 
@@ -501,6 +538,8 @@ export interface BuildResult {
 	/** guaranteed GraphSnapshot（source state.graph.toJSON()——F-AG1-1）。 */
 	dependencyGraph: GraphSnapshot
 	buildModel: BuildModel | undefined
+	/** D-O1/F-OL3：Output 替代 buildModel（P-O1 阶段并行；P-O3 后 buildModel 删）。 */
+	output?: Output | undefined
 }
 
 // ════════════════════════════════════════════════════════════════════

@@ -11,6 +11,7 @@ import path from 'node:path'
 import { WebSocketServer, WebSocket } from 'ws'
 import { createHostPageHtml, createPageFrameHtml } from './dev-host.ts'
 import { handleProxyRequest, isAllowedBrowserOrigin } from './dev-proxy.ts'
+import type { OutputRef } from '../packer/types.ts'
 
 const DEFAULT_WS_PATH = '/ws'
 const MIME_TYPES: Record<string, string> = Object.freeze({
@@ -50,7 +51,7 @@ export function createDevServer({
 	hostHtml = createHostPageHtml({ appId, wsPath }),
 	pageFrameHtml = createPageFrameHtml(),
 	allowedOrigins = '',
-	artifactResolver,
+	outputRef,
 }: {
 	serveRoot: string
 	sdkRoot: string
@@ -59,7 +60,7 @@ export function createDevServer({
 	hostHtml?: string
 	pageFrameHtml?: string
 	allowedOrigins?: string
-	artifactResolver?: (relativePath: string) => { code: string } | null
+	outputRef?: OutputRef
 }) {
 	if (!serveRoot || !sdkRoot || !appId) {
 		throw new TypeError('createDevServer requires serveRoot, sdkRoot, and appId')
@@ -156,7 +157,7 @@ export function createDevServer({
 			else {
 				const relativePath = pathname.slice(1)
 				const artifactPath = stripAppIdPrefix(relativePath, appId)
-				const artifact = artifactResolver?.(artifactPath)
+				const artifact = outputRef?.output?.read(artifactPath)
 				if (artifact) {
 					const contentType = MIME_TYPES[path.extname(pathname).toLowerCase()]
 						|| 'application/octet-stream'

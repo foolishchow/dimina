@@ -23,6 +23,8 @@ import { artCode, resetAssetCache } from '../shared/utils.ts'
 
 import { runCompileStage } from './state/stage-channel.ts'
 import type { BuildModel } from './emit/build-model.ts'
+import { MemOutput } from './emit/output.ts'
+import type { Output } from './types.ts'
 import { createProjectStore } from './store/project-store.ts'
 import type { ProjectStore } from './store/project-store.ts'
 import { createDistPreparer } from './emit/dist-preparer.ts'
@@ -80,9 +82,9 @@ const MAX_WARNING_PROJECTS = 32
 const webviewRenderer = {
 	name: 'webview',
 	runViewStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => ((ctx as unknown as StageChannelContext).buildModel as { add: (e: unknown) => void }).add(entry) }),
+		runCompileStage({ script: 'view', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => { ((ctx as unknown as StageChannelContext).buildModel as { add: (e: unknown) => void } | undefined)?.add(entry); ((ctx as unknown as StageChannelContext).output as { add: (e: unknown) => void } | undefined)?.add(entry) } }),
 	runStyleStage: async (ctx: Record<string, unknown>, task: unknown, workerOptions: Record<string, unknown>, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }): Promise<void> =>
-		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => ((ctx as unknown as StageChannelContext).buildModel as { add: (e: unknown) => void }).add(entry) }),
+		runCompileStage({ script: 'style', ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => { ((ctx as unknown as StageChannelContext).buildModel as { add: (e: unknown) => void } | undefined)?.add(entry); ((ctx as unknown as StageChannelContext).output as { add: (e: unknown) => void } | undefined)?.add(entry) } }),
 }
 if (!getRenderer('webview')) {
 	registerRenderer(webviewRenderer)
@@ -157,6 +159,11 @@ async function _orchestrate(
 		parallel = true,
 		compileOptions = {},
 	} = request
+
+	// D-OL1（方案 B——orchestrator 入口 mode-aware 创建 + listr2 ctx 注入）：
+	// P-O1 阶段：dev（skipMaterialize=true）→ MemOutput；one-shot → undefined（仍走 buildModel）
+	// P-O3 后：消 skipMaterialize 改 request.outputMode 'dev'|'disk'（F-R30-1/F-R34-1）
+	const output: Output | undefined = request.skipMaterialize ? new MemOutput() : undefined
 
 	const store = (runStore ?? providedStore ?? createProjectStore()) as {
 		load: (w: string, o: unknown) => Record<string, unknown>
@@ -289,16 +296,18 @@ async function _orchestrate(
 		} as ListrBaseClassOptions,
 		)
 
-		const context = await tasks.run()
+		const context = await tasks.run({ output } as Record<string, unknown>)
 		printCompatibilityWarnings(workPath, (context as { compatibilityWarnings?: Set<string> }).compatibilityWarnings)
 	const buildModel = (context as { buildModel?: BuildModel }).buildModel
+	const outputFromCtx = (context as { output?: Output }).output
 	const result: BuildResult = {
-		entries: buildModel ? [...buildModel.entries.values()] : [],
+		entries: outputFromCtx ? outputFromCtx.getEntries() : (buildModel ? [...buildModel.entries.values()] : []),
 		appId: ((context as { loadBindings?: { appId?: string } | null }).loadBindings)?.appId,
 		name: state.graph.getAppName(),
 		path: (state.graph.getAppConfigInfo().entryPagePath as string | undefined) || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
 		dependencyGraph: state.graph.toJSON(),
 		buildModel,
+		output: outputFromCtx,
 	}
 		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_END, {
 			result,

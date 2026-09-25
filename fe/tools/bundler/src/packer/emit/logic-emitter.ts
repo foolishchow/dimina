@@ -35,6 +35,7 @@ export function createLogicEmitter(): BuildCollaborator<LogicEmitterDeps> {
 			const compileConfigOpts = sctx.compileConfig as { minify: boolean; esTarget: { logic: string } } | undefined
 			if (!pages || !compileConfigOpts) return  // logic stage 未跑（partial-stage）→ skip emit
 			const buildModel = sctx.buildModel as BuildModel
+			const output = (sctx as { output?: { add: (e: unknown) => void } }).output
 			const storeInfo = sctx.storeInfo
 			const sourcemap = !!sctx.sourcemap
 			const sourcemapTargetPath = sctx.sourcemapTargetPath as string | undefined
@@ -51,13 +52,13 @@ export function createLogicEmitter(): BuildCollaborator<LogicEmitterDeps> {
 						entryId: 'logic:' + root, kind: 'logic' as const, modules,
 						transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: root, storeInfo,
 					} }) as { entry: Parameters<typeof buildModel.add>[0] }
-					buildModel.add(entry)
+					buildModel.add(entry); output?.add(entry)
 				}
 				const { entry } = await executeTask({ engine: emitEngine, input: {
 					entryId: 'logic', kind: 'logic' as const, modules: main,
 					transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: 'main', storeInfo,
 				} }) as { entry: Parameters<typeof buildModel.add>[0] }
-				buildModel.add(entry)
+				buildModel.add(entry); output?.add(entry)
 			} catch (error) {
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage: 'logic', error })
 				throw error

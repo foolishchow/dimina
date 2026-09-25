@@ -17,6 +17,7 @@
 import { createDevServer } from '../dev/dev-server.ts'
 import { synthesizeReloadLevel } from '../dev/dev-reload.ts'
 import { resolveSdkRoot } from '../dev/sdk-root.ts'
+import type { OutputRef } from '../packer/types.ts'
 
 type DevServerHandle = ReturnType<typeof createDevServer>
 export interface ReloadContext { event: string; filePath: string; count: number; plan: { skip: boolean; incremental: boolean; options: { stages?: string[]; affectedEntries?: string[] } }; appId: string }
@@ -50,13 +51,13 @@ export function createWebPreviewAdapter({ hmr = false }: { hmr?: boolean } = {})
 		},
 
 		/** Wrap today's createDevServer; host/port are NOT accepted here (belong to listen). */
-		async createServer({ serveRoot, appId, artifactResolver }: { serveRoot: string; appId: string; artifactResolver?: (relativePath: string) => { code: string } | null }) {
+		async createServer({ serveRoot, appId, outputRef }: { serveRoot: string; appId: string; outputRef?: OutputRef }) {
 			state.devServer = createDevServer({
 				serveRoot,
 				sdkRoot: resolveSdkRoot(),
 				appId,
 				wsPath: '/ws',
-				artifactResolver,
+				outputRef,
 			})
 		},
 
