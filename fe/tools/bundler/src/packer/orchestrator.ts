@@ -13,7 +13,6 @@ import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.ts'
 import type { Lifecycle } from '../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from './registry/renderers.ts'
 import { createCompileTarget } from './pipeline/compile-target.ts'
-import type { PagesInfo } from './pipeline/compile-target.types.ts'
 import { createDispatchRegistry } from './registry/dispatch.ts'
 import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl, CompileRegistryImpl, EmitRegistryImpl } from './registry/lce.ts'
@@ -23,13 +22,10 @@ import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 import { getAppConfigInfo, getAppName, getTargetPath, runWithCompilerContext } from './store/env.ts'
-import { executeTask } from './worker/executor.ts'
-import { emitEngine } from './emit/emit-engine.ts'
 import { runCompileStage } from './state/stage-channel.ts'
 import { BuildModel, materialize } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
 import type { ProjectStore } from './store/project-store.ts'
-import { deriveLogicBuckets } from './emit/convergence.ts'
 import { createDistPreparer } from './emit/dist-preparer.ts'
 import type { DistPreparerDeps } from './emit/dist-preparer.ts'
 import { createConfigCompiler } from './pipeline/config-compiler-collab.ts'
@@ -40,6 +36,8 @@ import { createConfigCollector } from './store/config-collector.ts'
 import type { ConfigCollectorDeps } from './store/config-collector.ts'
 import { createStageDispatcher } from './pipeline/stage-dispatcher.ts'
 import type { StageDispatcherDeps } from './pipeline/stage-dispatcher.ts'
+import { createLogicEmitter } from './emit/logic-emitter.ts'
+import type { LogicEmitterDeps } from './emit/logic-emitter.ts'
 import type { BuildCollaborator } from './types.ts'
 
 
@@ -50,6 +48,7 @@ interface PackerCollaborators {
 	configCompiler: BuildCollaborator<ConfigCompilerDeps>
 	npmBuilder: BuildCollaborator<NpmBuilderDeps>
 	stageDispatcher: BuildCollaborator<StageDispatcherDeps>
+	logicEmitter: BuildCollaborator<LogicEmitterDeps>
 }
 
 /** orch 内部调用面（D-OR-8）：非 OrchestrateOptions 的装配参数。 */
@@ -107,6 +106,7 @@ export function createPackerOrchestrator({
 		configCompiler: createConfigCompiler(),
 		npmBuilder: createNpmBuilderCollaborator(),
 		stageDispatcher: createStageDispatcher(),
+		logicEmitter: createLogicEmitter(),
 	}
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
@@ -258,39 +258,7 @@ async function _orchestrate(
 			{
 				title: 'Logic emit',
 				task: async (ctx: Record<string, unknown>) => {
-					const sctx = ctx as unknown as StageChannelContext
-					// H1 (D-ED-1 B2+E): deriveFromGraph 接线 — graph + cache 派生 logic emit buckets (非 ctx.emitBuckets)
-					const pages = sctx.pages as PagesInfo | undefined
-					const compileConfigOpts = sctx.compileConfig as { minify: boolean; esTarget: { logic: string } } | undefined
-					if (!pages || !compileConfigOpts) return  // logic stage 未跑（partial-stage）→ skip emit
-					const buildModel = ctx.buildModel as BuildModel
-					const storeInfo = ctx.storeInfo
-					const sourcemap = !!sctx.sourcemap
-					const sourcemapTargetPath = sctx.sourcemapTargetPath as string | undefined
-					const transform = { strategy: 'perModule', minify: compileConfigOpts.minify, target: compileConfigOpts.esTarget.logic, platform: 'neutral' }
-					// B2+E: graph closure union → cache 插入序迭代 → cross-bucket dedup
-					const innerGraph = state.graph.getInnerGraph()
-					const mainEntryIds = pages.mainPages.map(p => p.path)
-					const subBuckets = (Object.entries(pages.subPages ?? {}) as [string, { info: { path: string }[]; independent?: boolean }][])
-						.map(([root, sub]) => ({ root, entryIds: sub.info.map(p => p.path), independent: sub.independent }))
-					const { main, subs } = deriveLogicBuckets(innerGraph, state.moduleCache, mainEntryIds, subBuckets)
-					try {
-						for (const { root, modules } of subs) {
-							const { entry } = await executeTask({ engine: emitEngine, input: {
-								entryId: 'logic:' + root, kind: 'logic' as const, modules,
-								transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: root, storeInfo,
-							} }) as { entry: Parameters<typeof buildModel.add>[0] }
-							buildModel.add(entry)
-						}
-						const { entry } = await executeTask({ engine: emitEngine, input: {
-							entryId: 'logic', kind: 'logic' as const, modules: main,
-							transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: 'main', storeInfo,
-						} }) as { entry: Parameters<typeof buildModel.add>[0] }
-						buildModel.add(entry)
-					} catch (error) {
-						await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage: 'logic', error })
-						throw error
-					}
+					await collaborators.logicEmitter.run(ctx as unknown as StageChannelContext, { state, lifecycle })
 				},
 			},
 			{
