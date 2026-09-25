@@ -12,7 +12,7 @@ Status authority: [Action Status](../STATUS.md)
 1. `types.ts` 加 `Output` interface（add/read/publish/**getEntries**，F-R4-2）+ `PublishOpts`（D-O1）+ `BuildResult.buildModel` → `output?: Output | undefined`（D-OL3，F1）
 2. 新增 `emit/output.ts`（F7 修正 lock）：**BaseOutput abstract base**（entries Map + index + read + getEntries + add，F-R10-2）+ `MemOutput` impl（extend BaseOutput，publish no-op）——复刻 BuildModel.getArtifact 语义（D-O2）
 3. **Output 生命周期（D-OL1..4，F1，方案 B——orchestrator 入口创建 + listr2 ctx 注入，F-R4-3）**：
-   - orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建：`const output = request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`（P-O1/P-O2 过渡用 boolean；P-O3 后改 `request.mode === 'dev'`，F-R30-1）
+   - orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建：`const output = request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`（P-O1/P-O2 过渡用 boolean；P-O3 后改 `request.outputMode === 'dev'`，F-R30-1）
    - **listr2 ctx 注入**（F-R4-3）：`tasks.run({ output } as Record<string, unknown>)`（L292 改）—— Output 经 initial ctx 注入，config-collector 跑前 sctx.output 已存在
    - **config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离）
    - orchestrator L83/85 stage compile onOutput → `sctx.output.add(entry)`（替代 sctx.buildModel.add）
@@ -68,7 +68,7 @@ Status authority: [Action Status](../STATUS.md)
    - **F-R26-2 publisher.ts import 演进**：删 materialize（L11）+ publishToDist（L12）+ BuildModel（L16）+ 加 `import type { Output } from './output.ts'`
    - **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }` → `import type { Output }`（L37 as Output）
    - `artifactResolver` callback + dev-server createServer params 注入点
-   - `skipMaterialize` flag 全 caller 退役 + **F-R30-1 mode 字段迁移**：types.ts L437 `skipMaterialize?: boolean` → `mode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.mode === 'dev'`；session L235 `mode: previewAdapter ? 'disk' : 'dev'`；compile.ts `mode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 mode
+   - `skipMaterialize` flag 全 caller 退役 + **F-R30-1 outputMode 字段迁移**：types.ts L437 `skipMaterialize?: boolean` → `outputMode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.outputMode === 'dev'`；session L235 `outputMode: previewAdapter ? 'disk' : 'dev'`；compile.ts `outputMode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 outputMode
    - **sctx.buildModel 消费者迁移验**（F-R7-1）：stage-dispatcher L54（dispatch onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）→ sctx.output（grep `sctx.buildModel` src/ caller=0）
 2. grep 验 compat 写 output 消费方死：
    - `getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（grep 验 env.ts getter caller 在 emit/* = 0）
