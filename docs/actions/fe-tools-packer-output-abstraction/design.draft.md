@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> D-O1..N 待 review lock。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) + [`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) 讨论。
+> D-O1..7 待 review lock。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) + [`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) 讨论。Review round 1-3 findings F1-F12 已修正。
 
 ## §1 现状 output 机制（4 概念缠结）
 
@@ -15,7 +15,7 @@ worker compile → postMessage(EmitEntry) → 主线程
   → publishToDist(TEMP → FINAL)              [rename/copy/incremental sync]
   → (dev server 读)
       artifactResolver(path) = getArtifact   [内存 lazy index 读]
-      miss → fs.readFile(serveRoot=FINAL)     [盘读 fallback，非编译资产]
+      miss → fs.readFile(serveRoot)           [盘读 fallback，非编译资产]
 ```
 
 ### 1.2 现有概念职责
@@ -37,12 +37,32 @@ worker compile → postMessage(EmitEntry) → 主线程
 - **compat 写 output 角色 load-bearing**——getTargetPath 喂 createDist/materialize/publishToDist
 - **memfs 特殊路径**——dev 直读 BuildModel + skipMaterialize 是 mode-specific 分支
 
-## §2 Output 抽象（D-O1 locked 候选）
+## §2 Output 抽象（D-O1..7）
+
+### §2.0 Output 生命周期（F1 修正——必须先 lock，是 P-O1 实施前提）
+
+**现状 buildModel 流**（Output 须同构替代）：
+```
+config-collector 设 sctx.buildModel = new BuildModel()
+  → stage compile onOutput (orchestrator L83/85) → sctx.buildModel.add(entry)  [累积]
+  → orchestrator L294: result.buildModel = (context as {buildModel?}).buildModel  [→ BuildResult]
+  → session L244: state.buildModel = buildResult.buildModel  [首 build 持有]
+  → session L255: build:end listener → state.buildModel = result?.buildModel  [每 rebuild 替换]
+  → session L249: artifactResolver = state.buildModel?.getArtifact(path)  [dev server 读]
+```
+
+**Output 替代后同构流**（D-OL1..4 locked）：
+- **D-OL1**：config-collector 设 `sctx.output = new MemOutput()` (dev) / `new DiskOutput(final)` (one-shot) ——替代 sctx.buildModel = new BuildModel()
+- **D-OL2**：stage compile onOutput → `sctx.output.add(entry)`（替代 sctx.buildModel.add）——orchestrator L83/85 两处改
+- **D-OL3**：`BuildResult.buildModel` 字段演进——`types.ts` L503 `buildModel: BuildModel | undefined` → `output: Output | undefined`（同位替代）。orchestrator L294 `result.output = (context as {output?}).output`
+- **D-OL4**：session 持有 + rebuild 替换——L244 `state.output = buildResult.output`（替代 state.buildModel）；L255 `build:end` listener → `state.output = result?.output`（**每 rebuild 替换**，复刻 buildModel rebuild 语义）；L249 dev server 改 `state.output?.read(path)`
+
+**关键**：Output 是**每 build 实例**（非单例）——config-collector 每 orchestrate new 一个（复刻 sctx.buildModel per-orchestrate）。rebuild 时 result.output 替换 state.output（复刻 buildModel rebuild 替换）。dev server 读 state.output.read。
 
 ### D-O1 — Output interface
 
 ```ts
-// types.ts §10
+// types.ts
 export interface PublishOpts {
   useAppIdDir?: boolean
   incremental?: boolean       // watch/compile-cache seedPath → content-diff sync
@@ -55,7 +75,7 @@ export interface Output {
   add(entry: EmitEntry): void
   /** 读产物（dev server 用——模式无关，miss 返 null 走 fs fallback） */
   read(path: string): { code: string } | null
-  /** 提交到 final（one-shot/previewAdapter：写 scratch + rename/copy；dev：no-op） */
+  /** 提交到 final（one-shot/previewAdapter：写 scratch + rename/copy；纯 dev：no-op） */
   publish(target: string, opts?: PublishOpts): void
 }
 ```
@@ -63,7 +83,7 @@ export interface Output {
 **设计要点**：
 - `add` 是累积语义（非直写）——保 dirty tracking（DiskOutput 增量 publish 须）+ lazy index（MemOutput read 须）
 - `read` 模式无关——dev server 单一入口，miss 返 null（caller 决定 fs fallback）
-- `publish` target=FINAL——DiskOutput 内部管 scratch（mkdtemp）+ rename/copy；MemOutput no-op
+- `publish` target=FINAL——DiskOutput 内部管 scratch（mkdtemp）+ rename/copy；MemOutput no-op（实证见 D-O2）
 
 ### D-O2 — MemOutput impl（dev memfs）
 
@@ -77,11 +97,20 @@ class MemOutput implements Output {
     if (!this.index) { /* build index from entries.files/sourcemaps — 复刻 getArtifact */ }
     return this.index.get(path) ?? null
   }
-  publish() { /* no-op — dev server 直读内存 */ }
+  publish() { /* no-op */ }
 }
 ```
 
-**行为 == 现状 dev memfs**（D-MM-1 直读 BuildModel + skipMaterialize）：entries Map + lazy index + add 失效。
+**F2 实证——MemOutput.publish no-op 可行性**：
+- 纯 dev（无 previewAdapter，skipMaterialize=true）现状：
+  - `createDist(seedPath)` 建 buildDir（mkdtemp dimina-fe-dist-）+ seed（但 seedPath=undefined → 不 seed → buildDir 空）
+  - materialize 跳过 → buildDir 仍空
+  - publishToDist 复制**空 buildDir** → serveRoot（mkdtemp dmcc-dev-，resolve.ts L143）→ **serveRoot 空**
+  - dev server 读：compiled → artifactResolver 内存（hit）；SDK → sdkRoot（dev-server L153，独立）；非编译非 SDK → fs.readFile(serveRoot 空) → **miss → 404**（纯 dev 本就如此）
+- **结论**：纯 dev serveRoot 本空（seedPath 缺 + materialize 跳）。MemOutput.publish no-op == 现状纯 dev（serveRoot 不被 seed，dev server 读内存 + sdkRoot，fs fallback miss 404）。**no-op 等价成立**。
+- **previewAdapter-dev 不走 MemOutput**——走 DiskOutput（见 D-O4），因 previewAdapter 模式 skipMaterialize=false → materialize 写 → serveRoot 有内容 → dev server fs fallback 有命中（previewAdapter 需 serveRoot 有内容供 adapter 读）。
+
+**行为 == 现状纯 dev memfs**（D-MM-1 直读 BuildModel + skipMaterialize + serveRoot 空）：entries Map + lazy index + add 失效 + publish no-op。
 
 ### D-O3 — DiskOutput impl（one-shot + previewAdapter disk）
 
@@ -89,37 +118,45 @@ class MemOutput implements Output {
 class DiskOutput implements Output {
   private entries = new Map<string, EmitEntry>()
   private dirty = new Set<string>()
-  private scratch: string  // mkdtemp（computePathInfo 语义，构造时或 publish 时算）
+  private final: string  // FINAL 发布目录（构造收）
 
   add(entry) { const k = `${entry.kind}:${entry.entryId}`; this.entries.set(k, entry); this.dirty.add(k) }
-  read(path) { /* 读累积内存（或盘，依 publish 状态）—— one-shot 不常用 */ }
+  read(path) { return null }  // F5 修正：DiskOutput 不支持 read（one-shot 不调；previewAdapter-dev 经 dev server 走 DiskOutput 时 read 仍返 null，serveRoot 落盘后读盘）
   publish(target, opts) {
-    // 复刻 materialize + publishToDist + createDist：
-    // 1. dirty 非空 → 只写 dirty；空 → 全量（materialize L105-106）
-    // 2. 写 scratch：mkdir recursive + writeFileSync(dest, file.code) + writeFileSync(dest, String(map))
-    // 3. publish scratch → target：rename(同 fs) / copy+rm scratch(EXDEV) / incremental sync(content-diff, F-H4-2)
-    // 4. clearDirty
+    // 复刻 materialize + publishToDist + createDist（per-build mkdtemp，F3）：
+    // 1. mkdtemp scratch（computePathInfo 语义——每 publish 新 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo）
+    // 2. dirty 非空 → 只写 dirty；空 → 全量（materialize L105-106）
+    // 3. 写 scratch：mkdir recursive + writeFileSync(dest, file.code) + writeFileSync(dest, String(map))
+    // 4. publish scratch → target：rename(同 fs) / copy+rm scratch(EXDEV) / incremental sync(content-diff, F-H4-2)
+    // 5. clearDirty
   }
 }
 ```
+
+**F3 修正——scratch mkdtemp 生命周期**：**per-build**（每 publish 调用内 `mkdtemp`），非构造时。复刻现状 storeInfo per-orchestrate `computePathInfo` mkdtemp（orchestrator 每 orchestrate 调 storeInfo → mkdtemp）。构造时只持 `final`（FINAL 发布目录）。
+
+**F5 修正——DiskOutput.read 语义**：返 `null`（不支持 read）。one-shot 不调 read（final 落盘后是产物）。previewAdapter-dev 若经 DiskOutput + dev server 调 read → 返 null → dev server fs fallback 读 serveRoot（已 publish 落盘）——与现状 previewAdapter-dev 行为一致（dev server 读 serveRoot 落盘内容）。
 
 **行为 == 现状 one-shot/previewAdapter**（materialize + publishToDist + createDist）：
 - dirty tracking（H4 D-PUSH-3）保留
 - mkdir+writeFileSync+String(map) byte-exact 复刻 materialize
 - rename/EXDEV/incremental sync 复刻 publishToDist
-- scratch mkdtemp 复刻 computePathInfo（构造时算，非 storeInfo 内重算）
+- scratch mkdtemp per-build 复刻 computePathInfo
 
-**scratch 归属**：DiskOutput 构造时算 mkdtemp（computePathInfo 语义）——不再在 storeInfo 内重算。消 targetPath 双语义：DiskOutput 持 scratch（封装），PackerContext.targetPath = FINAL。
+**消 targetPath 双语义**：DiskOutput 持 `final`（FINAL，构造收）；publish 内 mkdtemp scratch（TEMP，封装）。PackerContext.targetPath = FINAL 不变。sctx.storeInfo.pathInfo.targetPath（TEMP）的 output 角色死（compat 写 output 消费方死，见 D-O7）——targetPath 双语义消解。
 
 ### D-O4 — mode-driven impl 选择（消 skipMaterialize）
 
-| mode | Output impl | 选择点 |
-|---|---|---|
-| dev（session.dev，无 previewAdapter） | MemOutput | session.dev 构造 |
-| previewAdapter-dev（现状 skipMaterialize=false） | DiskOutput | session.dev（previewAdapter 分支） |
-| one-shot（compile.ts build） | DiskOutput | build facade / compile.ts |
+| mode | Output impl | 选择点 | serveRoot 状态 |
+|---|---|---|---|
+| dev（session.dev，无 previewAdapter） | MemOutput | config-collector（sctx.output） | 空（no-op publish，dev server 读内存 + sdkRoot） |
+| previewAdapter-dev（skipMaterialize=false 现状） | DiskOutput | config-collector（previewAdapter 分支） | 有内容（materialize+publish 落盘，dev server 读 serveRoot） |
+| one-shot（compile.ts build） | DiskOutput | build facade / compile.ts | = final targetPath（产物落盘） |
+| **watch standalone（非 dev，F4 修正）** | **DiskOutput** | **session.watch options 传** | **= targetPath（无 dev server 读，纯落盘）** |
 
-**消 skipMaterialize flag**——mode = impl 选择，publisher 不再 guard（publish 调用统一，MemOutput.publish no-op 等价 skip）。
+**选择点机制**：config-collector（orchestrator 内）按 request.mode/skipMaterialize 决定 `sctx.output = new MemOutput()` 或 `new DiskOutput(final)`。final = request.targetPath（orchestrate 入参 = FINAL）。**消 skipMaterialize flag**——mode = impl 选择，publisher 不再 guard（publish 调用统一，MemOutput.publish no-op 等价 skip）。
+
+注：config-collector 现有职责是 storeInfo/buildGraph；加 Output 构造是合理扩展（Output 是 build 数据载体，与 buildModel 同位）。或单独 output-factory collaborator（待 P-O1 impl 时定——非 blocking）。
 
 ### D-O5 — dev server 读路径统一
 
@@ -129,29 +166,43 @@ class DiskOutput implements Output {
 // 改: output.read(path) → hit return; miss fs.readFile(serveRoot)
 ```
 
-**消 artifactResolver callback**——dev server 收 Output（非 callback），调 Output.read。fs fallback 保留（非编译资产 SDK/static 在 FINAL 盘）。
+**F8 修正——serveRoot 术语**：dev server 读路径：
+- `/sdk/*` → sdkRoot（dev-server L153，独立，**不经 Output 也不经 serveRoot**）
+- `/index.html` `/pageFrame.html` → 内存常量
+- else → `output.read(artifactPath)`（hit 返 compiled 内存）
+- miss → `fs.readFile(resolveContainedPath(serveRoot, relativePath))`（dev-server L166）
 
-### D-O6 — collaborator 接 Output
+serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
+- 纯 dev → mkdtemp TEMP（dmcc-dev-，resolve.ts L143）——MemOutput no-op → 空 → fs fallback miss 404
+- previewAdapter-dev → 同上 mkdtemp——DiskOutput publish 落盘 → 有内容 → fs fallback 命中
+- one-shot → final targetPath（compile.ts TARGET_PATH）
 
-- `publisher` collaborator 改调 `output.publish(target, opts)`（非 materialize + publishToDist）
-- `dist-preparer` 退役（createDist 语义入 DiskOutput.publish）或改调 `output.prepareScratch()`（如需分离）
-- Output 经 sctx.output 或 deps.output 流给 collaborator
+**消 artifactResolver callback**——dev server 收 Output（经 createServer params，替代 artifactResolver callback），调 `output.read`。fs fallback 保留（serveRoot mode-dep，非编译非 SDK 资产）。
 
-### D-O7 — 殁骸拆除（P-O3）
+### D-O6 — collaborator 接 Output（F6 修正 lock deps.output）
+
+- **Output 流经 collaborator：`deps.output`**（与现有 collaborator deps 模式一致——publisher/dist-preparer 等 deps 传参）
+- `publisher` collaborator deps 加 `output: Output`，改调 `output.publish(target, opts)`（非 materialize + publishToDist）
+- `dist-preparer` collaborator：createDist 语义已入 DiskOutput.publish——**dist-preparer 退役**（P-O3 删；P-O2 阶段如需分离 prepareScratch 可保留 thin wrapper，但倾向直接并入 publish）
+- config-collector 设 `sctx.output`（D-OL1），collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
+
+### D-O7 — 殁骸拆除（P-O3，F11 修正含 BuildResult 字段）
 
 grep 验 caller=0 后删：
-- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 Output.read）
+- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput.read）
 - `materialize` / `publishToDist` / `createDist` 函数
-- `artifactResolver` callback + dev server 注入点
-- `skipMaterialize` flag（CompileOptions/publisher guard）
-- compat 写 output 消费方：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消
+- `artifactResolver` callback + dev server 注入点（dev-server createServer params 改收 Output）
+- `skipMaterialize` flag（CompileOptions/types.ts L437 + publisher guard L31 + orchestrator L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40）
+- compat 写 output 消费方：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）
+- **BuildResult.buildModel 字段**（types.ts L503）→ 改 `output: Output | undefined`（D-OL3）——殁骸拆除时 BuildModel type 也删，BuildResult 字段名 output
+- **BuildResult.entries**（types.ts L496，现 sourced from buildModel.entries.values()）→ 改 sourced from `output.entries`（Output 须暴露 entries 或 BuildResult 改从 output 取）——待 P-O3 impl 时定（entries 是 BuildResult 公开契约，须保）
 
 ## §3 边界（不动）
 
-- storeInfo / sctx.storeInfo（config 计算正交）
+- storeInfo / sctx.storeInfo（config 计算正交——Output 不碰 storeInfo config 角色）
 - worker ALS（resetStoreInfo + parse-walk getters——worker 模型结构性）
 - compiler/*（EmitEntry 边界不变）
-- config computation（graph/config-collector）
+- config computation（graph/config-collector——加 Output 构造是扩展，不改 config 逻辑）
 - env.ts ALS 门面（compat 写 output 消费方死后仍剩 config 消费方——留 storeInfo 塌缩）
 - PackerContext 构造 duplication（独立 follow-up）
 
@@ -161,19 +212,28 @@ grep 验 caller=0 后删：
 |---|---|
 | DiskOutput.publish 须 byte-exact 复刻 materialize + publishToDist | impl 封装现有逻辑（mkdir recursive/writeFileSync/String(map)/rename/EXDEV/incremental sync/dirty guard）——非新逻辑，逐相 tsc + 7 diff 验 |
 | MemOutput.read 须复刻 getArtifact lazy index | impl 复刻（add 失效 index + 从 entries.files/sourcemaps 建） |
-| dev server fs fallback 保留（非编译资产） | Output.read miss 返 null → caller fs.readFile（语义不变） |
+| dev server fs fallback 保留（非编译非 SDK 资产） | Output.read miss 返 null → caller fs.readFile(serveRoot)（语义不变，serveRoot mode-dep） |
 | dirty tracking 须保留（H4 D-PUSH-3 增量） | DiskOutput 内部 dirty set + publish dirty guard（复刻 materialize L105-106） |
-| Output impl 构造点（scratch mkdtemp 时机） | DiskOutput 构造时算 mkdtemp（非 storeInfo 内重算）——须验并行构建 mkdtemp 原子性不变 |
+| **scratch mkdtemp per-build**（F3） | DiskOutput.publish 内 mkdtemp（非构造时）——复刻 storeInfo per-orchestrate computePathInfo，并行构建原子性不变 |
+| **Output 每 build 实例 + rebuild 替换**（F1/D-OL4） | config-collector per-orchestrate new Output（复刻 sctx.buildModel）；session build:end listener 替换 state.output（复刻 state.buildModel rebuild 替换） |
+| **F12——dev mode byte-identical 验证方法** | dev mode（MemOutput）无 7-diff 方法（dc-build 只跑 one-shot）——dev 行为由 spec 覆盖（dev-reload/dev-server spec 验 dev server 读 Output.read + fs fallback）；7-diff 仅验 one-shot（DiskOutput publish byte-exact）。validation V-O3 split：one-shot 7-diff + dev spec 覆盖 |
 
 ## §5 实施序依赖
 
 ```
-P-O1（Output interface + MemOutput + dev 接入）
-  → dev（memfs）行为 0 验（dev-reload + dev-server spec + 7 diff dev mode）
-P-O2（DiskOutput + one-shot/previewAdapter 接入）
-  → one-shot 行为 0 验（compile-cli-cache + 7 diff one-shot）
-P-O3（殁骸拆除 + compat 写 output 消费方死）
+P-O1（Output interface + MemOutput + dev 接入 + Output 生命周期 D-OL1..4）
+  → dev（memfs）行为 0 验（dev-reload + dev-server spec 覆盖 dev server 读；one-shot 7-diff 仍 pass 因 MemOutput 不影响 one-shot）
+P-O2（DiskOutput + one-shot/previewAdapter/watch 接入）
+  → one-shot 行为 0 验（compile-cli-cache + 7 diff one-shot byte-exact）
+P-O3（殁骸拆除 + compat 写 output 消费方死 + BuildResult.buildModel→output）
   → 全量行为 0 验（tsc 0 + vitest 全绿 + 7 diff=0 + grep caller=0）
 ```
 
 每相独立 commit + 行为 0 gate。P-O3 后 compat 写 output 消费方死 → 记 storeInfo 塌缩 initiative backflow。
+
+## §6 文件归置（F7 修正 lock）
+
+- **Output interface + MemOutput + DiskOutput**：`emit/output.ts` 单文件（2 class + 1 interface，~150 LOC）
+- build-model.ts 退役（P-O3 删，累积/dirty/getArtifact 逻辑迁入 output.ts）
+- publish.ts 退役（P-O3 删，createDist/publishToDist/copyDir/syncIncremental 逻辑迁入 DiskOutput.publish）
+- dist-preparer.ts 退役（P-O3 删，createDist 调用入 DiskOutput.publish）

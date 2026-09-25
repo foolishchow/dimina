@@ -36,8 +36,8 @@ interface Output {
 
 `DiskOutput` 实现 Output，one-shot + previewAdapter-dev 用：
 - `add` 累积内存 + dirty tracking（H4 D-PUSH-3：dirtyEntries set，add 标 dirty）——复刻 BuildModel.add + dirty 语义
-- `read` 读累积内存（或盘，依 publish 状态）
-- `publish(target, opts)` 封装 materialize + publishToDist + createDist 语义：
+- `read` 返 null（F5——one-shot 不调；previewAdapter-dev 经 dev server 走 fs fallback 读 serveRoot 落盘内容）
+- `publish(target, opts)` 封装 materialize + publishToDist + createDist 语义（**per-build mkdtemp scratch**，F3——publish 内 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo；非构造时）：
   - dirty 非空 → 只写 dirty；空 → 全量（复刻 materialize L105-106）
   - 写 scratch（mkdtemp，computePathInfo 语义）：mkdir recursive + writeFileSync(dest, file.code) + writeFileSync(dest, String(map))（sourcemap）
   - publish scratch → target：rename（同 fs）/ copy + rm scratch（EXDEV 跨 fs）/ incremental sync（dist 已存在 content-diff，F-H4-2）
@@ -46,36 +46,41 @@ interface Output {
 
 ## R-O4 — dev server 读路径统一
 
-`dev-server.ts` 改 `Output.read` 单一入口（替代 artifactResolver + fs.readFile 双路）：
-- `Output.read(path)` hit → 返产物（MemOutput 内存 / DiskOutput 累积或盘）
-- miss → fs.readFile(serveRoot) fallback（非编译资产 SDK/static 仍在盘 FINAL）
-- 消 artifactResolver callback 注入 + getArtifact 调用
+`dev-server.ts` 改 `Output.read` 单一入口（替代 artifactResolver + fs.readFile 双路）+ serveRoot 术语修正（F8）：
+- `/sdk/*` → sdkRoot（dev-server L153，独立，不经 Output/serveRoot）
+- `/index.html` `/pageFrame.html` → 内存常量
+- else → `Output.read(path)` hit → 返 compiled 内存
+- miss → fs.readFile(resolveContainedPath(serveRoot, relativePath))（dev-server L166）——serveRoot = state.targetPath（mode-dep：纯 dev mkdtemp 空 / previewAdapter-dev mkdtemp 落盘有内容 / one-shot final targetPath）
+- 消 artifactResolver callback 注入 + getArtifact 调用；dev server createServer params 改收 Output
 
 ## R-O5 — mode-driven impl 选择
 
-Output impl 由 mode 选择（消 skipMaterialize 开关）：
-- dev（session.dev，无 previewAdapter）→ MemOutput
-- previewAdapter-dev（skipMaterialize=false 现状）→ DiskOutput
-- one-shot（compile.ts build）→ DiskOutput
-- 选择点：session（dev）/ build facade（one-shot）构造 Output 传入 orchestrate
+Output impl 由 mode 选择（消 skipMaterialize 开关）+ 4 mode 覆盖（F4 修正）：
+- dev（session.dev，无 previewAdapter）→ MemOutput（serveRoot 空）
+- previewAdapter-dev（skipMaterialize=false 现状）→ DiskOutput（serveRoot 落盘有内容）
+- one-shot（compile.ts build）→ DiskOutput（= final targetPath）
+- watch standalone（非 dev，无 dev server）→ DiskOutput（无读者，纯落盘）
+- 选择点：config-collector（orchestrator 内，按 request.mode/skipMaterialize）构造 sctx.output
 
-## R-O6 — 殁骸拆除
+## R-O6 — 殁骸拆除（F11 修正含 BuildResult 字段）
 
 P-O3 后退役（grep 验 caller=0）：
-- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 Output.read）
+- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput.read）
 - `materialize` 函数（语义入 DiskOutput.publish）
 - `publishToDist` + `createDist` 函数（语义入 DiskOutput.publish）
-- `artifactResolver` callback（dev server 改 Output.read）
-- `skipMaterialize` flag（mode=impl 选择，无需 flag）
-- compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 的调用全消（grep 验）
+- `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
+- `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
+- compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 的调用全消（emit/* caller=0）
+- `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删
+- `BuildResult.entries`（types.ts L496，现 sourced from buildModel.entries.values()）→ sourced from output（Output 须暴露 entries 或 BuildResult 从 output 取——保 entries 公开契约）
 
 ## R-O7 — 行为 0
 
-纯结构重构（output 机制统一，无语义改）。每相独立 commit + 行为 0 gate。dev（memfs）+ one-shot（disk）双模式 byte-identical。
-
+纯结构重构（output 机制统一，无语义改）。每相独立 commit + 行为 0 gate。**双模式验证 split**（F12 修正）：
+- one-shot（DiskOutput）：7 项目 build diff=0（`node --experimental-strip-types /tmp/dc-build.mjs diff`）+ compile-cli-cache spec
+- dev（MemOutput）：无 7-diff 方法（dc-build 只跑 one-shot）——dev 行为由 spec 覆盖（dev-reload/dev-server spec 验 dev server 读 Output.read + fs fallback + rebuild 替换 state.output）
 - tsc 0 errors
 - vitest 全绿（含 dev-reload / dev-server / compile-cli-cache / lifecycle-integration spec）
-- 7 项目 build diff=0（`node --experimental-strip-types /tmp/dc-build.mjs diff`）
 
 ## R-O8 — Non-scope 边界
 
