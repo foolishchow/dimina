@@ -19,13 +19,18 @@
 
 ## 架构候选（2026-10-09 · packer 重构轨道）
 
+### Round 1 — packer facade + collaborator 抽取 —— `draft`（2026-10-09）
+  - fe-tools-packer-facade-collaborator: orchestrator god object → 6 collaborator + facade 契约（F-PA-1）
+  - rigor 红线: collaborator 拥有逻辑非包壳; ALS 保留（B 留后）
+  - 5 切法序: D（本 Action）→ C（aspect）→ B（ALS 闭合）→ A（renderer）→ E（dispatch wiring, runtime 就绪后）
+
 ### Round 0 — packer 目录收敛 —— `complete`（B1a-B5 全实施，行为 0）（2026-10-09）
 
 packer 架构 retrospect（[F-PA-1..6](../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 packer 域 ~27 文件散在 4 处（`packer/` + `model/` + `compiler/pipeline/` + `compiler/worker-runtime/`）+ `core/` 混合袋。散落致 ③a/b/c 跨层 import + D/C 重构缺干净素材 + 北星 6 组件无物理落地。
 
 **Round 0 = 纯搬迁结构轮**（D/C 前置）：packer 域归位 `packer/` 9 子目录（mirror 北星 6 组件形状：graph/store/registry/state/cache/emit/worker/pipeline/aspect）。`model/` + `compiler/pipeline/` + `compiler/worker-runtime/` 解散；`core/` 解体。纯搬迁无逻辑改（D-DC-2 红线）+ 分批行为 0 gate（B1-B5）。消解 ③a/b/c。
 
-后续轮（Round 0 后 checkpoint 再定）：Round 1 D（facade + collaborator）/ Round 2 C（aspect）/ Round 2 后评估 B（ALS 闭合）+ A（renderer 注入点）+ E（dispatch wiring，runtime 就绪后）。
+后续轮（Round 1 后 checkpoint 再定）：Round 2 C（aspect）→ Round 2 后评估 B（ALS 闭合）+ A（renderer 注入点）+ E（dispatch wiring，runtime 就绪后）。5 切法依赖序见 packer facade/aspect retrospect §3.1。
 
 → [fe-tools-packer-directory-convergence](fe-tools-packer-directory-convergence/README.md)
 
