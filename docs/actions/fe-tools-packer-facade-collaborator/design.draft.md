@@ -17,9 +17,27 @@ Status: **draft（2026-10-09）**
 
 7 collaborator 抽取（R-FC-1 表），每 collaborator 拥有完整业务逻辑（含 sctx 字段设置 + lifecycle 事件 + 错误处理）。orchestrator task body 仅 `await collaborator.run(sctx, deps...)`。
 
+**facade 级装配 vs collaborator 级边界**（_orchestrate 顶部闭包变量归属，须明示防 collaborator 隐式耦合）：
+- **facade 级（orchestrator 构造，传 collaborator deps）**：
+  - `store`（3-way 装配：`runStore ?? providedStore ?? createProjectStore()`，L130）→ ConfigCollectorDeps.store
+  - `compileTarget`（`createCompileTarget(runOptions)`，L132）→ StageDispatcherDeps.compileTarget
+  - `lifecycle`（3-way：`runLifecycle ?? pipelineLifecycle ?? createLifecycle()`，L133）→ 所有 collaborator deps.lifecycle
+  - `runOptions`（compileOptions + targetPath/workPath/useAppIdDir/fileTypes/stages/affectedEntries/seedPath，L131）→ facade 内部，供 createCompileTarget
+- **collaborator 级（内部从 state 读，非外部传）**：
+  - `cache`/`viewCache`/`viewOrderList`/`styleCache`（L152-156 从 `state.moduleCache`/`state.viewCache`/`state.viewOrderList`/`state.styleCache` 提取）→ ConfigCollector 内部 `const cache = state.moduleCache` 等（deps 仅传 state）
+- **mutable 跨 task 闭包变量（须改 sctx 字段）**：
+  - `loadBindings`（L147 `let ... = null` → L252 StageDispatcher 写 `readLoadBindings()` → L353 result 读 `.appId`）→ **抽 collaborator 后改 `sctx.loadBindings` 字段**（StageDispatcher 写 sctx.loadBindings，result 读 sctx.loadBindings.appId）——消跨 task mutable 闭包，collaborator 无隐式耦合
+
+**rigor 红线**：collaborator 须搬入真实逻辑。验：`grep 'await.*collaborator.run' orchestrator.ts` 非 0 + collaborator 文件含原 orchestrator 逻辑体（git diff -M rename + 逻辑体搬迁，非新建空壳）。
+
 **rigor 红线**：collaborator 须搬入真实逻辑。验：`grep 'await.*collaborator.run' orchestrator.ts` 非 0 + collaborator 文件含原 orchestrator 逻辑体（git diff -M rename + 逻辑体搬迁，非新建空壳）。
 
 **collaborator 接口形状**（types.ts 声明，每 collaborator typed deps 子接口——禁单一 CollaboratorDeps bag，避重蹈 StageChannelContext mutable bag 覆辙 F-PA-4）：
+
+**类型来源声明**（deps 引的 2 个非导出类型须先 export）：
+- `ProjectStore`：现 `createProjectStore` 返回 inferred（无 export interface）→ 须在 `packer/store/project-store.ts` 加 `export interface ProjectStore { load(w, o): Record<string, unknown>; getDependencyGraph(): ... }`（或 types.ts 声明）
+- `Lifecycle`：现 orchestrator.ts:14 inline `type Lifecycle = {emit...; isolatedListenerErrors...}` → 须 export（迁 shared/lifecycle.ts 或 types.ts）
+- `BuildModel`（class，emit/build-model.ts:17）/ `CompileTarget`+`PagesInfo`（compile-target.types.ts）/ `LoaderRegistry`等（types.ts）✓ 已导出
 ```ts
 interface BuildCollaborator<Deps> {
   run(sctx: StageChannelContext, deps: Deps): Promise<void>
@@ -27,8 +45,9 @@ interface BuildCollaborator<Deps> {
 // 每 collaborator typed deps（非 bag）：
 interface ConfigCollectorDeps { store: ProjectStore; state: PackerSessionState; lifecycle: Lifecycle; loaderRegistry: LoaderRegistry; fileTypes?: unknown; invalidatedModules?: string[]; viewCache?: ...; viewOrderList?: ...; styleCache?: ... }
 interface StageDispatcherDeps { dispatchRegistry: PackerDispatchRegistry; compileTarget: CompileTarget; affectedEntries?: string[]; lifecycle: Lifecycle; parallel: boolean }
+// StageDispatcher 写 sctx.loadBindings + sctx.allPages + sctx.pages + sctx.compatibilityWarnings + sctx.compileConfig/sourcemap/sourcemapTargetPath（消 loadBindings 闭包）
 interface LogicEmitterDeps { state: PackerSessionState; pages: PagesInfo; compileConfigOpts: ...; sourcemap: boolean; sourcemapTargetPath?: string; storeInfo: unknown; lifecycle: Lifecycle }
-interface PublisherDeps { targetPath: string; useAppIdDir: boolean; seedPath?: string; skipMaterialize?: boolean; lifecycle: Lifecycle }
+interface PublisherDeps { targetPath: string; useAppIdDir: boolean; seedPath?: string; skipMaterialize?: boolean; buildModel: BuildModel; lifecycle: Lifecycle }
 // DistPreparer / ConfigCompiler / NpmBuilder deps 类似（仅所需字段）
 ```
 
@@ -95,7 +114,7 @@ collaborator 内部可调 ALS 读（`getWorkPath()`/`getPages()`/`getAppConfigIn
 - **aspect 分离**（F-PA-2）：collaborator 内部 sourcemap/compatibilityWarnings/compileConfig 穿线**保留**（C 切法另 Action）
 - **compatibility warning 跨 build 记忆**：`printCompatibilityWarnings` + `previousCompatibilityWarnings` Map（orchestrator.ts:57,410）是 post-build 打印 hook（compatibility 横切域 F-PA-2）——**留 orchestrator facade 模块级**（非 7 collaborator 之一；aspect 分离 C 轮再抽）
 - **L/C/E dispatch wiring**（F-PA-5/E）：L/C/E registry 仍 NOT wired，PackerDispatchRegistry 仍 WIRED（runtime HMR API 外部阻塞）
-- **types.ts 北星 SHAPE 不重写**：不改 facade/aspect/strategy 结构；D-FC-2b 删 registry 公开字段是 facade 收敛核心（非 shape 重设计），允许（见 D-FC-2b 纪律校正）
+- **types.ts 北星 SHAPE 不重写**：不改既有 facade/aspect/strategy 结构；**D-FC-6 ADD collaborator 接口（BuildCollaborator<Deps> + 7 *Deps）是新维度 ADD，非改既有 SHAPE，允许**；D-FC-2b 删 registry 公开字段是 facade 收敛核心（非 shape 重设计），允许（见 D-FC-2b 纪律校正）
 
 ## §3 收敛映射
 
