@@ -1,6 +1,6 @@
 # Requirements — fe-tools-packer-north-star-evolution
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## 背景
 

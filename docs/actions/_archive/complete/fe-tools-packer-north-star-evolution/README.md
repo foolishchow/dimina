@@ -1,14 +1,14 @@
 # fe-tools-packer-north-star-evolution
 
 - Action: `fe-tools-packer-north-star-evolution`
-- Status: `in_progress`
+- Status: `complete`
 - Formalize: 2026-10-10（D-NS-1..6 locked，6 相实施序）
 - Implemented: 2026-10-10（P-NS1..6 全 commit，行为 0 三件套全 pass）
 - Updated: 2026-10-10
 - 设计门：[D-NS-1..6 locked](design.draft.md)
 - 实施计划：[implementation-plan.md](implementation-plan.md)（P-NS1..6 分相）
 - 验证：[validation.md](validation.md)（V-NS1..6 全 pass）
-- Status authority: [Action Status](../STATUS.md)
+- Status authority: [Action Status](../../../STATUS.md)
 
 ## Implementation evidence（2026-10-10）
 
@@ -56,8 +56,8 @@ B 切法（fe-tools-packer-context-closure）+ facade-collaborator 实施期揭�
 
 ## Design inputs
 
-- [D-OR-7 张力](../_archive/complete/fe-tools-packer-facade-collaborator/design.draft.md)（orchestrator.ts:6 自承）
-- [PC-B10b D-OR-7 三重张力记录](../_archive/complete/fe-tools-packer-context-closure/validation.md)
+- [D-OR-7 张力](../fe-tools-packer-facade-collaborator/design.draft.md)（orchestrator.ts:6 自承）
+- [PC-B10b D-OR-7 三重张力记录](../fe-tools-packer-context-closure/validation.md)
 - types.ts §7 OrchestratorState + §8 PackerOrchestrator + Graph interface
 - session/index.ts result 消费（L244/248/256/269）+ compile-cache createAppCacheEntry + watch-runner casts
 

@@ -2,7 +2,7 @@
 
 Status: **complete（2026-10-10；PC-B2..B10a 功能闭合）**
 
-主线程 ALS 退役（PC-B9 orchestrate 不包 runWithCompilerContext）+ orchestrate 北星签名落地（PC-B10a (ctx, state, options)）。worker ALS 桥接保留（D-PC-5）。residuals → [fe-tools-packer-north-star-evolution](../../../fe-tools-packer-north-star-evolution/README.md)。
+主线程 ALS 退役（PC-B9 orchestrate 不包 runWithCompilerContext）+ orchestrate 北星签名落地（PC-B10a (ctx, state, options)）。worker ALS 桥接保留（D-PC-5）。residuals → [fe-tools-packer-north-star-evolution](../fe-tools-packer-north-star-evolution/README.md)。
 
 | ID | requirement | 验证项 | 方法 | 状态 |
 | --- | --- | --- | --- | --- |

@@ -2,7 +2,7 @@
 
 - Status: `complete`
 - Created: 2026-10-10
-- Closed: 2026-10-10（PC-B2..B10a 功能闭合：主线程 ALS 退役 + orchestrate 北星签名落地。PC-B9b env.ts 实体移除 + PC-B10b implements+reconcile → [fe-tools-packer-north-star-evolution](../../../fe-tools-packer-north-star-evolution/README.md) 承接，受阻 D-OR-7）
+- Closed: 2026-10-10（PC-B2..B10a 功能闭合：主线程 ALS 退役 + orchestrate 北星签名落地。PC-B9b env.ts 实体移除 + PC-B10b implements+reconcile → [fe-tools-packer-north-star-evolution](../fe-tools-packer-north-star-evolution/README.md) 承接，受阻 D-OR-7）
 - 切法：**B（ALS→PackerContext 闭合）**——消 ALS 全局，I/O 显式 PackerContext 贯穿
 - Status authority: [Action Status](../../../STATUS.md)
 - 前置：[`fe-tools-packer-facade-collaborator`](../fe-tools-packer-facade-collaborator/README.md)（complete 2026-10-10；7 collaborator 抽取就位）

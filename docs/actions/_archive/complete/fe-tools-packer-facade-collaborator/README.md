@@ -2,7 +2,7 @@
 
 - Status: `complete`
 - Formalize: 2026-10-10（D-FC-1..5 locked，4 批 19 轮 review）
-- 实施: 2026-10-10（FC-P0..P6 + D-FC-2b + B 切法 PC-B2..B10a 签名完成；D-FC-2a implements+reconcile + D-FC-3 CompileRequest/WatchRequest → [fe-tools-packer-north-star-evolution](../../../fe-tools-packer-north-star-evolution/README.md) 承接，受阻 D-OR-7 北星 interface 张力）
+- 实施: 2026-10-10（FC-P0..P6 + D-FC-2b + B 切法 PC-B2..B10a 签名完成；D-FC-2a implements+reconcile + D-FC-3 CompileRequest/WatchRequest → [fe-tools-packer-north-star-evolution](../fe-tools-packer-north-star-evolution/README.md) 承接，受阻 D-OR-7 北星 interface 张力）
 - Closed: 2026-10-10
 - Created: 2026-10-09
 - 设计门：[D-FC-1..5 locked](design.draft.md#§2-设计门draft-提议formalize-待锁)（4 批 19 轮 review 严格收敛）

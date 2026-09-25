@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-packer-north-star-evolution
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## §1 问题诊断（D-OR-7 三重张力）
 

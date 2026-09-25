@@ -23,7 +23,7 @@
   - fe-tools-packer-facade-collaborator: orchestrator god object → 7 collaborator + facade 契约（F-PA-1）✓ + D-FC-2b registry 私有化 ✓ + B 切法 PC-B10a 签名 ✓
   - rigor 红线: collaborator 拥有逻辑非包壳; 6 无状态闭包复用 + NpmBuilder 有状态每次 new ✓
   - sctx 字段所有权矩阵 + ctx→sctx 统一 + loadBindings 跨 task 迁移 ✓
-  - residuals（D-FC-2a implements+reconcile + D-FC-3 CompileRequest/WatchRequest）→ [fe-tools-packer-north-star-evolution](fe-tools-packer-north-star-evolution/README.md)（draft，D-OR-7 北星 interface 演进）
+  - residuals（D-FC-2a implements+reconcile + D-FC-3 CompileRequest/WatchRequest）→ [fe-tools-packer-north-star-evolution](../_archive/complete/fe-tools-packer-north-star-evolution/README.md) ✓ complete：D-OR-7 三重张力消解（北星 interface 演进 D-NS-1..6）
   - 5 切法序: D（本 Action ✓）→ B（context-closure ✓）→ C（aspect）→ A（renderer）→ E（dispatch wiring, runtime 就绪后）
   - B 切法 [fe-tools-packer-context-closure](../_archive/complete/fe-tools-packer-context-closure/README.md) ✓ complete：主线程 ALS 退役（PC-B9）+ orchestrate 北星签名（PC-B10a）。residuals → north-star-evolution
 

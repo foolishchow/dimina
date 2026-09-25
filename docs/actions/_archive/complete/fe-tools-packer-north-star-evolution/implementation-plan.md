@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-packer-north-star-evolution
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## 实施序（每相独立 commit + 行为 0 gate：tsc 0 + vitest 全绿 + 7 项目 diff=0）
 

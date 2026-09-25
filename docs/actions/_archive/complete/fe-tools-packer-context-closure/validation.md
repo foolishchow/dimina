@@ -1,6 +1,6 @@
 # Validation — fe-tools-packer-context-closure
 
-Status: **complete（2026-10-10；PC-B2..B10a 功能闭合。residuals → [fe-tools-packer-north-star-evolution](../../../fe-tools-packer-north-star-evolution/README.md)）**
+Status: **complete（2026-10-10；PC-B2..B10a 功能闭合。residuals → [fe-tools-packer-north-star-evolution](../fe-tools-packer-north-star-evolution/README.md)）**
 
 ## 行为 0 三件套（实证 2026-10-10）
 
