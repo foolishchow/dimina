@@ -59,11 +59,12 @@ dev server 读:
 | `emit/publish.ts` | createDist + publishToDist 退役——语义封装入 DiskOutput.publish |
 | `emit/publisher.ts` | collaborator 改调 Output.publish（非 materialize + publishToDist） |
 | `emit/dist-preparer.ts` | createDist 调用退役——DiskOutput 内部管理 scratch（或 dist-preparer 退役） |
-| `orchestrator.ts` | collaborator 接 Output（**deps.output**，F6 lock）；stage onOutput → sctx.output.add（L83/85）；result.output = context.output（L294，替代 result.buildModel）；Output impl 构造点（config-collector） |
+| `orchestrator.ts` | **orchestrator 入口创建 Output（方案 B，mode-aware 点 L121 后）**：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`；设 sctx.output（task ctx 初始化）；stage onOutput → sctx.output.add（L83/85）；result.output = context.output（L294，替代 result.buildModel）；collaborator 接 Output（**deps.output**，F6 lock） |
+| `store/config-collector.ts` | **删 `sctx.buildModel = new BuildModel()` 行**（L36）——只消费 sctx.output（职责分离：orchestrator 决策 mode+创建，config-collector 只设其他 8 sctx 字段） |
 | `session/index.ts` | dev 选 MemOutput + 注入 dev server Output.read（替代 artifactResolver）；**state.output 替代 state.buildModel**（L244 首 build + L255 build:end listener rebuild 替换，F1 D-OL4） |
 | `dev/dev-server.ts` | 读路径改 Output.read（createServer params 收 Output，消 artifactResolver）；miss 仍 fs fallback 读 serveRoot（mode-dep，F8） |
-| `bin/compile.ts` | one-shot 选 DiskOutput（config-collector 按 mode） |
-| `index.ts`（build facade） | Output impl 选择（mode-driven，config-collector） |
+| `bin/compile.ts` | one-shot 选 DiskOutput（orchestrator 入口按 mode） |
+| `index.ts`（build facade） | Output impl 选择（mode-driven，orchestrator 入口） |
 | `packer/types.ts` | Output interface + PublishOpts；**BuildResult.buildModel → output 字段**（L503，F11 D-OL3）；BuildModel type 删（P-O3） |
 | `packer/emit/output.ts`（新增，F7 lock） | Output interface + MemOutput + DiskOutput（2 class + 1 interface） |
 
@@ -78,7 +79,7 @@ dev server 读:
 ## Deliverables
 
 1. `Output` interface（types.ts）+ MemOutput impl + DiskOutput impl（emit/output.ts，F7 lock）
-2. **Output 生命周期 D-OL1..4**（F1）：config-collector sctx.output + stage onOutput add + BuildResult.buildModel→output + session state.output + rebuild listener 替换 + dev server Output.read（替代 buildModel 流）
+2. **Output 生命周期 D-OL1..4 方案 B**（F1）：orchestrator 入口创建 Output（mode-aware）+ config-collector 删 buildModel 行只消费 + stage onOutput add + BuildResult.buildModel→output + session state.output + build:end listener 重新赋值字段 + dev server 持 state 引用读 state.output（替代 buildModel 流）
 3. dev server 读路径统一（Output.read 替代 artifactResolver + fs-fallback 双路；serveRoot mode-dep）
 4. one-shot/previewAdapter/watch 写+发布路径统一（DiskOutput.publish per-build mkdtemp 替代 materialize + publishToDist + createDist）
 5. 殁骸拆除：BuildModel / materialize / publishToDist / createDist / artifactResolver / skipMaterialize + BuildResult.buildModel→output 字段
@@ -86,7 +87,7 @@ dev server 读:
 
 ## Readiness gaps
 
-**review round 1-3 findings F1-F12 已修正**（design.draft §2.0 Output 生命周期 + D-O2 实证 + D-O3 per-build mkdtemp + D-O4 watch mode + D-O5 serveRoot 术语 + D-O6 deps.output + D-O7 BuildResult 字段 + §4 F12 + §6 文件归置）。
+**review round 1-3 findings F1-F12 已修正**（design.draft §2.0 Output 生命周期方案 B + D-O2 实证 + D-O3 per-build mkdtemp + D-O4 watch mode + D-O5 serveRoot 术语 + dev server 持 state 引用 + D-O6 deps.output + D-O7 BuildResult 字段 + §4 F12 + §6 文件归置）。
 
 - **D-O1 Output interface 形状**（add/read/publish 签名 + dirty tracking interface 级 vs impl 级）——design.draft 待 lock
 - **D-O2 MemOutput.publish no-op 实证前提**（纯 dev serveRoot 空）——design.draft 已补实证

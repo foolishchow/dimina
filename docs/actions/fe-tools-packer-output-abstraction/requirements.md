@@ -21,16 +21,23 @@ interface Output {
 ```
 
 - `add` 收 EmitEntry（worker postMessage 流式回传），内部累积（保留 dirty tracking 供增量 publish）
-- `read` 模式无关——MemOutput 读内存，DiskOutput 读累积内存（或盘）
-- `publish` 提交到 final——DiskOutput 写 scratch + rename/copy 到 target；MemOutput no-op（内存即"已发布"，dev server 直读）
+- `read` 模式无关——MemOutput 读内存，DiskOutput 返 null（one-shot 不调；previewAdapter-dev 经 dev server 走 fs fallback 读 serveRoot）
+- `publish` 提交到 final——DiskOutput 写 scratch（per-build mkdtemp）+ rename/copy 到 target；MemOutput no-op（实证见 R-O2）
+
+**R-O1.1 Output 生命周期**（F1 修正 D-OL1..4，方案 B——orchestrator 入口创建，替代 buildModel 流）：
+- **D-OL1（方案 B）**：orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建 Output：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`。final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）。经 task ctx 初始化设 sctx.output（config-collector 跑前）。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离：orchestrator 决策 mode + 创建；config-collector 只设其他 8 sctx 字段）。
+- D-OL2：stage compile onOutput → `sctx.output.add(entry)`（orchestrator L83/85）
+- D-OL3：`BuildResult.buildModel`（types.ts L503）→ `output: Output | undefined`；orchestrator result.output = context.output
+- D-OL4（dev server 持 state 引用）：session L244 `state.output = buildResult.output`（首 build）+ L255 `build:end` listener 重新赋值 `state.output` 字段（同 state 对象，非替换 state）+ dev server createServer params 收 state（或窄接口 `{ output: Output | undefined }`），dev server 内读 `state.output?.read(path)`（读当前值，非首 build 引用、非 closure getter）
 
 ## R-O2 — MemOutput impl（dev memfs）
 
 `MemOutput` 实现 Output，dev 模式用：
 - `add` 写内存 Map（lazy index，add 失效——复刻 BuildModel.getArtifact 语义）
 - `read` 读内存 Map（替代 artifactResolver + getArtifact）
-- `publish` no-op（dev server 直读内存）
-- 行为 == 现状 dev memfs（D-MM-1 直读 BuildModel + skipMaterialize）
+- `publish` no-op——实证前提（F2）：纯 dev（skipMaterialize=true）现状 createDist 不 seed（seedPath=undefined）+ materialize 跳 → buildDir 空 → publishToDist 复制空 → serveRoot 空 → dev server fs fallback miss 404（本就如此）。no-op == 现状纯 dev。
+- previewAdapter-dev 不走 MemOutput（走 DiskOutput，因 skipMaterialize=false → materialize 写 → serveRoot 有内容 → dev server fs fallback 命中）
+- 行为 == 现状纯 dev memfs（D-MM-1 直读 BuildModel + skipMaterialize + serveRoot 空）
 
 ## R-O3 — DiskOutput impl（one-shot + previewAdapter disk）
 
@@ -46,21 +53,21 @@ interface Output {
 
 ## R-O4 — dev server 读路径统一
 
-`dev-server.ts` 改 `Output.read` 单一入口（替代 artifactResolver + fs.readFile 双路）+ serveRoot 术语修正（F8）：
+`dev-server.ts` 改 `state.output?.read(path)` 单一入口（替代 artifactResolver + fs.readFile 双路）+ serveRoot 术语修正（F8）+ dev server 持 state 引用（D-OL4）：
 - `/sdk/*` → sdkRoot（dev-server L153，独立，不经 Output/serveRoot）
 - `/index.html` `/pageFrame.html` → 内存常量
-- else → `Output.read(path)` hit → 返 compiled 内存
+- else → `state.output?.read(path)` hit → 返 compiled 内存
 - miss → fs.readFile(resolveContainedPath(serveRoot, relativePath))（dev-server L166）——serveRoot = state.targetPath（mode-dep：纯 dev mkdtemp 空 / previewAdapter-dev mkdtemp 落盘有内容 / one-shot final targetPath）
-- 消 artifactResolver callback 注入 + getArtifact 调用；dev server createServer params 改收 Output
+- 消 artifactResolver callback 注入 + getArtifact 调用；dev server createServer params 改收 state（或窄接口 `{ output: Output | undefined }`，避免暴露整个 PackerSessionState）——dev server 持 state 引用读 state.output 字段（rebuild 重新赋值字段，dev server 读当前值）
 
 ## R-O5 — mode-driven impl 选择
 
-Output impl 由 mode 选择（消 skipMaterialize 开关）+ 4 mode 覆盖（F4 修正）：
+Output impl 由 mode 选择（消 skipMaterialize 开关）+ 4 mode 覆盖（F4 修正）+ 创建点 = orchestrator 入口（方案 B）：
 - dev（session.dev，无 previewAdapter）→ MemOutput（serveRoot 空）
 - previewAdapter-dev（skipMaterialize=false 现状）→ DiskOutput（serveRoot 落盘有内容）
 - one-shot（compile.ts build）→ DiskOutput（= final targetPath）
 - watch standalone（非 dev，无 dev server）→ DiskOutput（无读者，纯落盘）
-- 选择点：config-collector（orchestrator 内，按 request.mode/skipMaterialize）构造 sctx.output
+- 选择点：**orchestrator `orchestrate()` 入口**（L121 request 构造后，mode-aware 点，按 request.skipMaterialize）创建 Output 设 sctx.output（经 task ctx 初始化）；config-collector 删 buildModel 行只消费 sctx.output
 
 ## R-O6 — 殁骸拆除（F11 修正含 BuildResult 字段）
 

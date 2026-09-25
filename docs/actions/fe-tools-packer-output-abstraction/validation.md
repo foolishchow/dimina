@@ -12,8 +12,8 @@ Status authority: [Action Status](../STATUS.md)
 | V-O6 | R-O1 | grep `interface Output` src/packer/types.ts 非 0 + `MemOutput`/`DiskOutput` impl 非 0 | pending |
 | V-O7 | R-O5 | grep `skipMaterialize` src/ caller=0（mode=impl 选择，flag 消） | pending |
 | V-O8 | R-O8 | grep `resetStoreInfo` src/ 非 0（worker ALS 保留）+ `storeInfo` 函数仍在（不动 storeInfo） | pending |
-| V-O9 | R-O1 | **Output 生命周期 D-OL1..4**：grep `sctx.output\|state.output\|result.output` src/ 非 0（替代 buildModel 流）+ `BuildResult.output` 字段（types.ts）非 0 + build:end listener 更新 state.output | pending |
-| V-O10 | R-O7 | **dev mode 行为 spec 覆盖**（F12）：dev-reload.spec + dev-server.spec pass（dev server 读 Output.read + fs fallback + rebuild 替换 state.output） | pending |
+| V-O9 | R-O1 | **Output 生命周期 D-OL1..4 方案 B**：grep `sctx.output\|state.output\|result.output` src/ 非 0 + `BuildResult.output` 字段（types.ts）非 0 + build:end listener 重新赋值 state.output 字段 + **orchestrator 入口创建 Output**（grep `new MemOutput\|new DiskOutput` 在 orchestrator.ts 非 0）+ **config-collector buildModel 行删**（grep `sctx.buildModel = new BuildModel` = 0） | pending |
+| V-O10 | R-O7 | **dev mode 行为 spec 覆盖**（F12）：dev-reload.spec + dev-server.spec pass（dev server 持 state 引用读 state.output.read + fs fallback + rebuild 重新赋值 state.output 字段） | pending |
 | V-O11 | R-O6 | grep `BuildResult.buildModel\|buildModel?` src/ caller=0（BuildModel type 删 + BuildResult.buildModel→output 字段演进，F11） | pending |
 
 ## 行为 0 三件套（每相 gate）

@@ -52,12 +52,21 @@ config-collector 设 sctx.buildModel = new BuildModel()
 ```
 
 **Output 替代后同构流**（D-OL1..4 locked）：
-- **D-OL1**：config-collector 设 `sctx.output = new MemOutput()` (dev) / `new DiskOutput(final)` (one-shot) ——替代 sctx.buildModel = new BuildModel()
+
+- **D-OL1（方案 B——orchestrator 入口创建，mode-aware 点）**：Output impl 选择依赖 mode（skipMaterialize），mode 在 orchestrator request（L143）——**不在 config-collector 创建**（config-collector deps 不含 mode）。orchestrator `orchestrate()` 入口（L121 request 构造后）创建：
+  ```ts
+  const output = request.skipMaterialize
+    ? new MemOutput()
+    : new DiskOutput(ctx.targetPath)  // final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）
+  ```
+  经 task ctx 初始化设 `sctx.output = output`（config-collector 跑前）。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离：orchestrator 决策 mode + 创建 Output；config-collector 只设其他 8 个 sctx 字段）。
 - **D-OL2**：stage compile onOutput → `sctx.output.add(entry)`（替代 sctx.buildModel.add）——orchestrator L83/85 两处改
 - **D-OL3**：`BuildResult.buildModel` 字段演进——`types.ts` L503 `buildModel: BuildModel | undefined` → `output: Output | undefined`（同位替代）。orchestrator L294 `result.output = (context as {output?}).output`
-- **D-OL4**：session 持有 + rebuild 替换——L244 `state.output = buildResult.output`（替代 state.buildModel）；L255 `build:end` listener → `state.output = result?.output`（**每 rebuild 替换**，复刻 buildModel rebuild 语义）；L249 dev server 改 `state.output?.read(path)`
+- **D-OL4（dev server 持 state 引用读 state.output）**：session 持有 + rebuild 替换——L244 `state.output = buildResult.output`（首 build）；L255 `build:end` listener → `state.output = result?.output`（**每 rebuild 重新赋值 state.output 字段**，state 对象本身不变）；dev server **持 state 引用**（createServer params 收 state 或窄接口 `{ output: Output | undefined }`），dev server 内读 `state.output?.read(path)`——rebuild listener 重新赋值 state.output 字段（同 state 对象），dev server 读当前值（非首 build 引用，非 closure getter）。
 
-**关键**：Output 是**每 build 实例**（非单例）——config-collector 每 orchestrate new 一个（复刻 sctx.buildModel per-orchestrate）。rebuild 时 result.output 替换 state.output（复刻 buildModel rebuild 替换）。dev server 读 state.output.read。
+**关键**：Output 是**每 build 实例**（per-orchestrate，orchestrator 入口创建）。rebuild 时 result.output 重新赋值 state.output 字段（state 对象不变，字段更新）→ dev server 持 state 引用读字段 → 读新 Output。dev server 不持 Output 首实例引用（会读旧），不持 closure getter（已选 state 引用方案）。
+
+**final 来源**（DiskOutput 构造收）：`ctx.targetPath`（orchestrate 入参 = PackerContext.targetPath）——mode-dep：dev=mkdtemp dmcc-dev-（serveRoot/FINAL）/ one-shot=TARGET_PATH。MemOutput 不用 final（publish no-op）。DiskOutput.publish 内 mkdtemp scratch（TEMP，复刻 computePathInfo L334）——final 与 scratch 分离（消 targetPath 双语义）。
 
 ### D-O1 — Output interface
 
@@ -149,14 +158,12 @@ class DiskOutput implements Output {
 
 | mode | Output impl | 选择点 | serveRoot 状态 |
 |---|---|---|---|
-| dev（session.dev，无 previewAdapter） | MemOutput | config-collector（sctx.output） | 空（no-op publish，dev server 读内存 + sdkRoot） |
-| previewAdapter-dev（skipMaterialize=false 现状） | DiskOutput | config-collector（previewAdapter 分支） | 有内容（materialize+publish 落盘，dev server 读 serveRoot） |
+| dev（session.dev，无 previewAdapter） | MemOutput | orchestrator 入口（mode-aware） | 空（no-op publish，dev server 读内存 + sdkRoot） |
+| previewAdapter-dev（skipMaterialize=false 现状） | DiskOutput | orchestrator 入口（previewAdapter 分支） | 有内容（materialize+publish 落盘，dev server 读 serveRoot） |
 | one-shot（compile.ts build） | DiskOutput | build facade / compile.ts | = final targetPath（产物落盘） |
 | **watch standalone（非 dev，F4 修正）** | **DiskOutput** | **session.watch options 传** | **= targetPath（无 dev server 读，纯落盘）** |
 
-**选择点机制**：config-collector（orchestrator 内）按 request.mode/skipMaterialize 决定 `sctx.output = new MemOutput()` 或 `new DiskOutput(final)`。final = request.targetPath（orchestrate 入参 = FINAL）。**消 skipMaterialize flag**——mode = impl 选择，publisher 不再 guard（publish 调用统一，MemOutput.publish no-op 等价 skip）。
-
-注：config-collector 现有职责是 storeInfo/buildGraph；加 Output 构造是合理扩展（Output 是 build 数据载体，与 buildModel 同位）。或单独 output-factory collaborator（待 P-O1 impl 时定——非 blocking）。
+**选择点机制**：**orchestrator `orchestrate()` 入口**（L121 request 构造后，mode-aware 点）按 `request.skipMaterialize` 决定 `new MemOutput()` 或 `new DiskOutput(ctx.targetPath)`（D-OL1 方案 B）。final = ctx.targetPath（FINAL，mode-dep）。经 task ctx 初始化设 sctx.output（config-collector 跑前，config-collector 删 buildModel 行只消费）。**消 skipMaterialize flag**——mode = impl 选择，publisher 不再 guard（publish 调用统一，MemOutput.publish no-op 等价 skip）。
 
 ### D-O5 — dev server 读路径统一
 
@@ -166,11 +173,13 @@ class DiskOutput implements Output {
 // 改: output.read(path) → hit return; miss fs.readFile(serveRoot)
 ```
 
-**F8 修正——serveRoot 术语**：dev server 读路径：
+**F8 修正——serveRoot 术语 + dev server Output 引用形式**：dev server 读路径：
 - `/sdk/*` → sdkRoot（dev-server L153，独立，**不经 Output 也不经 serveRoot**）
 - `/index.html` `/pageFrame.html` → 内存常量
-- else → `output.read(artifactPath)`（hit 返 compiled 内存）
+- else → `state.output?.read(path)`（hit 返 compiled 内存——**dev server 持 state 引用读 state.output 字段**，D-OL4）
 - miss → `fs.readFile(resolveContainedPath(serveRoot, relativePath))`（dev-server L166）
+
+**dev server Output 引用形式**（D-OL4，用户决策）：createServer params 改 artifactResolver → `state`（或窄接口 `{ output: Output | undefined }`，避免暴露整个 PackerSessionState）。dev server 内读 `state.output?.read(path)`——rebuild listener 重新赋值 state.output 字段（同 state 对象），dev server 读当前 Output（非首 build 引用、非 closure getter）。
 
 serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 - 纯 dev → mkdtemp TEMP（dmcc-dev-，resolve.ts L143）——MemOutput no-op → 空 → fs fallback miss 404
@@ -184,7 +193,7 @@ serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 - **Output 流经 collaborator：`deps.output`**（与现有 collaborator deps 模式一致——publisher/dist-preparer 等 deps 传参）
 - `publisher` collaborator deps 加 `output: Output`，改调 `output.publish(target, opts)`（非 materialize + publishToDist）
 - `dist-preparer` collaborator：createDist 语义已入 DiskOutput.publish——**dist-preparer 退役**（P-O3 删；P-O2 阶段如需分离 prepareScratch 可保留 thin wrapper，但倾向直接并入 publish）
-- config-collector 设 `sctx.output`（D-OL1），collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
+- sctx.output 由 **orchestrator 入口创建**（D-OL1 方案 B）+ task ctx 初始化设；collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
 
 ### D-O7 — 殁骸拆除（P-O3，F11 修正含 BuildResult 字段）
 
@@ -215,8 +224,8 @@ grep 验 caller=0 后删：
 | dev server fs fallback 保留（非编译非 SDK 资产） | Output.read miss 返 null → caller fs.readFile(serveRoot)（语义不变，serveRoot mode-dep） |
 | dirty tracking 须保留（H4 D-PUSH-3 增量） | DiskOutput 内部 dirty set + publish dirty guard（复刻 materialize L105-106） |
 | **scratch mkdtemp per-build**（F3） | DiskOutput.publish 内 mkdtemp（非构造时）——复刻 storeInfo per-orchestrate computePathInfo，并行构建原子性不变 |
-| **Output 每 build 实例 + rebuild 替换**（F1/D-OL4） | config-collector per-orchestrate new Output（复刻 sctx.buildModel）；session build:end listener 替换 state.output（复刻 state.buildModel rebuild 替换） |
-| **F12——dev mode byte-identical 验证方法** | dev mode（MemOutput）无 7-diff 方法（dc-build 只跑 one-shot）——dev 行为由 spec 覆盖（dev-reload/dev-server spec 验 dev server 读 Output.read + fs fallback）；7-diff 仅验 one-shot（DiskOutput publish byte-exact）。validation V-O3 split：one-shot 7-diff + dev spec 覆盖 |
+| **Output 每 build 实例 + rebuild 替换**（F1/D-OL4） | orchestrator 入口 per-orchestrate new Output（方案 B，mode-aware 点）；session build:end listener 重新赋值 state.output 字段（同 state 对象，非替换 state）；dev server 持 state 引用读 state.output 字段（非首 build 引用、非 closure getter） |
+| **F12——dev mode byte-identical 验证方法** | dev mode（MemOutput）无 7-diff 方法（dc-build 只跑 one-shot）——dev 行为由 spec 覆盖（dev-reload/dev-server spec 验 dev server 读 state.output.read + fs fallback + rebuild 替换 state.output 字段）；7-diff 仅验 one-shot（DiskOutput publish byte-exact）。validation V-O3 split：one-shot 7-diff + dev spec 覆盖 |
 
 ## §5 实施序依赖
 
