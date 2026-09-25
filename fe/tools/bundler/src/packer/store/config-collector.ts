@@ -11,14 +11,11 @@
  * ctx→sctx 统一（R12-3：原 L23 ctx.storeInfo → sctx.storeInfo）。
  */
 
-import fs from 'node:fs'
 import { BuildModel } from '../emit/build-model.ts'
-import { getPagesImpl } from '../graph/config-fixpoint.ts'
-import { NpmResolver } from '../graph/npm-resolver.ts'
+import { getPagesImpl, buildFixpointCtx } from '../graph/config-fixpoint.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
-import type { BuildCollaborator, LoaderRegistry, PackerContext, StageChannelContext } from '../types.ts'
-import type { FixpointCtx } from '../graph/config-fixpoint.ts'
+import type { BuildCollaborator, LoaderRegistry, StageChannelContext } from '../types.ts'
 import type { ProjectStore } from './project-store.ts'
 import type { PackerSessionState } from '../state/session-state.ts'
 
@@ -53,24 +50,8 @@ export function createConfigCollector(): BuildCollaborator<ConfigCollectorDeps> 
 			sctx.styleCache = state.styleCache
 			if (invalidatedModules) sctx.invalidatedModules = invalidatedModules
 			// B 切法（PC-B5）：getPages 显式 FixpointCtx 路由（非 ALS getPages）。
-			// 镜像 env.ts toPackerContext：workPath/targetPath/readContent/fileTypes 从 sctx.storeInfo 读；
-			// configData 从 state.graph.getConfigData()（store.load 已建图）；npm 从 workPath 建。
 			const si = sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string }; compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] } }
-			const packerCtx: PackerContext = {
-				workPath: si.pathInfo.workPath,
-				targetPath: si.pathInfo.targetPath,
-				readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
-				resolveAlias: (_src: string) => null,
-				resolveNpm: (src: string) => src,
-				fileTypes: {
-					templateExts: si.compilerOptions.templateExts,
-					styleExts: si.compilerOptions.styleExts,
-					viewScriptExts: si.compilerOptions.viewScriptExts,
-					viewScriptTags: si.compilerOptions.viewScriptTags,
-					directivePrefixes: si.compilerOptions.templateDirectivePrefixes,
-				},
-			}
-			const fc: FixpointCtx = { ctx: packerCtx, configData: state.graph.getConfigData(), npm: new NpmResolver(si.pathInfo.workPath) }
+			const fc = buildFixpointCtx(si.pathInfo.workPath, si.pathInfo.targetPath, si.compilerOptions, state.graph.getConfigData())
 			const allPages = getPagesImpl(fc)
 			await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
 				fileTypes: ((sctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),

@@ -9,7 +9,9 @@
 
 import path from 'node:path'
 import type { CompileTarget, LoadBindings, PagesInfo, StageSpec, SubPackage } from '../pipeline/compile-target.types.ts'
-import { isMiniGame, getAppId, getAppStyleScopeId, getPages } from '../store/env.ts'
+import { getAppStyleScopeId } from '../store/env.ts'
+import { getPagesImpl, buildFixpointCtx } from '../graph/config-fixpoint.ts'
+import type { PackerSessionState } from '../state/session-state.ts'
 import { viewEngine } from '../../compiler/view/index.ts'
 import { logicEngine } from '../../compiler/logic/index.ts'
 import { styleEngine } from '../../compiler/style/index.ts'
@@ -94,14 +96,16 @@ function filterPagesByEntries(pages: PagesInfo, affectedEntries: string[] | unde
 }
 
 /**
- * 阶段组装侧唯一 env 读取点（时机：collect-config 之后，ALS 已就绪）。
- * 从 compile-target.ts 移入（D-REG-1: compile-target compile 段替代）。
+ * 阶段组装侧 load bindings 读取（时机：collect-config 之后）。
+ * B 切法（PC-B7）：isMiniGame/getAppId 从 state.graph 读，getPages 从显式 FixpointCtx（非 ALS）。
+ * getAppStyleScopeId 是纯 uuid('app')（非 ALS）。
  */
-export function readLoadBindings(): LoadBindings {
+export function readLoadBindings(state: PackerSessionState, storeInfo: { pathInfo: { workPath: string; targetPath: string }; compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] } }): LoadBindings {
+	const fc = buildFixpointCtx(storeInfo.pathInfo.workPath, storeInfo.pathInfo.targetPath, storeInfo.compilerOptions, state.graph.getConfigData())
 	return {
-		miniGame: isMiniGame(),
-		appId: getAppId(),
-		pages: getPages() as PagesInfo,
+		miniGame: state.graph.isMiniGame(),
+		appId: state.graph.getAppId(),
+		pages: getPagesImpl(fc) as PagesInfo,
 		appStyleScopeId: getAppStyleScopeId(),
 	}
 }

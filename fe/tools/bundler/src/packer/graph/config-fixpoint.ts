@@ -45,6 +45,33 @@ export interface FixpointCtx {
 	npm: NpmResolver
 }
 
+/**
+ * B 切法（PC-B5/B7）：从 storeInfo 产物显式建 FixpointCtx（镜像 env.ts toPackerContext，但非 ALS）。
+ * ConfigCollector（PC-B5）+ readLoadBindings（PC-B7）共用——消除 getPages/getComponent 等 ALS getter 回环。
+ */
+export function buildFixpointCtx(
+	workPath: string,
+	targetPath: string,
+	compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] },
+	configData: GraphConfigData,
+): FixpointCtx {
+	const ctx: PackerContext = {
+		workPath,
+		targetPath,
+		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
+		resolveAlias: (_src: string) => null,
+		resolveNpm: (src: string) => src,
+		fileTypes: {
+			templateExts: compilerOptions.templateExts,
+			styleExts: compilerOptions.styleExts,
+			viewScriptExts: compilerOptions.viewScriptExts,
+			viewScriptTags: compilerOptions.viewScriptTags,
+			directivePrefixes: compilerOptions.templateDirectivePrefixes,
+		} as PackerFileTypes,
+	}
+	return { ctx, configData, npm: new NpmResolver(workPath) }
+}
+
 // ── 导出函数（graph.ts build + env.ts 薄壳共用）──
 
 /**

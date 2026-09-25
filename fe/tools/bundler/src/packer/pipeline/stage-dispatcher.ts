@@ -2,7 +2,7 @@
  * StageDispatcher — 编译项目 collaborator（facade-collaborator D-FC-1）。
  *
  * 拥有的逻辑（从 orchestrator.ts compile task + createStageTask 搬迁）：
- *   readLoadBindings() + computeStagePlan() + createStageTask per stage +
+ *   readLoadBindings(state, storeInfo) + computeStagePlan() + createStageTask per stage +
  *   sctx 写 loadBindings/allPages/pages/compatibilityWarnings/compileConfig/sourcemap/sourcemapTargetPath
  *
  * 无状态 collaborator（createPackerOrchestrator 闭包内一次构造复用）。
@@ -15,6 +15,7 @@ import { computeStagePlan, readLoadBindings } from '../registry/dispatch.ts'
 import type { PackerDispatchRegistry } from '../registry/dispatch.ts'
 import type { CompileTarget } from './compile-target.types.ts'
 import type { LoadBindings, PagesInfo } from './compile-target.types.ts'
+import type { PackerSessionState } from '../state/session-state.ts'
 import { runCompileStage } from '../state/stage-channel.ts'
 import type { RunCompileStageParams } from '../state/stage-channel.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
@@ -71,6 +72,7 @@ export interface StageDispatcherDeps {
 	dispatchRegistry: PackerDispatchRegistry
 	compileTarget: CompileTarget
 	affectedEntries?: string[]
+	state: PackerSessionState
 	lifecycle: Lifecycle
 	parallel: boolean
 }
@@ -78,8 +80,10 @@ export interface StageDispatcherDeps {
 export function createStageDispatcher(): BuildCollaborator<StageDispatcherDeps> {
 	return {
 		async run(sctx: StageChannelContext, deps: StageDispatcherDeps) {
-			const { dispatchRegistry, compileTarget, affectedEntries, lifecycle } = deps
-			sctx.loadBindings = readLoadBindings() as { pages?: unknown; appId?: string } | null
+			const { dispatchRegistry, compileTarget, affectedEntries, state, lifecycle } = deps
+			// B 切法（PC-B7）：readLoadBindings 从 state.graph + sctx.storeInfo 显式读（非 ALS）
+			const si = sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string }; compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] } }
+			sctx.loadBindings = readLoadBindings(state, si) as { pages?: unknown; appId?: string } | null
 			sctx.allPages = (sctx.loadBindings as { pages?: unknown } | null)?.pages as unknown
 			sctx.compatibilityWarnings = new Set<string>()
 

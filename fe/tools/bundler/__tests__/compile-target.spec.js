@@ -299,7 +299,7 @@ describe('P-CT05 ②T2 — structural anchors (stage assembly via registry)', ()
 	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + computeStagePlan (registry)', () => {
-		expect(stageDispatcherSrc).toContain('readLoadBindings()')
+		expect(stageDispatcherSrc).toContain('readLoadBindings(state')
 		expect(stageDispatcherSrc).toContain('computeStagePlan(')
 		expect(registrySrc).toContain('export function readLoadBindings')
 		expect(registrySrc).toContain('export function computeStagePlan')

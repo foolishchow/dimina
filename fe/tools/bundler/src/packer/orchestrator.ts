@@ -245,6 +245,7 @@ async function _orchestrate(
 						dispatchRegistry,
 						compileTarget,
 						affectedEntries,
+						state,
 						lifecycle,
 						parallel,
 					}) as unknown[]
