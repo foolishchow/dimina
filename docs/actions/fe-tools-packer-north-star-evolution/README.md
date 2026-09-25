@@ -3,10 +3,31 @@
 - Action: `fe-tools-packer-north-star-evolution`
 - Status: `in_progress`
 - Formalize: 2026-10-10（D-NS-1..6 locked，6 相实施序）
+- Implemented: 2026-10-10（P-NS1..6 全 commit，行为 0 三件套全 pass）
 - Updated: 2026-10-10
 - 设计门：[D-NS-1..6 locked](design.draft.md)
 - 实施计划：[implementation-plan.md](implementation-plan.md)（P-NS1..6 分相）
+- 验证：[validation.md](validation.md)（V-NS1..6 全 pass）
 - Status authority: [Action Status](../STATUS.md)
+
+## Implementation evidence（2026-10-10）
+
+P-NS1..6 全 6 相实施完，行为 0 三件套（tsc 0 + vitest 88/88 648 全绿 + 7 项目 diff=0）：
+
+| 相 | commit | 内容 |
+| --- | --- | --- |
+| P-NS1 | `ac7e1c05` | Graph interface 加 5 accessors + PageConfig/ComponentConfig relocate env.ts→types.ts |
+| P-NS2 | `a13a7bf9` | ModuleResultCache<V> get/set 泛化 + size()→get size()；OrchestratorState.moduleCache 对齐 |
+| P-NS3 | `52d59000` | BuildResult composite + build-model kind 窄化 4 inline + cast 删/retain 三组 + 消费者同步 |
+| P-NS4+5 | `f223d5b6` | createPackerOrchestrator : PackerOrchestrator + CompileOptions/WatchOptions/CompileRequest/WatchRequest 收敛 |
+| P-NS6 | `6a3086d6` | packerALS + runWithCompilerContext 删（dead）；compat write RETAINED（audit load-bearing） |
+
+### P-NS6 实施 deviation（architecture backflow）
+
+design D-NS-6 预设删 3 项（packerALS + runWithCompilerContext + storeInfo compat 写 L222-229）。实施 audit 实证：
+
+- **packerALS + runWithCompilerContext 确为 dead**（grep caller = 0；packerALS.tryGet 恒 undefined 因 .run 永不执行）→ 删。
+- **compat write 经实证 load-bearing**（删后 7 项目 diff≠0 + mkdirSync(undefined) 崩）：主线程 pathInfo/configInfo Proxy 喚 dist-preparer createDist(targetPath) + npm-builder fallback 读 getTemplateExts 等 + view/style/logic parse-walk 经 worker resetStoreInfo。**主线程 getter 消费方未全迁 storeInfo() 返回值前不可删**——留作后续独立 initiative（非 north-star-evolution scope）。
 
 ## Background
 

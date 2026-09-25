@@ -4,12 +4,12 @@ Status authority: [Action Status](../STATUS.md)
 
 | ID | Req | Validation | Status |
 | --- | --- | --- | --- |
-| V-NS1 | R-NS7 | tsc 0 errors（`node ./node_modules/typescript/bin/tsc --noEmit`） | pending |
-| V-NS2 | R-NS7 | vitest 全绿（87 files，flaky solo pass：compile-cli-cache + session-unify） | pending |
-| V-NS3 | R-NS7 | 7 项目 build diff=0（`node --experimental-strip-types /tmp/dc-build.mjs diff`：air-battle/base/subpackages/mpx-demo/vant/weui/taro-todo） | pending |
-| V-NS4 | R-NS6 | `grep -rn 'packerALS\|runWithCompilerContext' src/packer/store/env.ts` = 0（dead writer 删）+ storeInfo compat 写 L222-229 删（F-AC1-1）；retain worker 全链 defaultCompilerContext + pathInfo/configInfo Proxy + getCompilerContext + resetStoreInfo + getters；custom-file-types.spec + publish-incremental.spec 改读 storeInfo() 返回值（configInfo.appInfo.appId / compilerOptions.fileTypes / pathInfo.targetPath）；grep getDependencyGraph() main-thread caller = 0（F-AC3-1） | pending |
-| V-NS5 | R-NS4 | `grep 'as unknown as PackerOrchestrator\|as PackerOrchestrator' src/packer/orchestrator.ts` = 0 | pending |
-| V-NS6 | R-NS1 | `grep 'getAppId\|getAppName\|getAppConfigInfo\|getConfigData\|getPageConfigInfo' src/packer/types.ts` Graph interface 非 0 | pending |
+| V-NS1 | R-NS7 | tsc 0 errors（`node ./node_modules/typescript/bin/tsc --noEmit`） | pass（6 相全 commit） |
+| V-NS2 | R-NS7 | vitest 全绿（88 files 648 tests；compile-cli-cache + lifecycle-integration flaky solo pass） | pass |
+| V-NS3 | R-NS7 | 7 项目 build diff=0（air-battle/base/subpackages/mpx-demo/vant/weui/taro-todo all ✓） | pass |
+| V-NS4 | R-NS6 | `grep -rn 'packerALS\|runWithCompilerContext' src/packer/store/env.ts` = 0（dead writer 删）+ getCompilerContext 简化（删 packerALS.tryGet 分支）；**compat 写 RETAINED**（实证 load-bearing——dist-preparer createDist 读 pathInfo.targetPath 删则 mkdirSync(undefined) 崩 + npm-builder fallback + parse-walk 经 worker resetStoreInfo；主线程 getter 消费方未全迁 storeInfo() 返回值前不可删，留作后续 initiative）；grep runWithCompilerContext caller = 0 | pass（audit 修正：design 预设删 compat write 经实证 REVERT——非 dead） |
+| V-NS5 | R-NS4 | `grep 'as unknown as PackerOrchestrator\|as PackerOrchestrator' src/packer/orchestrator.ts` = 0；createPackerOrchestrator 返类型注解 `: PackerOrchestrator`（structural conformance + method bivariance） | pass |
+| V-NS6 | R-NS1 | `grep 'getAppId\|getAppName\|getAppConfigInfo\|getConfigData\|getPageConfigInfo' src/packer/types.ts` Graph interface 非 0；PageConfig/ComponentConfig relocate env.ts→types.ts | pass |
 
 ## PC-B10b D-OR-7 三重张力（实证记录，2026-10-10）
 
