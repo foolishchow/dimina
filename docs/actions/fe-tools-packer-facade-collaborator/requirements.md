@@ -1,6 +1,6 @@
 # Requirements — fe-tools-packer-facade-collaborator
 
-Status: **ready（2026-10-10 formalize，D-FC-1..5 locked）**
+Status: **in_progress（2026-10-10；FC-P0..P6 + D-FC-2b 完成，D-FC-2a/P7a/P7b deferred to B）**
 
 ## 背景
 

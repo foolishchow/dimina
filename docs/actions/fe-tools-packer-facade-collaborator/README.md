@@ -2,6 +2,7 @@
 
 - Status: `in_progress`
 - Formalize: 2026-10-10（D-FC-1..5 locked，4 批 19 轮 review）
+- 实施: 2026-10-10（FC-P0..P6 + D-FC-2b 完成；D-FC-2a/P7a/P7b deferred to B——facade 签名落地依赖 ALS→PackerContext 闭合）
 - Created: 2026-10-09
 - 设计门：[D-FC-1..5 locked](design.draft.md#§2-设计门draft-提议formalize-待锁)（4 批 19 轮 review 严格收敛）
 - 实施计划：[implementation-plan.md](implementation-plan.md)（FC-P0..P7b 分相）

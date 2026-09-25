@@ -1,9 +1,28 @@
 # Implementation Plan — fe-tools-packer-facade-collaborator
 
-Status: **ready（2026-10-10；formalize + plan 出具，待实施）**
+Status: **in_progress（2026-10-10；FC-P0..P6 + D-FC-2b 完成，D-FC-2a/P7a/P7b deferred to B）**
 
 设计门：[D-FC-1..5 locked](design.draft.md#§2-设计门draft-提议formalize-待锁)
 前置 review：4 批 19 轮严格收敛（R5+R6 / R9+R10+R11 / R14+R15 / R18+R19 四组连续 0）
+
+## §0 实施进度（2026-10-10）
+
+| 相 | 状态 | 证据 |
+| --- | --- | --- |
+| FC-P0 类型来源（ProjectStore + Lifecycle export） | ✓ COMPLETE | tsc 0 + 7 diff=0 |
+| FC-P1 DistPreparer + ConfigCompiler | ✓ COMPLETE | 2 collaborator + 委托 run |
+| FC-P2 NpmBuilder 接线（有状态每次 new） | ✓ COMPLETE | collaborator + builtPackages 不跨 build 泄漏 |
+| FC-P3 ConfigCollector（写 9 sctx 字段） | ✓ COMPLETE | collaborator + ctx→sctx 统一 |
+| FC-P4 StageDispatcher（loadBindings→sctx） | ✓ COMPLETE | collaborator + createStageTask 搬迁 + compile-target.spec test-sync |
+| FC-P5 LogicEmitter（ctx→sctx 统一） | ✓ COMPLETE | collaborator |
+| FC-P6 Publisher | ✓ COMPLETE | 7 collaborator 全抽完 |
+| D-FC-2b registry 私有化 + logic-loader.spec test-sync | ✓ COMPLETE | createPackerOrchestrator 仅返 { orchestrate } + types.ts 删 3 字段 |
+| D-FC-2a orchestrate 签名落地 + implements + result→EmitEntry[] | ✗ DEFERRED to B | 被 D-FC-4 阻塞：北星 `(ctx: PackerContext, state, options) → EmitEntry[]` 需 ALS→PackerContext 闭合（B 切法，design 自承 B 留后）+ result reconcile 依赖 session buildModel 消费（B 额域） |
+| P7a/P7b CompileRequest/WatchRequest 收敛 | ✗ DEFERRED to B | 入口签名收敛与 D-FC-2a 签名落地耦合（build() 是 union 入口，签名对齐须待 B） |
+
+**完成态**：orchestrator.ts 429→321 行（7 业务块 + createStageTask 出，保留 Listr task 序 + createPackerOrchestrator + result 合 + webviewRenderer + printCompatibilityWarnings）。7 collaborator 全在对应域子目录。tsc 0 + vitest 647 pass（compile-cli-cache/session-unify flaky solo pass）+ 7 项目 diff=0。
+
+**B-deferred 残留**（D-FC-2a + P7a/P7b）：facade 契约签名落地依赖 ALS→PackerContext 闭合（B 切法）+ OrchestratorState.buildModel 演进。B 就位后：(1) orchestrate 签名对齐 `(ctx, state, options)` + `implements PackerOrchestrator`；(2) result→EmitEntry[] + metadata 伴随（session 改读 state.buildModel）；(3) OrchestrateRequest→CompileRequest/WatchRequest。
 
 ## §1 实施总则
 
