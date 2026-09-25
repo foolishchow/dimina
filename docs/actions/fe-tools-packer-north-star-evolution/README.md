@@ -21,10 +21,10 @@ B 切法（fe-tools-packer-context-closure）+ facade-collaborator 实施期揭�
 演进 types.ts 北星 interface 使 `implements PackerOrchestrator` + result reconcile 可落地：
 
 - `Graph` interface 加 accessors（getAppId/getAppName/getAppConfigInfo/getConfigData/getPageConfigInfo）——`PackerGraph` 已实现，interface 补全（非 shape 重设计）。
-- `OrchestratorState` moduleCache shape 对齐 `PackerSessionState`（`ModuleResultCache<CachedModuleResult>` 或泛化）。
-- return type composite：`Promise<EmitEntry[]>` → `Promise<{ entries: EmitEntry[]; metadata: BuildResult }>` 或北星 re-design（需评估 session/compile-cache/watch-runner 消费 ripple）。
+- `OrchestratorState` moduleCache shape 对齐 `PackerSessionState`（`ModuleResultCache<V>` get/set 泛化 + `size` getter/method 对齐）——经 method bivariance 使 `implements PackerOrchestrator` 可达。
+- return type composite：`Promise<EmitEntry[]>` → `Promise<BuildResult>` flat `{ entries; appId; name; path; dependencyGraph; buildModel }`（build-model.ts `kind` 窄化；D-FC-5 re-evaluation：演进非重设计）。
 - D-FC-3 OrchestrateRequest → CompileRequest/WatchRequest 收敛（装配参数归属）。
-- PC-B9b env.ts `packerALS`/`runWithCompilerContext`/`pathInfo`/`configInfo` Proxy 实体移除（需测试改读 storeInfo 返回值：custom-file-types.spec + publish-incremental.spec）。
+- PC-B9b env.ts dead ALS writer 移除（删 `packerALS`/`runWithCompilerContext`/storeInfo compat 写 L222-229；retain worker 全链 defaultCompilerContext + Proxy + getters + resetStoreInfo；需测试改读 storeInfo 返回值：custom-file-types.spec + publish-incremental.spec（configInfo 取 appId / compilerOptions 取 fileTypes / pathInfo 取 buildDir））。
 
 ## Non-goals
 
@@ -43,17 +43,17 @@ B 切法（fe-tools-packer-context-closure）+ facade-collaborator 实施期揭�
 ## Requirements
 
 - R-NS1 MUST `Graph` interface 加 accessors（getAppId/getAppName/getAppConfigInfo/getConfigData/getPageConfigInfo）——PackerGraph 已实现，interface 补全。
-- R-NS2 MUST `OrchestratorState` moduleCache shape 对齐 PackerSessionState（或泛化 ModuleResultCache<V>）。
-- R-NS3 MUST orchestrate return type composite 落地（EmitEntry[] + metadata）——session/compile-cache/watch-runner 消费同步对齐。
+- R-NS2 MUST `OrchestratorState` moduleCache shape 对齐 PackerSessionState（路 A locked：`ModuleResultCache<V>` get/set 泛化 + `size` getter/method 对齐）。
+- R-NS3 MUST orchestrate return type composite 落地（`Promise<BuildResult>` flat：entries + appId/name/path/dependencyGraph/buildModel）——session/compile-cache/watch-runner 消费同步对齐。
 - R-NS4 MUST `implements PackerOrchestrator`（消解 D-OR-7）。
 - R-NS5 MUST D-FC-3 CompileRequest/WatchRequest 收敛（useAppIdDir/compileOptions 归属）。
-- R-NS6 MUST PC-B9b env.ts packerALS/Proxy 实体移除（测试改读 storeInfo 返回值）。
+- R-NS6 MUST PC-B9b env.ts dead ALS writer 移除（删 packerALS/runWithCompilerContext/storeInfo compat 写 L222-229；retain worker 全链；测试改读 storeInfo 返回值）。
 - R-NS7 MUST 行为 0（tsc 0 + vitest 全绿 + 7 项目 diff=0）。
 
-## Proposed design
+## Design
 
-待 design.draft 评估 return type composite 形状 + session 消费 ripple + 北星 "不改" 约束 re-evaluation（演进 vs 重设计边界）。
+见 [design.draft.md](design.draft.md)——D-NS-1..6 locked（含 6 TS probe 实证 bivariance 验证）。
 
 ## Implementation plan
 
-待 formalize 后出具（P-NS1..N 分相 + 每相行为 0 gate）。
+见 [implementation-plan.md](implementation-plan.md)——P-NS1..6 分相 + 每相行为 0 gate（tsc 0 + vitest 全绿 + 7 项目 diff=0）。

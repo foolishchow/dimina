@@ -8,7 +8,7 @@ B 切法（context-closure PC-B2..B10a）+ facade-collaborator（FC-P0..P6 + D-F
 
 承接 deferred residuals：
 - facade-collaborator R-FC-2（implements + return reconcile）+ R-FC-3（CompileRequest/WatchRequest）
-- context-closure R-PC-3（env.ts entity removal）+ R-PC-4（implements + reconcile + CompileRequest）
+- context-closure R-PC-3（env.ts dead ALS writer 移除）+ R-PC-4（implements + reconcile + CompileRequest）
 
 ## R-NS1 — Graph interface accessors 补全
 
@@ -16,23 +16,23 @@ types.ts `Graph` interface 加 accessors：`getAppId()/getAppName()/getAppConfig
 
 ## R-NS2 — OrchestratorState moduleCache shape 对齐
 
-`OrchestratorState.moduleCache: ModuleResultCache` vs `PackerSessionState.moduleCache`（`ModuleResultCache<CachedModuleResult>` 或泛化）。对齐使 `PackerSessionState` assignable to `OrchestratorState`。
+`ModuleResultCache<V>` interface get/set 泛化（路 A locked——弃 `{module, dependencies}` shape，`get(moduleId): V | undefined`）+ `size(): number`→`get size(): number`（match class getter，零消费方）。对齐使 `PackerSessionState` assignable to `OrchestratorState`（method bivariance 前提——见 design.draft §2 D-NS-2 全 member 审计表 + D-NS-4 bivariance 注）。
 
 ## R-NS3 — orchestrate return type composite
 
-`Promise<EmitEntry[]>` → composite `{ entries: EmitEntry[]; metadata: { appId; name; path; dependencyGraph; buildModel } }` 或北星 re-design。session/index.ts（L244/248/256/269 result.buildModel/appId）+ compile-cache createAppCacheEntry + watch-runner casts 同步对齐。lifecycle-integration.spec `Object.keys(result)` 锚点同步。
+`Promise<EmitEntry[]>` → `Promise<BuildResult>` flat composite `{ entries: EmitEntry[]; appId; name; path; dependencyGraph; buildModel }`（见 design.draft §2 D-NS-3 BuildResult shape）。session/index.ts（L244/248/256/269 result.buildModel/appId）+ compile-cache createAppCacheEntry（排除 entries）+ watch-runner casts 同步对齐。lifecycle-integration.spec `Object.keys(result)` 锚点同步（+ entries）。
 
 ## R-NS4 — implements PackerOrchestrator
 
-`createPackerOrchestrator` 返回 `implements PackerOrchestrator`（消解 orchestrator.ts:6 自承 D-OR-7 张力）。依赖 R-NS1/NS2/NS3 就位。
+`createPackerOrchestrator` 返回类型注解 `: PackerOrchestrator`（structural conformance + method bivariance；function 返 object literal 非 class——无 `implements` clause，经 return type annotation + structural 兑现；消解 orchestrator.ts:6 自承 D-OR-7 张力）。依赖 R-NS2（含 size）+ R-NS3 就位（R-NS1 hygiene 非 blocking，可并行）。
 
 ## R-NS5 — D-FC-3 CompileRequest/WatchRequest 收敛
 
-`OrchestrateRequest` ~19 字段 → `CompileRequest`（one-shot）+ `WatchRequest`（增量 = CompileRequest + affectedEntries/invalidatedModules/seedPath/incremental/configChanged）。`useAppIdDir`/`compileOptions` 归属（CompileTarget 字段 or options）。build() + dev session 适配器改写。
+OrchestrateOptions refactor → `CompileOptions`（compile-shared + mode flags）+ `WatchOptions`（watch-only）——避免 CompileRequest extends 继承 watch 字段。`CompileRequest` = CompileOptions + {useAppIdDir?/fileTypes?/compileOptions?/store?/lifecycle?}（retain per-request override——F-AB1-1：_orchestrate L170 runStore 优先 providedStore；watch-runner L95 传 activeStore）。`WatchRequest` = CompileRequest & WatchOptions（增量数据 only）。PackerOrchestrator interface options → `CompileRequest | WatchRequest`（D-FC-5 北星彻底）。`useAppIdDir`/`compileOptions` 归属（CompileTarget 字段 or options）。OrchestrateRequest refactor 为 INTERNAL unified（extends CompileOptions & WatchOptions，retain store?/lifecycle?）。build() + dev session 适配器改写。
 
-## R-NS6 — PC-B9b env.ts ALS 实体移除
+## R-NS6 — PC-B9b env.ts dead ALS writer 移除
 
-env.ts `packerALS`/`runWithCompilerContext`/`pathInfo` Proxy/`configInfo` Proxy/`defaultCompilerContext` 实体删除（主线程）。`resetStoreInfo`（worker 桥接 D-PC-5）保留。测试改读 storeInfo 返回值：custom-file-types.spec（getTemplateExts() → storeInfo().compilerOptions.templateExts）+ publish-incremental.spec（显式传 buildDir/appId 给 publishToDist）。
+env.ts 删 dead `packerALS`/`runWithCompilerContext`（PC-B9 后无 caller）+ **storeInfo compat 写**（L222-229，PC-B8b，F-AC1-1——`getCompilerContext()` + 设 pathInfo/configInfo/compilerOptions/graph/dependencyGraph 的 compat block；删后 defaultCompilerContext main-thread 不再被设 → fallback 返 undefined/empty，须 spec 改读 storeInfo 返回值）。retain worker ALS 全链（defaultCompilerContext + pathInfo/configInfo Proxy + getCompilerContext + resetStoreInfo + getters——worker parse-walk/logic/style 调）。getCompilerContext 简化（删 packerALS.tryGet 分支）。测试改读 storeInfo 返回值（F-AC1-1）：custom-file-types.spec（getTemplateExts() → storeInfo().compilerOptions.templateExts）+ publish-incremental.spec（显式传 buildDir/storeInfo().pathInfo.targetPath + appId/storeInfo().configInfo.appInfo.appId 给 publishToDist）+ grep 验 getDependencyGraph() main-thread caller = 0（F-AC3-1）。
 
 ## R-NS7 — 行为 0
 
