@@ -4,11 +4,13 @@
  * 持有活 graph + 活 cache + invalidated 集，跨 rebuild 持久。
  * watch-runner 创建（可注入），经入口适配器传入 PackerOrchestrator.orchestrate。
  *
- * 注意：不写 `implements OrchestratorState`——现有 ModuleResultCache class
- * 的 get/set 返回 CachedModuleResult（非 { module, dependencies }），
- * 且 size 是 getter（非 method），与 types.ts §7 interface 不兼容。
- * 接口 conformance deferred 到 ModuleResultCache 泛型化 Action。
- * 当前用结构类型——字段名与形状一致，运行时行为正确。
+ * 注意：不写 `implements OrchestratorState`——PackerSessionState 多 required
+ * `fingerprints`/`viewCache`/`styleCache`/`viewOrderList`（窄于 OrchestratorState
+ * 的泛化但多 session 字段）。P-NS2（D-NS-2）已将 types.ts ModuleResultCache<V>
+ * interface 泛化对齐 class（get→V，V=CachedModuleResult；get size getter），
+ * `PackerSessionState assignable to OrchestratorState` 经结构类型成立（bivariance
+ * 前提，P-NS4 `: PackerOrchestrator` 依赖此）。impl 用 concrete PackerSessionState
+ * ——经 method bivariance 放行，可访问 session 独有字段。
  */
 
 import { PackerGraph } from '../graph/graph.ts'

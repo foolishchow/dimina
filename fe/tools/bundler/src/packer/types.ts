@@ -26,6 +26,7 @@
 import type { EmitEntry, EmitTransformConfig } from './emit/emit.ts'
 import type { GraphSnapshot } from './graph/dependency-graph.ts'
 import type { GraphConfigData } from './graph/graph.ts'
+import type { CachedModuleResult } from './cache/module-result-cache.ts'
 
 // ════════════════════════════════════════════════════════════════════
 // §1 基础类型
@@ -375,7 +376,7 @@ export interface OrchestratorState {
 	graph: Graph
 
 	/** 活 cache（session-scoped）。key = moduleId（不含 fingerprint）。 */
-	moduleCache: ModuleResultCache
+	moduleCache: ModuleResultCache<CachedModuleResult>
 
 	/** 失效集（per-rebuild 重算）。全 kind，不按 'logic' 过滤。 */
 	invalidatedModules: Set<string>
@@ -392,14 +393,14 @@ export interface OrchestratorState {
  *   - CompiledModule 缓存（key = moduleId）
  *   - EmitEntry 不缓存（emit 便宜）
  */
-export interface ModuleResultCache<V = CompiledModule> {
-	get(moduleId: string): { module: V; dependencies: string[] } | undefined
-	set(moduleId: string, result: { module: V; dependencies: string[] }): void
+export interface ModuleResultCache<V = CachedModuleResult> {
+	get(moduleId: string): V | undefined
+	set(moduleId: string, result: V): void
 	has(moduleId: string): boolean
 	delete(moduleId: string): void
 	clear(dirtyIds: Iterable<string>): void
-	size(): number
-	toJSON(): [string, unknown][]
+	get size(): number
+	toJSON(): [string, V][]
 }
 
 // ════════════════════════════════════════════════════════════════════
