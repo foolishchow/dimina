@@ -91,7 +91,7 @@ dev server 读:
 
 ## Readiness gaps
 
-**review round 1-26 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14 + F-R18-1/2/3 + F-R19-4 round 18-19 + F-R22-1/2/3 round 22 + F-R26-1/2/3 round 26：全维度 + 中间层 + 目录 + type + **import 链完整（export 语句 + publisher/logic-emitter import 演进 + value→type import）**）。design.draft §2.0 方案 B + D-O1..7 + D-OL1..4 + §4 风险 + §6 emit/ 目录演进。
+**review round 1-30 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14 + F-R18-1/2/3 + F-R19-4 round 18-19 + F-R22-1/2/3 round 22 + F-R26-1/2/3 round 26 + F-R30-1 round 30：全维度 + 中间层 + 目录 + type + import 链 + **mode 信号 lock（P-O1/P-O2 skipMaterialize boolean 过渡，P-O3 后 request.mode 'dev'\|'disk' enum）**）。design.draft §2.0 方案 B + D-O1..7 + D-OL1..4 + §4 风险 + §6 emit/ 目录演进。
 
 - **D-O1 Output interface 形状**（add/read/publish 签名 + dirty tracking interface 级 vs impl 级）——design.draft 待 lock
 - **D-O2 MemOutput.publish no-op 实证前提**（纯 dev serveRoot 空）——design.draft 已补实证

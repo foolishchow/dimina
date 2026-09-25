@@ -26,7 +26,7 @@ interface Output {
 - `getEntries()` 返累积 EmitEntry[]（F-R4-2——BuildResult.entries sourced from output.getEntries()）
 
 **R-O1.1 Output 生命周期**（F1 修正 D-OL1..4，方案 B——orchestrator 入口创建，替代 buildModel 流）：
-- **D-OL1（方案 B + listr2 ctx 注入，F-R4-3 lock）**：orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建 Output：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`。final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）。**listr2 ctx 注入**（F-R4-3 实证）：`tasks.run({ output })`（L292 改）——listr2 run 支持 initial ctx 合并，Output 经 initial ctx 注入，config-collector 跑前 sctx.output 已存在。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离：orchestrator 决策 mode + 创建；config-collector 只设其他 8 sctx 字段）。
+- **D-OL1（方案 B + listr2 ctx 注入，F-R4-3 lock + F-R30-1 mode 信号 lock）**：orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建 Output。**P-O1/P-O2 过渡**：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`。**P-O3 后**：消 skipMaterialize 改 `request.mode: 'dev' | 'disk'`，`request.mode === 'dev' ? new MemOutput() : new DiskOutput(ctx.targetPath)`（缺省 'disk'）。final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）。**listr2 ctx 注入**（F-R4-3 实证）：`tasks.run({ output })`（L292 改）。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output。
 - **D-OL2（F-R7-1 修正——sctx.buildModel.add 全 4 消费者 + read 3 迁入 sctx.output）**：add 路径全 4 处 → `sctx.output.add(entry)`：(1) orchestrator L83 runViewStage onOutput (2) orchestrator L85 runStyleStage onOutput (3) **stage-dispatcher L54** dispatch 路径 onOutput (4) **logic-emitter L42** logic emit 累积（非 onOutput）。read 路径全 3 处 → `sctx.output`：(1) logic-emitter L37 cast 读 (2) publisher L34 materialize 消费（→ output.publish D-O6） (3) orchestrator L294 result.buildModel（→ result.output D-OL3）
 - D-OL3（F-R8-2）：`BuildResult.buildModel`（types.ts L503）→ `output: Output | undefined`；orchestrator L294 cast `(context as {buildModel?}).buildModel` → `(context as {output?}).output` + L296 entries sourced from `output.getEntries()`（F-R4-2）
 - D-OL4（dev server 持 OutputRef 窄接口读 state.output + F-R9-2 区分 state 类型）：session L244 `state.output = buildResult.output`（首 build）+ L255 `build:end` listener 重新赋值 `state.output` 字段（同 state 对象，非替换 state）+ dev server createServer params 收 **OutputRef 窄接口**（`{ output: Output | undefined }`，F-R5-2 lock——避免暴露整个 PackerSessionState；preview-adapter 传 state，state 含 output 字段，结构子类型满足 OutputRef），dev server 内读 `outputRef.output?.read(path)`。**F-R9-2 state 类型区分**：output 字段加到 **`SessionState`**（session/index.ts L59 `buildModel?: BuildModel` → `output?: Output`）——session 内部 state。**不加 PackerSessionState**（state/session-state.ts class，orchestrator state 参数）——orchestrator 不持 output（经 sctx.output + result.output 流）
@@ -69,7 +69,7 @@ Output impl 由 mode 选择（消 skipMaterialize 开关）+ 4 mode 覆盖（F4 
 - previewAdapter-dev（skipMaterialize=false 现状）→ DiskOutput（serveRoot 落盘有内容）
 - one-shot（compile.ts build）→ DiskOutput（= final targetPath）
 - watch standalone（非 dev，无 dev server）→ DiskOutput（无读者，纯落盘）
-- 选择点：**orchestrator `orchestrate()` 入口**（L121 request 构造后，mode-aware 点，按 request.skipMaterialize）创建 Output 设 sctx.output（经 task ctx 初始化）；config-collector 删 buildModel 行只消费 sctx.output
+- 选择点：**orchestrator `orchestrate()` 入口**（L121 request 构造后，mode-aware 点）创建 Output 设 sctx.output（经 task ctx 初始化）；config-collector 删 buildModel 行只消费 sctx.output。**F-R30-1 mode 信号**：P-O1/P-O2 用 request.skipMaterialize（boolean 过渡）；P-O3 后改 request.mode 'dev'|'disk'（enum 替代 boolean）
 
 ## R-O6 — 殁骸拆除（F11 修正含 BuildResult 字段）
 
@@ -81,7 +81,7 @@ P-O3 后退役（grep 验 caller=0）：
 - **F-R26-2 publisher.ts import 演进**：删 materialize/publishToDist/BuildModel + 加 `import type { Output }`
 - **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }` → `import type { Output }`（L37 as Output）
 - `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
-- `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1 补）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
+- **F-R30-1 skipMaterialize → mode 字段迁移**（P-O3）：types L437 `skipMaterialize?: boolean` → `mode?: 'dev' | 'disk'`（缺省 'disk'）；orchestrator L143 destructuring + L58 `request.mode === 'dev'`；session L235 `mode: previewAdapter ? 'disk' : 'dev'`；compile.ts `mode: 'disk'`；index.ts L26/78 + runner.ts L40 whitelist 改 mode
 - compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）+ **F-R11-2 `isTemporaryTargetPath()` ALS getter 删**（只 publish.ts 用，DiskOutput.publish hardcode temporary=true 后不调）+ **F-R19-4 `getAppId()` ALS getter 保留**（compiler/* parse-walk 仍用，worker 侧；publish.ts fallback 死但 getter 本身不删）
 - `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删
 - `BuildResult.entries`（types.ts L496）→ sourced from `output.getEntries()`（F-R4-2）
