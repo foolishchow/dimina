@@ -11,11 +11,11 @@
 
 ## 目标
 
-消解 F-PA-1：orchestrator god object → **facade + collaborator 抽取**。`_orchestrate` 6 类业务活（store.load / compileConfig / npmBuilder / stage 派发 / logic emit / materialize+publish）下沉到**拥有逻辑的 collaborator**（非包壳），orchestrator 收敛为薄编排 facade（Listr 任务序 + 委托 + 合 delta）。
+消解 F-PA-1：orchestrator god object → **facade + collaborator 抽取**。`_orchestrate` 7 类业务活（store.load / createDist / compileConfig / npmBuilder / stage 派发 / logic emit / materialize+publishToDist）下沉到**拥有逻辑的 collaborator**（非包壳），orchestrator 收敛为薄编排 facade（Listr 任务序 + 委托 + 合 delta）。
 
 ## 范围
 
-- **in**：orchestrator `_orchestrate` 内 6 业务块 → collaborator 抽取；facade 契约（`PackerOrchestrator.orchestrate` 北星签名真落地）；4 registry 私有化（facade 内部，不公开返回）；`OrchestrateRequest` 20+ 字段收敛
+- **in**：orchestrator `_orchestrate` 内 7 业务块 → collaborator 抽取；facade 契约（`PackerOrchestrator.orchestrate` 北星签名真落地）；4 registry 私有化（facade 内部，不公开返回）；`OrchestrateRequest` ~19 字段收敛
 - **out**（Non-scope，后续轮）：
   - **renderer 注入点**（F-PA-3，A 切法）——独立 Action 或 C 轮
   - **aspect 分离**（F-PA-2，C 切法）——本 Action collaborator 内部暂留横切穿线

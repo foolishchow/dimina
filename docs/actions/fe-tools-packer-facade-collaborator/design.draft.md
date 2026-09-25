@@ -5,9 +5,9 @@ Status: **draft（2026-10-09）**
 ## §1 问题诊断（来自 [retrospect](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md) F-PA-1）
 
 `_orchestrate`（orchestrator.ts:103-366）是 god object：
-- 6 类业务活内联（R-FC-1 表）+ 4 registry 公开返回（orchestrator.ts:84-88）+ OrchestrateRequest 20+ 字段透传
-- 北星 `PackerOrchestrator.orchestrate(ctx, state, options) → EmitEntry[]`（types.ts:386-393）未落地——实际 `_orchestrate(request: OrchestrateRequest) → Record<string, unknown>`
-- orchestrator.ts:13 自承"不写 implements PackerOrchestrator（返回值与形状 EmitEntry[] 张力，D-OR-7）"
+- 7 类业务活内联（R-FC-1 表）+ 4 registry 公开返回（orchestrator.ts:96-99）+ OrchestrateRequest ~19 字段透传
+- 北星 `PackerOrchestrator.orchestrate(ctx, state, options) → EmitEntry[]`（types.ts:416）未落地——实际 `_orchestrate(request: OrchestrateRequest) → Record<string, unknown>`
+- orchestrator.ts:6 自承"不写 implements PackerOrchestrator（返回值与形状 EmitEntry[] 张力，D-OR-7）"
 
 根因（retrospect §2）：类型层（types.ts 北星 facade+aspect+strategy）与运行层（orchestrator+ALS+Listr+mutable bag）双轨——类型层是文档，god object 活在运行层。
 
@@ -15,78 +15,97 @@ Status: **draft（2026-10-09）**
 
 ### D-FC-1 — collaborator 抽取（logic 搬迁，非包壳）
 
-6 collaborator 抽取（R-FC-1 表），每 collaborator 拥有完整业务逻辑（含 sctx 字段设置 + lifecycle 事件 + 错误处理）。orchestrator task body 仅 `await collaborator.run(sctx, deps...)`。
+7 collaborator 抽取（R-FC-1 表），每 collaborator 拥有完整业务逻辑（含 sctx 字段设置 + lifecycle 事件 + 错误处理）。orchestrator task body 仅 `await collaborator.run(sctx, deps...)`。
 
 **rigor 红线**：collaborator 须搬入真实逻辑。验：`grep 'await.*collaborator.run' orchestrator.ts` 非 0 + collaborator 文件含原 orchestrator 逻辑体（git diff -M rename + 逻辑体搬迁，非新建空壳）。
 
-**collaborator 接口形状**（types.ts 声明）：
+**collaborator 接口形状**（types.ts 声明，每 collaborator typed deps 子接口——禁单一 CollaboratorDeps bag，避重蹈 StageChannelContext mutable bag 覆辙 F-PA-4）：
 ```ts
-interface BuildCollaborator {
-  run(sctx: StageChannelContext, deps: CollaboratorDeps): Promise<void>
+interface BuildCollaborator<Deps> {
+  run(sctx: StageChannelContext, deps: Deps): Promise<void>
 }
-interface CollaboratorDeps {
-  store: ProjectStore
-  state: PackerSessionState
-  lifecycle: Lifecycle
-  dispatchRegistry: PackerDispatchRegistry
-  loaderRegistry: LoaderRegistry
-  // ...per-collaborator 子集
-}
+// 每 collaborator typed deps（非 bag）：
+interface ConfigCollectorDeps { store: ProjectStore; state: PackerSessionState; lifecycle: Lifecycle; loaderRegistry: LoaderRegistry; fileTypes?: unknown; invalidatedModules?: string[]; viewCache?: ...; viewOrderList?: ...; styleCache?: ... }
+interface StageDispatcherDeps { dispatchRegistry: PackerDispatchRegistry; compileTarget: CompileTarget; affectedEntries?: string[]; lifecycle: Lifecycle; parallel: boolean }
+interface LogicEmitterDeps { state: PackerSessionState; pages: PagesInfo; compileConfigOpts: ...; sourcemap: boolean; sourcemapTargetPath?: string; storeInfo: unknown; lifecycle: Lifecycle }
+interface PublisherDeps { targetPath: string; useAppIdDir: boolean; seedPath?: string; skipMaterialize?: boolean; lifecycle: Lifecycle }
+// DistPreparer / ConfigCompiler / NpmBuilder deps 类似（仅所需字段）
 ```
 
-**放置**（design 提议，formalize 锁）：
-- `packer/collaborator/` 新子目录（7 文件：config-collector.ts / dist-preparer.ts / config-compiler.ts / npm-builder-collab.ts / stage-dispatcher.ts / logic-emitter.ts / publisher.ts）
-- 或：放对应域子目录（config-collector→store/、stage-dispatcher→pipeline/、logic-emitter→emit/、publisher→emit/、npm-builder→pipeline/）—— **倾向此**（mirror 域归属，避免新顶层）
+**放置**（**formalize 倾向锁**：放对应域子目录，mirror 域归属，避免新顶层 collaborator/）：
+- ConfigCollector → `packer/store/config-collector.ts`（store.load 域）
+- DistPreparer → `packer/emit/dist-preparer.ts`（产物输出域）
+- ConfigCompiler → `packer/pipeline/config-compiler-collab.ts`（stage 编排域，区别于既有 config-compiler.ts）
+- NpmBuilder → `packer/pipeline/npm-builder.ts`（已存在，加 collaborator 接线）
+- StageDispatcher → `packer/pipeline/stage-dispatcher.ts`（stage 派发域，含 createStageTask）
+- LogicEmitter → `packer/emit/logic-emitter.ts`（emit 域）
+- Publisher → `packer/emit/publisher.ts`（materialize+publish 域，区别于既有 publish.ts）
 
-**分批序**（按依赖 + 风险）：
-- FC-P1 DistPreparer + ConfigCompiler（trivial，纯 forward 逻辑体小）→ 验行为 0
-- FC-P2 NpmBuilder（已 class，仅接线 task body）→ 验
-- FC-P3 ConfigCollector（最复杂——store.load + sctx 字段 + registry kinds + ALS 读）→ 验
-- FC-P4 StageDispatcher（readLoadBindings + computeStagePlan + createStageTask）→ 验
-- FC-P5 LogicEmitter（deriveLogicBuckets + emitEngine 特例）→ 验
-- FC-P6 Publisher（materialize + publishToDist）→ 验
+**grep 路径统一**（validation/acceptance 用实际域子目录，非新建顶层目录）：ALS 保留验 = `grep ... src/packer/{store,emit,pipeline}/`
+
+**分批序**（按依赖 + 风险，明列依赖关系）：
+- FC-P1 DistPreparer + ConfigCompiler（trivial，**无 sctx 依赖**——纯 createDist/compileConfig 调用）→ 验行为 0
+- FC-P2 NpmBuilder（已 class，仅接线 task body，**读 sctx.dependencyGraph**）→ 验
+- FC-P3 ConfigCollector（最复杂——store.load + sctx 字段设置 + registry kinds + ALS 读；**设 sctx.storeInfo/dependencyGraph/buildModel/cache 等供 P4-P6 读**）→ 验
+- FC-P4 StageDispatcher（readLoadBindings + computeStagePlan + createStageTask；**读 sctx（P3 设）+ 写 sctx.pages/compatibilityWarnings/compileConfig/sourcemap**）→ 验
+- FC-P5 LogicEmitter（deriveLogicBuckets + emitEngine；**读 sctx.pages/compileConfig/sourcemap（P4 写）+ state.graph/cache**）→ 验
+- FC-P6 Publisher（materialize + publishToDist；**读 sctx.buildModel（P3 设 + P4/P5 add）**）→ 验
+- FC-P7a CompileRequest 收敛（build 入口）→ 验
+- FC-P7b WatchRequest 收敛（dev session 入口）→ 验
+
+**依赖序**：P1/P2 无 sctx 依赖可先行；P3 设 sctx（P4-P6 前置）；P4 写 sctx（P5 前置）；P7 入口收敛**最后**（先内部 collaborator 稳定，再改入口签名）。
 
 ### D-FC-2 — facade 契约落地（types.ts 北星兑现）
 
-`PackerOrchestrator.orchestrate(ctx, state, options) → EmitEntry[]` 真落地：
-- orchestrator `implements PackerOrchestrator`（消解 D-OR-7 张力）
-- `createPackerOrchestrator` 返回仅 `{ orchestrate }`（4 registry 私有，facade 内部）
-- 返回值 `EmitEntry[]`（北星）——实际今日返回 `Record<string, unknown>`（buildResult），须 reconcile：或扩北星 EmitEntry 兼容 buildResult 字段，或 buildResult 落地为 EmitEntry[] 形状（design 提议后者——buildResult = EmitEntry[] + metadata）
+分两相（reconcile 北星 interface 本身公开 registry 的张力）：
 
-**风险**：返回值改 → build() 入口 + dev session 适配器消费 result 处须同步。行为 0 须验（result 字段消费处全对齐）。
+**D-FC-2a — orchestrate 签名落地**（北星不改）：
+- orchestrator `implements PackerOrchestrator`（消解 orchestrator.ts:6 自承 D-OR-7 张力）
+- `orchestrate(ctx: PackerContext, state: OrchestratorState, options: OrchestrateOptions) → Promise<EmitEntry[]>` 签名对齐北星（types.ts:416）
+- 返回值 `EmitEntry[]`——实际今日返回 `Record<string, unknown>`（buildResult），reconcile 为 EmitEntry[] 形状或扩 EmitEntry 兼容 buildResult 字段（design 提议 buildResult = EmitEntry[] + metadata）
+- result 消费处（session/index.ts buildModel/appId）同步对齐
+
+**D-FC-2b — registry 私有化**（须北星 interface 改，单独相）：
+- 北星 `PackerOrchestrator` interface（types.ts:416）现公开 `loaderRegistry/compileRegistry/emitRegistry` 作字段——私有化须删此 3 字段
+- `createPackerOrchestrator` 返回仅 `{ orchestrate }`（registry facade 内部）
+- **D-FC-5 纪律校正**："不重写 types.ts 北星"指不改 facade/aspect/strategy SHAPE 结构；删 registry 公开字段是 facade 收敛核心（非 shape 重设计），允许
+- 调用方（src/index.ts + logic-loader.spec）伸手 registry 处须改
+
+**风险**：D-FC-2b 改北星 interface → 须验调用方无 registry 伸手。**实证伸手处**：`__tests__/logic-loader.spec.js:140-147`（6 处 `orch.loaderRegistry.get/kinds` + `orch.compileRegistry/emitRegistry.get` 断言 registry 实体化）——D-FC-2b 须同步改此 spec（删 registry 伸手断言，改验 orchestrate 行为而非内部 registry）。
 
 ### D-FC-3 — OrchestrateRequest 收敛
 
-20+ 字段 → `CompileRequest`（one-shot）+ `WatchRequest`（增量 = CompileRequest + 增量字段）。build() 入口 + dev session 适配器改写。
+~19 字段 → `CompileRequest`（one-shot）+ `WatchRequest`（增量 = CompileRequest + 增量字段）。build() 入口 + dev session 适配器改写。
 
 **分相**：
 - FC-P7a CompileRequest 收敛（build 入口）→ 验
 - FC-P7b WatchRequest 收敛（dev session 入口）→ 验
 
-**风险**：入口签名改 → 3 调用方（bin/index.ts build、bin/dev.ts、session/runner.ts）+ 测试 mock 须同步。行为 0 须验。
+**风险**：入口签名改 → orchestrate 真调用方 `src/index.ts`（build facade wrapper）+ `__tests__/logic-loader.spec.js`（测试 mock）；build() 的下游消费者（`bin/dev.ts`、`session/runner.ts`、`session/index.ts`）经 build() 间接触；result 消费在 `session/index.ts`（buildModel/appId）。行为 0 须验（result 字段消费处全对齐）。
 
 ### D-FC-4 — ALS 保留（B 切法留后，rigor 红线守）
 
 collaborator 内部可调 ALS 读（`getWorkPath()`/`getPages()`/`getAppConfigInfo()`/`isMiniGame()`/`runWithCompilerContext()`）——**不改 ALS 为 PackerContext 入参**。ALS 直调是 I/O 读，非被抽的业务逻辑。B 切法（ALS→PackerContext 闭合）留后轮。
 
-**验**：`grep 'getWorkPath\|getPages\|getAppConfigInfo\|isMiniGame' packer/collaborator/` 非 0（ALS 保留）+ collaborator 仍拥有业务逻辑（非纯 forward）。
+**验**：`grep 'getWorkPath\|getPages\|getAppConfigInfo\|isMiniGame' src/packer/{store,emit,pipeline}/` 非 0（ALS 保留）+ collaborator 仍拥有业务逻辑（非纯 forward）。
 
 ### D-FC-5 — Non-scope 边界（不动项）
 
-- **renderer 注入点**（F-PA-3）：orchestrator.ts:62-70 webviewRenderer 副作用注册 + renderers.ts `Renderer` 索引签名**保留原样**（A 切法另 Action）
+- **renderer 注入点**（F-PA-3）：orchestrator.ts:64-72 webviewRenderer 常量 + 副作用注册 + renderers.ts `Renderer` 索引签名**保留原样**（模块级，A 切法另 Action）
 - **aspect 分离**（F-PA-2）：collaborator 内部 sourcemap/compatibilityWarnings/compileConfig 穿线**保留**（C 切法另 Action）
+- **compatibility warning 跨 build 记忆**：`printCompatibilityWarnings` + `previousCompatibilityWarnings` Map（orchestrator.ts:57,410）是 post-build 打印 hook（compatibility 横切域 F-PA-2）——**留 orchestrator facade 模块级**（非 7 collaborator 之一；aspect 分离 C 轮再抽）
 - **L/C/E dispatch wiring**（F-PA-5/E）：L/C/E registry 仍 NOT wired，PackerDispatchRegistry 仍 WIRED（runtime HMR API 外部阻塞）
-- **types.ts 北星重写**：不重写 types.ts 北星契约（只落地，不改形状）——F-PA-1 是运行层缺陷，types.ts 是好资产
+- **types.ts 北星 SHAPE 不重写**：不改 facade/aspect/strategy 结构；D-FC-2b 删 registry 公开字段是 facade 收敛核心（非 shape 重设计），允许（见 D-FC-2b 纪律校正）
 
 ## §3 收敛映射
 
 | 目标 | 源 |
 | --- | --- |
-| `packer/collaborator/config-collector.ts`（或 `packer/store/config-collector.ts`）| orchestrator.ts initPhases[0] 逻辑体 |
-| `packer/collaborator/dist-preparer.ts`（或 `packer/emit/dist-preparer.ts`）| orchestrator.ts initPhases[1] 逻辑体 |
-| `packer/collaborator/config-compiler-collab.ts`（或 `packer/pipeline/config-compiler-collab.ts`）| orchestrator.ts initPhases[2] 逻辑体 |
+| `packer/store/config-collector.ts` | orchestrator.ts initPhases[0] 逻辑体 |
+| `packer/emit/dist-preparer.ts` | orchestrator.ts initPhases[1] 逻辑体 |
+| `packer/pipeline/config-compiler-collab.ts` | orchestrator.ts initPhases[2] 逻辑体 |
 | `packer/pipeline/npm-builder.ts`（已存在，加 collaborator 接线）| orchestrator.ts initPhases[3] 逻辑体 |
-| `packer/collaborator/stage-dispatcher.ts`（或 `packer/pipeline/stage-dispatcher.ts`）| orchestrator.ts compile task + createStageTask 逻辑体 |
+| `packer/pipeline/stage-dispatcher.ts` | orchestrator.ts compile task + createStageTask 逻辑体 |
 | `packer/emit/logic-emitter.ts` | orchestrator.ts Logic emit task 逻辑体 |
 | `packer/emit/publisher.ts`（或 `packer/emit/publish.ts` 扩）| orchestrator.ts 写入产物 task 逻辑体 |
 
@@ -96,8 +115,8 @@ collaborator 内部可调 ALS 读（`getWorkPath()`/`getPages()`/`getAppConfigIn
 
 | 项 | 估计 | 实测方法 |
 | --- | --- | --- |
-| orchestrator.ts 自身 | 6 业务块搬迁出 | git diff -M rename + 逻辑体行数减 |
-| 调用方 | build()（bin/index.ts）+ dev（bin/dev.ts）+ session/runner.ts——FC-P7 改入口签名时触 | grep orchestrate 消费 |
+| orchestrator.ts 自身 | 7 业务块搬迁出 | git diff -M rename + 逻辑体行数减 |
+| 调用方 | orchestrate 真调用方 = `src/index.ts`（build wrapper）+ `__tests__/logic-loader.spec.js`；build() 下游 = bin/dev + session/runner + session/index（经 build() 间接）；result 消费 = session/index.ts（buildModel/appId） | grep orchestrate / build( 消费 |
 | result 消费 | buildResult 字段（appId/name/path/dependencyGraph/buildModel）——FC-P2 改返回值时触 | grep result.appId 等 |
 | types.ts | collaborator 接口 + CompileRequest/WatchRequest 形状 | 新增 shape |
 | 测试 | mock orchestrator 的 spec（若有）| grep createPackerOrchestrator __tests__ |
