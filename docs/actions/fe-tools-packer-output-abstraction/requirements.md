@@ -45,7 +45,7 @@ interface Output {
 `DiskOutput` 实现 Output，one-shot + previewAdapter-dev 用：
 - `add` 累积内存 + dirty tracking（H4 D-PUSH-3：dirtyEntries set，add 标 dirty）——复刻 BuildModel.add + dirty 语义
 - `read` 返累积内存 lazy index（F-R4-1——**非 null**；与 MemOutput 同语义，复刻 BuildModel.getArtifact。previewAdapter-dev 须即时内存读，stage compile 后即可，不等 publish；MemOutput/DiskOutput 共用 read 逻辑）
-- `publish(target, opts)` 封装 materialize + publishToDist + createDist 语义（**per-build mkdtemp scratch**，F3——publish 内 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo；**temporary=true hardcode**，F-R10-1——mkdtemp 总临时，不读 sctx.storeInfo.pathInfo.temporaryTargetPath；非构造时）：
+- `publish(target, opts)` 封装 materialize + publishToDist + createDist 语义（**per-build mkdtemp scratch**，F3——publish 内 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo，**mkdtemp 总创新不需 rmSync/mkdirSync** F-R14-2；**temporary=true hardcode**，F-R10-1——mkdtemp 总临时，不读 sctx.storeInfo.pathInfo.temporaryTargetPath；**seed copy** F-R13-1——if opts.seedPath → copyDir(seedPath, scratch)，incremental sync diff 前提；非构造时）：
   - dirty 非空 → 只写 dirty；空 → 全量（复刻 materialize L105-106）
   - 写 scratch（mkdtemp，computePathInfo 语义）：mkdir recursive + writeFileSync(dest, file.code) + writeFileSync(dest, String(map))（sourcemap）
   - publish scratch → target：rename（同 fs）/ copy + rm scratch（EXDEV 跨 fs）/ incremental sync（dist 已存在 content-diff，F-H4-2）
@@ -79,7 +79,7 @@ P-O3 后退役（grep 验 caller=0）：
 - `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
 - `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1 补）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
 - compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）+ **F-R11-2 `isTemporaryTargetPath()` fallback 消费方死**（publish.ts L116，DiskOutput.publish hardcode temporary=true 后不调）
-- **F-R10-1 publisher 删 sctx.storeInfo.pathInfo 消费**：publisher deps 删 buildDir/temporaryTargetPath 读（内化入 DiskOutput.publish）+ 删 skipMaterialize（D-O5）+ 加 output（F-R11-1 publisher deps 字段演进）
+- **F-R10-1 publisher 删 sctx.storeInfo.pathInfo 消费**：publisher deps 删 buildDir/temporaryTargetPath 读（内化入 DiskOutput.publish）+ 删 skipMaterialize（D-O5）+ 加 output（F-R11-1 publisher deps 字段演进，**F-R14-1 incremental=!!seedPath**）
 - `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删
 - `BuildResult.entries`（types.ts L496）→ sourced from `output.getEntries()`（F-R4-2）
 - **F-R7-1 殁骸消费者迁移**（sctx.buildModel add 4 + read 3 → sctx.output，见 R-O1.1 D-OL2）：stage-dispatcher L54（dispatch 路径 onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）

@@ -105,7 +105,7 @@ export interface Output {
 - `add` 是累积语义（非直写）——保 dirty tracking（DiskOutput 增量 publish 须）+ lazy index（MemOutput/DiskOutput read 须，F-R4-1）
 - `read` 模式无关——**读累积内存 lazy index**（MemOutput + DiskOutput 同语义，复刻 BuildModel.getArtifact），miss 返 null（caller 决定 fs fallback）。F-R4-1：previewAdapter-dev 须即时内存读（stage compile 后即可，不等 publish），DiskOutput.read 非 null
 - `publish` target=FINAL——DiskOutput 内部管 scratch（mkdtemp）+ rename/copy；MemOutput no-op（实证见 D-O2）
-- `getEntries` F-R4-2：BuildResult.entries 现状 `sourced from buildModel.entries.values()`（orchestrator L296），Output 替代后须此 accessor 供 result.entries
+- `getEntries` F-R4-2：BuildResult.entries 现状 `sourced from buildModel.entries.values()`（orchestrator L296），Output 替代后须此 accessor 供 result.entries。**F-R13-2**：Output.entries Map<string, EmitEntry>（替代 BuildModelEntry——结构同形：EmitEntry `{entryId, kind, files: EmitEntryFile[], sourcemaps?: EmitEntrySourcemap[]}` = BuildModelEntry `{entryId, kind, files: {path,code}[], sourcemaps?: {path,map}[]}`，迁移自然）；getEntries 返 EmitEntry[]（BuildResult.entries: EmitEntry[] types.ts L497）
 
 ### D-O2 — MemOutput impl（dev memfs）
 
@@ -151,11 +151,12 @@ class DiskOutput implements Output {
   }
   getEntries() { return [...this.entries.values()] }  // F-R4-2：BuildResult.entries sourced
   publish(target, opts) {
-    // 复刻 materialize + publishToDist + createDist（per-build mkdtemp，F3 + F-R10-1 temporary hardcode）：
-    // 1. mkdtemp scratch（computePathInfo 语义——每 publish 新 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo）
+    // 复刻 materialize + publishToDist + createDist（per-build mkdtemp，F3 + F-R10-1 temporary hardcode + F-R13-1 seed copy + F-R14-2 mkdtemp 注）：
+    // 1. mkdtemp scratch（computePathInfo 语义——每 publish 新 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo；**mkdtemp 总创新目录，不需 createDist L24-26 rmSync/mkdirSync**，F-R14-2）
+    // 1b. **seed copy**（if opts.seedPath → copyDir(seedPath, scratch)，复刻 createDist L27-28，F-R13-1——incremental sync diff 正确性前提：scratch 须含上一轮 final seed + compiled，syncIncremental 才能算 diff）
     // 2. dirty 非空 → 只写 dirty；空 → 全量（materialize L105-106）
     // 3. 写 scratch：mkdir recursive + writeFileSync(dest, file.code) + writeFileSync(dest, String(map))
-    // 4. publish scratch → target：**temporary=true hardcode**（mkdtemp 总临时，F-R10-1——不读 sctx.storeInfo.pathInfo.temporaryTargetPath）→ rename(同 fs) / copy+rm scratch(EXDEV) / incremental sync(content-diff, F-H4-2)
+    // 4. publish scratch → target：**temporary=true hardcode**（mkdtemp 总临时，F-R10-1——不读 sctx.storeInfo.pathInfo.temporaryTargetPath）→ rename(同 fs) / copy+rm scratch(EXDEV) / incremental sync(content-diff, F-H4-2，依赖 1b seed + 3 compiled)
     // 5. clearDirty
   }
 }
@@ -166,7 +167,7 @@ class DiskOutput implements Output {
 - **publisher deps 删 sctx.storeInfo.pathInfo 消费**（targetPath buildDir + temporaryTargetPath 标志）——storeInfo 返回值 output 消费方死。publisher 不再读 sctx.storeInfo.pathInfo（buildDir/temporaryTargetPath），只调 output.publish(target, opts)。
 - compat 写 getter fallback 消费方死：publishToDist L116 `isTemporary ?? isTemporaryTargetPath()` fallback——DiskOutput.publish hardcode temporary=true 后不调 isTemporaryTargetPath()（D-O7 殁骸补，F-R11-2）。
 
-**F-R10-2 修正——read 共用 BaseOutput abstract base**：MemOutput/DiskOutput 共用 read 逻辑（lazy index from entries，add 失效）——lock **abstract `BaseOutput`**（含 entries Map + index + read + getEntries + add 通用），MemOutput extend（publish no-op）+ DiskOutput extend（加 dirty + publish）。`emit/output.ts` 含 base + 2 impl（§6）。
+**F-R10-2 修正——read 共用 BaseOutput abstract base**：MemOutput/DiskOutput 共用 read 逻辑（lazy index from entries，add 失效）——lock **abstract `BaseOutput`**（含 entries Map<string, EmitEntry> + index + read + getEntries + add 通用）。**F-R13-3 BaseOutput.add virtual**：add 是 virtual（abstract 或 concrete + override），DiskOutput override 加 dirty 标记（super.add + dirty.add + index=null，H4 D-PUSH-3），MemOutput 用 BaseOutput.add。MemOutput extend（publish no-op）+ DiskOutput extend（加 dirty + publish）。`emit/output.ts` 含 base + 2 impl（§6）。
 
 **F-R4-1 修正——DiskOutput.read 语义**：**读累积内存 lazy index**（与 MemOutput 同语义，复刻 BuildModel.getArtifact），**非返 null**。理由：previewAdapter-dev 现状 `artifactResolver = state.buildModel?.getArtifact(path)`（**内存即时读**，stage compile 后即可，不等 publish）。若 DiskOutput.read 返 null → dev server 走 fs fallback serveRoot → 须等 publish 完成（时序改 + 读路径内存→盘）。故 DiskOutput.read 须内存读（F-R4-3 验证 previewAdapter rebuild 读时序——内存读比 fs fallback 早，更安全）。one-shot 不调 read（无 dev server），但 interface 统一内存读语义。read 逻辑共用 BaseOutput（F-R10-2）。
 
@@ -217,7 +218,7 @@ serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 ### D-O6 — collaborator 接 Output（F6 修正 lock deps.output）
 
 - **Output 流经 collaborator：`deps.output`**（与现有 collaborator deps 模式一致——publisher/dist-preparer 等 deps 传参）
-- `publisher` collaborator deps 字段演进（F-R11-1 显式）：删 `skipMaterialize`（D-O5 消 flag）+ 删 sctx.storeInfo.pathInfo 读（F-R10-1，buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 `output: Output`；保留 `targetPath`/`useAppIdDir`/`seedPath`/`appId`/`lifecycle`（output.publish(target, opts) 用）。改调 `output.publish(target, {useAppIdDir, seedPath, appId})`（非 materialize + publishToDist）
+- `publisher` collaborator deps 字段演进（F-R11-1 显式）：删 `skipMaterialize`（D-O5 消 flag）+ 删 sctx.storeInfo.pathInfo 读（F-R10-1，buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 `output: Output`；保留 `targetPath`/`useAppIdDir`/`seedPath`/`appId`/`lifecycle`。改调 `output.publish(target, {useAppIdDir, seedPath, appId, incremental: !!seedPath})`（**F-R14-1 incremental=!!seedPath**，复刻 publisher L40 `!!seedPath`；非 materialize + publishToDist）
 - `dist-preparer` collaborator：createDist 语义已入 DiskOutput.publish——**dist-preparer 退役**（P-O3 删；P-O2 阶段如需分离 prepareScratch 可保留 thin wrapper，但倾向直接并入 publish）
 - sctx.output 由 **orchestrator 入口创建**（D-OL1 方案 B）+ task ctx 初始化设；collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
 

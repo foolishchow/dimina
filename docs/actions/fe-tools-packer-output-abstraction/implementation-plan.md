@@ -40,11 +40,11 @@ Status authority: [Action Status](../STATUS.md)
    - `add` 累积 + dirty set + index 失效（H4 D-PUSH-3）
    - `read` 读累积内存 lazy index（复刻 getArtifact，F-R4-1——previewAdapter-dev 须即时内存读，不等 publish；继承 BaseOutput）
    - `getEntries` 返累积 EmitEntry[]（F-R4-2，继承 BaseOutput）
-   - `publish(target, opts)`：mkdtemp scratch + **temporary=true hardcode**（F-R10-1）+ dirty guard + mkdir+writeFileSync+String(map) + rename/EXDEV/incremental sync + clearDirty（逐行复刻 materialize L104-120 + publishToDist L106-140 + createDist L22-30）
+   - `publish(target, opts)`：mkdtemp scratch（**不需 rmSync/mkdirSync**，F-R14-2）+ **seed copy**（if opts.seedPath → copyDir，F-R13-1——incremental sync 前提）+ **temporary=true hardcode**（F-R10-1）+ dirty guard + mkdir+writeFileSync+String(map) + rename/EXDEV/incremental sync + clearDirty（逐行复刻 materialize L104-120 + publishToDist L106-140 + createDist L21-30）
 2. orchestrator 入口（mode-aware 点）：one-shot + previewAdapter + watch standalone（F4）→ `new DiskOutput(ctx.targetPath)`；dev（无 previewAdapter）→ `new MemOutput()`（替代 config-collector 创建——config-collector 删 buildModel 行）
 3. `bin/compile.ts` / `index.ts` build facade：one-shot final=TARGET_PATH（orchestrator 入口已按 mode 选 DiskOutput）
 4. `session/index.ts` previewAdapter-dev 分支：orchestrator 入口按 skipMaterialize=false 选 DiskOutput（现状 skipMaterialize=false 路径）
-   - **F-R10-1 publisher deps 字段演进**：删 skipMaterialize + 删 sctx.storeInfo.pathInfo 读（buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 output；改调 `output.publish(target, {useAppIdDir, seedPath, appId})`
+   - **F-R10-1 publisher deps 字段演进**：删 skipMaterialize + 删 sctx.storeInfo.pathInfo 读（buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 output；改调 `output.publish(target, {useAppIdDir, seedPath, appId, incremental: !!seedPath})`（**F-R14-1**）
 6. `emit/dist-preparer.ts`：createDist 语义已入 DiskOutput.publish——dist-preparer 退役（P-O3 删；P-O2 阶段如需分离可保留 thin wrapper，倾向直接并入 publish）
 
 **行为 0 验**（one-shot + previewAdapter + watch disk 模式）：

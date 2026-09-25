@@ -16,7 +16,8 @@ Status authority: [Action Status](../STATUS.md)
 | V-O10 | R-O7 | **dev mode 行为 spec 覆盖**（F12）：dev-reload.spec + dev-server.spec pass（dev server 持 **OutputRef 窄接口**读 outputRef.output.read + fs fallback + rebuild 重新赋值 state.output 字段，F-R5-2） | pending |
 | V-O11 | R-O6 | grep `BuildResult.buildModel\|buildModel?` src/ caller=0（BuildModel type 删 + BuildResult.buildModel→output 字段演进，F11） |
 | V-O12 | R-O1/R-O6 | **Output interface getEntries accessor**（F-R4-2）：grep `getEntries` src/packer/types.ts（interface）+ emit/output.ts（MemOutput/DiskOutput impl）+ orchestrator.ts（result.entries sourced from output.getEntries()）非 0 |
-| V-O13 | R-O3 | **DiskOutput.read 读累积内存**（F-R4-1）：grep `read` 在 emit/output.ts DiskOutput 非 `return null`（读 lazy index）+ previewAdapter-dev spec 验即时内存读 | pending | pending |
+| V-O13 | R-O3 | **DiskOutput.read 读累积内存**（F-R4-1）：grep `read` 在 emit/output.ts DiskOutput 非 `return null`（读 lazy index）+ previewAdapter-dev spec 验即时内存读 |
+| V-O14 | R-O3 | **DiskOutput.publish seed copy + temporary hardcode**（F-R13-1/F-R10-1/F-R14-2）：grep `copyDir.*seedPath\|temporary.*=.*true\|mkdtemp` 在 emit/output.ts DiskOutput.publish 非 0 + 无 `rmSync.*scratch`（mkdtemp 不需 rmSync） | pending | pending |
 
 ## 行为 0 三件套（每相 gate）
 

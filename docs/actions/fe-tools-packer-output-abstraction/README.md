@@ -90,7 +90,7 @@ dev server 读:
 
 ## Readiness gaps
 
-**review round 1-12 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12：DiskOutput.read 读累积内存 + Output interface getEntries + listr2 ctx 注入 + skipMaterialize L143 + OutputRef 窄接口 + sctx.buildModel.add 全 4 路径 + StageChannelContext/SessionState type 字段演进 + **DiskOutput.publish temporary=true hardcode + publisher 删 storeInfo.pathInfo 消费 + BaseOutput abstract base + isTemporaryTargetPath 殁骸**）。design.draft §2.0 方案 B + D-O1 getEntries + D-O2/D-O3 read 内存/temporary + D-O5 OutputRef + D-O6 publisher deps 演进 + D-O7 全消费者 + §4 风险 + §6 BaseOutput 文件归置。
+**review round 1-14 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14：DiskOutput.read 读累积内存 + Output interface getEntries + listr2 ctx 注入 + skipMaterialize L143 + OutputRef 窄接口 + sctx.buildModel.add 全 4 路径 + StageChannelContext/SessionState type 字段演进 + DiskOutput.publish temporary=true hardcode + publisher 删 storeInfo.pathInfo 消费 + BaseOutput abstract base + isTemporaryTargetPath 殁骸 + **seed copy（incremental sync 前提）+ mkdtemp 不需 rmSync + EmitEntry 同形 + BaseOutput.add virtual + incremental=!!seedPath**）。design.draft §2.0 方案 B + D-O1 getEntries/entries + D-O2/D-O3 read 内存/temporary/seed copy + D-O5 OutputRef + D-O6 publisher deps 演进 + D-O7 全消费者 + §4 风险 + §6 BaseOutput 文件归置。
 
 - **D-O1 Output interface 形状**（add/read/publish 签名 + dirty tracking interface 级 vs impl 级）——design.draft 待 lock
 - **D-O2 MemOutput.publish no-op 实证前提**（纯 dev serveRoot 空）——design.draft 已补实证
