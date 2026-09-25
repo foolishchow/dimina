@@ -128,7 +128,7 @@ export function createBuildWatcher({
 					...plan.options,
 				})
 				buildResult = result as { appId: string; [key: string]: unknown }
-				ignoredOutputPaths.add(publishedPathFor((result as { appId: string }).appId))
+				ignoredOutputPaths.add(publishedPathFor((result as unknown as { appId: string }).appId))
 			},
 		})
 

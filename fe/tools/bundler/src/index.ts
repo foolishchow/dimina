@@ -8,6 +8,7 @@ import { createProjectStore } from './packer/store/project-store.ts'
 import type { ProjectStore } from './packer/store/project-store.ts'
 import { PackerSessionState } from './packer/state/session-state.ts'
 import { createPackerOrchestrator } from './packer/orchestrator.ts'
+import { buildPackerContext } from './packer/store/env.ts'
 import type { Lifecycle } from './shared/lifecycle.ts'
 
 const ORCH_OPTION_KEYS = new Set([
@@ -56,24 +57,25 @@ async function runBuild(targetPath: string, workPath: string, useAppIdDir = true
 		lifecycle,
 	})
 
-	return orch.orchestrate({
-		targetPath,
-		workPath,
-		useAppIdDir,
+	return orch.orchestrate(
+		buildPackerContext(workPath, targetPath, options.fileTypes as { template?: string[]; style?: string[]; viewScript?: string[] } | undefined),
 		state,
-		store,
-		lifecycle,
-		fileTypes: options.fileTypes,
-		compileOptions,
-		parallel: options.parallel !== false,
-		incremental,
-		configChanged,
-		affectedEntries,
-		stages: options.stages as string[] | undefined,
-		invalidatedModules: options.invalidatedModules as string[] | undefined,
-		seedPath: options.seedPath as string | undefined,
-		prepareConfig: options.prepareConfig as boolean | undefined,
-		prepareNpm: options.prepareNpm as boolean | undefined,
-		skipMaterialize: options.skipMaterialize as boolean | undefined,
-	})
+		{
+			useAppIdDir,
+			store,
+			lifecycle,
+			fileTypes: options.fileTypes,
+			compileOptions,
+			parallel: options.parallel !== false,
+			incremental,
+			configChanged,
+			affectedEntries,
+			stages: options.stages as string[] | undefined,
+			invalidatedModules: options.invalidatedModules as string[] | undefined,
+			seedPath: options.seedPath as string | undefined,
+			prepareConfig: options.prepareConfig as boolean | undefined,
+			prepareNpm: options.prepareNpm as boolean | undefined,
+			skipMaterialize: options.skipMaterialize as boolean | undefined,
+		},
+	)
 }

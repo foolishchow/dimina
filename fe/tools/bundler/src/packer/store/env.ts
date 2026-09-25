@@ -172,7 +172,7 @@ function mergeUnique(builtins: string[], custom: unknown, normalizer: (raw: unkn
  * 根据 options.fileTypes 生成本次构建使用的自定义扩展名和标签。
  * viewScript 同时用于生成文件扩展名和内联标签。
  */
-interface FileTypesInput { template?: string[]; style?: string[]; viewScript?: string[] }
+export interface FileTypesInput { template?: string[]; style?: string[]; viewScript?: string[] }
 function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: string[]; templateDirectivePrefixes: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[] } {
 	const ft: FileTypesInput = fileTypes || {}
 	const templateExts = mergeUnique(DEFAULT_TEMPLATE_EXTS, ft.template, normalizeExt, RESERVED_EXTS)
@@ -279,6 +279,29 @@ function toPackerContext(ctx: CompilerContext): PackerContext {
 			viewScriptExts: ctx.compilerOptions.viewScriptExts,
 			viewScriptTags: ctx.compilerOptions.viewScriptTags,
 			directivePrefixes: ctx.compilerOptions.templateDirectivePrefixes,
+		},
+	}
+}
+
+/**
+ * B 切法（PC-B10a）：从原始 workPath/targetPath/fileTypes 显式建 PackerContext。
+ * orchestrate(ctx, state, options) 签名落地用——ctx 是显式入参（非 ALS 派生）。
+ * fileTypes 是 RAW FileTypesInput（store.load 用）；ctx.fileTypes 是 normalized（PackerContext 形状）。
+ */
+function buildPackerContext(workPath: string, targetPath: string, fileTypes?: FileTypesInput): PackerContext {
+	const compilerOptions = normalizeFileTypes(fileTypes)
+	return {
+		workPath,
+		targetPath,
+		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
+		resolveAlias: (_src: string) => null,
+		resolveNpm: (src: string, _baseFile: string) => src,
+		fileTypes: {
+			templateExts: compilerOptions.templateExts,
+			styleExts: compilerOptions.styleExts,
+			viewScriptExts: compilerOptions.viewScriptExts,
+			viewScriptTags: compilerOptions.viewScriptTags,
+			directivePrefixes: compilerOptions.templateDirectivePrefixes,
 		},
 	}
 }
@@ -483,6 +506,7 @@ export {
 	storePathInfo,
 	storeProjectConfig,
 	storeInfo,
+	buildPackerContext,
 	createInitialDependencyGraph,
 	toPackerContext,
 }

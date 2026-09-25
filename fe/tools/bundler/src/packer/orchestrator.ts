@@ -2,8 +2,8 @@
  * PackerOrchestrator — 主编排（fe-tools-packer-orchestrator · D-OR-0..8）。
  *
  * 迁入原 build-pipeline 过程体（init → concurrent compile → publish）。
- * 公开 build / watch 经入口适配器调 orchestrate；返回今日 buildResult（D-OR-7）。
- * 不写 implements PackerOrchestrator（返回值与形状 EmitEntry[] 张力，D-OR-7）。
+ * 公开 build / watch 经入口适配器调 orchestrate。
+ * B 切法（PC-B10a）：orchestrate 北星签名 (ctx, state, options) 落地。
  */
 
 import path from 'node:path'
@@ -18,7 +18,7 @@ import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
-import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
+import type { OrchestrateOptions, PackerContext, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 
 import { runCompileStage } from './state/stage-channel.ts'
@@ -61,6 +61,21 @@ export interface OrchestrateRequest extends OrchestrateOptions {
 	state: PackerSessionState
 	store?: unknown
 	lifecycle?: Lifecycle
+	fileTypes?: unknown
+	/** C1 / createCompileTarget 其余字段（mode/platform/minify/…） */
+	compileOptions?: Record<string, unknown>
+}
+
+/**
+ * B 切法（PC-B10a）：orchestrate(ctx, state, options) 北星签名的 options 形状。
+ * 装配参数（useAppIdDir/store/lifecycle/fileTypes raw/compileOptions）+ OrchestrateOptions。
+ * workPath/targetPath/state 不在此——分别从 ctx/state 显式传。
+ */
+export interface OrchestrateCallOptions extends OrchestrateOptions {
+	useAppIdDir?: boolean
+	store?: unknown
+	lifecycle?: Lifecycle
+	/** RAW FileTypesInput（store.load 用，非 normalized PackerFileTypes） */
 	fileTypes?: unknown
 	/** C1 / createCompileTarget 其余字段（mode/platform/minify/…） */
 	compileOptions?: Record<string, unknown>
@@ -111,7 +126,11 @@ export function createPackerOrchestrator({
 		publisher: createPublisher(),
 	}
 
-	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
+	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: OrchestrateCallOptions): Promise<Record<string, unknown>> {
+		// B 切法（PC-B10a）：北星签名 (ctx, state, options) 落地——ctx 显式 PackerContext（非 ALS 派生）。
+		// implements PackerOrchestrator + result→EmitEntry[] reconcile deferred（D-OR-7 三重张力：北星 return type Promise<EmitEntry[]>
+		//   vs metadata object 消费 + PackerSessionState vs OrchestratorState state type + lifecycle-integration Object.keys 锚点——需北星 interface 演进）。
+		const request: OrchestrateRequest = { ...options, workPath: ctx.workPath, targetPath: ctx.targetPath, state }
 		return _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators)
 	}
 

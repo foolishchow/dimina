@@ -170,7 +170,7 @@ async function buildMiniApp(options: { force?: boolean } = {}): Promise<void> {
 		else {
 			const buildResult = await build(TARGET_PATH, workPath, true, plan.options)
 			const nextCacheEntry: Record<string, any> = createAppCacheEntry(
-				buildResult,
+				buildResult as Record<string, unknown>,
 				workPath,
 				(cacheEntry as { fileFingerprints?: Record<string, any> } | undefined)?.fileFingerprints,
 			)

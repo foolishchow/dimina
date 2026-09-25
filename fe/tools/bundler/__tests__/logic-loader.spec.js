@@ -156,7 +156,7 @@ describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () =>
 	it('orchestrator 私有 registry（D-FC-2b）—— orchestrate 行为验 logic 已接线', async () => {
 		const { createPackerOrchestrator } = await import('../src/packer/orchestrator.js')
 		const { PackerSessionState } = await import('../src/packer/state/session-state.js')
-		const { storeInfo } = await import('../src/packer/store/env.ts')
+		const { storeInfo, buildPackerContext } = await import('../src/packer/store/env.ts')
 
 		writeFile('app.json', JSON.stringify({ pages: ['pages/index'] }))
 		writeFile('project.config.json', JSON.stringify({ appid: 'test-app' }))
@@ -169,11 +169,12 @@ describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () =>
 		expect(orch.compileRegistry).toBeUndefined()
 		expect(orch.emitRegistry).toBeUndefined()
 		// 改验 orchestrate 行为：logic 接线 → buildModel 有 logic emit entry
-		const result = await orch.orchestrate({
-			targetPath: outputDir, workPath: tempDir, useAppIdDir: true,
-			state: new PackerSessionState(), prepareNpm: false, skipMaterialize: false,
-			parallel: false, incremental: false, configChanged: false,
-		})
+		const result = await orch.orchestrate(
+			buildPackerContext(tempDir, outputDir),
+			new PackerSessionState(),
+			{ useAppIdDir: true, prepareNpm: false, skipMaterialize: false,
+				parallel: false, incremental: false, configChanged: false },
+		)
 		expect(result.appId).toBe('test-app')
 		expect(result.buildModel.entries.size).toBeGreaterThan(0)
 	})
