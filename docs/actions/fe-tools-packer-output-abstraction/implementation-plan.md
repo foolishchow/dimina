@@ -10,7 +10,7 @@ Status authority: [Action Status](../STATUS.md)
 
 **改动**：
 1. `types.ts` 加 `Output` interface（add/read/publish/**getEntries**，F-R4-2）+ `PublishOpts`（D-O1）+ `BuildResult.buildModel` → `output?: Output | undefined`（D-OL3，F1）
-2. 新增 `emit/output.ts`（F7 修正 lock）：`MemOutput` impl（Map 累积 + lazy index read + publish no-op + **getEntries**，F-R4-2）——复刻 BuildModel.getArtifact 语义（D-O2）
+2. 新增 `emit/output.ts`（F7 修正 lock）：**BaseOutput abstract base**（entries Map + index + read + getEntries + add，F-R10-2）+ `MemOutput` impl（extend BaseOutput，publish no-op）——复刻 BuildModel.getArtifact 语义（D-O2）
 3. **Output 生命周期（D-OL1..4，F1，方案 B——orchestrator 入口创建 + listr2 ctx 注入，F-R4-3）**：
    - orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建：`const output = request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`
    - **listr2 ctx 注入**（F-R4-3）：`tasks.run({ output } as Record<string, unknown>)`（L292 改）—— Output 经 initial ctx 注入，config-collector 跑前 sctx.output 已存在
@@ -35,16 +35,16 @@ Status authority: [Action Status](../STATUS.md)
 **依赖**：P-O1（Output interface 就位）
 
 **改动**：
-1. `emit/output.ts` 加 `DiskOutput` impl（累积 + dirty tracking + **read 读累积内存 lazy index**（F-R4-1，与 MemOutput 共用）+ getEntries + publish 封装 materialize+publishToDist+createDist 语义，D-O3）
+1. `emit/output.ts` 加 **BaseOutput abstract base**（F-R10-2，entries Map + index + read + getEntries + add 通用）+ `DiskOutput` impl（extend BaseOutput + dirty tracking + publish 封装 materialize+publishToDist+createDist 语义，D-O3）
    - 构造收 `final: string`（FINAL 发布目录）——scratch mkdtemp 在 publish 内（per-build，F3，非构造时）
    - `add` 累积 + dirty set + index 失效（H4 D-PUSH-3）
-   - `read` 读累积内存 lazy index（复刻 getArtifact，F-R4-1——previewAdapter-dev 须即时内存读，不等 publish）
-   - `getEntries` 返累积 EmitEntry[]（F-R4-2）
-   - `publish(target, opts)`：mkdtemp scratch + dirty guard + mkdir+writeFileSync+String(map) + rename/EXDEV/incremental sync + clearDirty（逐行复刻 materialize L104-120 + publishToDist L106-140 + createDist L22-30）
+   - `read` 读累积内存 lazy index（复刻 getArtifact，F-R4-1——previewAdapter-dev 须即时内存读，不等 publish；继承 BaseOutput）
+   - `getEntries` 返累积 EmitEntry[]（F-R4-2，继承 BaseOutput）
+   - `publish(target, opts)`：mkdtemp scratch + **temporary=true hardcode**（F-R10-1）+ dirty guard + mkdir+writeFileSync+String(map) + rename/EXDEV/incremental sync + clearDirty（逐行复刻 materialize L104-120 + publishToDist L106-140 + createDist L22-30）
 2. orchestrator 入口（mode-aware 点）：one-shot + previewAdapter + watch standalone（F4）→ `new DiskOutput(ctx.targetPath)`；dev（无 previewAdapter）→ `new MemOutput()`（替代 config-collector 创建——config-collector 删 buildModel 行）
 3. `bin/compile.ts` / `index.ts` build facade：one-shot final=TARGET_PATH（orchestrator 入口已按 mode 选 DiskOutput）
 4. `session/index.ts` previewAdapter-dev 分支：orchestrator 入口按 skipMaterialize=false 选 DiskOutput（现状 skipMaterialize=false 路径）
-5. `emit/publisher.ts` collaborator 改 deps.output + `output.publish(target, opts)`（非 materialize + publishToDist）——消 skipMaterialize guard
+   - **F-R10-1 publisher deps 字段演进**：删 skipMaterialize + 删 sctx.storeInfo.pathInfo 读（buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 output；改调 `output.publish(target, {useAppIdDir, seedPath, appId})`
 6. `emit/dist-preparer.ts`：createDist 语义已入 DiskOutput.publish——dist-preparer 退役（P-O3 删；P-O2 阶段如需分离可保留 thin wrapper，倾向直接并入 publish）
 
 **行为 0 验**（one-shot + previewAdapter + watch disk 模式）：
@@ -68,6 +68,7 @@ Status authority: [Action Status](../STATUS.md)
    - **sctx.buildModel 消费者迁移验**（F-R7-1）：stage-dispatcher L54（dispatch onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）→ sctx.output（grep `sctx.buildModel` src/ caller=0）
 2. grep 验 compat 写 output 消费方死：
    - `getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（grep 验 env.ts getter caller 在 emit/* = 0）
+   - **F-R11-2 `isTemporaryTargetPath()` fallback 消费方死**（publish.ts L116——DiskOutput.publish hardcode temporary=true 后不调）
    - 注：`getTargetPath()` 在 compiler/* parse-walk（collectAssets）仍存——worker 侧，resetStoreInfo 喂，不动
 3. `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删；`BuildResult.entries`（L496）改 sourced from `output.getEntries()`（F-R4-2）
 4. **type 字段演进**（F-R7-2/R7-3）：`StageChannelContext.buildModel?`（types.ts L123）→ `output?: Output`；`SessionState.buildModel?`（session/index.ts L59）→ `output?: Output`（F-R9-2：只 SessionState，不加 PackerSessionState）
