@@ -26,6 +26,18 @@ export const LIFECYCLE_EVENTS = Object.freeze({
 	BUILD_ERROR: 'build:error',
 })
 
+/**
+ * Lifecycle 形状契约（facade-collaborator D-FC-1 类型来源）。
+ *
+ * createLifecycle 返回值的 typed 边界——collaborator deps + facade 装配引用此接口
+ * 而非 inline 类型。监听器错误隔离字段供 build:end 计数。
+ */
+export interface Lifecycle {
+	on?(event: string, listener: (payload: unknown) => void | Promise<void>): void
+	emit(event: string, payload: unknown): Promise<void>
+	isolatedListenerErrors: unknown[]
+}
+
 function logIsolatedListenerError(event: string, error: unknown): void {
 	// 诊断日志统一前缀与结构化字段（Experience-Review §7）
 	console.error(`[lifecycle] listener error on ${event}: ${(error as { stack?: string; message?: string })?.stack || (error as { message?: string })?.message || error}`)

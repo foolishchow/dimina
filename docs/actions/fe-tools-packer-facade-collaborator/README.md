@@ -1,6 +1,6 @@
 # fe-tools-packer-facade-collaborator
 
-- Status: `ready`
+- Status: `in_progress`
 - Formalize: 2026-10-10（D-FC-1..5 locked，4 批 19 轮 review）
 - Created: 2026-10-09
 - 设计门：[D-FC-1..5 locked](design.draft.md#§2-设计门draft-提议formalize-待锁)（4 批 19 轮 review 严格收敛）

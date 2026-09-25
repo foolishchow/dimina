@@ -11,6 +11,7 @@ import process from 'node:process'
 import { Listr, PRESET_TIMER } from 'listr2'
 import type { ListrTask, ListrBaseClassOptions } from 'listr2'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.ts'
+import type { Lifecycle } from '../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from './registry/renderers.ts'
 import { createCompileTarget } from './pipeline/compile-target.ts'
 import type { PagesInfo, LoadBindings } from './pipeline/compile-target.types.ts'
@@ -45,13 +46,11 @@ export interface OrchestrateRequest extends OrchestrateOptions {
 	useAppIdDir?: boolean
 	state: PackerSessionState
 	store?: unknown
-	lifecycle?: { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
+	lifecycle?: Lifecycle
 	fileTypes?: unknown
 	/** C1 / createCompileTarget 其余字段（mode/platform/minify/…） */
 	compileOptions?: Record<string, unknown>
 }
-
-type Lifecycle = { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
 
 let isPrinted = false
 const previousCompatibilityWarnings = new Map<string, Set<string>>()

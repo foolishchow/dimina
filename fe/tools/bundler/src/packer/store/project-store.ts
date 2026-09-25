@@ -19,10 +19,23 @@ import { getDependencyGraph, storeInfo } from './env.ts'
 import type { GraphSnapshot } from '../graph/dependency-graph.ts'
 
 /**
+ * ProjectStore 形状契约（facade-collaborator D-FC-1 类型来源）。
+ *
+ * createProjectStore 返回值的 typed 边界——collaborator deps 引用此接口
+ * 而非 inferred 返回类型。load 按需（session 内首 build 调）。
+ */
+export interface ProjectStore {
+	load(workPath: string, opts?: Record<string, unknown>): Record<string, unknown>
+	getDependencyGraph(): { addFile: (n: string, f: string, k: string) => void; merge: (d: GraphSnapshot) => void; toJSON: () => unknown; getInnerGraph?: () => unknown }
+	merge(delta: GraphSnapshot): void
+	snapshot(): unknown
+}
+
+/**
  * @param {object} [_options]
  * @returns {object} ProjectStore
  */
-export function createProjectStore(_options: Record<string, unknown> = {}) {
+export function createProjectStore(_options: Record<string, unknown> = {}): ProjectStore {
 	/** @type {object | null} storeInfo 返回值 */
 	let snapshot = null
 

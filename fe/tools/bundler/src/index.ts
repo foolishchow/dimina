@@ -5,8 +5,10 @@
  * 过程体与 ALS 在 orch 内；本文件不持 Listr / 写权。
  */
 import { createProjectStore } from './packer/store/project-store.ts'
+import type { ProjectStore } from './packer/store/project-store.ts'
 import { PackerSessionState } from './packer/state/session-state.ts'
 import { createPackerOrchestrator } from './packer/orchestrator.ts'
+import type { Lifecycle } from './shared/lifecycle.ts'
 
 const ORCH_OPTION_KEYS = new Set([
 	'store',
@@ -37,9 +39,7 @@ export default function build(targetPath: string, workPath: string, useAppIdDir 
 async function runBuild(targetPath: string, workPath: string, useAppIdDir = true, options: Record<string, unknown> = {}) {
 	const state = (options.state as PackerSessionState | undefined) ?? new PackerSessionState()
 	const store = options.store ?? createProjectStore()
-	const lifecycle = options.lifecycle as
-		| { emit: (e: string, p: unknown) => Promise<void>; isolatedListenerErrors: unknown[] }
-		| undefined
+	const lifecycle = options.lifecycle as Lifecycle | undefined
 
 	const compileOptions: Record<string, unknown> = {}
 	for (const [key, value] of Object.entries(options)) {
@@ -52,7 +52,7 @@ async function runBuild(targetPath: string, workPath: string, useAppIdDir = true
 	const configChanged = options.configChanged === true
 
 	const orch = createPackerOrchestrator({
-		store: store as ReturnType<typeof createProjectStore>,
+		store: store as ProjectStore,
 		lifecycle,
 	})
 
