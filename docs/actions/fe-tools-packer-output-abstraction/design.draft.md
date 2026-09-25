@@ -206,7 +206,7 @@ class DiskOutput implements Output {
 - else → `outputRef.output?.read(path)`（hit 返 compiled 内存——**dev server 持 OutputRef 窄接口读 output 字段**，D-OL4，F-R5-2）
 - miss → `fs.readFile(resolveContainedPath(serveRoot, relativePath))`（dev-server L166）
 
-**dev server Output 引用形式**（D-OL4 + F-R5-2 lock 窄接口）：createServer params 改 artifactResolver → **窄接口 `OutputRef`**（`{ output: Output | undefined }`，避免暴露整个 PackerSessionState 类型依赖）。但 state.output 是 rebuild 重新赋值字段（state 对象不变），须 mutable 引用——preview-adapter 传 `state`（本身实现 OutputRef，因 state 有 output 字段）或 `{ get output() { return state.output } }` getter 对象。dev server 内读 `outputRef.output?.read(path)`——rebuild listener 重新赋值 state.output 字段（同 state 对象），dev server 读当前 Output（非首 build 引用、非 closure getter）。**F-R5-2 lock**：用 OutputRef 窄接口（dev-server.ts 不引入 PackerSessionState 类型）；preview-adapter 传 state（state 含 output 字段，结构子类型满足 OutputRef）。
+**dev server Output 引用形式**（D-OL4 + F-R5-2 lock 窄接口 + **F-R22-1 preview-adapter 中间层**）：createServer params 改 artifactResolver → **窄接口 `OutputRef`**（`{ output: Output | undefined }`，避免暴露整个 PackerSessionState 类型依赖）。但 state.output 是 rebuild 重新赋值字段（state 对象不变），须 mutable 引用——preview-adapter 传 `state`（本身实现 OutputRef，因 state 有 output 字段）或 `{ get output() { return state.output } }` getter 对象。dev server 内读 `outputRef.output?.read(path)`——rebuild listener 重新赋值 state.output 字段（同 state 对象），dev server 读当前 Output（非首 build 引用、非 closure getter）。**F-R5-2 lock**：用 OutputRef 窄接口（dev-server.ts 不引入 PackerSessionState 类型）；preview-adapter 传 state（state 含 output 字段，结构子类型满足 OutputRef）。**F-R22-1 preview-adapter 中间层签名演进**：preview-adapter createServer 现状收 `{serveRoot, appId, artifactResolver}`（L53）——改收 `{serveRoot, appId, outputRef: OutputRef}`；session L247 `adapter.createServer({serveRoot, appId, outputRef: state})`；preview-adapter L56 透传 `createDevServer({...,outputRef})`。preview-adapter 是 session↔dev-server 桥，签名演进是 outputRef 注入链关键。
 
 serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 - 纯 dev → mkdtemp TEMP（dmcc-dev-，resolve.ts L143）——MemOutput no-op → 空 → fs fallback miss 404
@@ -228,6 +228,7 @@ serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 grep 验 caller=0 后删：
 - `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput/DiskOutput.read）
   - **F-R18-2 BuildModel 方法迁移显式**：`_artifactIndex`（L29 lazy index）→ BaseOutput.index（read lazy）；`_dirtyEntries`（L31）+ `dirtyCount`（L58）+ `clearDirty`（L79）+ `getDirtyEntries`（L84）→ DiskOutput（dirty tracking，publish dirty guard 用）
+  - **F-R22-3 BuildModelEntry type + import 删**：`BuildModelEntry` type（L20）删（F-R13-2 Output.entries 用 EmitEntry 同形）；BuildModel import 语句全删（orchestrator L25 + types L30 + publisher L16 + logic-emitter L17）
 - `materialize` / `publishToDist` / `createDist` 函数
 - **F-R18-1 publish.ts helper 函数迁移**：copyDir（L6）+ syncIncremental（L77）+ collectFiles（L40）+ filesIdentical（L56）迁入 `emit/output.ts`（DiskOutput.publish 内部 helper，非 export——seed copy 用 copyDir，incremental sync 用 syncIncremental/collectFiles/filesIdentical）
 - `artifactResolver` callback + dev server 注入点（dev-server createServer params 改收 OutputRef，F-R5-2）
@@ -278,9 +279,10 @@ P-O3（殁骸拆除 + compat 写 output 消费方死 + BuildResult.buildModel→
 
 每相独立 commit + 行为 0 gate。P-O3 后 compat 写 output 消费方死 → 记 storeInfo 塌缩 initiative backflow。
 
-## §6 文件归置（F7 修正 lock）
+## §6 文件归置（F7 修正 lock + F-R22-2 emit/ 目录演进）
 
-- **Output interface + BaseOutput + MemOutput + DiskOutput**：`emit/output.ts` 单文件（abstract BaseOutput + 2 impl class + 1 interface，F-R10-2 lock）
+- **Output interface + BaseOutput + MemOutput + DiskOutput + helper**：`emit/output.ts` 单文件（abstract BaseOutput + 2 impl class + 1 interface + 4 内部 helper copyDir/syncIncremental/collectFiles/filesIdentical，F-R10-2 + F-R18-1）
+- **F-R22-2 emit/ 目录演进**：删 build-model.ts + publish.ts + dist-preparer.ts（D-O7 殁骸）；新增 output.ts；剩 7 文件（convergence/emit-engine/emit-worker-entry/emit/logic-emitter/publisher/output）
 - build-model.ts 退役（P-O3 删，累积/dirty/getArtifact 逻辑迁入 output.ts）
 - publish.ts 退役（P-O3 删，createDist/publishToDist/copyDir/syncIncremental 逻辑迁入 DiskOutput.publish）
 - dist-preparer.ts 退役（P-O3 删，createDist 调用入 DiskOutput.publish）

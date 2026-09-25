@@ -60,6 +60,7 @@ interface Output {
 - else → `outputRef.output?.read(path)` hit → 返 compiled 内存
 - miss → fs.readFile(resolveContainedPath(serveRoot, relativePath))（dev-server L166）——serveRoot = state.targetPath（mode-dep：纯 dev mkdtemp 空 / previewAdapter-dev mkdtemp 落盘有内容 / one-shot final targetPath）
 - 消 artifactResolver callback 注入 + getArtifact 调用；dev server createServer params 改收 **OutputRef 窄接口**（`{ output: Output | undefined }`，避免暴露整个 PackerSessionState）——preview-adapter 传 state（state 含 output 字段，结构子类型满足 OutputRef）；dev server 读 outputRef.output 字段（rebuild 重新赋值，读当前值）
+- **F-R22-1 preview-adapter 中间层签名演进**：preview-adapter createServer 收 `{serveRoot, appId, outputRef}`（替代 artifactResolver）；session L247 传 outputRef=state；preview-adapter 透传 createDevServer
 
 ## R-O5 — mode-driven impl 选择
 

@@ -66,6 +66,7 @@ dev server 读:
 | `store/config-collector.ts` | **删 `sctx.buildModel = new BuildModel()` 行**（L36）——只消费 sctx.output（职责分离：orchestrator 决策 mode+创建，config-collector 只设其他 8 sctx 字段） |
 | `session/index.ts` | **SessionState.buildModel → output**（L59，F-R7-3/F-R9-2——只 SessionState，不加 PackerSessionState）；dev 选 MemOutput + 注入 dev server OutputRef（替代 artifactResolver）；**state.output 替代 state.buildModel**（L244 首 build + L255 build:end listener 重赋值字段，F1 D-OL4） |
 | `dev/dev-server.ts` | 读路径改 outputRef.output?.read（createServer params 收 **OutputRef 窄接口**，F-R5-2，消 artifactResolver）；miss 仍 fs fallback 读 serveRoot（mode-dep，F8） |
+| `session/preview-adapter.ts` | **createServer 签名演进**（F-R22-1 中间层）：artifactResolver → outputRef；session L247 传 outputRef=state；透传 createDevServer |
 | `bin/compile.ts` | one-shot 选 DiskOutput（orchestrator 入口按 mode） |
 | `index.ts`（build facade） | Output impl 选择（mode-driven，orchestrator 入口） |
 | `packer/types.ts` | Output interface（add/read/publish/**getEntries**，F-R4-2）+ PublishOpts；**BuildResult.buildModel → output 字段**（L503，F11 D-OL3）+ BuildModel type 删（P-O3）；**StageChannelContext.buildModel → output**（L123，F-R7-2） |
@@ -90,7 +91,7 @@ dev server 读:
 
 ## Readiness gaps
 
-**review round 1-19 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14 + F-R18-1/2/3 + F-R19-4 round 18-19：DiskOutput.read 读累积内存 + Output interface getEntries + listr2 ctx 注入 + skipMaterialize L143 + OutputRef 窄接口 + sctx.buildModel.add 全 4 路径 + StageChannelContext/SessionState type 字段演进 + DiskOutput.publish temporary=true hardcode + publisher 删 storeInfo.pathInfo 消费 + BaseOutput abstract base + isTemporaryTargetPath 殁骸 + seed copy + mkdtemp 不需 rmSync + EmitEntry 同形 + BaseOutput.add virtual + incremental=!!seedPath + **publish.ts helper 迁移（copyDir/syncIncremental/collectFiles/filesIdentical）+ BuildModel dirty 方法迁移 + getAppId() ALS getter 保留（compiler/* 仍用）+ deps vs sctx.output 注**）。design.draft §2.0 方案 B + D-O1 getEntries/entries + D-O2/D-O3 read 内存/temporary/seed copy + D-O5 OutputRef + D-O6 publisher deps 演进 + D-O7 全消费者 + helper 迁移 + §4 风险 + §6 BaseOutput 文件归置。
+**review round 1-22 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14 + F-R18-1/2/3 + F-R19-4 round 18-19 + F-R22-1/2/3 round 22：全维度 + 中间层 preview-adapter 签名 + emit/ 目录 + BuildModelEntry type/import）。design.draft §2.0 方案 B + D-O1..7 + D-OL1..4 + §4 风险 + §6 emit/ 目录演进。
 
 - **D-O1 Output interface 形状**（add/read/publish 签名 + dirty tracking interface 级 vs impl 级）——design.draft 待 lock
 - **D-O2 MemOutput.publish no-op 实证前提**（纯 dev serveRoot 空）——design.draft 已补实证

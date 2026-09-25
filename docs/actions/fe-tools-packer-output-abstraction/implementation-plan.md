@@ -20,7 +20,7 @@ Status authority: [Action Status](../STATUS.md)
    - session L244 `state.output = buildResult.output`（首 build）
    - session L255 `build:end` listener 重新赋值 `state.output` 字段（同 state 对象，非替换 state）
 4. `session/index.ts` dev 模式 dev server createServer params 改收 state（或窄接口）注入（替代 artifactResolver callback）
-5. `dev/dev-server.ts` 读路径改 `outputRef.output?.read(path)`（miss 仍 fs.readFile fallback，D-O5）——createServer params 改收 **OutputRef 窄接口**（`{ output: Output | undefined }`，F-R5-2，消 artifactResolver callback）
+5. `dev/dev-server.ts` 读路径改 `outputRef.output?.read(path)`（miss 仍 fs.readFile fallback，D-O5）——createServer params 改收 **OutputRef 窄接口**（`{ output: Output | undefined }`，F-R5-2，消 artifactResolver callback）+ **preview-adapter 中间层签名演进**（F-R22-1：preview-adapter createServer 收 outputRef，session L247 传 state，透传 createDevServer）
 6. collaborator（publisher）暂保留 materialize 调用（P-O1 阶段 publisher 仍调 materialize + sctx.output.add 并行——MemOutput.publish no-op 等价 skipMaterialize；P-O2 改 publish）
 
 **行为 0 验**（dev memfs 模式，F12 split）：
@@ -74,8 +74,9 @@ Status authority: [Action Status](../STATUS.md)
    - 注：`getTargetPath()`/`getAppId()` 在 compiler/* parse-walk（collectAssets）仍存——worker 侧，resetStoreInfo 喂，不动
 3. `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删；`BuildResult.entries`（L496）改 sourced from `output.getEntries()`（F-R4-2）
 4. **type 字段演进**（F-R7-2/R7-3）：`StageChannelContext.buildModel?`（types.ts L123）→ `output?: Output`；`SessionState.buildModel?`（session/index.ts L59）→ `output?: Output`（F-R9-2：只 SessionState，不加 PackerSessionState）
-5. `emit/dist-preparer.ts` 退役——createDist 语义入 DiskOutput.publish
-6. Output impl 文件归置：`emit/output.ts`（F7 lock，2 class + 1 interface）
+5. **BuildModelEntry type + import 删**（F-R22-3）：build-model.ts L20 BuildModelEntry type 删（Output.entries 用 EmitEntry）；BuildModel import 4 处删（orchestrator L25 + types L30 + publisher L16 + logic-emitter L17）
+6. `emit/dist-preparer.ts` 退役——createDist 语义入 DiskOutput.publish
+7. Output impl 文件归置：`emit/output.ts`（F7 lock，BaseOutput + 2 impl + 4 helper；F-R22-2 emit/ 目录删 3 增 1 = 7 文件）
 
 **行为 0 验**（全量，F12 split）：
 - tsc 0
