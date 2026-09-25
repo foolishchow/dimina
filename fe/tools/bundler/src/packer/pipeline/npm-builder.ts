@@ -1,6 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getStyleExts, getTemplateExts, getViewScriptExts } from '../store/env.ts'
+
+/** B 切法（PC-B3a）：normalized fileTypes（storeInfo 产物）形状 */
+interface NpmFileTypes { templateExts: string[]; styleExts: string[]; viewScriptExts: string[] }
 import { errorMessage } from '../../shared/utils.ts'
 
 /**
@@ -15,19 +18,21 @@ class NpmBuilder {
 	packageDependencies: Map<string, Record<string, string>>
 	miniprogramExts: Set<string>
 
-	constructor(workPath: string, targetPath: string, dependencyGraph: { addFile: (node: string, file: string, kind: string) => void } | null = null) {
+	constructor(workPath: string, targetPath: string, dependencyGraph: { addFile: (node: string, file: string, kind: string) => void } | null = null, fileTypes?: NpmFileTypes) {
 		this.workPath = workPath
 		this.targetPath = targetPath
 		this.dependencyGraph = dependencyGraph
 		this.builtPackages = new Set()
 		this.packageDependencies = new Map()
+		// B 切法（PC-B3a）：fileTypes 从 storeInfo 产物显式读（非 ALS getStyleExts 等）
+		const ft = fileTypes ?? { templateExts: getTemplateExts(), styleExts: getStyleExts(), viewScriptExts: getViewScriptExts() }
 		this.miniprogramExts = new Set([
 			'.js',
 			'.json',
 			'.ts',
-			...getTemplateExts(),
-			...getStyleExts(),
-			...getViewScriptExts(),
+			...ft.templateExts,
+			...ft.styleExts,
+			...ft.viewScriptExts,
 		])
 	}
 
@@ -285,9 +290,9 @@ export function createNpmBuilderCollaborator(): BuildCollaborator<NpmBuilderDeps
 	return {
 		async run(sctx: StageChannelContext, deps: NpmBuilderDeps) {
 			const { lifecycle } = deps
-			// B 切法（PC-B2）：build dir/workPath 从 sctx.storeInfo 显式读（非 ALS getWorkPath/getTargetPath）
-			const pathInfo = (sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string } }).pathInfo
-			const npmBuilder = new NpmBuilder(pathInfo.workPath, pathInfo.targetPath, (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null)
+			// B 切法（PC-B2/B3a）：build dir/workPath + fileTypes 从 sctx.storeInfo 显式读（非 ALS）
+			const storeInfo = sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string }; compilerOptions: NpmFileTypes }
+			const npmBuilder = new NpmBuilder(storeInfo.pathInfo.workPath, storeInfo.pathInfo.targetPath, (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null, storeInfo.compilerOptions)
 			await npmBuilder.buildNpmPackages()
 			await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
 		},
