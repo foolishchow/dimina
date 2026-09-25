@@ -28,6 +28,24 @@ Status: **draft（2026-10-09）**
 - **mutable 跨 task 闭包变量（须改 sctx 字段）**：
   - `loadBindings`（L147 `let ... = null` → L252 StageDispatcher 写 `readLoadBindings()` → L353 result 读 `.appId`）→ **抽 collaborator 后改 `sctx.loadBindings` 字段**（StageDispatcher 写 sctx.loadBindings，result 读 sctx.loadBindings.appId）——消跨 task mutable 闭包，collaborator 无隐式耦合
 
+**sctx 字段所有权矩阵**（防 collaborator 间隐式耦合，implementer 须据此推导 deps）：
+
+| sctx 字段 | 写入（collaborator） | 读取（collaborator） |
+| --- | --- | --- |
+| buildModel | ConfigCollector | LogicEmitter（.add）、Publisher（materialize）、createStageTask |
+| cache/viewCache/viewOrderList/styleCache | ConfigCollector | stage-channel 内部 |
+| dependencyGraph | ConfigCollector | createStageTask（经 ctx） |
+| storeInfo | ConfigCollector | LogicEmitter |
+| loadedModules | ConfigCollector | 后续门消费（本 Action 不读） |
+| invalidatedModules | ConfigCollector | stage-channel 读 |
+| loadBindings | StageDispatcher | result（appId） |
+| allPages | StageDispatcher | result |
+| pages | StageDispatcher | LogicEmitter、createStageTask |
+| compatibilityWarnings | StageDispatcher | createStageTask |
+| compileConfig/sourcemap/sourcemapTargetPath | StageDispatcher | LogicEmitter |
+
+**ctx→sctx 统一**（collaborator 搬迁须清理）：现状 LogicEmitter L37-38 用 `ctx.buildModel`/`ctx.storeInfo`（未 cast sctx）+ ConfigCollector L23 `ctx.storeInfo`——collaborator 抽取须统一为 `sctx.X`（先 `const sctx = ctx as StageChannelContext`，再全用 sctx）。
+
 **rigor 红线**：collaborator 须搬入真实逻辑。验：`grep 'await.*collaborator.run' orchestrator.ts` 非 0 + collaborator 文件含原 orchestrator 逻辑体（git diff -M rename + 逻辑体搬迁，非新建空壳）。
 
 **rigor 红线**：collaborator 须搬入真实逻辑。验：`grep 'await.*collaborator.run' orchestrator.ts` 非 0 + collaborator 文件含原 orchestrator 逻辑体（git diff -M rename + 逻辑体搬迁，非新建空壳）。
@@ -46,7 +64,7 @@ interface BuildCollaborator<Deps> {
 interface ConfigCollectorDeps { store: ProjectStore; state: PackerSessionState; lifecycle: Lifecycle; loaderRegistry: LoaderRegistry; fileTypes?: unknown; invalidatedModules?: string[]; viewCache?: ...; viewOrderList?: ...; styleCache?: ... }
 interface StageDispatcherDeps { dispatchRegistry: PackerDispatchRegistry; compileTarget: CompileTarget; affectedEntries?: string[]; lifecycle: Lifecycle; parallel: boolean }
 // StageDispatcher 写 sctx.loadBindings + sctx.allPages + sctx.pages + sctx.compatibilityWarnings + sctx.compileConfig/sourcemap/sourcemapTargetPath（消 loadBindings 闭包）
-interface LogicEmitterDeps { state: PackerSessionState; pages: PagesInfo; compileConfigOpts: ...; sourcemap: boolean; sourcemapTargetPath?: string; storeInfo: unknown; lifecycle: Lifecycle }
+interface LogicEmitterDeps { state: PackerSessionState; pages: PagesInfo; compileConfigOpts: ...; sourcemap: boolean; sourcemapTargetPath?: string; storeInfo: unknown; buildModel: BuildModel; lifecycle: Lifecycle }
 interface PublisherDeps { targetPath: string; useAppIdDir: boolean; seedPath?: string; skipMaterialize?: boolean; buildModel: BuildModel; lifecycle: Lifecycle }
 // DistPreparer / ConfigCompiler / NpmBuilder deps 类似（仅所需字段）
 ```
@@ -81,8 +99,7 @@ interface PublisherDeps { targetPath: string; useAppIdDir: boolean; seedPath?: s
 **D-FC-2a — orchestrate 签名落地**（北星不改）：
 - orchestrator `implements PackerOrchestrator`（消解 orchestrator.ts:6 自承 D-OR-7 张力）
 - `orchestrate(ctx: PackerContext, state: OrchestratorState, options: OrchestrateOptions) → Promise<EmitEntry[]>` 签名对齐北星（types.ts:416）
-- 返回值 `EmitEntry[]`——实际今日返回 `Record<string, unknown>`（buildResult），reconcile 为 EmitEntry[] 形状或扩 EmitEntry 兼容 buildResult 字段（design 提议 buildResult = EmitEntry[] + metadata）
-- result 消费处（session/index.ts buildModel/appId）同步对齐
+- 返回值 `EmitEntry[]`——实际今日返回 `Record<string, unknown>`（buildResult = {appId/name/path/dependencyGraph/buildModel}）。**reconcile 锁**：buildResult 落地为 EmitEntry[] 形状——buildModel.entries 即 EmitEntry[]（materialize 消费）+ 顶层 metadata（appId/name/path/dependencyGraph）作 EmitEntry[] 伴随返回（facade 合 result = EmitEntry[] + metadata 对象）。result 消费处（session/index.ts buildModel/appId）同步对齐
 
 **D-FC-2b — registry 私有化**（须北星 interface 改，单独相）：
 - 北星 `PackerOrchestrator` interface（types.ts:416）现公开 `loaderRegistry/compileRegistry/emitRegistry` 作字段——私有化须删此 3 字段
@@ -128,7 +145,9 @@ collaborator 内部可调 ALS 读（`getWorkPath()`/`getPages()`/`getAppConfigIn
 | `packer/emit/logic-emitter.ts` | orchestrator.ts Logic emit task 逻辑体 |
 | `packer/emit/publisher.ts`（或 `packer/emit/publish.ts` 扩）| orchestrator.ts 写入产物 task 逻辑体 |
 
-**orchestrator.ts 终态**：~80 行（createPackerOrchestrator 装配 + orchestrate = Listr task 序委托 7 collaborator + result 合）。今日 ~370 行。
+**orchestrator.ts 终态**：现 429 行 → 抽 7 collaborator + createStageTask 后估 ~120-150 行（非 ~80——Listr task 序 + createPackerOrchestrator 装配 + result 合 + webviewRenderer 常量/副作用注册 + printCompatibilityWarnings/previousWarnings Map 保留）。保留项（D-FC-5 Non-scope + facade 级）：file header + imports / OrchestrateRequest interface / createPackerOrchestrator（registry 装配 + store/lifecycle 3-way + orchestrate wrap）/ _orchestrate（Listr task 序 + 7 collaborator.run 委托 + result 合）/ webviewRenderer 常量 + 副作用注册 / printCompatibilityWarnings + previousCompatibilityWarnings Map。
+
+**result 合归属**（facade 级，非 collaborator）：_orchestrate 末尾 `const result = { appId, name, path, dependencyGraph, buildModel }`——读 sctx.loadBindings.appId（StageDispatcher 写）+ sctx.dependencyGraph/buildModel（ConfigCollector 写）+ ALS（getAppName/getAppConfigInfo）。留 facade（合多 collaborator 输出 + ALS 读）。
 
 ## §4 blast radius（须 formalize 前实测）
 

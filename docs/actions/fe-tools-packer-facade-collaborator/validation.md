@@ -16,7 +16,7 @@ Status: **draft（2026-10-09）**
 | P-FC7 | Non-scope 边界守 | renderer 副作用注册原样（orchestrator.ts:64-72 grep webviewRenderer）+ aspect 穿线保留 + L/C/E NOT wired | pending |
 | P-FC8 | types.ts 形状纪律 | collaborator 接口在 types.ts + impl 在 packer/ + types.ts 无 implementation import（守 D-PC-5）| pending |
 | P-FC9 | result 消费对齐 | buildResult 字段（appId/name/path/dependencyGraph/buildModel）消费处全对齐（grep result\.appId 等）| pending |
-| P-FC10 | orchestrator 行数收敛 | orchestrator.ts ~370 → ~80 行（facade 薄编排 + 委托）| pending |
+| P-FC10 | orchestrator 行数收敛 | orchestrator.ts 429 → ~120-150 行（facade 薄编排 + 委托；保留 Listr task 序 + registry 装配 + result 合 + webviewRenderer + printCompatibilityWarnings）| pending |
 
 ## 行为 0 边界
 
