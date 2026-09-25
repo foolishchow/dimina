@@ -190,11 +190,17 @@ function normalizeFileTypes(fileTypes: FileTypesInput = {}): { templateExts: str
 
 interface StoreInfoOptions { fileTypes?: FileTypesInput; dependencyGraph?: ConstructorParameters<typeof DependencyGraph>[0]; graph?: PackerGraph }
 function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: PathInfo; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
-	const context = getCompilerContext()
-	// Step 1: 依赖图需要知道当前构建的文件类型，因此在扫描项目前先重建选项。
-	context.compilerOptions = normalizeFileTypes(options.fileTypes)
-	// Step 2: 存储路径信息
-	storePathInfo(workPath)
+	// B 切法（PC-B8a）：graph build 从 local context（非 ALS getCompilerContext 读）。
+	// pathInfo/compilerOptions 本地计算；PackerContext 从 localCtx 建（不经 ALS Proxy 读）。
+	const compilerOptions = normalizeFileTypes(options.fileTypes)
+	const localPathInfo = computePathInfo(workPath)
+	const localCtx: CompilerContext = {
+		pathInfo: localPathInfo,
+		compilerOptions,
+		npmResolver: new NpmResolver(workPath),
+		configInfo: {},
+		dependencyGraph: new DependencyGraph(),
+	}
 
 	// Steps 3-6: 委托 PackerGraph 做 config fixpoint
 	// D-GP-1: options.graph 传入时走 reconcile（保留旧图 source-level edges）；旧路径（dependencyGraph 快照）走 restore+reconcile；无则 build fresh
@@ -203,25 +209,30 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 		// State 路径：graph 是 state 持有的活图实例
 		// 首次 build: reconcile on empty = build + merge empty = build（等价）
 		// Watch rebuild: reconcile 保留旧图 source-level edges
-		graph.reconcile(toPackerContext(context))
+		graph.reconcile(toPackerContext(localCtx))
 	} else if (options.dependencyGraph) {
 		// 旧路径（无 state）：从快照重建旧图 → reconcile
-		graph.restoreFromSnapshot(context.configInfo, options.dependencyGraph)
-		graph.reconcile(toPackerContext(context))
+		graph.restoreFromSnapshot(localCtx.configInfo, options.dependencyGraph)
+		graph.reconcile(toPackerContext(localCtx))
 	} else {
 		// 无 state 无快照：首次 build fresh
-		graph.build(toPackerContext(context))
+		graph.build(toPackerContext(localCtx))
 	}
 
-	// 将 PackerGraph 结果复制回 ALS context
+	// compat: 将结果写回 ALS context（residual 读者：custom-file-types.spec getter + publish/npm-builder fallback）。
+	// PC-B8b 将移除此写（需测试改读 storeInfo 返回值）。
+	const context = getCompilerContext()
+	context.pathInfo = localPathInfo
+	context.compilerOptions = compilerOptions
+	context.npmResolver = localCtx.npmResolver
 	context.graph = graph
 	context.configInfo = graph.getConfigData() as ConfigInfo
 	context.dependencyGraph = graph.getInnerGraph()
 
 	return {
-		pathInfo: context.pathInfo,
-		configInfo: context.configInfo,
-		compilerOptions: context.compilerOptions,
+		pathInfo: localPathInfo,
+		configInfo: graph.getConfigData() as ConfigInfo,
+		compilerOptions,
 		dependencyGraph: graph.toJSON() as ReturnType<DependencyGraph['toJSON']>,
 	}
 }
@@ -298,23 +309,28 @@ function getDependencyGraph() {
 	return getCompilerContext().graph?.getInnerGraph() ?? getCompilerContext().dependencyGraph
 }
 
-function storePathInfo(workPath: string): void {
-	pathInfo.workPath = workPath
-	
+/** B 切法（PC-B8a）：纯函数计算 pathInfo（不 mutate ALS Proxy）。storeInfo 用。 */
+function computePathInfo(workPath: string): PathInfo {
+	const pi: PathInfo = { workPath }
 	// 优先使用环境变量中的 TARGET_PATH
 	if (process.env.TARGET_PATH) {
-		pathInfo.targetPath = process.env.TARGET_PATH
-		pathInfo.temporaryTargetPath = false
+		pi.targetPath = process.env.TARGET_PATH
+		pi.temporaryTargetPath = false
 	} else {
 		// 使用工作区目录或系统临时目录，确保有写入权限
 		const tempDir = process.env.GITHUB_WORKSPACE || os.tmpdir()
 		// mkdtemp 的原子分配保证并行构建不会在同一毫秒复用并互相覆盖产物。
-		const targetDir = fs.mkdtempSync(path.join(tempDir, 'dimina-fe-dist-'))
-
-		pathInfo.targetPath = targetDir
-		pathInfo.temporaryTargetPath = true
+		pi.targetPath = fs.mkdtempSync(path.join(tempDir, 'dimina-fe-dist-'))
+		pi.temporaryTargetPath = true
 	}
-	
+	return pi
+}
+
+function storePathInfo(workPath: string): void {
+	const pi = computePathInfo(workPath)
+	pathInfo.workPath = pi.workPath
+	pathInfo.targetPath = pi.targetPath
+	pathInfo.temporaryTargetPath = pi.temporaryTargetPath
 	// 初始化 npm 解析器
 	getCompilerContext().npmResolver = new NpmResolver(workPath)
 }
