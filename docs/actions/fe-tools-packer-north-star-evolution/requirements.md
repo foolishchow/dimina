@@ -32,7 +32,9 @@ OrchestrateOptions refactor → `CompileOptions`（compile-shared + mode flags�
 
 ## R-NS6 — PC-B9b env.ts dead ALS writer 移除
 
-env.ts 删 dead `packerALS`/`runWithCompilerContext`（PC-B9 后无 caller）+ **storeInfo compat 写**（L222-229，PC-B8b，F-AC1-1——`getCompilerContext()` + 设 pathInfo/configInfo/compilerOptions/graph/dependencyGraph 的 compat block；删后 defaultCompilerContext main-thread 不再被设 → fallback 返 undefined/empty，须 spec 改读 storeInfo 返回值）。retain worker ALS 全链（defaultCompilerContext + pathInfo/configInfo Proxy + getCompilerContext + resetStoreInfo + getters——worker parse-walk/logic/style 调）。getCompilerContext 简化（删 packerALS.tryGet 分支）。测试改读 storeInfo 返回值（F-AC1-1）：custom-file-types.spec（getTemplateExts() → storeInfo().compilerOptions.templateExts）+ publish-incremental.spec（显式传 buildDir/storeInfo().pathInfo.targetPath + appId/storeInfo().configInfo.appInfo.appId 给 publishToDist）+ grep 验 getDependencyGraph() main-thread caller = 0（F-AC3-1）。
+env.ts 删 dead `packerALS`/`runWithCompilerContext`（PC-B9 后无 caller）+ getCompilerContext 简化（删 packerALS.tryGet 分支）。retain worker ALS 全链（defaultCompilerContext + pathInfo/configInfo Proxy + getCompilerContext + resetStoreInfo + getters——worker parse-walk/logic/style 调）。
+
+**实施 audit 修正（P-NS6 commit `6a3086d6`）**：design 原预设删 `storeInfo compat 写`（L222-229）+ spec 改读 storeInfo()，经实证 **REVERT**——compat 写 load-bearing（删则 `mkdirSync(undefined)` 崩 + 7 diff≠0；主线程 pathInfo Proxy 喂 createDist + npm-builder fallback + parse-walk 经 worker resetStoreInfo）。「spec 改读 storeInfo()」+「getDependencyGraph() main-thread caller 审计」推迟为后续独立 initiative（见 Non-goals §backflow）。
 
 ## R-NS7 — 行为 0
 
@@ -44,3 +46,4 @@ env.ts 删 dead `packerALS`/`runWithCompilerContext`（PC-B9 后无 caller）+ *
 - 不动 collaborator 抽取（7 collaborator ✓）。
 - 不动 renderer/aspect/dispatch wiring（A/C/E 轨）。
 - 不重做 B 切法 main-thread ALS 退役（PC-B9 ✓）。
+- **backflow（推迟为后续独立 initiative）**：storeInfo compat 写 load-bearing——主线程 getter 消费方（pathInfo/configInfo Proxy 喂 dist-preparer createDist + npm-builder fallback + parse-walk 经 worker resetStoreInfo）未全迁 `storeInfo()` 返回值前不可删。「spec 改读 storeInfo()」+「getDependencyGraph() main-thread caller 审计」均推迟。

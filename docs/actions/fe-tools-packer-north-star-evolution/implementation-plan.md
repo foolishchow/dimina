@@ -57,14 +57,15 @@ Status authority: [Action Status](../STATUS.md)
 
 ### P-NS6 — env.ts dead ALS writer 移除（D-NS-6，依赖 P-NS3/5；scope 收窄——F-T1-1/F-T4-1）
 
-- env.ts **删**：`packerALS`（L21，PC-B9 后 dead）+ `runWithCompilerContext`（L259，无 caller）+ **storeInfo compat 写（L222-229，F-AC1-1，PC-B8b）**——`getCompilerContext()` + 设 pathInfo/configInfo/compilerOptions/graph/dependencyGraph 的 compat block
-- env.ts **retain**（worker ALS 全链——cohesive，不可部分删）：`defaultCompilerContext`（L22 singleton）+ `pathInfo` Proxy（L57）+ `configInfo` Proxy（L88）+ `getCompilerContext`（L44，简化为 `return defaultCompilerContext ||= createCompilerContext()`，删 packerALS.tryGet 分支）+ `resetStoreInfo`（L240 worker）+ getters（getWorkPath/getTargetPath/getAppId/getAppConfigInfo/getStyleExts/getTemplateExts——worker parse-walk/logic/style 调）
+> **实施 audit 修正（commit `6a3086d6`）**：design 预设删 3 项，实证删 2 + retain 1：
+> - 删 `packerALS`（L21）+ `runWithCompilerContext`（L259）——grep caller = 0，`packerALS.tryGet` 恒 undefined → dead ✓
+> - **`storeInfo compat 写`（L222-229）RETAINED**——实证 load-bearing（删则 `mkdirSync(undefined)` 崩 + 7 diff≠0；主线程 pathInfo Proxy 喂 dist-preparer createDist + npm-builder fallback 读 getTemplateExts + parse-walk 经 worker resetStoreInfo）。「测试改读 storeInfo()」+「getDependencyGraph() main-thread caller 审计」推迟为后续 initiative（见 R-NS8 backflow）。
+
+- env.ts **删**：`packerALS`（L21，PC-B9 后 dead）+ `runWithCompilerContext`（L259，无 caller）
+- env.ts **retain**（worker ALS 全链 + compat 写——cohesive，不可部分删）：`defaultCompilerContext`（L22 singleton）+ `pathInfo` Proxy（L57）+ `configInfo` Proxy（L88）+ `getCompilerContext`（L44，简化为 `return defaultCompilerContext ||= createCompilerContext()`，删 packerALS.tryGet 分支）+ `resetStoreInfo`（L240 worker）+ getters + **storeInfo compat 写**（load-bearing，见 audit）
 - `getAppStyleScopeId`（纯 uuid）保留
-- publish.ts/npm-builder.ts fallback `?? getAppId()`/`?? getTargetPath()`/`?? isTemporaryTargetPath()`/`?? getTemplateExts()` **保留**（spec/non-collaborator 兑底，与 PC-B4c3 一致——collaborator 路径全传不触发 fallback；publish-incremental.spec 3-arg 调用依赖 fallback）
-- 测试改读（F-AC1-1——删 storeInfo compat 写后须改读，非依赖 fallback）：
-  - custom-file-types.spec：getTemplateExts() 等 → storeInfo().compilerOptions.{templateExts,...}
-  - publish-incremental.spec：publishToDist 显式传 buildDir（storeInfo().pathInfo.targetPath）+ appId（storeInfo().configInfo——graph.getConfigData 产物，appInfo.appId）
-  - grep 验 getDependencyGraph() main-thread caller = 0（F-AC3-1——若存须改读 storeInfo().dependencyGraph）
+- publish.ts/npm-builder.ts fallback `?? getAppId()`/`?? getTargetPath()`/`?? isTemporaryTargetPath()`/`?? getTemplateExts()` **保留**（spec/non-collaborator 兑底，与 PC-B4c3 一致——collaborator 路径全传不触发 fallback）
+- ~~测试改读 storeInfo()~~（推迟——见 audit + R-NS8 backflow；compat 写 retain 后 spec 无需改）
 
 ## 回滚
 

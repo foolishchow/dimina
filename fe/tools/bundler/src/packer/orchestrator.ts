@@ -117,8 +117,7 @@ export function createPackerOrchestrator({
 
 	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: CompileRequest | WatchRequest): Promise<BuildResult> {
 		// B 切法（PC-B10a）：北星签名 (ctx, state, options) 落地——ctx 显式 PackerContext（非 ALS 派生）。
-		// implements PackerOrchestrator + result→EmitEntry[] reconcile deferred（D-OR-7 三重张力：北星 return type Promise<EmitEntry[]>
-		//   vs metadata object 消费 + PackerSessionState vs OrchestratorState state type + lifecycle-integration Object.keys 锚点——需北星 interface 演进）。
+		// D-OR-7 已消解（P-NS4/5）：: PackerOrchestrator 注解 + BuildResult composite + CompileRequest|WatchRequest 收敛。
 		const request: OrchestrateRequest = { ...options, workPath: ctx.workPath, targetPath: ctx.targetPath, state }
 		return _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators)
 	}

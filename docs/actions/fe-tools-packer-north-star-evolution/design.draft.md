@@ -115,6 +115,12 @@ types.ts `PackerOrchestrator.orchestrate(...) → Promise<BuildResult>`（return
 
 ### D-NS-6 — PC-B9b env.ts dead ALS writer 移除（locked，依赖 D-NS-3/5 就位后；scope 收窄——F-T1-1/F-T4-1）
 
+> **实施 audit 修正（2026-10-10，P-NS6 commit `6a3086d6`）**：design 预设删 3 项，实证修正为删 2 项 + retain 1 项：
+> - `packerALS` + `runWithCompilerContext` 确为 dead（grep caller = 0；`packerALS.tryGet` 恒 undefined 因 `.run()` 永不执行）→ 删 ✓。
+> - **storeInfo compat 写 经实证 load-bearing → RETAINED**（删后 7 项目 diff≠0 + `mkdirSync(undefined)` 崩）：主线程 `pathInfo`/`configInfo` Proxy 喂 `dist-preparer createDist(targetPath)` + npm-builder fallback 读 `getTemplateExts` 等 + view/style/logic parse-walk 经 worker `resetStoreInfo`。主线程 getter 消费方未全迁 `storeInfo()` 返回值前不可删。
+> - 「spec 改读 storeInfo()」+「grep getDependencyGraph() main-thread caller」推迟为后续独立 initiative（非 north-star-evolution scope）——见 §4 backflow。
+
+
 **删**（PC-B9 后 dead——main-thread 不再 `packerALS.run`）：
 - `packerALS`（L21 AsyncContextStore）——PC-B9 移除 orchestrate `runWithCompilerContext` wrapper 后，仅 `runWithCompilerContext` L260 + `getCompilerContext` L45 tryGet 用；main-thread 不再 run → tryGet 恒 undefined → dead。
 - `runWithCompilerContext`（L259）——无 caller（仅 L503 export，dead）。
