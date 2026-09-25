@@ -1,8 +1,11 @@
 # fe-tools-packer-north-star-evolution
 
 - Action: `fe-tools-packer-north-star-evolution`
-- Status: `draft`
+- Status: `in_progress`
+- Formalize: 2026-10-10（D-NS-1..6 locked，6 相实施序）
 - Updated: 2026-10-10
+- 设计门：[D-NS-1..6 locked](design.draft.md)
+- 实施计划：[implementation-plan.md](implementation-plan.md)（P-NS1..6 分相）
 - Status authority: [Action Status](../STATUS.md)
 
 ## Background

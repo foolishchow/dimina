@@ -1,5 +1,7 @@
 # Acceptance — fe-tools-packer-north-star-evolution
 
+Status: **in_progress（2026-10-10 formalize；D-NS-1..6 locked，P-NS1..6 实施序）**
+
 Status authority: [Action Status](../STATUS.md)
 
 | ID | Req | Title | Acceptance criterion | Status |
