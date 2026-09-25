@@ -59,13 +59,16 @@ dev server 读:
 | `emit/publish.ts` | createDist + publishToDist 退役——语义封装入 DiskOutput.publish |
 | `emit/publisher.ts` | collaborator 改调 Output.publish（非 materialize + publishToDist） |
 | `emit/dist-preparer.ts` | createDist 调用退役——DiskOutput 内部管理 scratch（或 dist-preparer 退役） |
-| `orchestrator.ts` | **orchestrator 入口创建 Output（方案 B，mode-aware 点 L121 后）**：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`；**listr2 ctx 注入 `tasks.run({ output })`**（L292，F-R4-3）；stage onOutput → sctx.output.add（L83/85）；result.output = context.output（L294）+ result.entries = output.getEntries()（L296，F-R4-2）；collaborator 接 Output（**deps.output**，F6 lock） |
+| `orchestrator.ts` | **orchestrator 入口创建 Output（方案 B，mode-aware 点 L121 后）**：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`；**listr2 ctx 注入 `tasks.run({ output })`**（L292，F-R4-3）；stage onOutput → sctx.output.add（L83/85，F-R7-1）；result.output = context.output（L294 cast 改）+ result.entries = output.getEntries()（L296，F-R4-2）；collaborator 接 Output（**deps.output**，F6 lock） |
+| `pipeline/stage-dispatcher.ts` | **L54 dispatch 路径 onOutput `sctx.buildModel.add` → `sctx.output.add`**（F-R7-1 殁骸消费者迁移） |
+| `emit/logic-emitter.ts` | **L37 cast 读 sctx.buildModel → sctx.output + L42 buildModel.add(entry) → sctx.output.add**（F-R7-1 logic 累积路径） |
+| `store/config-collector.ts` | **删 `sctx.buildModel = new BuildModel()` 行**（L36）——只消费 sctx.output（职责分离） |
 | `store/config-collector.ts` | **删 `sctx.buildModel = new BuildModel()` 行**（L36）——只消费 sctx.output（职责分离：orchestrator 决策 mode+创建，config-collector 只设其他 8 sctx 字段） |
-| `session/index.ts` | dev 选 MemOutput + 注入 dev server OutputRef（替代 artifactResolver）；**state.output 替代 state.buildModel**（L244 首 build + L255 build:end listener 重新赋值字段，F1 D-OL4） |
+| `session/index.ts` | **SessionState.buildModel → output**（L59，F-R7-3/F-R9-2——只 SessionState，不加 PackerSessionState）；dev 选 MemOutput + 注入 dev server OutputRef（替代 artifactResolver）；**state.output 替代 state.buildModel**（L244 首 build + L255 build:end listener 重赋值字段，F1 D-OL4） |
 | `dev/dev-server.ts` | 读路径改 outputRef.output?.read（createServer params 收 **OutputRef 窄接口**，F-R5-2，消 artifactResolver）；miss 仍 fs fallback 读 serveRoot（mode-dep，F8） |
 | `bin/compile.ts` | one-shot 选 DiskOutput（orchestrator 入口按 mode） |
 | `index.ts`（build facade） | Output impl 选择（mode-driven，orchestrator 入口） |
-| `packer/types.ts` | Output interface（add/read/publish/**getEntries**，F-R4-2）+ PublishOpts；**BuildResult.buildModel → output 字段**（L503，F11 D-OL3）；BuildModel type 删（P-O3） |
+| `packer/types.ts` | Output interface（add/read/publish/**getEntries**，F-R4-2）+ PublishOpts；**BuildResult.buildModel → output 字段**（L503，F11 D-OL3）+ BuildModel type 删（P-O3）；**StageChannelContext.buildModel → output**（L123，F-R7-2） |
 | `packer/emit/output.ts`（新增，F7 lock） | Output interface + MemOutput + DiskOutput（2 class + 1 interface） |
 
 ## Design inputs
@@ -79,7 +82,7 @@ dev server 读:
 ## Deliverables
 
 1. `Output` interface（types.ts）+ MemOutput impl + DiskOutput impl（emit/output.ts，F7 lock）
-2. **Output 生命周期 D-OL1..4 方案 B**（F1 + F-R4-3 listr2 ctx 注入）：orchestrator 入口创建 Output（mode-aware）+ `tasks.run({output})` 注入 + config-collector 删 buildModel 行只消费 + stage onOutput add + BuildResult.buildModel→output + result.entries=output.getEntries()（F-R4-2）+ session state.output + build:end listener 重新赋值字段 + dev server 持 OutputRef 窄接口读 output（替代 buildModel 流）
+2. **Output 生命周期 D-OL1..4 方案 B**（F1 + F-R4-3 listr2 + F-R7-1 全消费者）：orchestrator 入口创建 Output（mode-aware）+ `tasks.run({output})` 注入 + config-collector 删 buildModel 行 + **sctx.output.add 全 4 路径**（orchestrator L83/85 + stage-dispatcher L54 + logic-emitter L42，F-R7-1）+ BuildResult.buildModel→output + result.entries=output.getEntries()（F-R4-2）+ session state.output（SessionState L59，F-R7-3）+ build:end listener 重赋值字段 + dev server 持 OutputRef 读 output（替代 buildModel 流）
 3. dev server 读路径统一（outputRef.output?.read 替代 artifactResolver + fs-fallback 双路；serveRoot mode-dep；OutputRef 窄接口，F-R5-2）
 4. one-shot/previewAdapter/watch 写+发布路径统一（DiskOutput.publish per-build mkdtemp 替代 materialize + publishToDist + createDist）
 5. 殁骸拆除：BuildModel / materialize / publishToDist / createDist / artifactResolver / skipMaterialize + BuildResult.buildModel→output 字段
@@ -87,7 +90,7 @@ dev server 读:
 
 ## Readiness gaps
 
-**review round 1-6 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6：DiskOutput.read 读累积内存非 null + Output interface 加 getEntries + listr2 ctx 注入 + skipMaterialize L143 + OutputRef 窄接口）。design.draft §2.0 方案 B + D-O1 getEntries + D-O2/D-O3 read 内存 + D-O5 OutputRef + §4 风险 + §6 文件归置。
+**review round 1-9 findings 全修正**（F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9：DiskOutput.read 读累积内存 + Output interface getEntries + listr2 ctx 注入 + skipMaterialize L143 + OutputRef 窄接口 + **sctx.buildModel.add 全 4 路径** + StageChannelContext/SessionState type 字段演进）。design.draft §2.0 方案 B + D-O1 getEntries + D-O2/D-O3 read 内存 + D-O5 OutputRef + D-O7 全消费者 + §4 风险 + §6 文件归置。
 
 - **D-O1 Output interface 形状**（add/read/publish 签名 + dirty tracking interface 级 vs impl 级）——design.draft 待 lock
 - **D-O2 MemOutput.publish no-op 实证前提**（纯 dev serveRoot 空）——design.draft 已补实证

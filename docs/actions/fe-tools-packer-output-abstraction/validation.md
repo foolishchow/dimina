@@ -7,12 +7,12 @@ Status authority: [Action Status](../STATUS.md)
 | V-O1 | R-O7 | tsc 0 errors（`node ./node_modules/typescript/bin/tsc --noEmit`） | pending |
 | V-O2 | R-O7 | vitest 全绿（88 files；dev-reload/dev-server/compile-cli-cache/lifecycle-integration flaky solo pass） | pending |
 | V-O3 | R-O7 | **one-shot 7 项目 build diff=0**（`node --experimental-strip-types /tmp/dc-build.mjs diff`：air-battle/base/subpackages/mpx-demo/vant/weui/taro-todo）——DiskOutput.publish byte-exact 复刻 | pending |
-| V-O4 | R-O6 | grep `BuildModel\|materialize\|publishToDist\|createDist\|artifactResolver\|skipMaterialize` src/ caller=0（殁骸拆除） | pending |
+| V-O4 | R-O6 | grep `BuildModel\|materialize\|publishToDist\|createDist\|artifactResolver\|skipMaterialize\|sctx.buildModel` src/ caller=0（殁骸拆除 + F-R7-1 sctx.buildModel 消费者全迁 sctx.output） | pending |
 | V-O5 | R-O6 | grep `getTargetPath()` 在 `src/packer/emit/*` caller=0（compat 写 output 消费方死；注 compiler/* parse-walk collectAssets 仍存，worker 侧不动） | pending |
 | V-O6 | R-O1 | grep `interface Output` src/packer/types.ts 非 0 + `MemOutput`/`DiskOutput` impl 非 0 | pending |
 | V-O7 | R-O5 | grep `skipMaterialize` src/ caller=0（mode=impl 选择，flag 消） | pending |
 | V-O8 | R-O8 | grep `resetStoreInfo` src/ 非 0（worker ALS 保留）+ `storeInfo` 函数仍在（不动 storeInfo） | pending |
-| V-O9 | R-O1 | **Output 生命周期 D-OL1..4 方案 B**：grep `sctx.output\|state.output\|result.output` src/ 非 0 + `BuildResult.output` 字段（types.ts）非 0 + build:end listener 重新赋值 state.output 字段 + **orchestrator 入口创建 Output**（grep `new MemOutput\|new DiskOutput` 在 orchestrator.ts 非 0）+ **listr2 ctx 注入**（grep `tasks.run({` 或 `tasks.run({ output` 在 orchestrator.ts 非 0，F-R4-3）+ **config-collector buildModel 行删**（grep `sctx.buildModel = new BuildModel` = 0） | pending |
+| V-O9 | R-O1 | **Output 生命周期 D-OL1..4 方案 B**：grep `sctx.output\|state.output\|result.output` src/ 非 0 + `BuildResult.output` 字段（types.ts）非 0 + build:end listener 重新赋值 state.output 字段 + **orchestrator 入口创建 Output**（grep `new MemOutput\|new DiskOutput` 在 orchestrator.ts 非 0）+ **listr2 ctx 注入**（grep `tasks.run({` 在 orchestrator.ts 非 0，F-R4-3）+ **config-collector buildModel 行删**（grep `sctx.buildModel = new BuildModel` = 0）+ **sctx.output.add 全 4 路径**（grep `sctx.output.add` 在 orchestrator.ts L83/85 + stage-dispatcher L54 + logic-emitter L42，F-R7-1）+ **type 字段演进**（StageChannelContext types L123 + SessionState session L59 buildModel→output） | pending |
 | V-O10 | R-O7 | **dev mode 行为 spec 覆盖**（F12）：dev-reload.spec + dev-server.spec pass（dev server 持 **OutputRef 窄接口**读 outputRef.output.read + fs fallback + rebuild 重新赋值 state.output 字段，F-R5-2） | pending |
 | V-O11 | R-O6 | grep `BuildResult.buildModel\|buildModel?` src/ caller=0（BuildModel type 删 + BuildResult.buildModel→output 字段演进，F11） |
 | V-O12 | R-O1/R-O6 | **Output interface getEntries accessor**（F-R4-2）：grep `getEntries` src/packer/types.ts（interface）+ emit/output.ts（MemOutput/DiskOutput impl）+ orchestrator.ts（result.entries sourced from output.getEntries()）非 0 |

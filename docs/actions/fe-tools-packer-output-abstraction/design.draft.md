@@ -60,9 +60,19 @@ config-collector 设 sctx.buildModel = new BuildModel()
     : new DiskOutput(ctx.targetPath)  // final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）
   ```
   **listr2 ctx 注入机制**（F-R4-3 实证）：`tasks.run({ output } as Record<string, unknown>)`（L292 改）——listr2 `run(ctx)` 接收 initial ctx 合并。Output 经 initial ctx 注入，config-collector 跑前 sctx.output 已存在（task 收 ctx.output）。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离：orchestrator 决策 mode + 创建 Output；config-collector 只设其他 8 个 sctx 字段）。
-- **D-OL2**：stage compile onOutput → `sctx.output.add(entry)`（替代 sctx.buildModel.add）——orchestrator L83/85 两处改
-- **D-OL3**：`BuildResult.buildModel` 字段演进——`types.ts` L503 `buildModel: BuildModel | undefined` → `output: Output | undefined`（同位替代）。orchestrator L294 `result.output = (context as {output?}).output`
-- **D-OL4（dev server 持 OutputRef 窄接口读 state.output）**：session 持有 + rebuild 替换——L244 `state.output = buildResult.output`（首 build）；L255 `build:end` listener → `state.output = result?.output`（**每 rebuild 重新赋值 state.output 字段**，state 对象本身不变）；dev server **持 OutputRef 窄接口**（createServer params 收 `{ output: Output | undefined }`，F-R5-2 lock——避免暴露整个 PackerSessionState；preview-adapter 传 state，state 含 output 字段，结构子类型满足 OutputRef），dev server 内读 `outputRef.output?.read(path)`——rebuild listener 重新赋值 state.output 字段（同 state 对象），dev server 读当前值（非首 build 引用，非 closure getter）。
+- **D-OL2（F-R7-1 修正——sctx.buildModel.add 全 4 消费者 + read 3 迁入 sctx.output）**：
+  - **add 路径全 4 处** → `sctx.output.add(entry)`（替代 sctx.buildModel.add）：
+    1. orchestrator L83（runViewStage onOutput——default view renderer 路径）
+    2. orchestrator L85（runStyleStage onOutput——default style renderer 路径）
+    3. **stage-dispatcher L54**（dispatch 非 view/style 路径 onOutput `(sctx.buildModel).add(entry)`——logic/config dispatch 分支）
+    4. **logic-emitter L42**（`buildModel.add(entry)`——logic emit 累积，非 onOutput，是 collaborator 主动累积）
+  - **read 路径全 3 处** → `sctx.output`（替代 sctx.buildModel cast 读）：
+    1. logic-emitter L37（`sctx.buildModel as BuildModel` cast → `sctx.output`，供 L42 add 用）
+    2. publisher L34（`materialize(sctx.buildModel, ...)` → `output.publish`，D-O6）
+    3. orchestrator L294（`result.buildModel = context.buildModel` → `result.output`，D-OL3）
+- **D-OL3（F-R8-2 修正——L294 cast 显式）**：`BuildResult.buildModel` 字段演进——`types.ts` L503 `buildModel: BuildModel | undefined` → `output: Output | undefined`（同位替代）。orchestrator L294 `const buildModel = (context as {buildModel?: BuildModel}).buildModel` → `const output = (context as {output?: Output}).output`（cast 显式改）；L296 `entries: buildModel ? [...buildModel.entries.values()] : []` → `entries: output ? output.getEntries() : []`（F-R4-2）
+- **D-OL4（dev server 持 OutputRef 窄接口读 state.output + F-R9-2 区分 SessionState vs PackerSessionState）**：session 持有 + rebuild 替换——L244 `state.output = buildResult.output`（首 build）；L255 `build:end` listener → `state.output = result?.output`（**每 rebuild 重新赋值 state.output 字段**，state 对象本身不变）；dev server **持 OutputRef 窄接口**（createServer params 收 `{ output: Output | undefined }`，F-R5-2 lock——避免暴露整个 PackerSessionState；preview-adapter 传 state，state 含 output 字段，结构子类型满足 OutputRef），dev server 内读 `outputRef.output?.read(path)`。
+  - **F-R9-2 state 类型区分**：output 字段加到 **`SessionState`**（session/index.ts L59 `buildModel?: BuildModel` → `output?: Output`）——session 内部 state，持 buildModel 现态。**不加到 `PackerSessionState`**（state/session-state.ts class，orchestrator state 参数）——orchestrator 不持 output（经 sctx.output + result.output 流，不碰 state.output）。session L244/249/256 用 SessionState——output 字段只加 SessionState。
 
 **关键**：Output 是**每 build 实例**（per-orchestrate，orchestrator 入口创建）。rebuild 时 result.output 重新赋值 state.output 字段（state 对象不变，字段更新）→ dev server 持 OutputRef 读 output 字段 → 读新 Output。dev server 不持 Output 首实例引用（会读旧），不持 closure getter（已选 OutputRef 窄接口方案，state 结构子类型满足）。
 
@@ -204,16 +214,21 @@ serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 - `dist-preparer` collaborator：createDist 语义已入 DiskOutput.publish——**dist-preparer 退役**（P-O3 删；P-O2 阶段如需分离 prepareScratch 可保留 thin wrapper，但倾向直接并入 publish）
 - sctx.output 由 **orchestrator 入口创建**（D-OL1 方案 B）+ task ctx 初始化设；collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
 
-### D-O7 — 殁骸拆除（P-O3，F11 修正含 BuildResult 字段）
+### D-O7 — 殁骸拆除（P-O3，F11 + F-R7-1/R7-2/R7-3/R8-1 修正含全 sctx.buildModel 消费者 + type 字段演进）
 
 grep 验 caller=0 后删：
-- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput.read）
+- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput/DiskOutput.read）
 - `materialize` / `publishToDist` / `createDist` 函数
-- `artifactResolver` callback + dev server 注入点（dev-server createServer params 改收 Output）
-- `skipMaterialize` flag（CompileOptions/types.ts L437 + publisher guard L31 + orchestrator **L143 request destructuring** + L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40）—— F-R5-1 修正补 L143
+- `artifactResolver` callback + dev server 注入点（dev-server createServer params 改收 OutputRef，F-R5-2）
+- `skipMaterialize` flag（CompileOptions/types.ts L437 + publisher guard L31 + orchestrator **L143 request destructuring**（F-R5-1）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40）
 - compat 写 output 消费方：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）
-- **BuildResult.buildModel 字段**（types.ts L503）→ 改 `output: Output | undefined`（D-OL3）——殁骸拆除时 BuildModel type 也删，BuildResult 字段名 output
-- **BuildResult.entries**（types.ts L496，现 sourced from buildModel.entries.values()）→ 改 sourced from `output.getEntries()`（F-R4-2：Output interface 加 getEntries() accessor，已 D-O1 lock）——保 entries 公开契约
+- **BuildResult.buildModel 字段**（types.ts L503）→ `output: Output | undefined`（D-OL3）——BuildModel type 删，BuildResult 字段名 output
+- **BuildResult.entries**（types.ts L496）→ sourced from `output.getEntries()`（F-R4-2）——保 entries 公开契约
+- **F-R7-1 殁骸消费者迁移**（sctx.buildModel add 4 + read 3 → sctx.output，见 D-OL2）：
+  - stage-dispatcher L54（dispatch 路径 onOutput `sctx.buildModel.add` → `sctx.output.add`）
+  - logic-emitter L37/L42（`sctx.buildModel as BuildModel` 读 + `buildModel.add(entry)` 累积 → `sctx.output` + `sctx.output.add`）
+- **F-R7-2 StageChannelContext 字段演进**：types.ts L121-123 `interface StageChannelContext { buildModel?: unknown }` → `output?: Output`（sctx 类型字段）
+- **F-R7-3/R8-2 SessionState 字段演进**：session/index.ts L59 `SessionState.buildModel?: BuildModel` → `output?: Output`（F-R9-2：只 SessionState，不加 PackerSessionState）
 
 ## §3 边界（不动）
 
