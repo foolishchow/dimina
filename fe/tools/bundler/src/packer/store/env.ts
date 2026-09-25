@@ -7,7 +7,7 @@ import { uuid } from '../../shared/utils.ts'
 import { NpmResolver } from '../graph/npm-resolver.ts'
 import { DependencyGraph } from '../graph/dependency-graph.ts'
 import { PackerGraph } from '../graph/graph.ts'
-import type { PackerContext } from '../types.ts'
+import type { PackerContext, PageConfig, ComponentConfig } from '../types.ts'
 import {
 	type FixpointCtx,
 	readProjectConfig,
@@ -61,20 +61,9 @@ const pathInfo: PathInfo = new Proxy({}, {
 		return true
 	},
 })
-export interface PageConfig {
-	usingComponents?: Record<string, string>
-	componentPlaceholder?: Record<string, unknown>
-	customTabBar?: unknown
-	[key: string]: unknown
-}
-
-export interface ComponentConfig {
-	path?: string
-	id?: string
-	styleIsolation?: string
-	usingComponents?: Record<string, string>
-	[key: string]: unknown
-}
+// D-NS-1：PageConfig/ComponentConfig 已 relocate 到 types.ts（shape 层 canonical home）。
+// 此处 re-export 已 import 的类型，向后兼容现有 `from '../store/env.ts'` 消费方。
+export type { PageConfig, ComponentConfig }
 
 interface ConfigInfo {
 	projectInfo?: Record<string, unknown>

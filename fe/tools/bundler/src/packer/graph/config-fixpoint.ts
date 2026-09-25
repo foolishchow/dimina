@@ -21,8 +21,8 @@ import { isObjectEmpty, resolveAssetSourcePath, uuid, errorMessage } from '../..
 import { NpmResolver } from './npm-resolver.ts'
 import { DependencyGraph } from './dependency-graph.ts'
 import type { GraphConfigData } from './graph.ts'
-import type { PackerContext, PackerFileTypes } from '../types.ts'
-import type { PageConfig, ComponentConfig } from '../store/env.ts'
+import type { PackerContext, PackerFileTypes, PageConfig, ComponentConfig } from '../types.ts'
+
 
 // ── 常量（从 env.ts 迁移）──
 

@@ -25,6 +25,7 @@
 // R-PCS-11: 新类型用 import type 引用现有类型，不复制
 import type { EmitEntry, EmitTransformConfig } from './emit/emit.ts'
 import type { GraphSnapshot } from './graph/dependency-graph.ts'
+import type { GraphConfigData } from './graph/graph.ts'
 
 // ════════════════════════════════════════════════════════════════════
 // §1 基础类型
@@ -51,6 +52,25 @@ export interface PackerModuleMetadata {
 export interface WxsBinding {
 	localIdentifier: string
 	templatePropertyName: string
+}
+
+// ── config shapes（D-NS-1：PageConfig/ComponentConfig relocate env.ts → types.ts，shape 层 canonical home）──
+
+/** 页面配置（app.json pages 条目 / 页面 .json）。 */
+export interface PageConfig {
+	usingComponents?: Record<string, string>
+	componentPlaceholder?: Record<string, unknown>
+	customTabBar?: unknown
+	[key: string]: unknown
+}
+
+/** 组件配置（component .json）。 */
+export interface ComponentConfig {
+	path?: string
+	id?: string
+	styleIsolation?: string
+	usingComponents?: Record<string, string>
+	[key: string]: unknown
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -317,6 +337,23 @@ export interface Graph {
 
 	/** 文件的 kind 列表。 */
 	getFileKinds(file: string): string[]
+
+	// ── config-data accessors（D-NS-1：interface 查询面补全——PackerGraph 已实现 PC-B4c/B7）──
+
+	/** 获取 appId（PC-B4c：主线程路由，消除 ALS getAppId）。 */
+	getAppId(): string | undefined
+
+	/** 获取项目名（PC-B4c：主线程路由，消除 ALS getAppName）。 */
+	getAppName(): string | undefined
+
+	/** 获取 app 级配置信息（PC-B4c：主线程路由，消除 ALS getAppConfigInfo）。 */
+	getAppConfigInfo(): Record<string, unknown>
+
+	/** 获取 config fixpoint 结果（快照恢复 / cache 序列化用）。 */
+	getConfigData(): GraphConfigData
+
+	/** 获取页面配置信息（PC-B4c4：主线程路由，消除 ALS getPageConfigInfo）。 */
+	getPageConfigInfo(): Record<string, PageConfig>
 }
 
 // ════════════════════════════════════════════════════════════════════

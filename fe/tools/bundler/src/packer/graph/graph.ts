@@ -17,10 +17,10 @@
  * D-GB-4: storeInfo 瘦身为 steps 1-2（paths + fileTypes），steps 3-6 委托 Graph。
  */
 
-import type { Graph, PackerContext } from '../types.ts'
+import type { Graph, PackerContext, PageConfig, ComponentConfig } from '../types.ts'
 import { DependencyGraph } from './dependency-graph.ts'
 import type { GraphSnapshot } from './dependency-graph.ts'
-import type { PageConfig, ComponentConfig } from '../store/env.ts'
+
 import {
 	type FixpointCtx,
 	readProjectConfig,
