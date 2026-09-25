@@ -20,7 +20,7 @@ import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
-import { getAppConfigInfo, getAppName, runWithCompilerContext } from './store/env.ts'
+import { getAppName, runWithCompilerContext } from './store/env.ts'
 import { runCompileStage } from './state/stage-channel.ts'
 import { BuildModel } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
@@ -283,7 +283,7 @@ async function _orchestrate(
 		const result = {
 			appId: ((context as { loadBindings?: { appId?: string } | null }).loadBindings)?.appId,
 			name: getAppName(),
-			path: getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
+			path: state.graph.getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
 			dependencyGraph: ((context as { dependencyGraph?: { toJSON: () => unknown } }).dependencyGraph?.toJSON()),
 			buildModel: (context as { buildModel?: BuildModel }).buildModel,
 		}
