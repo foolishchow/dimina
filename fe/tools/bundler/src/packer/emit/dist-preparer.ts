@@ -1,0 +1,29 @@
+/**
+ * DistPreparer — 准备产物目录 collaborator（facade-collaborator D-FC-1）。
+ *
+ * 拥有的逻辑（从 orchestrator.ts initPhases[1] 搬迁）：
+ *   createDist(seedPath) + DIST_PREPARED 事件
+ *
+ * 无状态 collaborator（createPackerOrchestrator 闭包内一次构造复用）。
+ * 不读写 sctx（纯 createDist 调用）。
+ */
+
+import { createDist } from './publish.ts'
+import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
+import type { Lifecycle } from '../../shared/lifecycle.ts'
+import type { BuildCollaborator } from '../types.ts'
+
+export interface DistPreparerDeps {
+	seedPath?: string
+	lifecycle: Lifecycle
+}
+
+export function createDistPreparer(): BuildCollaborator<DistPreparerDeps> {
+	return {
+		async run(_sctx, deps) {
+			const { seedPath, lifecycle } = deps
+			createDist(seedPath)
+			await lifecycle.emit(LIFECYCLE_EVENTS.DIST_PREPARED, { seedPath })
+		},
+	}
+}

@@ -19,12 +19,11 @@ import { createDispatchRegistry, computeStagePlan, readLoadBindings } from './re
 import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl, CompileRegistryImpl, EmitRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
-import { createDist, publishToDist } from './emit/publish.ts'
+import { publishToDist } from './emit/publish.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 import { NpmBuilder } from './pipeline/npm-builder.ts'
-import compileConfig from './pipeline/config-compiler.ts'
 import { getAppConfigInfo, getAppName, getPages, getTargetPath, getWorkPath, isMiniGame, runWithCompilerContext } from './store/env.ts'
 import { executeTask } from './worker/executor.ts'
 import { emitEngine } from './emit/emit-engine.ts'
@@ -33,10 +32,21 @@ import type { RunCompileStageParams } from './state/stage-channel.ts'
 import { BuildModel, materialize } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
 import { deriveLogicBuckets } from './emit/convergence.ts'
+import { createDistPreparer } from './emit/dist-preparer.ts'
+import type { DistPreparerDeps } from './emit/dist-preparer.ts'
+import { createConfigCompiler } from './pipeline/config-compiler-collab.ts'
+import type { ConfigCompilerDeps } from './pipeline/config-compiler-collab.ts'
+import type { BuildCollaborator } from './types.ts'
 
 interface RendererAdapter {
 	runViewStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
 	runStyleStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
+}
+
+/** D-FC-1 collaborator 装配 bag（orchestrator 内部接线，非 collaborator deps bag）。渐进填充。 */
+interface PackerCollaborators {
+	distPreparer: BuildCollaborator<DistPreparerDeps>
+	configCompiler: BuildCollaborator<ConfigCompilerDeps>
 }
 
 /** orch 内部调用面（D-OR-8）：非 OrchestrateOptions 的装配参数。 */
@@ -87,8 +97,14 @@ export function createPackerOrchestrator({
 	const compileRegistry = new CompileRegistryImpl()
 	const emitRegistry = new EmitRegistryImpl()
 
+	// D-FC-1: 无状态 collaborator 在闭包内一次构造复用（共享闭包 registry）
+	const collaborators = {
+		distPreparer: createDistPreparer(),
+		configCompiler: createConfigCompiler(),
+	}
+
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
-		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry))
+		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators))
 	}
 
 	return {
@@ -106,6 +122,7 @@ async function _orchestrate(
 	pipelineLifecycle: Lifecycle | undefined,
 	dispatchRegistry: PackerDispatchRegistry,
 	loaderRegistry: LoaderRegistry,
+	collaborators: PackerCollaborators,
 ): Promise<Record<string, unknown>> {
 	const {
 		targetPath,
@@ -216,16 +233,14 @@ async function _orchestrate(
 			},
 			{
 				title: '准备产物目录',
-				task: async () => {
-					createDist(seedPath)
-					await lifecycle.emit(LIFECYCLE_EVENTS.DIST_PREPARED, { seedPath })
+				task: async (ctx: Record<string, unknown>) => {
+					await collaborators.distPreparer.run(ctx as unknown as StageChannelContext, { seedPath, lifecycle })
 				},
 			},
 			...(shouldPrepareConfig ? [{
 				title: '编译配置信息',
-				task: async () => {
-					compileConfig()
-					await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COMPILED, {})
+				task: async (ctx: Record<string, unknown>) => {
+					await collaborators.configCompiler.run(ctx as unknown as StageChannelContext, { lifecycle })
 				},
 			}] : []),
 			...(shouldPrepareNpm ? [{

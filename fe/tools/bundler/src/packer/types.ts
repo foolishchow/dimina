@@ -424,3 +424,18 @@ export interface PackerOrchestrator {
 		options: OrchestrateOptions,
 	): Promise<EmitEntry[]>
 }
+
+// ════════════════════════════════════════════════════════════════════
+// §9 BuildCollaborator（facade-collaborator D-FC-1）
+// ══════════════════════════════════════════════════════════════════════
+
+/**
+ * collaborator 统一形状（D-FC-1: collaborator 抽取，logic 搬迁非包壳）。
+ *
+ * 每 collaborator 拥有一类 build 业务活的完整逻辑（sctx 字段设置 +
+ * lifecycle 事件 + 错误处理），orchestrator task body 仅委托 run()。
+ * Deps 是每 collaborator 的 typed 子接口（禁单一 bag，避 mutable bag 覆辙）。
+ */
+export interface BuildCollaborator<Deps> {
+	run(sctx: StageChannelContext, deps: Deps): Promise<void>
+}
