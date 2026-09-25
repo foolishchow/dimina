@@ -11,6 +11,7 @@ Status: **draft（2026-10-09）**
 | P-FC2b | registry 私有化 | createPackerOrchestrator 仅 `{ orchestrate }` + types.ts PackerOrchestrator 删 registry 字段 + logic-loader.spec 6 处伸手改 | pending |
 | P-FC3 | OrchestrateRequest 收敛 | 入口 CompileRequest/WatchRequest + orchestrate 调用方（src/index.ts + spec）+ build() 下游 + result 消费对齐 | pending |
 | P-FC4 | 行为 0 三件套 | tsc 0 + vitest 全绿（87/647 基线）+ 7 项目 diff=0 | pending |
+| P-FC4b | collaborator 状态分类 | 6 无状态 collaborator 可闭包单例复用 + NpmBuilder 有状态每次 build 重新构造（builtPackages/packageDependencies 不跨 build 泄漏）+ previousCompatibilityWarnings/isPrinted 模块级 state 不变 | pending |
 | P-FC5 | rigor 红线（collaborator 拥有逻辑）| `grep 'await.*\.run(' orchestrator.ts` 非 0 + collaborator 含 sctx 字段设置/lifecycle 事件/错误处理 + git diff -M 非空壳 | pending |
 | P-FC6 | ALS 保留 | `grep 'getWorkPath\|getPages\|getAppConfigInfo\|isMiniGame' src/packer/{store,emit,pipeline}/` 非 0 + collaborator 业务逻辑完整 | pending |
 | P-FC7 | Non-scope 边界守 | renderer 副作用注册原样（orchestrator.ts:64-72 grep webviewRenderer）+ aspect 穿线保留 + L/C/E NOT wired | pending |

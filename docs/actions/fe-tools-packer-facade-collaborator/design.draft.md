@@ -17,6 +17,14 @@ Status: **draft（2026-10-09）**
 
 7 collaborator 抽取（R-FC-1 表），每 collaborator 拥有完整业务逻辑（含 sctx 字段设置 + lifecycle 事件 + 错误处理）。orchestrator task body 仅 `await collaborator.run(sctx, deps...)`。
 
+**collaborator 生命周期 + 注入**（防 collaborator 无主实例化）：
+- **无状态 collaborator（6 个，createPackerOrchestrator 闭包内一次构造复用）**：ConfigCollector / DistPreparer / ConfigCompiler / StageDispatcher / LogicEmitter / Publisher——无实例 mutable state（逻辑体读 sctx + ALS + deps，不自持 build 间状态）→ 闭包单例复用安全
+- **有状态 collaborator（NpmBuilder，每次 build 重新构造）**：NpmBuilder 是有状态 class（`this.builtPackages: Set` + `this.packageDependencies: Map` + `this.miniprogramExts`）——跨 build 复用会泄漏 builtPackages/packageDependencies → **NpmBuilder 不在 createPackerOrchestrator 闭包构造，每次 _orchestrate 内 `new NpmBuilder(workPath, targetPath, dependencyGraph)`**（FC-P2 接线时守此）
+- **registry 注入**：createPackerOrchestrator 装配 4 registry（dispatchRegistry/loaderRegistry/compileRegistry/emitRegistry）→ 构造无状态 collaborator 时传 registry 作 deps（ConfigCollector 收 loaderRegistry、StageDispatcher 收 dispatchRegistry 等）
+- **_orchestrate 访问**：无状态 collaborator 在 createPackerOrchestrator 闭包 → _orchestrate（同闭包或经 orchestrate wrap）直接访问 collaborator 实例，task body `await collaborator.run(sctx, deps...)`——_orchestrate 签名收敛（收 request + 闭包访问 collaborator/registry，不再收 5 参数）
+
+**模块级 process-scoped state（不受 collaborator 抽取影响）**：`previousCompatibilityWarnings` Map（L57，跨 build warning diff 记忆）+ `isPrinted` let（L56，art code 一次性）——留 facade 模块级（process-scoped 非 instance-scoped），行为 0 须验此 state 不变（collaborator 抽取不触此 state）。
+
 **facade 级装配 vs collaborator 级边界**（_orchestrate 顶部闭包变量归属，须明示防 collaborator 隐式耦合）：
 - **facade 级（orchestrator 构造，传 collaborator deps）**：
   - `store`（3-way 装配：`runStore ?? providedStore ?? createProjectStore()`，L130）→ ConfigCollectorDeps.store
