@@ -2,7 +2,7 @@
 
 Status: **in_progress（2026-10-10；FC-P0..P6 + D-FC-2b 完成，D-FC-2a/P7a/P7b deferred to B）**
 
-## §1 问题诊断（来自 [retrospect](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md) F-PA-1）
+## §1 问题诊断（来自 [retrospect](../../../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md) F-PA-1）
 
 `_orchestrate`（orchestrator.ts:103-366）是 god object：
 - 7 类业务活内联（R-FC-1 表）+ 4 registry 公开返回（orchestrator.ts:96-99）+ OrchestrateRequest ~19 字段透传

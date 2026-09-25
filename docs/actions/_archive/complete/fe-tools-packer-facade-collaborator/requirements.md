@@ -4,7 +4,7 @@ Status: **in_progress（2026-10-10；FC-P0..P6 + D-FC-2b 完成，D-FC-2a/P7a/P7
 
 ## 背景
 
-packer 架构 retrospect（[F-PA-1..6](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 orchestrator 是 god object：`_orchestrate` 同时干 7 类业务活（store.load / createDist / compileConfig / npmBuilder / stage 派发 / deriveLogicBuckets+emitEngine / materialize+publishToDist）+ 公开 4 registry + `OrchestrateRequest` ~19 字段透传。北星契约 `PackerOrchestrator.orchestrate(ctx, state, options) → EmitEntry[]`（`types.ts:416`）**根本没落地**——实际签名 `_orchestrate(request: OrchestrateRequest) → Record<string, unknown>`，签名/入参/返回全不符。
+packer 架构 retrospect（[F-PA-1..6](../../../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)）发现 orchestrator 是 god object：`_orchestrate` 同时干 7 类业务活（store.load / createDist / compileConfig / npmBuilder / stage 派发 / deriveLogicBuckets+emitEngine / materialize+publishToDist）+ 公开 4 registry + `OrchestrateRequest` ~19 字段透传。北星契约 `PackerOrchestrator.orchestrate(ctx, state, options) → EmitEntry[]`（`types.ts:416`）**根本没落地**——实际签名 `_orchestrate(request: OrchestrateRequest) → Record<string, unknown>`，签名/入参/返回全不符。
 
 目录收敛（fe-tools-packer-directory-convergence complete）已把 packer/ 9 子目录就位，给本 Action 干净素材。
 

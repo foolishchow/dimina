@@ -1,12 +1,13 @@
 # fe-tools-packer-context-closure
 
-- Status: `in_progress`
+- Status: `complete`
 - Created: 2026-10-10
+- Closed: 2026-10-10（PC-B2..B10a 功能闭合：主线程 ALS 退役 + orchestrate 北星签名落地。PC-B9b env.ts 实体移除 + PC-B10b implements+reconcile → [fe-tools-packer-north-star-evolution](../../../fe-tools-packer-north-star-evolution/README.md) 承接，受阻 D-OR-7）
 - 切法：**B（ALS→PackerContext 闭合）**——消 ALS 全局，I/O 显式 PackerContext 贯穿
-- Status authority: [Action Status](../STATUS.md)
-- 前置：[`fe-tools-packer-facade-collaborator`](../fe-tools-packer-facade-collaborator/README.md)（in_progress；7 collaborator 抽取就位，D-FC-2a deferred to B）
-- 触发：[2026-10-09-packer-facade-aspect-retrospect.md](../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)（**F-PA-4 high** 三种 ctx 模型未 reconcile）
-- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../fe-tools/architecture-notes.md)
+- Status authority: [Action Status](../../../STATUS.md)
+- 前置：[`fe-tools-packer-facade-collaborator`](../fe-tools-packer-facade-collaborator/README.md)（complete 2026-10-10；7 collaborator 抽取就位）
+- 触发：[2026-10-09-packer-facade-aspect-retrospect.md](../../../../fe-tools/2026-10-09-packer-facade-aspect-retrospect.md)（**F-PA-4 high** 三种 ctx 模型未 reconcile）
+- 术语 / 结构真源：[docs/fe-tools/architecture-notes](../../../../fe-tools/architecture-notes.md)
 - 文档集：[requirements](requirements.md) · [design.draft](design.draft.md) · [acceptance](acceptance.md) · [validation](validation.md)
 
 ## 目标
