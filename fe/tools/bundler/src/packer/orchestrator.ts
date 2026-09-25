@@ -20,7 +20,7 @@ import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
-import { runWithCompilerContext } from './store/env.ts'
+
 import { runCompileStage } from './state/stage-channel.ts'
 import { BuildModel } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
@@ -112,7 +112,7 @@ export function createPackerOrchestrator({
 	}
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
-		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators))
+		return _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators)
 	}
 
 	// D-FC-2b: registry 私有化（facade 内部，不公开返回）——仅返 { orchestrate }
