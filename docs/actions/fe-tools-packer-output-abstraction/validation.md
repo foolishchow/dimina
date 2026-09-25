@@ -12,9 +12,11 @@ Status authority: [Action Status](../STATUS.md)
 | V-O6 | R-O1 | grep `interface Output` src/packer/types.ts 非 0 + `MemOutput`/`DiskOutput` impl 非 0 | pending |
 | V-O7 | R-O5 | grep `skipMaterialize` src/ caller=0（mode=impl 选择，flag 消） | pending |
 | V-O8 | R-O8 | grep `resetStoreInfo` src/ 非 0（worker ALS 保留）+ `storeInfo` 函数仍在（不动 storeInfo） | pending |
-| V-O9 | R-O1 | **Output 生命周期 D-OL1..4 方案 B**：grep `sctx.output\|state.output\|result.output` src/ 非 0 + `BuildResult.output` 字段（types.ts）非 0 + build:end listener 重新赋值 state.output 字段 + **orchestrator 入口创建 Output**（grep `new MemOutput\|new DiskOutput` 在 orchestrator.ts 非 0）+ **config-collector buildModel 行删**（grep `sctx.buildModel = new BuildModel` = 0） | pending |
-| V-O10 | R-O7 | **dev mode 行为 spec 覆盖**（F12）：dev-reload.spec + dev-server.spec pass（dev server 持 state 引用读 state.output.read + fs fallback + rebuild 重新赋值 state.output 字段） | pending |
-| V-O11 | R-O6 | grep `BuildResult.buildModel\|buildModel?` src/ caller=0（BuildModel type 删 + BuildResult.buildModel→output 字段演进，F11） | pending |
+| V-O9 | R-O1 | **Output 生命周期 D-OL1..4 方案 B**：grep `sctx.output\|state.output\|result.output` src/ 非 0 + `BuildResult.output` 字段（types.ts）非 0 + build:end listener 重新赋值 state.output 字段 + **orchestrator 入口创建 Output**（grep `new MemOutput\|new DiskOutput` 在 orchestrator.ts 非 0）+ **listr2 ctx 注入**（grep `tasks.run({` 或 `tasks.run({ output` 在 orchestrator.ts 非 0，F-R4-3）+ **config-collector buildModel 行删**（grep `sctx.buildModel = new BuildModel` = 0） | pending |
+| V-O10 | R-O7 | **dev mode 行为 spec 覆盖**（F12）：dev-reload.spec + dev-server.spec pass（dev server 持 **OutputRef 窄接口**读 outputRef.output.read + fs fallback + rebuild 重新赋值 state.output 字段，F-R5-2） | pending |
+| V-O11 | R-O6 | grep `BuildResult.buildModel\|buildModel?` src/ caller=0（BuildModel type 删 + BuildResult.buildModel→output 字段演进，F11） |
+| V-O12 | R-O1/R-O6 | **Output interface getEntries accessor**（F-R4-2）：grep `getEntries` src/packer/types.ts（interface）+ emit/output.ts（MemOutput/DiskOutput impl）+ orchestrator.ts（result.entries sourced from output.getEntries()）非 0 |
+| V-O13 | R-O3 | **DiskOutput.read 读累积内存**（F-R4-1）：grep `read` 在 emit/output.ts DiskOutput 非 `return null`（读 lazy index）+ previewAdapter-dev spec 验即时内存读 | pending | pending |
 
 ## 行为 0 三件套（每相 gate）
 

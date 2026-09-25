@@ -21,14 +21,15 @@ interface Output {
 ```
 
 - `add` 收 EmitEntry（worker postMessage 流式回传），内部累积（保留 dirty tracking 供增量 publish）
-- `read` 模式无关——MemOutput 读内存，DiskOutput 返 null（one-shot 不调；previewAdapter-dev 经 dev server 走 fs fallback 读 serveRoot）
+- `read` 模式无关——**读累积内存 lazy index**（MemOutput + DiskOutput 同语义，F-R4-1），miss 返 null 走 fs fallback
 - `publish` 提交到 final——DiskOutput 写 scratch（per-build mkdtemp）+ rename/copy 到 target；MemOutput no-op（实证见 R-O2）
+- `getEntries()` 返累积 EmitEntry[]（F-R4-2——BuildResult.entries sourced from output.getEntries()）
 
 **R-O1.1 Output 生命周期**（F1 修正 D-OL1..4，方案 B——orchestrator 入口创建，替代 buildModel 流）：
-- **D-OL1（方案 B）**：orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建 Output：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`。final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）。经 task ctx 初始化设 sctx.output（config-collector 跑前）。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离：orchestrator 决策 mode + 创建；config-collector 只设其他 8 sctx 字段）。
+- **D-OL1（方案 B + listr2 ctx 注入，F-R4-3 lock）**：orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建 Output：`request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`。final = ctx.targetPath（mode-dep：dev=mkdtemp dmcc-dev- / one-shot=TARGET_PATH）。**listr2 ctx 注入**（F-R4-3 实证）：`tasks.run({ output })`（L292 改）——listr2 run 支持 initial ctx 合并，Output 经 initial ctx 注入，config-collector 跑前 sctx.output 已存在。**config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离：orchestrator 决策 mode + 创建；config-collector 只设其他 8 sctx 字段）。
 - D-OL2：stage compile onOutput → `sctx.output.add(entry)`（orchestrator L83/85）
 - D-OL3：`BuildResult.buildModel`（types.ts L503）→ `output: Output | undefined`；orchestrator result.output = context.output
-- D-OL4（dev server 持 state 引用）：session L244 `state.output = buildResult.output`（首 build）+ L255 `build:end` listener 重新赋值 `state.output` 字段（同 state 对象，非替换 state）+ dev server createServer params 收 state（或窄接口 `{ output: Output | undefined }`），dev server 内读 `state.output?.read(path)`（读当前值，非首 build 引用、非 closure getter）
+- D-OL4（dev server 持 OutputRef 窄接口读 state.output）：session L244 `state.output = buildResult.output`（首 build）+ L255 `build:end` listener 重新赋值 `state.output` 字段（同 state 对象，非替换 state）+ dev server createServer params 收 **OutputRef 窄接口**（`{ output: Output | undefined }`，F-R5-2 lock——避免暴露整个 PackerSessionState；preview-adapter 传 state（state 含 output 字段，结构子类型满足 OutputRef）），dev server 内读 `outputRef.output?.read(path)`（读当前值，非首 build 引用、非 closure getter）
 
 ## R-O2 — MemOutput impl（dev memfs）
 
@@ -43,7 +44,7 @@ interface Output {
 
 `DiskOutput` 实现 Output，one-shot + previewAdapter-dev 用：
 - `add` 累积内存 + dirty tracking（H4 D-PUSH-3：dirtyEntries set，add 标 dirty）——复刻 BuildModel.add + dirty 语义
-- `read` 返 null（F5——one-shot 不调；previewAdapter-dev 经 dev server 走 fs fallback 读 serveRoot 落盘内容）
+- `read` 返累积内存 lazy index（F-R4-1——**非 null**；与 MemOutput 同语义，复刻 BuildModel.getArtifact。previewAdapter-dev 须即时内存读，stage compile 后即可，不等 publish；MemOutput/DiskOutput 共用 read 逻辑）
 - `publish(target, opts)` 封装 materialize + publishToDist + createDist 语义（**per-build mkdtemp scratch**，F3——publish 内 mkdtemp，复刻 storeInfo per-orchestrate computePathInfo；非构造时）：
   - dirty 非空 → 只写 dirty；空 → 全量（复刻 materialize L105-106）
   - 写 scratch（mkdtemp，computePathInfo 语义）：mkdir recursive + writeFileSync(dest, file.code) + writeFileSync(dest, String(map))（sourcemap）
@@ -53,12 +54,12 @@ interface Output {
 
 ## R-O4 — dev server 读路径统一
 
-`dev-server.ts` 改 `state.output?.read(path)` 单一入口（替代 artifactResolver + fs.readFile 双路）+ serveRoot 术语修正（F8）+ dev server 持 state 引用（D-OL4）：
+`dev-server.ts` 改 `outputRef.output?.read(path)` 单一入口（替代 artifactResolver + fs.readFile 双路）+ serveRoot 术语修正（F8）+ dev server 持 OutputRef 窄接口（D-OL4 + F-R5-2 lock）：
 - `/sdk/*` → sdkRoot（dev-server L153，独立，不经 Output/serveRoot）
 - `/index.html` `/pageFrame.html` → 内存常量
-- else → `state.output?.read(path)` hit → 返 compiled 内存
+- else → `outputRef.output?.read(path)` hit → 返 compiled 内存
 - miss → fs.readFile(resolveContainedPath(serveRoot, relativePath))（dev-server L166）——serveRoot = state.targetPath（mode-dep：纯 dev mkdtemp 空 / previewAdapter-dev mkdtemp 落盘有内容 / one-shot final targetPath）
-- 消 artifactResolver callback 注入 + getArtifact 调用；dev server createServer params 改收 state（或窄接口 `{ output: Output | undefined }`，避免暴露整个 PackerSessionState）——dev server 持 state 引用读 state.output 字段（rebuild 重新赋值字段，dev server 读当前值）
+- 消 artifactResolver callback 注入 + getArtifact 调用；dev server createServer params 改收 **OutputRef 窄接口**（`{ output: Output | undefined }`，避免暴露整个 PackerSessionState）——preview-adapter 传 state（state 含 output 字段，结构子类型满足 OutputRef）；dev server 读 outputRef.output 字段（rebuild 重新赋值，读当前值）
 
 ## R-O5 — mode-driven impl 选择
 
@@ -76,10 +77,10 @@ P-O3 后退役（grep 验 caller=0）：
 - `materialize` 函数（语义入 DiskOutput.publish）
 - `publishToDist` + `createDist` 函数（语义入 DiskOutput.publish）
 - `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
-- `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
+- `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1 补）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
 - compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 的调用全消（emit/* caller=0）
 - `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删
-- `BuildResult.entries`（types.ts L496，现 sourced from buildModel.entries.values()）→ sourced from output（Output 须暴露 entries 或 BuildResult 从 output 取——保 entries 公开契约）
+- `BuildResult.entries`（types.ts L496，现 sourced from buildModel.entries.values()）→ sourced from `output.getEntries()`（F-R4-2：Output interface 加 getEntries() accessor，保公开契约）
 
 ## R-O7 — 行为 0
 

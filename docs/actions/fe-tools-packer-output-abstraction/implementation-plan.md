@@ -9,17 +9,18 @@ Status authority: [Action Status](../STATUS.md)
 **依赖**：无（首发）
 
 **改动**：
-1. `types.ts` 加 `Output` interface + `PublishOpts`（D-O1）+ `BuildResult.buildModel` → `output?: Output | undefined`（D-OL3，F1）
-2. 新增 `emit/output.ts`（F7 修正 lock）：`MemOutput` impl（Map 累积 + lazy index read + publish no-op）——复刻 BuildModel.getArtifact 语义（D-O2）
-3. **Output 生命周期（D-OL1..4，F1，方案 B——orchestrator 入口创建）**：
-   - orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建：`const output = request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`——经 task ctx 初始化设 sctx.output（config-collector 跑前）
+1. `types.ts` 加 `Output` interface（add/read/publish/**getEntries**，F-R4-2）+ `PublishOpts`（D-O1）+ `BuildResult.buildModel` → `output?: Output | undefined`（D-OL3，F1）
+2. 新增 `emit/output.ts`（F7 修正 lock）：`MemOutput` impl（Map 累积 + lazy index read + publish no-op + **getEntries**，F-R4-2）——复刻 BuildModel.getArtifact 语义（D-O2）
+3. **Output 生命周期（D-OL1..4，F1，方案 B——orchestrator 入口创建 + listr2 ctx 注入，F-R4-3）**：
+   - orchestrator `orchestrate()` 入口（L121 request 构造后，mode-aware 点）创建：`const output = request.skipMaterialize ? new MemOutput() : new DiskOutput(ctx.targetPath)`
+   - **listr2 ctx 注入**（F-R4-3）：`tasks.run({ output } as Record<string, unknown>)`（L292 改）—— Output 经 initial ctx 注入，config-collector 跑前 sctx.output 已存在
    - **config-collector 删 `sctx.buildModel = new BuildModel()` 行**（L36），只消费 sctx.output（职责分离）
    - orchestrator L83/85 stage compile onOutput → `sctx.output.add(entry)`（替代 sctx.buildModel.add）
-   - orchestrator L294 `result.output = (context as {output?}).output`（替代 result.buildModel）
+   - orchestrator L294 `result.output = (context as {output?}).output`（替代 result.buildModel）；L296 `entries: output ? output.getEntries() : []`（F-R4-2，替代 buildModel.entries.values()）
    - session L244 `state.output = buildResult.output`（首 build）
    - session L255 `build:end` listener 重新赋值 `state.output` 字段（同 state 对象，非替换 state）
 4. `session/index.ts` dev 模式 dev server createServer params 改收 state（或窄接口）注入（替代 artifactResolver callback）
-5. `dev/dev-server.ts` 读路径改 `output.read(path)`（miss 仍 fs.readFile fallback，D-O5）——createServer params 改收 Output（消 artifactResolver callback）
+5. `dev/dev-server.ts` 读路径改 `outputRef.output?.read(path)`（miss 仍 fs.readFile fallback，D-O5）——createServer params 改收 **OutputRef 窄接口**（`{ output: Output | undefined }`，F-R5-2，消 artifactResolver callback）
 6. collaborator（publisher）暂保留 materialize 调用（P-O1 阶段 publisher 仍调 materialize + sctx.output.add 并行——MemOutput.publish no-op 等价 skipMaterialize；P-O2 改 publish）
 
 **行为 0 验**（dev memfs 模式，F12 split）：
@@ -34,10 +35,11 @@ Status authority: [Action Status](../STATUS.md)
 **依赖**：P-O1（Output interface 就位）
 
 **改动**：
-1. `emit/output.ts` 加 `DiskOutput` impl（累积 + dirty tracking + publish 封装 materialize+publishToDist+createDist 语义，D-O3）
+1. `emit/output.ts` 加 `DiskOutput` impl（累积 + dirty tracking + **read 读累积内存 lazy index**（F-R4-1，与 MemOutput 共用）+ getEntries + publish 封装 materialize+publishToDist+createDist 语义，D-O3）
    - 构造收 `final: string`（FINAL 发布目录）——scratch mkdtemp 在 publish 内（per-build，F3，非构造时）
-   - `add` 累积 + dirty set（H4 D-PUSH-3）
-   - `read` 返 null（F5）
+   - `add` 累积 + dirty set + index 失效（H4 D-PUSH-3）
+   - `read` 读累积内存 lazy index（复刻 getArtifact，F-R4-1——previewAdapter-dev 须即时内存读，不等 publish）
+   - `getEntries` 返累积 EmitEntry[]（F-R4-2）
    - `publish(target, opts)`：mkdtemp scratch + dirty guard + mkdir+writeFileSync+String(map) + rename/EXDEV/incremental sync + clearDirty（逐行复刻 materialize L104-120 + publishToDist L106-140 + createDist L22-30）
 2. orchestrator 入口（mode-aware 点）：one-shot + previewAdapter + watch standalone（F4）→ `new DiskOutput(ctx.targetPath)`；dev（无 previewAdapter）→ `new MemOutput()`（替代 config-collector 创建——config-collector 删 buildModel 行）
 3. `bin/compile.ts` / `index.ts` build facade：one-shot final=TARGET_PATH（orchestrator 入口已按 mode 选 DiskOutput）
@@ -66,9 +68,10 @@ Status authority: [Action Status](../STATUS.md)
 2. grep 验 compat 写 output 消费方死：
    - `getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（grep 验 env.ts getter caller 在 emit/* = 0）
    - 注：`getTargetPath()` 在 compiler/* parse-walk（collectAssets）仍存——worker 侧，resetStoreInfo 喂，不动
-3. `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删；`BuildResult.entries`（L496）改 sourced from output（保 entries 公开契约）
-4. `emit/dist-preparer.ts` 退役——createDist 语义入 DiskOutput.publish
-5. Output impl 文件归置：`emit/output.ts`（F7 lock，2 class + 1 interface）
+3. `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删；`BuildResult.entries`（L496）改 sourced from `output.getEntries()`（F-R4-2）
+4. `skipMaterialize` flag 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1 补）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
+5. `emit/dist-preparer.ts` 退役——createDist 语义入 DiskOutput.publish
+6. Output impl 文件归置：`emit/output.ts`（F7 lock，2 class + 1 interface）
 
 **行为 0 验**（全量，F12 split）：
 - tsc 0
