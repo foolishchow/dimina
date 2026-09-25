@@ -6,7 +6,7 @@ Status: **in_progress（2026-10-10；PC-B2 完成，PC-B1 探针发现 storeInfo
 
 | ID | 验证项 | 命令/方法 | 状态 |
 | --- | --- | --- | --- |
-| P-PC1 | I/O 闭合 | grep `getWorkPath\|getTargetPath\|getStyleExts\|getTemplateExts` src/packer/{store,emit,pipeline,graph} + src/compiler/{logic,view,style} → 递减（NpmBuilder/Publisher getWorkPath/getTargetPath 已消） | ◐ PC-B2 done，parse-walk 待 |
+| P-PC1 | I/O 闭合（主线程） | grep `getWorkPath\|getTargetPath\|getStyleExts\|getTemplateExts` 主线程消费者（orchestrator/collaborator）→ 0（worker 层 parse-walk/wxml 用 worker ALS 桥接，D-PC-5 保留非 B 目标）。NpmBuilder getWorkPath/getTargetPath/getStyleExts 已消（PC-B2/B3a） | ✓ done（PC-B3 = npm-builder，主线程唯一 fileTypes 消费者） |
 | P-PC2 | config data 闭合 | grep `getAppConfigInfo\|getPages\|isMiniGame\|getComponent` 消费者 → 路由 state.graph | pending |
 | P-PC3 | ALS store 消除 | env.ts 无 packerALS/Proxy（主线程）+ worker 路径保留 grep | pending |
 | P-PC4 | D-FC-2a 解锁 | orchestrate 签名 + implements PackerOrchestrator + result EmitEntry[] | pending |

@@ -53,7 +53,7 @@ PC-B1..B9 就位后：
 - aspect 穿线（C）保留
 - L/C/E dispatch wiring（E）保留 NOT wired
 - resolveAlias/resolveNpm 实体化（D-PCS-1）留 stub
-- worker 跨线程 ALS 桥接（D-PCS-8）保留
+- **worker 跨线程 ALS 桥接（D-PCS-8）保留**——parse-walk/wxml/compatibility-in-worker 用 worker ALS（resetStoreInfo 从 input 重建），非主线程 B 目标。B 切法只闭合主线程 ALS（packerALS）
 
 ## §3 收敛映射
 
