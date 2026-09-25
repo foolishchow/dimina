@@ -113,6 +113,8 @@ export interface StageChannelContext {
 	compileConfig?: unknown
 	sourcemap?: boolean
 	sourcemapTargetPath?: unknown
+	/** R7-3: loadBindings 跨 task mutable 闭包 → sctx 字段（StageDispatcher 写, result 读 appId） */
+	loadBindings?: unknown
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -437,5 +439,6 @@ export interface PackerOrchestrator {
  * Deps 是每 collaborator 的 typed 子接口（禁单一 bag，避 mutable bag 覆辙）。
  */
 export interface BuildCollaborator<Deps> {
-	run(sctx: StageChannelContext, deps: Deps): Promise<void>
+	/** 多数 collaborator 返 void；StageDispatcher 返 ListrTask[]（sub-task list 交 facade newListr 渲染） */
+	run(sctx: StageChannelContext, deps: Deps): Promise<unknown>
 }

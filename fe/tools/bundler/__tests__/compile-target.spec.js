@@ -262,6 +262,7 @@ describe('computeStagePlan (T2 — registry)', () => {
 
 describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
+	const stageDispatcherSrc = fs.readFileSync(path.join(packerRoot, 'pipeline/stage-dispatcher.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(packerRoot, 'pipeline/compile-target.ts'), 'utf8')
 	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
@@ -285,20 +286,21 @@ describe('P-CT05 ②T1 — structural anchors (packer orchestrator)', () => {
 	})
 
 	it('passes renderer adapter object (not name string) into createStageTask', () => {
-		expect(pipelineSrc).toContain('rendererAdapter')
-		expect(pipelineSrc).not.toContain('activeRenderer.name')
+		expect(stageDispatcherSrc).toContain('rendererAdapter')
+		expect(stageDispatcherSrc).not.toContain('activeRenderer.name')
 		expect(targetSrc).toContain('resolveCompileConfig')
 	})
 })
 
 describe('P-CT05 ②T2 — structural anchors (stage assembly via registry)', () => {
 	const pipelineSrc = fs.readFileSync(path.join(repoRoot, 'src/packer/orchestrator.ts'), 'utf8')
+	const stageDispatcherSrc = fs.readFileSync(path.join(packerRoot, 'pipeline/stage-dispatcher.ts'), 'utf8')
 	const targetSrc = fs.readFileSync(path.join(packerRoot, 'pipeline/compile-target.ts'), 'utf8')
 	const registrySrc = fs.readFileSync(path.join(packerRoot, 'registry/dispatch.ts'), 'utf8')
 
 	it('rewires compile assembly through readLoadBindings + computeStagePlan (registry)', () => {
-		expect(pipelineSrc).toContain('readLoadBindings()')
-		expect(pipelineSrc).toContain('computeStagePlan(')
+		expect(stageDispatcherSrc).toContain('readLoadBindings()')
+		expect(stageDispatcherSrc).toContain('computeStagePlan(')
 		expect(registrySrc).toContain('export function readLoadBindings')
 		expect(registrySrc).toContain('export function computeStagePlan')
 		// compile-target 不再含 compile 段

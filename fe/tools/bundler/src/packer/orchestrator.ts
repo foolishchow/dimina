@@ -7,15 +7,14 @@
  */
 
 import path from 'node:path'
-import process from 'node:process'
 import { Listr, PRESET_TIMER } from 'listr2'
 import type { ListrTask, ListrBaseClassOptions } from 'listr2'
 import { createLifecycle, LIFECYCLE_EVENTS } from '../shared/lifecycle.ts'
 import type { Lifecycle } from '../shared/lifecycle.ts'
 import { getRenderer, registerRenderer } from './registry/renderers.ts'
 import { createCompileTarget } from './pipeline/compile-target.ts'
-import type { PagesInfo, LoadBindings } from './pipeline/compile-target.types.ts'
-import { createDispatchRegistry, computeStagePlan, readLoadBindings } from './registry/dispatch.ts'
+import type { PagesInfo } from './pipeline/compile-target.types.ts'
+import { createDispatchRegistry } from './registry/dispatch.ts'
 import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl, CompileRegistryImpl, EmitRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
@@ -27,7 +26,6 @@ import { getAppConfigInfo, getAppName, getTargetPath, runWithCompilerContext } f
 import { executeTask } from './worker/executor.ts'
 import { emitEngine } from './emit/emit-engine.ts'
 import { runCompileStage } from './state/stage-channel.ts'
-import type { RunCompileStageParams } from './state/stage-channel.ts'
 import { BuildModel, materialize } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
 import type { ProjectStore } from './store/project-store.ts'
@@ -40,12 +38,10 @@ import { createNpmBuilderCollaborator } from './pipeline/npm-builder.ts'
 import type { NpmBuilderDeps } from './pipeline/npm-builder.ts'
 import { createConfigCollector } from './store/config-collector.ts'
 import type { ConfigCollectorDeps } from './store/config-collector.ts'
+import { createStageDispatcher } from './pipeline/stage-dispatcher.ts'
+import type { StageDispatcherDeps } from './pipeline/stage-dispatcher.ts'
 import type { BuildCollaborator } from './types.ts'
 
-interface RendererAdapter {
-	runViewStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
-	runStyleStage?: (ctx: Record<string, unknown>, task: unknown, wo: Record<string, unknown>, lc: { emit: (e: string, p: unknown) => Promise<void> }) => Promise<void>
-}
 
 /** D-FC-1 collaborator 装配 bag（orchestrator 内部接线，非 collaborator deps bag）。渐进填充。 */
 interface PackerCollaborators {
@@ -53,6 +49,7 @@ interface PackerCollaborators {
 	distPreparer: BuildCollaborator<DistPreparerDeps>
 	configCompiler: BuildCollaborator<ConfigCompilerDeps>
 	npmBuilder: BuildCollaborator<NpmBuilderDeps>
+	stageDispatcher: BuildCollaborator<StageDispatcherDeps>
 }
 
 /** orch 内部调用面（D-OR-8）：非 OrchestrateOptions 的装配参数。 */
@@ -109,6 +106,7 @@ export function createPackerOrchestrator({
 		distPreparer: createDistPreparer(),
 		configCompiler: createConfigCompiler(),
 		npmBuilder: createNpmBuilderCollaborator(),
+		stageDispatcher: createStageDispatcher(),
 	}
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
@@ -168,7 +166,6 @@ async function _orchestrate(
 	}
 	const compileTarget = createCompileTarget(runOptions)
 	const lifecycle = runLifecycle || pipelineLifecycle || createLifecycle()
-	let loadBindings: { pages?: unknown; appId?: string } | null = null
 
 	const serializableOptions = {
 		...compileOptions,
@@ -244,38 +241,14 @@ async function _orchestrate(
 			},
 			{
 				title: `编译项目 · ${path.basename(path.resolve(workPath))}`,
-				task: (ctx: Record<string, unknown>, task: unknown): unknown => {
-					const sctx = ctx as unknown as StageChannelContext
-					loadBindings = readLoadBindings() as { pages: unknown; appId: string } | null
-					sctx.allPages = (loadBindings as { pages?: unknown } | null)?.pages as unknown
-					sctx.compatibilityWarnings = new Set<string>()
-
-					const plan = computeStagePlan(dispatchRegistry, compileTarget, loadBindings as LoadBindings, {
-						cwd: process.cwd(),
+				task: async (ctx: Record<string, unknown>, task: unknown): Promise<unknown> => {
+					const compileTasks = await collaborators.stageDispatcher.run(ctx as unknown as StageChannelContext, {
+						dispatchRegistry,
+						compileTarget,
 						affectedEntries,
-					})
-					sctx.pages = (plan as { filteredPages: PagesInfo }).filteredPages
-					const logicOpts = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown> }> }).stageSpecs.logic?.workerOptions
-					if (logicOpts) {
-						sctx.compileConfig = logicOpts.compileConfig as unknown
-						sctx.sourcemap = logicOpts.sourcemap as boolean | undefined
-						sctx.sourcemapTargetPath = logicOpts.sourcemapTargetPath as string | undefined
-					}
-					const compileTasks = (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs
-						? (plan as { stages: string[]; stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stages.map((stage) => {
-						const spec = (plan as { stageSpecs: Record<string, { workerOptions: Record<string, unknown>; renderer?: unknown }> }).stageSpecs[stage]!
-						const dispatch = dispatchRegistry.get(stage)
-						return createStageTask(
-							stage,
-							dispatch?.title ?? stage,
-							dispatch?.engine ?? null,
-							lifecycle,
-							spec.workerOptions,
-							spec.renderer as RendererAdapter | null,
-						)
-					})
-						: []
-
+						lifecycle,
+						parallel,
+					}) as unknown[]
 					if (compileTasks.length > 0) {
 						return ((task as { newListr: (p: unknown[], o: unknown) => unknown }).newListr)(compileTasks, { concurrent: parallel !== false })
 					}
@@ -347,7 +320,7 @@ async function _orchestrate(
 		const context = await tasks.run()
 		printCompatibilityWarnings(workPath, (context as { compatibilityWarnings?: Set<string> }).compatibilityWarnings)
 		const result = {
-			appId: (loadBindings as { appId?: string } | null)?.appId,
+			appId: ((context as { loadBindings?: { appId?: string } | null }).loadBindings)?.appId,
 			name: getAppName(),
 			path: getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
 			dependencyGraph: ((context as { dependencyGraph?: { toJSON: () => unknown } }).dependencyGraph?.toJSON()),
@@ -362,45 +335,6 @@ async function _orchestrate(
 	catch (error) {
 		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_ERROR, { error, stage: (error as { stage?: string | null })?.stage ?? null })
 		throw error
-	}
-}
-
-function createStageTask(stage: string, title: string, engine: unknown, lifecycle: { emit: (e: string, p: unknown) => Promise<void> }, workerOptions: Record<string, unknown> = {}, rendererAdapter: RendererAdapter | null = null) {
-	return {
-		title,
-		rendererOptions: { outputBar: true, persistentOutput: false },
-		task: async (ctx: Record<string, unknown>, task: unknown) => {
-			const sctx = ctx as unknown as StageChannelContext
-			const pages = workerOptions.pages || sctx.pages
-			await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_BEFORE, {
-				stage,
-				pages,
-				sourcemap: !!workerOptions.sourcemap,
-			})
-			const warningsBefore = new Set(sctx.compatibilityWarnings ?? new Set())
-			const startedAt = Date.now()
-			const runStage = stage === 'view' || stage === 'style'
-				? (rendererAdapter as { runViewStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void>; runStyleStage?: (ctx: unknown, task: unknown, opts: unknown, lifecycle: unknown) => Promise<void> })?.[stage === 'view' ? 'runViewStage' : 'runStyleStage']
-				: null
-			try {
-				if (runStage) {
-					await runStage(ctx, task, workerOptions, lifecycle)
-				}
-				else {
-					await runCompileStage({ script: stage, engine: engine as RunCompileStageParams['engine'], ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => ((sctx.buildModel) as { add: (e: unknown) => void }).add(entry) })
-				}
-				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
-					stage,
-					compatibilityWarnings: [...(sctx.compatibilityWarnings ?? new Set())].filter(warning =>
-						!warningsBefore.has(warning)),
-					durationMs: Date.now() - startedAt,
-				})
-			}
-			catch (error) {
-				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage, error })
-				throw error
-			}
-		},
 	}
 }
 
