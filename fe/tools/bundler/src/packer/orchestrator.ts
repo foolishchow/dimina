@@ -17,13 +17,12 @@ import { createDispatchRegistry } from './registry/dispatch.ts'
 import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl, CompileRegistryImpl, EmitRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
-import { publishToDist } from './emit/publish.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
-import { getAppConfigInfo, getAppName, getTargetPath, runWithCompilerContext } from './store/env.ts'
+import { getAppConfigInfo, getAppName, runWithCompilerContext } from './store/env.ts'
 import { runCompileStage } from './state/stage-channel.ts'
-import { BuildModel, materialize } from './emit/build-model.ts'
+import { BuildModel } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
 import type { ProjectStore } from './store/project-store.ts'
 import { createDistPreparer } from './emit/dist-preparer.ts'
@@ -38,6 +37,8 @@ import { createStageDispatcher } from './pipeline/stage-dispatcher.ts'
 import type { StageDispatcherDeps } from './pipeline/stage-dispatcher.ts'
 import { createLogicEmitter } from './emit/logic-emitter.ts'
 import type { LogicEmitterDeps } from './emit/logic-emitter.ts'
+import { createPublisher } from './emit/publisher.ts'
+import type { PublisherDeps } from './emit/publisher.ts'
 import type { BuildCollaborator } from './types.ts'
 
 
@@ -49,6 +50,7 @@ interface PackerCollaborators {
 	npmBuilder: BuildCollaborator<NpmBuilderDeps>
 	stageDispatcher: BuildCollaborator<StageDispatcherDeps>
 	logicEmitter: BuildCollaborator<LogicEmitterDeps>
+	publisher: BuildCollaborator<PublisherDeps>
 }
 
 /** orch 内部调用面（D-OR-8）：非 OrchestrateOptions 的装配参数。 */
@@ -107,6 +109,7 @@ export function createPackerOrchestrator({
 		npmBuilder: createNpmBuilderCollaborator(),
 		stageDispatcher: createStageDispatcher(),
 		logicEmitter: createLogicEmitter(),
+		publisher: createPublisher(),
 	}
 
 	async function orchestrate(request: OrchestrateRequest): Promise<Record<string, unknown>> {
@@ -264,13 +267,7 @@ async function _orchestrate(
 			{
 				title: '写入编译产物',
 				task: async (ctx: Record<string, unknown>) => {
-					if (!skipMaterialize) {
-						materialize(ctx.buildModel as BuildModel, getTargetPath())
-					}
-					// H4 Phase 2 (F-H4-2): seedPath（watch/compile-cache 增量）→ 增量 sync publish
-					// （content-diff，无 rm 窗口）；否则全量（one-shot，行为不变，F8 guard）
-					publishToDist(targetPath, useAppIdDir, !!seedPath)
-					await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
+					await collaborators.publisher.run(ctx as unknown as StageChannelContext, { targetPath, useAppIdDir, seedPath, skipMaterialize, lifecycle })
 				},
 			},
 		] as ListrTask<Record<string, unknown>>[]),
