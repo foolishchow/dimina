@@ -28,6 +28,7 @@ import type { GraphSnapshot } from './graph/dependency-graph.ts'
 import type { GraphConfigData } from './graph/graph.ts'
 import type { CachedModuleResult } from './cache/module-result-cache.ts'
 import type { BuildModel } from './emit/build-model.ts'
+import type { Lifecycle } from '../shared/lifecycle.ts'
 
 // ════════════════════════════════════════════════════════════════════
 // §1 基础类型
@@ -417,26 +418,53 @@ export interface PackerEntry {
 }
 
 /** 编排选项。 */
-export interface OrchestrateOptions {
+/**
+ * 编译选项（D-NS-5：OrchestrateOptions refactor——compile-shared + mode flags）。
+ * 避免 CompileRequest extends 继承 watch 字段（F-X1-1 WatchRequest-only 分类）。
+ */
+export interface CompileOptions {
 	/** 各车道并行（现状 Listr concurrent: true）。默认 true。 */
 	parallel: boolean
-	/** watch 增量（affectedEntries + invalidatedModules）。 */
-	incremental: boolean
-	/** .json 变了（触发 graph.reconcile / 全量）。 */
-	configChanged: boolean
-	/** 受影响 entry（增量）。 */
-	affectedEntries?: string[]
+	/** watch 增量（affectedEntries + invalidatedModules）。默认 false。 */
+	incremental?: boolean
+	/** .json 变了（触发 graph.reconcile / 全量）。默认 false。 */
+	configChanged?: boolean
 	/** 要跑的车道（view/logic/style）。 */
 	stages?: string[]
-	/** 全 kind 失效模块列表（G3 D-IV-6/7 反转：原 logic-only，现全 kind）。 */
-	invalidatedModules?: string[]
-	/** 增量复制旧产物根。 */
-	seedPath?: string
 	prepareConfig?: boolean
 	prepareNpm?: boolean
 	/** .dev：跳过 materialize。 */
 	skipMaterialize?: boolean
 }
+
+/** watch 增量数据（D-NS-5：watch-only）。 */
+export interface WatchOptions {
+	/** 受影响 entry（增量）。 */
+	affectedEntries?: string[]
+	/** 全 kind 失效模块列表（G3 D-IV-6/7 反转：原 logic-only，现全 kind）。 */
+	invalidatedModules?: string[]
+	/** 增量复制旧产物根。 */
+	seedPath?: string
+}
+
+/**
+ * PUBLIC 编译请求（D-NS-5，F-AB1-1：retain store?/lifecycle? per-request override）。
+ * workPath/targetPath 从 ctx；state 2nd arg。
+ */
+export interface CompileRequest extends CompileOptions {
+	useAppIdDir?: boolean
+	/** RAW FileTypesInput（store.load 用，非 normalized）。 */
+	fileTypes?: unknown
+	/** C1 / createCompileTarget 其余字段（mode/platform/minify/…）。 */
+	compileOptions?: Record<string, unknown>
+	/** per-request store override（_orchestrate L170 runStore ?? providedStore）。 */
+	store?: unknown
+	/** per-request lifecycle override。 */
+	lifecycle?: Lifecycle
+}
+
+/** watch 请求（D-NS-5：增量数据 only）。 */
+export interface WatchRequest extends CompileRequest, WatchOptions {}
 
 /**
  * 唯一主动组件。
@@ -459,7 +487,7 @@ export interface PackerOrchestrator {
 	orchestrate(
 		ctx: PackerContext,
 		state: OrchestratorState,
-		options: OrchestrateOptions,
+		options: CompileRequest | WatchRequest,
 	): Promise<BuildResult>
 }
 

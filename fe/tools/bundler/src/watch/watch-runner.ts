@@ -121,7 +121,7 @@ export function createBuildWatcher({
 						appId: buildResult!.appId as string,
 					})
 				}
-				// D-OR-6/8：plan.options → OrchestrateOptions；不传 cache / dependencyGraph 快照
+				// D-OR-6/8：plan.options → WatchRequest；不传 cache / dependencyGraph 快照
 				const result = await build(targetPath, workPath, useAppIdDir, {
 					...options,
 					store: activeStore,

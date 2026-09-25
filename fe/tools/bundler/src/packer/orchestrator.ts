@@ -18,7 +18,7 @@ import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
-import type { OrchestrateOptions, PackerContext, LoaderRegistry, StageChannelContext, BuildResult } from './types.ts'
+import type { CompileOptions, WatchOptions, CompileRequest, WatchRequest, PackerContext, LoaderRegistry, StageChannelContext, BuildResult, PackerOrchestrator } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 
 import { runCompileStage } from './state/stage-channel.ts'
@@ -53,29 +53,18 @@ interface PackerCollaborators {
 	publisher: BuildCollaborator<PublisherDeps>
 }
 
-/** orch 内部调用面（D-OR-8）：非 OrchestrateOptions 的装配参数。 */
-export interface OrchestrateRequest extends OrchestrateOptions {
+/**
+ * INTERNAL unified _orchestrate param（D-NS-5，F-AB2-1：extends CompileOptions & WatchOptions）。
+ * compile + watch 字段全 superset（targetPath/workPath/state + useAppIdDir/store/lifecycle/fileTypes/compileOptions）。
+ * store?/lifecycle? 是 per-request OVERRIDE（F-AB1-1：_orchestrate L170 runStore ?? providedStore）。
+ */
+export interface OrchestrateRequest extends CompileOptions, WatchOptions {
 	targetPath: string
 	workPath: string
 	useAppIdDir?: boolean
 	state: PackerSessionState
 	store?: unknown
 	lifecycle?: Lifecycle
-	fileTypes?: unknown
-	/** C1 / createCompileTarget 其余字段（mode/platform/minify/…） */
-	compileOptions?: Record<string, unknown>
-}
-
-/**
- * B 切法（PC-B10a）：orchestrate(ctx, state, options) 北星签名的 options 形状。
- * 装配参数（useAppIdDir/store/lifecycle/fileTypes raw/compileOptions）+ OrchestrateOptions。
- * workPath/targetPath/state 不在此——分别从 ctx/state 显式传。
- */
-export interface OrchestrateCallOptions extends OrchestrateOptions {
-	useAppIdDir?: boolean
-	store?: unknown
-	lifecycle?: Lifecycle
-	/** RAW FileTypesInput（store.load 用，非 normalized PackerFileTypes） */
 	fileTypes?: unknown
 	/** C1 / createCompileTarget 其余字段（mode/platform/minify/…） */
 	compileOptions?: Record<string, unknown>
@@ -105,7 +94,7 @@ export function createPackerOrchestrator({
 }: {
 	store?: unknown
 	lifecycle?: Lifecycle
-} = {}) {
+} = {}): PackerOrchestrator {
 	const dispatchRegistry = createDispatchRegistry()
 	// H2 Phase 2a（D-REG-2）：loaderRegistry 实体化——logic Loader 已注册（F-H2-1 logic 可直接包装）。
 	// view/style Loader 待 F-H2-1 拆分后注册。compile/emit registry 仍是 stub（Phase 2b/2c）。
@@ -126,7 +115,7 @@ export function createPackerOrchestrator({
 		publisher: createPublisher(),
 	}
 
-	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: OrchestrateCallOptions): Promise<BuildResult> {
+	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: CompileRequest | WatchRequest): Promise<BuildResult> {
 		// B 切法（PC-B10a）：北星签名 (ctx, state, options) 落地——ctx 显式 PackerContext（非 ALS 派生）。
 		// implements PackerOrchestrator + result→EmitEntry[] reconcile deferred（D-OR-7 三重张力：北星 return type Promise<EmitEntry[]>
 		//   vs metadata object 消费 + PackerSessionState vs OrchestratorState state type + lifecycle-integration Object.keys 锚点——需北星 interface 演进）。
@@ -135,6 +124,9 @@ export function createPackerOrchestrator({
 	}
 
 	// D-FC-2b: registry 私有化（facade 内部，不公开返回）——仅返 { orchestrate }
+	// D-NS-4（P-NS4）：return type annotation : PackerOrchestrator——structural conformance
+	// + method bivariance（state: PackerSessionState narrower 经 bivariance 放行；
+	// options: CompileRequest | WatchRequest，bivariance 放行 state: PackerSessionState。D-OR-7 消解。
 	return {
 		orchestrate,
 	}
