@@ -2,7 +2,6 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
-import { AsyncContextStore } from '../worker/async-context-store.ts'
 import { uuid } from '../../shared/utils.ts'
 import { NpmResolver } from '../graph/npm-resolver.ts'
 import { DependencyGraph } from '../graph/dependency-graph.ts'
@@ -18,7 +17,6 @@ import {
 	resolveAppAlias as resolveAppAliasImpl,
 } from '../graph/config-fixpoint.ts'
 
-const packerALS = new AsyncContextStore<CompilerContext>({ name: 'packer' })
 let defaultCompilerContext: CompilerContext | undefined
 
 type CompilerContext = {
@@ -42,7 +40,7 @@ function createCompilerContext(): CompilerContext {
 
 function getCompilerContext(): CompilerContext {
 	defaultCompilerContext ||= createCompilerContext()
-	return packerALS.tryGet() ?? defaultCompilerContext
+	return defaultCompilerContext
 }
 
 // 将现有属性访问路由到当前异步构建上下文。直接调用 storeInfo() 的测试和
@@ -208,8 +206,10 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 		graph.build(toPackerContext(localCtx))
 	}
 
-	// compat: 将结果写回 ALS context（residual 读者：custom-file-types.spec getter + publish/npm-builder fallback）。
-	// PC-B8b 将移除此写（需测试改读 storeInfo 返回值）。
+	// compat: 将结果写回 defaultCompilerContext（主线程 pathInfo/configInfo Proxy +
+	// getter 读者：dist-preparer createDist(targetPath)、npm-builder fallback、view/style/logic
+	// parse-walk 经 worker resetStoreInfo）。P-NS6 audit：此写 load-bearing——主线程
+	// getter 消费方未全迁 storeInfo() 返回值前不可删。
 	const context = getCompilerContext()
 	context.pathInfo = localPathInfo
 	context.compilerOptions = compilerOptions
@@ -245,9 +245,8 @@ function resetStoreInfo(opts: { pathInfo: PathInfo; configInfo: ConfigInfo; comp
 	}
 }
 
-function runWithCompilerContext<T>(callback: () => T): T {
-	return packerALS.run(createCompilerContext(), callback)
-}
+// D-NS-6（P-NS6）：runWithCompilerContext 退役——packerALS 主线程 ALS 无 caller。
+// worker 上下文经 resetStoreInfo（写 defaultCompilerContext）。
 
 /**
  * CompilerContext → PackerContext 适配器（D-GB build-pipeline / watch-plan 共用）。
@@ -489,7 +488,6 @@ export {
 	isTemporaryTargetPath,
 	resetStoreInfo,
 	resolveAppAlias,
-	runWithCompilerContext,
 	storeAppConfig,
 	storePageConfig,
 	storePathInfo,
