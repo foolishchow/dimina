@@ -10,7 +10,6 @@
 
 import { materialize } from './build-model.ts'
 import { publishToDist } from './publish.ts'
-import { getTargetPath } from '../store/env.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
 import type { BuildCollaborator, StageChannelContext } from '../types.ts'
@@ -29,7 +28,9 @@ export function createPublisher(): BuildCollaborator<PublisherDeps> {
 		async run(sctx: StageChannelContext, deps: PublisherDeps) {
 			const { targetPath, useAppIdDir, seedPath, skipMaterialize, lifecycle } = deps
 			if (!skipMaterialize) {
-				materialize(sctx.buildModel as BuildModel, getTargetPath())
+				// B 切法（PC-B2）：build dir 从 sctx.storeInfo 显式读（非 ALS getTargetPath）
+				const buildDir = (sctx.storeInfo as { pathInfo: { targetPath: string } }).pathInfo.targetPath
+				materialize(sctx.buildModel as BuildModel, buildDir)
 			}
 			// H4 Phase 2 (F-H4-2): seedPath（watch/compile-cache 增量）→ 增量 sync publish
 			// （content-diff，无 rm 窗口）；否则全量（one-shot，行为不变，F8 guard）
