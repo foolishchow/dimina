@@ -1,5 +1,6 @@
 import chokidar from 'chokidar'
 import build from '../index.ts'
+import type { BuildResult } from '../packer/types.ts'
 import { createProjectStore } from '../packer/store/project-store.ts'
 import { PackerSessionState } from '../packer/state/session-state.ts'
 import {
@@ -45,7 +46,7 @@ export function createBuildWatcher({
 	beforeBuild?: (ctx: Record<string, unknown>) => void | Promise<void>
 	onError?: (e: Error, change: { event: string; filePath: string; count: number }) => void
 }) {
-	let buildResult: { appId: string; [key: string]: unknown } | undefined
+	let buildResult: BuildResult | undefined
 	let scheduler: ReturnType<typeof createWatchRebuildScheduler> | undefined
 	let fsWatcher: { on: (ev: string, cb: (event: string, filePath: string) => void) => void; close: () => Promise<void> } | undefined
 	let started = false
@@ -92,14 +93,14 @@ export function createBuildWatcher({
 		// one-shot 创建点（index.ts/build-pipeline.ts）保持 undefined → no-op → diff=0 边界延续。
 		if (!sessionState.viewCache) sessionState.viewCache = new Map()
 		if (!sessionState.styleCache) sessionState.styleCache = new Map()
-		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, state: sessionState }) as { appId: string; [key: string]: unknown }
-		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId))
+		buildResult = await build(targetPath, workPath, useAppIdDir, { ...options, store: activeStore, state: sessionState })
+		ignoredOutputPaths.add(publishedPathFor(buildResult!.appId as string))
 
 		scheduler = createWatchRebuildScheduler({
 			onRebuild,
 			onError,
 			rebuild: async (change) => {
-				const publishedPath = publishedPathFor(buildResult!.appId)
+				const publishedPath = publishedPathFor(buildResult!.appId as string)
 				// D-OS-3: plan 从 state.graph 读活图（替代 activeStore.getDependencyGraph() 读空 default）
 				// D-FP-8: prevFingerprints 来自 sessionState；persist plan.fingerprints（即使 skip 也持久化——指纹已更新）
 				const plan = createWatchBuildPlan({
@@ -117,7 +118,7 @@ export function createBuildWatcher({
 					await beforeBuild({
 						...change,
 						plan,
-						appId: buildResult!.appId,
+						appId: buildResult!.appId as string,
 					})
 				}
 				// D-OR-6/8：plan.options → OrchestrateOptions；不传 cache / dependencyGraph 快照
@@ -127,8 +128,8 @@ export function createBuildWatcher({
 					state: sessionState,
 					...plan.options,
 				})
-				buildResult = result as { appId: string; [key: string]: unknown }
-				ignoredOutputPaths.add(publishedPathFor((result as unknown as { appId: string }).appId))
+				buildResult = result
+				ignoredOutputPaths.add(publishedPathFor(result.appId as string))
 			},
 		})
 

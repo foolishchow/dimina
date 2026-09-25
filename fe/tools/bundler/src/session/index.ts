@@ -245,7 +245,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 
 				await adapter.createServer({
 					serveRoot: state.targetPath,
-					appId: (buildResult as { appId: string }).appId,
+					appId: buildResult?.appId as string,
 					artifactResolver: (path: string) => state.buildModel?.getArtifact(path) ?? null,
 				})
 
@@ -266,7 +266,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 				await watcher.listen()
 
 				return {
-					appId: (buildResult as { appId: string }).appId,
+					appId: buildResult?.appId,
 					server: { host, port },
 					async close() {
 						try {

@@ -18,11 +18,11 @@ import type { PackerDispatchRegistry } from './registry/dispatch.ts'
 import { LoaderRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
-import type { OrchestrateOptions, PackerContext, LoaderRegistry, StageChannelContext } from './types.ts'
+import type { OrchestrateOptions, PackerContext, LoaderRegistry, StageChannelContext, BuildResult } from './types.ts'
 import { artCode, resetAssetCache } from '../shared/utils.ts'
 
 import { runCompileStage } from './state/stage-channel.ts'
-import { BuildModel } from './emit/build-model.ts'
+import type { BuildModel } from './emit/build-model.ts'
 import { createProjectStore } from './store/project-store.ts'
 import type { ProjectStore } from './store/project-store.ts'
 import { createDistPreparer } from './emit/dist-preparer.ts'
@@ -126,7 +126,7 @@ export function createPackerOrchestrator({
 		publisher: createPublisher(),
 	}
 
-	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: OrchestrateCallOptions): Promise<Record<string, unknown>> {
+	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: OrchestrateCallOptions): Promise<BuildResult> {
 		// B 切法（PC-B10a）：北星签名 (ctx, state, options) 落地——ctx 显式 PackerContext（非 ALS 派生）。
 		// implements PackerOrchestrator + result→EmitEntry[] reconcile deferred（D-OR-7 三重张力：北星 return type Promise<EmitEntry[]>
 		//   vs metadata object 消费 + PackerSessionState vs OrchestratorState state type + lifecycle-integration Object.keys 锚点——需北星 interface 演进）。
@@ -147,7 +147,7 @@ async function _orchestrate(
 	dispatchRegistry: PackerDispatchRegistry,
 	loaderRegistry: LoaderRegistry,
 	collaborators: PackerCollaborators,
-): Promise<Record<string, unknown>> {
+): Promise<BuildResult> {
 	const {
 		targetPath,
 		workPath,
@@ -300,13 +300,15 @@ async function _orchestrate(
 
 		const context = await tasks.run()
 		printCompatibilityWarnings(workPath, (context as { compatibilityWarnings?: Set<string> }).compatibilityWarnings)
-		const result = {
-			appId: ((context as { loadBindings?: { appId?: string } | null }).loadBindings)?.appId,
-			name: state.graph.getAppName(),
-			path: state.graph.getAppConfigInfo().entryPagePath || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
-			dependencyGraph: ((context as { dependencyGraph?: { toJSON: () => unknown } }).dependencyGraph?.toJSON()),
-			buildModel: (context as { buildModel?: BuildModel }).buildModel,
-		}
+	const buildModel = (context as { buildModel?: BuildModel }).buildModel
+	const result: BuildResult = {
+		entries: buildModel ? [...buildModel.entries.values()] : [],
+		appId: ((context as { loadBindings?: { appId?: string } | null }).loadBindings)?.appId,
+		name: state.graph.getAppName(),
+		path: (state.graph.getAppConfigInfo().entryPagePath as string | undefined) || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
+		dependencyGraph: state.graph.toJSON(),
+		buildModel,
+	}
 		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_END, {
 			result,
 			isolatedListenerErrors: lifecycle.isolatedListenerErrors.length,

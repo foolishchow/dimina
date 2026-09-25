@@ -13,9 +13,19 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import type { EmitEntry } from './emit.ts'
+
+/** D-NS-3 (F-S1-1 + F-AF1-1)：BuildModel entry shape——kind 窄化为 EmitEntry['kind']
+ * （源头窄化，runtime 已约束仅 view/logic/style，消 orchestrator return cast）。 */
+export type BuildModelEntry = {
+	entryId: string
+	kind: EmitEntry['kind']
+	files: { path: string; code: string }[]
+	sourcemaps?: { path: string; map: unknown }[]
+}
 
 export class BuildModel {
-	entries: Map<string, { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }> = new Map()
+	entries: Map<string, BuildModelEntry> = new Map()
 	private _artifactIndex: Map<string, { code: string }> | null = null
 	/** H4 D-PUSH-3: dirty entries set——自上次 materialize 后 add/changed 的 entry keys */
 	private _dirtyEntries: Set<string> = new Set()
@@ -29,7 +39,7 @@ export class BuildModel {
 	 * 收编一个回传产物条目（worker 流式 output 消息）。
 	 * @param {object} entry { entryId, kind, files, sourcemaps? }
 	 */
-	add(entry: { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }): void {
+	add(entry: BuildModelEntry): void {
 		if (!entry || typeof entry.entryId !== 'string') {
 			throw new TypeError('BuildModel.add: entry.entryId must be a string')
 		}
@@ -71,10 +81,10 @@ export class BuildModel {
 	}
 
 	/** H4 D-PUSH-3: 获取 dirty entries（供 L_HMR payload 提取变更 module） */
-	getDirtyEntries(): { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] }[] {
+	getDirtyEntries(): BuildModelEntry[] {
 		return [...this._dirtyEntries]
 			.map(key => this.entries.get(key))
-			.filter((e): e is { entryId: string; kind: string; files: { path: string; code: string }[]; sourcemaps?: { path: string; map: unknown }[] } => e !== undefined)
+			.filter((e): e is BuildModelEntry => e !== undefined)
 	}
 }
 

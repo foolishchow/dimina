@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import type { BuildResult } from '../types.ts'
 import process from 'node:process'
 import { getCompileStagesForFiles } from '../pipeline/compile-stages.ts'
 import { DependencyGraph } from '../graph/dependency-graph.ts'
@@ -226,9 +227,11 @@ function createCachedAppBuildPlan({ cacheEntry, workPath, publishedPath }: { cac
 	}
 }
 
-function createAppCacheEntry(buildResult: Record<string, unknown>, workPath: string, previousFingerprints: Record<string, FileFingerprint> = {}): Record<string, unknown> {
-	const { dependencyGraph, ...appInfo } = buildResult as { dependencyGraph: Record<string, unknown> }
-	const cachedDependencyGraph = serializeDependencyGraphForCache(dependencyGraph, workPath)
+function createAppCacheEntry(buildResult: BuildResult, workPath: string, previousFingerprints: Record<string, FileFingerprint> = {}): Record<string, unknown> {
+	// D-NS-3 (F-AD1-1)：decisive 排除 entries + buildModel——entries 含编译 code，
+	// buildModel 含 .entries Map code + 序列化 dead-weight（Map→{}）；cache 写盘 JSON。
+	const { dependencyGraph, entries: _entries, buildModel: _buildModel, ...appInfo } = buildResult
+	const cachedDependencyGraph = serializeDependencyGraphForCache(dependencyGraph as unknown as Record<string, unknown>, workPath)
 	return {
 		lastCompileTime: Date.now(),
 		appInfo,

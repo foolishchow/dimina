@@ -168,7 +168,7 @@ describe('lifecycle observer integration', () => {
 		const end = events.find(event => event.name === 'build:end').payload
 		expect(end.isolatedListenerErrors).toBe(0)
 		expect(end.result).toEqual(result)
-		expect(Object.keys(result).sort()).toEqual(['appId', 'buildModel', 'dependencyGraph', 'name', 'path'])
+		expect(Object.keys(result).sort()).toEqual(['appId', 'buildModel', 'dependencyGraph', 'entries', 'name', 'path'])
 	})
 
 	it('honors stages filtering in emitted events', async () => {

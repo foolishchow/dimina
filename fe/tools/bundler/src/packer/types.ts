@@ -27,6 +27,7 @@ import type { EmitEntry, EmitTransformConfig } from './emit/emit.ts'
 import type { GraphSnapshot } from './graph/dependency-graph.ts'
 import type { GraphConfigData } from './graph/graph.ts'
 import type { CachedModuleResult } from './cache/module-result-cache.ts'
+import type { BuildModel } from './emit/build-model.ts'
 
 // ════════════════════════════════════════════════════════════════════
 // §1 基础类型
@@ -405,6 +406,7 @@ export interface ModuleResultCache<V = CachedModuleResult> {
 
 // ════════════════════════════════════════════════════════════════════
 // §8 PackerOrchestrator（D-PCS-5, D-PCS-8, D-PCS-9）
+// §8a BuildResult（D-NS-3：北星 return type composite——Promise<EmitEntry[]> → Promise<BuildResult>）
 // ════════════════════════════════════════════════════════════════════
 
 /** 编译入口。 */
@@ -458,7 +460,19 @@ export interface PackerOrchestrator {
 		ctx: PackerContext,
 		state: OrchestratorState,
 		options: OrchestrateOptions,
-	): Promise<EmitEntry[]>
+	): Promise<BuildResult>
+}
+
+/** 北星 composite return（D-NS-3，F-AG1-1/F-AH1-1 cast 分类）。 */
+export interface BuildResult {
+	/** 编译产物 entries（北星 aspirational 契约 D-FC-5——sourced from buildModel.entries.values()）。 */
+	entries: EmitEntry[]
+	appId: string | undefined
+	name: string | undefined
+	path: string | undefined
+	/** guaranteed GraphSnapshot（source state.graph.toJSON()——F-AG1-1）。 */
+	dependencyGraph: GraphSnapshot
+	buildModel: BuildModel | undefined
 }
 
 // ════════════════════════════════════════════════════════════════════
