@@ -229,6 +229,9 @@ grep 验 caller=0 后删：
 - `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput/DiskOutput.read）
   - **F-R18-2 BuildModel 方法迁移显式**：`_artifactIndex`（L29 lazy index）→ BaseOutput.index（read lazy）；`_dirtyEntries`（L31）+ `dirtyCount`（L58）+ `clearDirty`（L79）+ `getDirtyEntries`（L84）→ DiskOutput（dirty tracking，publish dirty guard 用）
   - **F-R22-3 BuildModelEntry type + import 删**：`BuildModelEntry` type（L20）删（F-R13-2 Output.entries 用 EmitEntry 同形）；BuildModel import 语句全删（orchestrator L25 + types L30 + publisher L16 + logic-emitter L17）
+- **F-R26-1 publish.ts export 语句 + import 链断**：publish.ts L153 `export { createDist, publishToDist }` 删；publisher L12 `import { publishToDist }` 删（改 deps.output + output.publish）；dist-preparer L11 `import { createDist }` 删（dist-preparer 退役）
+- **F-R26-2 publisher.ts import 演进**：删 materialize（L11）+ publishToDist（L12）+ BuildModel（L16 type）；加 `import type { Output } from './output.ts'`
+- **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }`（value import）→ `import type { Output } from './output.ts'`（L37 `as BuildModel` → `as Output`）
 - `materialize` / `publishToDist` / `createDist` 函数
 - **F-R18-1 publish.ts helper 函数迁移**：copyDir（L6）+ syncIncremental（L77）+ collectFiles（L40）+ filesIdentical（L56）迁入 `emit/output.ts`（DiskOutput.publish 内部 helper，非 export——seed copy 用 copyDir，incremental sync 用 syncIncremental/collectFiles/filesIdentical）
 - `artifactResolver` callback + dev server 注入点（dev-server createServer params 改收 OutputRef，F-R5-2）

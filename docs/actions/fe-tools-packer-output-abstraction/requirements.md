@@ -77,6 +77,9 @@ P-O3 后退役（grep 验 caller=0）：
 - `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput/DiskOutput.read）——**F-R18-2**：_artifactIndex→BaseOutput.index；_dirtyEntries+dirtyCount+clearDirty+getDirtyEntries→DiskOutput
 - `materialize` / `publishToDist` / `createDist` 函数
 - **F-R18-1 publish.ts helper 迁移**：copyDir + syncIncremental + collectFiles + filesIdentical 迁入 emit/output.ts（DiskOutput.publish 内部 helper）
+- **F-R26-1 publish.ts export + import 链断**：publish.ts L153 `export { createDist, publishToDist }` 删 + publisher L12/dist-preparer L11 import 删
+- **F-R26-2 publisher.ts import 演进**：删 materialize/publishToDist/BuildModel + 加 `import type { Output }`
+- **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }` → `import type { Output }`（L37 as Output）
 - `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
 - `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1 补）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
 - compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）+ **F-R11-2 `isTemporaryTargetPath()` ALS getter 删**（只 publish.ts 用，DiskOutput.publish hardcode temporary=true 后不调）+ **F-R19-4 `getAppId()` ALS getter 保留**（compiler/* parse-walk 仍用，worker 侧；publish.ts fallback 死但 getter 本身不删）

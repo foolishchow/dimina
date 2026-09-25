@@ -64,6 +64,9 @@ Status authority: [Action Status](../STATUS.md)
    - `materialize` 函数（emit/build-model.ts L104）
    - `publishToDist` + `createDist` 函数（emit/publish.ts）
    - **F-R18-1 publish.ts helper 迁移**：copyDir（L6）+ syncIncremental（L77）+ collectFiles（L40）+ filesIdentical（L56）迁入 emit/output.ts（DiskOutput.publish 内部 helper）
+   - **F-R26-1 publish.ts export + import 链断**：publish.ts L153 `export { createDist, publishToDist }` 删 + publisher L12/dist-preparer L11 import 删
+   - **F-R26-2 publisher.ts import 演进**：删 materialize（L11）+ publishToDist（L12）+ BuildModel（L16）+ 加 `import type { Output } from './output.ts'`
+   - **F-R26-3 logic-emitter value→type import**：L17 `import { BuildModel }` → `import type { Output }`（L37 as Output）
    - `artifactResolver` callback + dev-server createServer params 注入点
    - `skipMaterialize` flag 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
    - **sctx.buildModel 消费者迁移验**（F-R7-1）：stage-dispatcher L54（dispatch onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）→ sctx.output（grep `sctx.buildModel` src/ caller=0）
