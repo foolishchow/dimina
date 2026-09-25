@@ -1,6 +1,6 @@
 # fe-tools-packer-context-closure
 
-- Status: `draft`
+- Status: `in_progress`
 - Created: 2026-10-10
 - 切法：**B（ALS→PackerContext 闭合）**——消 ALS 全局，I/O 显式 PackerContext 贯穿
 - Status authority: [Action Status](../STATUS.md)

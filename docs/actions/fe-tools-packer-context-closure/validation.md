@@ -1,12 +1,12 @@
 # Validation — fe-tools-packer-context-closure
 
-Status: **draft（2026-10-10）**
+Status: **in_progress（2026-10-10；PC-B2 完成，PC-B1 探针发现 storeInfo 闭合是基础相）**
 
 ## Validation Plan（实施后执行）
 
 | ID | 验证项 | 命令/方法 | 状态 |
 | --- | --- | --- | --- |
-| P-PC1 | I/O 闭合 | grep `getWorkPath\|getTargetPath\|getStyleExts\|getTemplateExts` src/packer/{store,emit,pipeline,graph} + src/compiler/{logic,view,style} → 0（或仅 env.ts 内） | pending |
+| P-PC1 | I/O 闭合 | grep `getWorkPath\|getTargetPath\|getStyleExts\|getTemplateExts` src/packer/{store,emit,pipeline,graph} + src/compiler/{logic,view,style} → 递减（NpmBuilder/Publisher getWorkPath/getTargetPath 已消） | ◐ PC-B2 done，parse-walk 待 |
 | P-PC2 | config data 闭合 | grep `getAppConfigInfo\|getPages\|isMiniGame\|getComponent` 消费者 → 路由 state.graph | pending |
 | P-PC3 | ALS store 消除 | env.ts 无 packerALS/Proxy（主线程）+ worker 路径保留 grep | pending |
 | P-PC4 | D-FC-2a 解锁 | orchestrate 签名 + implements PackerOrchestrator + result EmitEntry[] | pending |
