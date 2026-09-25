@@ -120,6 +120,27 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 })
 
 describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () => {
+	let tempDir
+	let outputDir
+
+	beforeEach(() => {
+		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-materialize-'))
+		outputDir = path.join(tempDir, 'dist')
+		fs.mkdirSync(outputDir, { recursive: true })
+	})
+
+	afterEach(() => {
+		if (fs.existsSync(tempDir)) {
+			fs.rmSync(tempDir, { recursive: true, force: true })
+		}
+	})
+
+	function writeFile(relativePath, content) {
+		const filePath = path.join(tempDir, relativePath)
+		fs.mkdirSync(path.dirname(filePath), { recursive: true })
+		fs.writeFileSync(filePath, content)
+	}
+
 	it('registry 注册/get/kinds + 未注册 kind throw', async () => {
 		const { LoaderRegistryImpl } = await import('../src/packer/registry/lce.ts')
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
@@ -132,18 +153,28 @@ describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () =>
 		expect(() => registry.get('view')).toThrow(/no Loader registered for kind: view/)
 	})
 
-	it('orchestrator loaderRegistry 已 materialize（logic 注册）', async () => {
+	it('orchestrator 私有 registry（D-FC-2b）—— orchestrate 行为验 logic 已接线', async () => {
 		const { createPackerOrchestrator } = await import('../src/packer/orchestrator.js')
-		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
+		const { PackerSessionState } = await import('../src/packer/state/session-state.js')
+		const { storeInfo } = await import('../src/packer/store/env.ts')
+
+		writeFile('app.json', JSON.stringify({ pages: ['pages/index'] }))
+		writeFile('project.config.json', JSON.stringify({ appid: 'test-app' }))
+		writeFile('pages/index.js', 'Page({ data: { msg: "hi" } })\n')
+		storeInfo(tempDir)
 
 		const orch = createPackerOrchestrator()
-		expect(orch.loaderRegistry.get('logic')).toBe(logicLoader)
-		expect(orch.loaderRegistry.kinds()).toContain('logic')
-		// D-HR-1（fe-tools-hmr-chain-residuals）：compile/emit registry 实体化（CompileRegistryImpl/EmitRegistryImpl）
-		// ——阶段函数形状适配是后续门，未注册 → get throws（与 LoaderRegistryImpl 一致）
-		expect(() => orch.compileRegistry.get('logic')).toThrow()
-		expect(() => orch.emitRegistry.get('logic')).toThrow()
-		expect(orch.compileRegistry instanceof Object).toBe(true)
-		expect(orch.emitRegistry instanceof Object).toBe(true)
+		// D-FC-2b: registry 私有化——orch 仅返 { orchestrate }，不再公开 loaderRegistry 等
+		expect(orch.loaderRegistry).toBeUndefined()
+		expect(orch.compileRegistry).toBeUndefined()
+		expect(orch.emitRegistry).toBeUndefined()
+		// 改验 orchestrate 行为：logic 接线 → buildModel 有 logic emit entry
+		const result = await orch.orchestrate({
+			targetPath: outputDir, workPath: tempDir, useAppIdDir: true,
+			state: new PackerSessionState(), prepareNpm: false, skipMaterialize: false,
+			parallel: false, incremental: false, configChanged: false,
+		})
+		expect(result.appId).toBe('test-app')
+		expect(result.buildModel.entries.size).toBeGreaterThan(0)
 	})
 })

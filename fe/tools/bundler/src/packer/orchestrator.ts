@@ -15,7 +15,7 @@ import { getRenderer, registerRenderer } from './registry/renderers.ts'
 import { createCompileTarget } from './pipeline/compile-target.ts'
 import { createDispatchRegistry } from './registry/dispatch.ts'
 import type { PackerDispatchRegistry } from './registry/dispatch.ts'
-import { LoaderRegistryImpl, CompileRegistryImpl, EmitRegistryImpl } from './registry/lce.ts'
+import { LoaderRegistryImpl } from './registry/lce.ts'
 import { logicLoader } from '../compiler/logic/registry-impl.ts'
 import { PackerSessionState } from './state/session-state.ts'
 import type { OrchestrateOptions, LoaderRegistry, StageChannelContext } from './types.ts'
@@ -98,8 +98,7 @@ export function createPackerOrchestrator({
 	// ——阶段函数形状适配（需 page/继承上下文）是后续门，dispatch 不接线（locked B：compile/emit 维持 worker）。
 	const loaderRegistry = new LoaderRegistryImpl()
 	loaderRegistry.register('logic', logicLoader)
-	const compileRegistry = new CompileRegistryImpl()
-	const emitRegistry = new EmitRegistryImpl()
+	// D-FC-2b: compile/emit registry 私有化（不公开返回）+ 未 wired（D-HR-1 locked B）→ 不实体化
 
 	// D-FC-1: 无状态 collaborator 在闭包内一次构造复用（共享闭包 registry）
 	const collaborators = {
@@ -116,11 +115,8 @@ export function createPackerOrchestrator({
 		return runWithCompilerContext(() => _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators))
 	}
 
+	// D-FC-2b: registry 私有化（facade 内部，不公开返回）——仅返 { orchestrate }
 	return {
-		loaderRegistry,
-		compileRegistry,
-		emitRegistry,
-		dispatchRegistry,
 		orchestrate,
 	}
 }

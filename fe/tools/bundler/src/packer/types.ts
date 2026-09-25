@@ -416,10 +416,6 @@ export interface OrchestrateOptions {
  * F-3: 不是全局串行 fixpoint——是各车道级 fixpoint + 合并。
  */
 export interface PackerOrchestrator {
-	loaderRegistry: LoaderRegistry
-	compileRegistry: CompileRegistry
-	emitRegistry: EmitRegistry
-
 	orchestrate(
 		ctx: PackerContext,
 		state: OrchestratorState,
