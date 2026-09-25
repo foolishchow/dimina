@@ -220,16 +220,19 @@ serveRoot = `state.targetPath`（session 注入）——**mode-dep**：
 - **Output 流经 collaborator：`deps.output`**（与现有 collaborator deps 模式一致——publisher/dist-preparer 等 deps 传参）
 - `publisher` collaborator deps 字段演进（F-R11-1 显式）：删 `skipMaterialize`（D-O5 消 flag）+ 删 sctx.storeInfo.pathInfo 读（F-R10-1，buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 `output: Output`；保留 `targetPath`/`useAppIdDir`/`seedPath`/`appId`/`lifecycle`。改调 `output.publish(target, {useAppIdDir, seedPath, appId, incremental: !!seedPath})`（**F-R14-1 incremental=!!seedPath**，复刻 publisher L40 `!!seedPath`；非 materialize + publishToDist）
 - `dist-preparer` collaborator：createDist 语义已入 DiskOutput.publish——**dist-preparer 退役**（P-O3 删；P-O2 阶段如需分离 prepareScratch 可保留 thin wrapper，但倾向直接并入 publish）
-- sctx.output 由 **orchestrator 入口创建**（D-OL1 方案 B）+ task ctx 初始化设；collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
+- sctx.output 由 **orchestrator 入口创建**（D-OL1 方案 B）+ listr2 ctx 注入设；collaborator 经 deps.output 读（deps.output = sctx.output，由 orchestrator task ctx 注入）
+- **F-R18-3 deps.output vs sctx.output 不一致注**：publisher 用 deps.output（与现有 deps 模式一致——targetPath/seedPath 等显式传）；logic-emitter L37 + stage-dispatcher L54 用 sctx.output（直接读 ctx.output，因已收 sctx StageChannelContext）。不一致但可行——publisher deps 显式传，其他读 sctx。
 
 ### D-O7 — 殁骸拆除（P-O3，F11 + F-R7-1/R7-2/R7-3/R8-1 修正含全 sctx.buildModel 消费者 + type 字段演进）
 
 grep 验 caller=0 后删：
 - `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput/DiskOutput.read）
+  - **F-R18-2 BuildModel 方法迁移显式**：`_artifactIndex`（L29 lazy index）→ BaseOutput.index（read lazy）；`_dirtyEntries`（L31）+ `dirtyCount`（L58）+ `clearDirty`（L79）+ `getDirtyEntries`（L84）→ DiskOutput（dirty tracking，publish dirty guard 用）
 - `materialize` / `publishToDist` / `createDist` 函数
+- **F-R18-1 publish.ts helper 函数迁移**：copyDir（L6）+ syncIncremental（L77）+ collectFiles（L40）+ filesIdentical（L56）迁入 `emit/output.ts`（DiskOutput.publish 内部 helper，非 export——seed copy 用 copyDir，incremental sync 用 syncIncremental/collectFiles/filesIdentical）
 - `artifactResolver` callback + dev server 注入点（dev-server createServer params 改收 OutputRef，F-R5-2）
 - `skipMaterialize` flag（CompileOptions/types.ts L437 + publisher guard L31 + orchestrator **L143 request destructuring**（F-R5-1）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40）
-- compat 写 output 消费方：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）；**F-R11-2 `isTemporaryTargetPath()` fallback 消费方死**（publish.ts L116 `isTemporary ?? isTemporaryTargetPath()`——DiskOutput.publish hardcode temporary=true 后不调，F-R10-1）
+- compat 写 output 消费方：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）；**F-R11-2 `isTemporaryTargetPath()` 消费方死**（publish.ts L109 `isTemporary ?? isTemporaryTargetPath()`——DiskOutput.publish hardcode temporary=true 后不调；**isTemporaryTargetPath() ALS getter 只 publish.ts 用 → 删**）；**F-R19-4 `getAppId()` ALS getter 保留**——compiler/* parse-walk（logic L92/style L484/view L908）仍用（worker 侧，resetStoreInfo 喂），publish.ts `appId ?? getAppId()` fallback 死（DiskOutput.publish 用 opts.appId）但 ALS getter 本身不删
 - **BuildResult.buildModel 字段**（types.ts L503）→ `output: Output | undefined`（D-OL3）——BuildModel type 删，BuildResult 字段名 output
 - **BuildResult.entries**（types.ts L496）→ sourced from `output.getEntries()`（F-R4-2）——保 entries 公开契约
 - **F-R7-1 殁骸消费者迁移**（sctx.buildModel add 4 + read 3 → sctx.output，见 D-OL2）：

@@ -73,13 +73,12 @@ Output impl 由 mode 选择（消 skipMaterialize 开关）+ 4 mode 覆盖（F4 
 ## R-O6 — 殁骸拆除（F11 修正含 BuildResult 字段）
 
 P-O3 后退役（grep 验 caller=0）：
-- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput.read）
-- `materialize` 函数（语义入 DiskOutput.publish）
-- `publishToDist` + `createDist` 函数（语义入 DiskOutput.publish）
+- `BuildModel` class（累积 + dirty 迁入 DiskOutput；getArtifact 迁入 MemOutput/DiskOutput.read）——**F-R18-2**：_artifactIndex→BaseOutput.index；_dirtyEntries+dirtyCount+clearDirty+getDirtyEntries→DiskOutput
+- `materialize` / `publishToDist` / `createDist` 函数
+- **F-R18-1 publish.ts helper 迁移**：copyDir + syncIncremental + collectFiles + filesIdentical 迁入 emit/output.ts（DiskOutput.publish 内部 helper）
 - `artifactResolver` callback（dev server createServer params 改收 Output，调 Output.read）
 - `skipMaterialize` flag（mode=impl 选择，无需 flag）—— 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1 补）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
-- compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）+ **F-R11-2 `isTemporaryTargetPath()` fallback 消费方死**（publish.ts L116，DiskOutput.publish hardcode temporary=true 后不调）
-- **F-R10-1 publisher 删 sctx.storeInfo.pathInfo 消费**：publisher deps 删 buildDir/temporaryTargetPath 读（内化入 DiskOutput.publish）+ 删 skipMaterialize（D-O5）+ 加 output（F-R11-1 publisher deps 字段演进，**F-R14-1 incremental=!!seedPath**）
+- compat 写 output 消费方死：`getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（emit/* caller=0）+ **F-R11-2 `isTemporaryTargetPath()` ALS getter 删**（只 publish.ts 用，DiskOutput.publish hardcode temporary=true 后不调）+ **F-R19-4 `getAppId()` ALS getter 保留**（compiler/* parse-walk 仍用，worker 侧；publish.ts fallback 死但 getter 本身不删）
 - `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删
 - `BuildResult.entries`（types.ts L496）→ sourced from `output.getEntries()`（F-R4-2）
 - **F-R7-1 殁骸消费者迁移**（sctx.buildModel add 4 + read 3 → sctx.output，见 R-O1.1 D-OL2）：stage-dispatcher L54（dispatch 路径 onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）

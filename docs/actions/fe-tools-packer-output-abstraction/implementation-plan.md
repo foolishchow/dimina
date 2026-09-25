@@ -60,16 +60,18 @@ Status authority: [Action Status](../STATUS.md)
 
 **改动**：
 1. grep 验殁骸 caller=0 → 删：
-   - `BuildModel` class（emit/build-model.ts）——累积 + dirty 已迁 DiskOutput；getArtifact 已迁 MemOutput/DiskOutput.read
+   - `BuildModel` class（emit/build-model.ts）——累积 + dirty 已迁 DiskOutput；getArtifact 已迁 MemOutput/DiskOutput.read；**F-R18-2** _artifactIndex→BaseOutput.index，_dirtyEntries+dirtyCount+clearDirty+getDirtyEntries→DiskOutput
    - `materialize` 函数（emit/build-model.ts L104）
    - `publishToDist` + `createDist` 函数（emit/publish.ts）
+   - **F-R18-1 publish.ts helper 迁移**：copyDir（L6）+ syncIncremental（L77）+ collectFiles（L40）+ filesIdentical（L56）迁入 emit/output.ts（DiskOutput.publish 内部 helper）
    - `artifactResolver` callback + dev-server createServer params 注入点
    - `skipMaterialize` flag 全 caller 退役：types.ts L437 + publisher L31 + orchestrator **L143 request destructuring**（F-R5-1）+ L156/187/277 + session L235 + index.ts L26/78 + runner.ts L40
    - **sctx.buildModel 消费者迁移验**（F-R7-1）：stage-dispatcher L54（dispatch onOutput）+ logic-emitter L37/L42（cast 读 + 累积 add）→ sctx.output（grep `sctx.buildModel` src/ caller=0）
 2. grep 验 compat 写 output 消费方死：
    - `getTargetPath()` 在 createDist/materialize/publishToDist 调用全消（grep 验 env.ts getter caller 在 emit/* = 0）
-   - **F-R11-2 `isTemporaryTargetPath()` fallback 消费方死**（publish.ts L116——DiskOutput.publish hardcode temporary=true 后不调）
-   - 注：`getTargetPath()` 在 compiler/* parse-walk（collectAssets）仍存——worker 侧，resetStoreInfo 喂，不动
+   - **F-R11-2 `isTemporaryTargetPath()` ALS getter 删**（只 publish.ts 用 → 删；grep `isTemporaryTargetPath` src/ caller=0）
+   - **F-R19-4 `getAppId()` ALS getter 保留**（compiler/* parse-walk 仍用，worker 侧——不删；publish.ts `appId ?? getAppId()` fallback 死）
+   - 注：`getTargetPath()`/`getAppId()` 在 compiler/* parse-walk（collectAssets）仍存——worker 侧，resetStoreInfo 喂，不动
 3. `BuildResult.buildModel` 字段（types.ts L503）→ `output: Output | undefined`；BuildModel type 删；`BuildResult.entries`（L496）改 sourced from `output.getEntries()`（F-R4-2）
 4. **type 字段演进**（F-R7-2/R7-3）：`StageChannelContext.buildModel?`（types.ts L123）→ `output?: Output`；`SessionState.buildModel?`（session/index.ts L59）→ `output?: Output`（F-R9-2：只 SessionState，不加 PackerSessionState）
 5. `emit/dist-preparer.ts` 退役——createDist 语义入 DiskOutput.publish
