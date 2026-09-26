@@ -64,11 +64,11 @@
 
 ## Readiness gaps
 
-**3 项**（design §4 风险，P-SC1 验证条目）：
+**3 项**（design §4 风险，P-SC1/P-SC2 验证条目）：
 
-1. **resolveNpm 等价性**：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`（toPackerContext L263 是 stub）。P-SC1 实证 index.ts buildPackerContext 的 resolveNpm 实现。
-2. **project-store 存废**：getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 薄包。存废决策（倾向保留——ProjectStore interface 改签名）P-SC1 定。
-3. **compilerOptions 字段名转换**：PackerFileTypes.directivePrefixes ≠ normalizeFileTypes.templateDirectivePrefixes——logic-emitter 组装须字段名转换（§5.3 lock）。
+1. **project-store 存废**：getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 薄包。存废决策（倾向保留——ProjectStore interface 改签名）P-SC1 定。
+2. **compilerOptions 字段名转换**：PackerFileTypes.directivePrefixes ≠ normalizeFileTypes.templateDirectivePrefixes——buildResetStoreInfoData helper 统一转换。
+3. **listr2 ctx 流到 stage-channel**：sctx.ctx/sctx.state 须经 listr2 task ctx 流到 stage-channel（L37 窄化）——须验 stage-channel 可见 sctx.ctx/sctx.state。
 
 ## Closure conditions
 

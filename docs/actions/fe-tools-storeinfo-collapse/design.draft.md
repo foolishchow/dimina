@@ -60,15 +60,16 @@ PackerContext 流给 collaborator：**orchestrator `tasks.run({ output, ctx, sta
 
 ### D-SC3 — storeInfo 改纯函数（3 参数 lock）
 
-`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath 见 §5.1 实证）+ 算 computePathInfo(ctx.workPath) → `state.scratch`。无返回值无 compat 写。
+`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath 见 §5.1 实证）+ 算 computePathInfo(ctx.workPath) → `state.scratch = localPathInfo.targetPath!`（类型断言：PathInfo.targetPath?: string，computePathInfo 总设但类型 optional——F-R10-3）。无返回值无 compat 写。
 
 - project-store.load 改签名 `load(ctx, opts, state)` → `void`（mutate state.scratch + state.graph，无 return）
 - 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）
 - 删 compat 写（env.ts L209-219，6 条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
-- 删内部 toPackerContext（localCtx → ctx 直传；graph.build L69 收 PackerContext，不读 targetPath——实证可行）
-- **resolveNpm 等价性须验**（§4 风险）：入口 PackerContext.resolveNpm 须等价 localCtx.npmResolver（`new NpmResolver(workPath)`）——toPackerContext L263 是 stub（`(src, _baseFile) => src`）。须实证入口 ctx.resolveNpm 非退化。
+- 删内部 toPackerContext（localCtx → ctx 直传；graph.build L69 收 PackerContext，不读 targetPath——实证可行；graph.build L73 自建 `new NpmResolver(ctx.workPath)`，不读 ctx.resolveNpm——实证安全，§4 resolveNpm 风险已删）
+- **scratch 类型断言**（F-R10-3）：`state.scratch = localPathInfo.targetPath!`（PathInfo.targetPath?: string）
+- **scratch mutability**（F-R10-4）：PackerSessionState.scratch 须 mutable（per-orchestrate 覆盖）—— `scratch: string`（非 readonly）
 
-**pathInfo 流**：storeInfo 算 computePathInfo → state.scratch = pathInfo.targetPath。ctx.temporaryTargetPath 不加（方案 C）。
+**pathInfo 流**：storeInfo 算 computePathInfo → state.scratch = pathInfo.targetPath!。ctx.temporaryTargetPath 不加（方案 C）。
 
 ### D-SC4 — 删 sctx.storeInfo + StageChannelContext.storeInfo
 
@@ -93,10 +94,12 @@ tsc 0 + vitest 88/88 + 7-diff=0。compiler/* 不动 + env.ts ALS 门面不删 + 
 
 ## 4. 风险
 
-- **resolveNpm 等价性**（D-SC3）：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`。toPackerContext L263 是 stub。须实证入口 ctx.resolveNpm 实现（index.ts buildPackerContext）——P-SC1 验证条目。
 - **project-store 存废**（§5.4）：getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 薄包。存废决策（删则 config-collector 直调 storeInfo；保留则 ProjectStore interface 改签名 `load(ctx, opts, state) → void`）——P-SC1 定。
-- **行为 0**：sctx.storeInfo 全 6 消费方迁 + getDependencyGraph 迁——每步独立验证。
-- **compilerOptions 字段名转换**（§5.3）：PackerFileTypes.directivePrefixes ≠ normalizeFileTypes.templateDirectivePrefixes——logic-emitter 组装须字段名转换。
+- **行为 0**：sctx.storeInfo 全 6 消费方迁 + getDependencyGraph 迁 + stage-channel L45 迁——每步独立验证。
+- **compilerOptions 字段名转换**（§5.3）：PackerFileTypes.directivePrefixes ≠ normalizeFileTypes.templateDirectivePrefixes——buildResetStoreInfoData helper 统一转换。
+- **listr2 ctx 流到 stage-channel**（§5.2）：sctx.ctx/sctx.state 须经 listr2 task ctx 流到 stage-channel（L37 窄化）——须验 orchestrator task 闭包的 ctx 是 listr2 注入 ctx（非 deps）。
+
+~~resolveNpm 等价性~~（F-R10-2 删）：实证 graph.build L73 自建 `new NpmResolver(ctx.workPath)`，不读 ctx.resolveNpm；buildPackerContext L286 resolveNpm = stub（与 toPackerContext L263 同）——ctx 直传行为等价，风险取消。
 
 ## 5. 方案 lock（3 待决问题解决）
 
@@ -114,30 +117,54 @@ tsc 0 + vitest 88/88 + 7-diff=0。compiler/* 不动 + env.ts ALS 门面不删 + 
 
 **理由**：与 output 同（listr2 ctx 注入）。config-collector 跑前 sctx.ctx + sctx.state 已存在。collaborator 不需 deps 加 ctx/state（统一 sctx）。
 
-**config-collector deps.state**：可删（用 sctx.state）或保留（冗余但无害）。倾向删——统一 sctx.state。
+**config-collector deps 演进**（F-R11-2 修正）：deps { store, state, lifecycle, loaderRegistry, workPath, fileTypes, invalidatedModules } 塌缩后：
+- `workPath` → 删（用 sctx.ctx.workPath）
+- `fileTypes` → 删（用 sctx.ctx.fileTypes）
+- `state` → 删（用 sctx.state）
+- 保留 store/lifecycle/loaderRegistry/invalidatedModules
 
-### 5.3 resetStoreInfo 数据源——从 sctx.ctx + sctx.state 组装（字段名转换 lock）
+**listr2 ctx 流到 stage-channel**（F-R12-2）：sctx.ctx/sctx.state 须经 listr2 task ctx 流到 stage-channel（L37 `ctx as unknown as StageChannelContext` 窄化）。orchestrator task 闭包收 listr2 注入 ctx（含 ctx/state）→ runCompileStage({ ctx }) → stage-channel 窄化 sctx.ctx/sctx.state 可见。须验 stage-channel L45 buildResetStoreInfoData(sctx.ctx, sctx.state) sctx 字段非 undefined。
 
-**决策**：logic-emitter 组装 resetStoreInfoData 给 emit-engine → resetStoreInfo：
+### 5.3 resetStoreInfo 数据源——buildResetStoreInfoData helper（3 处调用 lock）
+
+**决策**：抽 `buildResetStoreInfoData(ctx: PackerContext, state: PackerSessionState): Parameters<typeof resetStoreInfo>[0]` helper（env.ts export，resetStoreInfo 旁）。**3 处 worker resetStoreInfo 调用点**统一用 helper 组装（F-R10-1 修正——scope 扩展覆盖 view/style）：
+
+| 调用点 | 透传文件 | worker 入口 |
+|---|---|---|
+| logic stage | logic-emitter L39 → emit-engine L11 | emit-engine `resetStoreInfo(params.storeInfo)` |
+| view stage | stage-channel L45（`input.storeInfo`） | view/index.ts L192 `resetStoreInfo(m.storeInfo)` |
+| style stage | stage-channel L45（`input.storeInfo`） | style/index.ts L57 `resetStoreInfo(m.storeInfo)` |
+
+**组装**：
 
 ```ts
-{
-  pathInfo: { workPath: sctx.ctx.workPath, targetPath: sctx.state.scratch },
-  configInfo: sctx.state.graph.getConfigData(),
-  compilerOptions: {
-    templateExts: sctx.ctx.fileTypes.templateExts,
-    templateDirectivePrefixes: sctx.ctx.fileTypes.directivePrefixes,  // 字段名转换
-    styleExts: sctx.ctx.fileTypes.styleExts,
-    viewScriptExts: sctx.ctx.fileTypes.viewScriptExts,
-    viewScriptTags: sctx.ctx.fileTypes.viewScriptTags,
-  },
-  dependencyGraph: sctx.state.graph.getInnerGraph(),
+function buildResetStoreInfoData(ctx: PackerContext, state: PackerSessionState): Parameters<typeof resetStoreInfo>[0] {
+  return {
+    pathInfo: { workPath: ctx.workPath, targetPath: state.scratch },
+    configInfo: state.graph.getConfigData() as ConfigInfo,  // GraphConfigData → ConfigInfo 断言（F-R11-1）
+    compilerOptions: {
+      templateExts: ctx.fileTypes.templateExts,
+      templateDirectivePrefixes: ctx.fileTypes.directivePrefixes,  // 字段名转换（F-R6-1）
+      styleExts: ctx.fileTypes.styleExts,
+      viewScriptExts: ctx.fileTypes.viewScriptExts,
+      viewScriptTags: ctx.fileTypes.viewScriptTags,
+    },
+    dependencyGraph: state.graph.getInnerGraph(),
+  }
 }
 ```
 
-**理由**：storeInfo 塌缩后无返回值，resetStoreInfo 须 pathInfo + configInfo + compilerOptions + dependencyGraph。从 sctx.ctx（workPath/fileTypes）+ sctx.state（scratch/graph）组装。
+**调用**：
+- logic-emitter L39：`const resetStoreInfoData = buildResetStoreInfoData(sctx.ctx!, sctx.state!)` → emit input `storeInfo: resetStoreInfoData`
+- stage-channel L45：`storeInfo: buildResetStoreInfoData(sctx.ctx as PackerContext, sctx.state as PackerSessionState)`（view/style stage 统一透传点）
 
-**字段名转换**（F-R6-1 修正）：resetStoreInfo opts.compilerOptions 类型是 `ReturnType<typeof normalizeFileTypes>`（字段 `templateDirectivePrefixes`），但 PackerFileTypes 用 `directivePrefixes`。组装时须字段名转换（`directivePrefixes` → `templateDirectivePrefixes`），否则 worker compilerOptions.templateDirectivePrefixes 得 undefined，parse-walk 退化。
+**理由**：storeInfo 塌缩后无返回值，3 处 worker resetStoreInfo 须 pathInfo + configInfo + compilerOptions + dependencyGraph。抽 helper DRY（F-R13-3）+ 统一字段名转换（F-R6-1）+ 统一类型断言（F-R11-1 configInfo `as ConfigInfo`）。
+
+**字段名转换**（F-R6-1 修正）：resetStoreInfo opts.compilerOptions 类型是 `ReturnType<typeof normalizeFileTypes>`（字段 `templateDirectivePrefixes`），但 PackerFileTypes 用 `directivePrefixes`。helper 组装时字段名转换（`directivePrefixes` → `templateDirectivePrefixes`），否则 worker compilerOptions.templateDirectivePrefixes 得 undefined，parse-walk 退化。
+
+**类型断言**（F-R11-1 修正）：
+- configInfo：`getConfigData()` 返 `GraphConfigData`，resetStoreInfo opts.configInfo: `ConfigInfo` → `as ConfigInfo`（storeInfo 现状 L218 同断言）
+- pathInfo.targetPath：`state.scratch` 是 `string`（non-undefined），pathInfo 推导 `{workPath: string, targetPath: string}`——无需断言
 
 **pathInfo**：resetStoreInfo L229-248 只 set context.pathInfo + 读 pathInfo.workPath（npmResolver），不读 temporaryTargetPath。组装 pathInfo `{workPath, targetPath: state.scratch}` 足够（temporaryTargetPath 非必需——worker getTargetPath L401 只读 targetPath）。resetStoreInfo 本身不变（阶段 3 保留）。
 

@@ -33,16 +33,17 @@ Status authority: [Action Status](../STATUS.md)
    - npm-builder L294：sctx.storeInfo → sctx.ctx + sctx.state.scratch + sctx.ctx.fileTypes
    - publisher L30：sctx.storeInfo.pathInfo.targetPath（scratch）→ sctx.state.scratch
    - dist-preparer L25：sctx.storeInfo.pathInfo.targetPath（scratch）→ sctx.state.scratch
-   - logic-emitter L39：storeInfo 透传 emit-engine → 组装 resetStoreInfoData（§5.3 lock：字段名转换 directivePrefixes → templateDirectivePrefixes）
+   - logic-emitter L39：`const resetStoreInfoData = buildResetStoreInfoData(sctx.ctx!, sctx.state!)` → emit input `storeInfo: resetStoreInfoData`（§5.3 helper）
+   - **stage-channel L45**（F-R10-1）：`storeInfo: sctx.storeInfo` → `storeInfo: buildResetStoreInfoData(sctx.ctx as PackerContext, sctx.state as PackerSessionState)`（view/style worker resetStoreInfo 透传）
    - config-collector L51/L55：自身读 sctx.storeInfo → sctx.ctx + sctx.state.scratch
-4. logic-emitter 组装 resetStoreInfoData：`{ pathInfo: {workPath: sctx.ctx.workPath, targetPath: sctx.state.scratch}, configInfo: sctx.state.graph.getConfigData(), compilerOptions: {templateExts, templateDirectivePrefixes: sctx.ctx.fileTypes.directivePrefixes, styleExts, viewScriptExts, viewScriptTags}, dependencyGraph: sctx.state.graph.getInnerGraph()}`（字段名转换——design §5.3）
+4. **config-collector deps 演进**（F-R11-2）：删 deps.workPath/fileTypes/state（用 sctx.ctx/sctx.state）+ ConfigCollectorDeps interface 改
 5. EmitEntryParams（emit.ts L55）类型演进：storeInfo 字段 → resetStoreInfoData（`Parameters<typeof resetStoreInfo>[0]`）
 
 **行为 0 验**：每 collaborator 迁独立 tsc + vitest + 7-diff
 
 ## P-SC3 — 删殁骸 + compat 写死
 
-**依赖**：P-SC2（全 collaborator 迁完）
+**依赖**：P-SC2（全 collaborator 迁完 + stage-channel L45 迁完）
 
 **改动**：
 1. 删 StageChannelContext.storeInfo 字段（types.ts）
@@ -50,11 +51,11 @@ Status authority: [Action Status](../STATUS.md)
 3. 删 storeInfo 返回值类型 + compat 写（env.ts L209-219 六条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
 4. compat 写自然死（无快照可 dump）
 5. 删 project-store.getDependencyGraph/merge/snapshot（退役，无 src/ 消费方）
-6. grep 验：sctx.storeInfo caller=0 + compat 写 caller=0 + storeInfo return = 0 + getDependencyGraph caller=0
+6. grep 验：sctx.storeInfo caller=0 + compat 写 caller=0 + storeInfo return = 0 + getDependencyGraph caller=0 + **stage-channel storeInfo 透传 caller=0**
 
 **行为 0 验**：tsc 0 + vitest 88/88 + 7-diff=0 + grep caller=0
 
-**风险**：compat 写死可能破坏 worker resetStoreInfo（若 resetStoreInfo 依赖 compat 写的 singleton）。须验证 resetStoreInfo 数据源独立（§5.3 lock——logic-emitter 组装，非 ALS singleton）。
+**风险**：compat 写死可能破坏 worker resetStoreInfo（若 resetStoreInfo 依赖 compat 写的 singleton）。须验证 resetStoreInfo 数据源独立（§5.3 lock——buildResetStoreInfoData helper 组装，非 ALS singleton）。
 
 ## 行为 0 三件套（每相 gate）
 

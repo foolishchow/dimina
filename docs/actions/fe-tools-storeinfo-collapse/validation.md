@@ -11,9 +11,9 @@ Status authority: [Action Status](../STATUS.md)
 | V-SC5 | R-SC4 | grep `context\.pathInfo =\|context\.configInfo =\|context\.compilerOptions =\|context\.npmResolver =\|context\.graph =\|context\.dependencyGraph =` 在 storeInfo 函数内 = 0（compat 写死——六条全验） | pending |
 | V-SC6 | R-SC5 | grep `resetStoreInfo` src/ 非 0（worker ALS 保留）+ `getAppId/getTargetPath/getWorkPath` 在 compiler/* parse-walk 非 0（ALS getters 保留，阶段 3） | pending |
 | V-SC7 | R-SC3 | grep `function storeInfo` 签名（`→ void` 或无 return）+ 无 `return { pathInfo` + **3 参数** `storeInfo(ctx, graph, state)` | pending |
-| V-SC8 | R-SC1 | grep `scratch` 在 OrchestratorState（state/session-state.ts）非 0 + `state.scratch` 在 publisher/dist-preparer 非 0 | pending |
-| V-SC9 | R-SC2 | grep `sctx\.ctx` 在 collaborator 非 0（PackerContext 流）+ `ctx\.workPath\|ctx\.fileTypes` 在 collaborator 非 0 + **logic-emitter 组装 `templateDirectivePrefixes:.*directivePrefixes` 字段名转换**（F-R6-1 修正） | pending |
-| V-SC10 | R-SC7 | grep `compiler/parse-walk\|resetStoreInfo` 不变（compiler/* 不动）+ `defaultCompilerContext` 仍在 env.ts（ALS 门面不删）+ **入口 PackerContext.resolveNpm 非 stub**（实证 `new NpmResolver` 或等价——F-R4-2 修正） | pending |
+| V-SC8 | R-SC1 | grep `scratch` 在 PackerSessionState（state/session-state.ts）非 0 + **mutable（非 readonly）** + `state.scratch` 在 publisher/dist-preparer 非 0 + `state.scratch = localPathInfo.targetPath!` 类型断言在 storeInfo（F-R10-3） | pending |
+| V-SC9 | R-SC2 | grep `sctx\.ctx` 在 collaborator 非 0（PackerContext 流）+ `ctx\.workPath\|ctx\.fileTypes` 在 collaborator 非 0 + **buildResetStoreInfoData helper** 在 env.ts export 非 0 + **stage-channel L45** 调 `buildResetStoreInfoData(sctx.ctx` 非 0（view/style worker——F-R10-1）+ logic-emitter L39 调同 helper 非 0（字段名转换 `templateDirectivePrefixes:.*directivePrefixes`——F-R6-1） | pending |
+| V-SC10 | R-SC7 | grep `compiler/parse-walk\|resetStoreInfo` 不变（compiler/* 不动）+ `defaultCompilerContext` 仍在 env.ts（ALS 门面不删） | pending |
 
 ## 行为 0 三件套（每相 gate）
 

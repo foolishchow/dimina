@@ -27,21 +27,25 @@ PackerSessionState（state/session-state.ts L21，OrchestratorState 实现类）
 - `sctx.storeInfo.compilerOptions.viewScriptTags` → `sctx.ctx.fileTypes.viewScriptTags`
 - `sctx.storeInfo.compilerOptions.templateDirectivePrefixes` → `sctx.ctx.fileTypes.directivePrefixes`（字段名变：templateDirectivePrefixes → directivePrefixes）
 
-消费方：config-compiler-collab L29 + stage-dispatcher L85 + npm-builder L294 + publisher L30（scratch）+ dist-preparer L25（scratch）+ logic-emitter L39（storeInfo 透传 emit-engine）+ config-collector L51/L55。
+消费方：config-compiler-collab L29 + stage-dispatcher L85 + npm-builder L294 + publisher L30（scratch）+ dist-preparer L25（scratch）+ logic-emitter L39（storeInfo 透传 emit-engine）+ config-collector L51/L55 + **stage-channel L45（view/style worker resetStoreInfo 透传——F-R10-1 修正）**。
 
 **额外迁项**（design §5.4）：config-collector L36 `sctx.dependencyGraph = store.getDependencyGraph()` → `sctx.dependencyGraph = state.graph.getInnerGraph()`（直接 state.graph，非 ALS——compat 写死后 ALS graph 死）。
+
+**worker resetStoreInfo 数据源**（design §5.3——F-R10-1 修正）：3 处 worker resetStoreInfo（logic emit-engine + view stage-channel L45 + style stage-channel L45）统一用 `buildResetStoreInfoData(ctx, state)` helper 组装（env.ts export），替代 sctx.storeInfo 透传。
 
 PackerContext 流给 collaborator：**orchestrator `tasks.run({ output, ctx, state })` 注入** sctx.ctx + sctx.state（design §5.2 lock）。
 
 ### R-SC3 — storeInfo 改纯函数（3 参数 MUST）
 
-`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath）+ 算 computePathInfo(ctx.workPath) → `state.scratch`，**无返回值无 compat 写**。storeInfo 退化为 graph bootstrap 函数。
+`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath + 自建 NpmResolver 不读 ctx.resolveNpm）+ 算 computePathInfo(ctx.workPath) → `state.scratch = localPathInfo.targetPath!`（类型断言），**无返回值无 compat 写**。storeInfo 退化为 graph bootstrap 函数。
 
 - 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）
 - 删 compat 写（env.ts L209-219，6 条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
-- 删内部 toPackerContext（localCtx → ctx 直传；graph.build 收 PackerContext 不读 targetPath——实证 graph.ts L69）
+- 删内部 toPackerContext（localCtx → ctx 直传；graph.build 收 PackerContext 不读 targetPath/resolveNpm——实证 graph.ts L69,73）
 - project-store.load 改签名 `load(ctx, opts, state)` → `void`（mutate state.scratch + state.graph，无 return）
-- **resolveNpm 等价性须验**（design §4 风险）：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`（toPackerContext L263 是 stub）
+- **scratch 类型断言**（F-R10-3）：`state.scratch = localPathInfo.targetPath!`（PathInfo.targetPath?: string）
+- **scratch mutability**（F-R10-4）：PackerSessionState.scratch `string`（非 readonly——per-orchestrate 覆盖）
+- **buildResetStoreInfoData helper**（F-R10-1/F-R13-3）：env.ts export `buildResetStoreInfoData(ctx, state)`——3 处 worker resetStoreInfo 统一组装（字段名转换 + configInfo `as ConfigInfo` 断言）
 
 ### R-SC4 — 删 sctx.storeInfo + compat 写（MUST）
 
