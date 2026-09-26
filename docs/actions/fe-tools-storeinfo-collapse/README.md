@@ -1,10 +1,10 @@
 # fe-tools-storeinfo-collapse
 
 - Action: `fe-tools-storeinfo-collapse`
-- Status: `draft`
+- Status: `ready`
 - Created: 2026-10-10
 - Status authority: [Action Status](../STATUS.md)
-- 设计门：[design.draft.md](design.draft.md)（D-SC1..N 待 review lock）
+- 设计门：[design.draft.md](design.draft.md)（**D-SC1..6 locked**——3 待决问题解决：scratch 流方案 C state.scratch + PackerContext 流 sctx.ctx/sctx.state + resetStoreInfo 组装 + project-store.getDependencyGraph 退役）
 - 实施计划：[implementation-plan.md](implementation-plan.md)（P-SC1..N 分相）
 - 验证：[validation.md](validation.md)
 - 背景：[`docs/fe-tools/2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§7（概念分析）+ [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（backflow：compat 写 output-path 消费方死）
@@ -64,8 +64,7 @@
 
 ## Readiness gaps
 
-- **scratch 流待决**：Output 抽象后 publisher/dist-preparer 用 `opts.scratch`（per-request sctx.storeInfo.pathInfo.targetPath）。塌缩删 sctx.storeInfo 后，scratch 从哪？PackerContext.temporaryTargetPath（computePathInfo mkdtemp）？但 PackerContext 是 orchestrate 入参（config-collector 前）。须 design 探讨 scratch 流（ctx.temporaryTargetPath 何时设）。
-- **temporaryTargetPath 时机**：computePathInfo 在 storeInfo 跑（config-collector）。PackerContext 是入口参数（config-collector 前）。temporaryTargetPath 须在 storeInfo 后设——但 PackerContext immutable。design 待决。
+**无**（3 待决问题已 lock，详见 [design.draft.md](design.draft.md) §5）。
 
 ## Closure conditions
 

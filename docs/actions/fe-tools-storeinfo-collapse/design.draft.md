@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> D-SC1..N 待 review lock。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§8 讨论 + [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md) backflow。
+> **D-SC1..6 locked**（3 待决问题解决：scratch 流方案 C state.scratch + PackerContext 流 sctx.ctx/sctx.state 注入 + resetStoreInfo 从 sctx.ctx/sctx.state 组装 + project-store.getDependencyGraph 退役）。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§8 讨论 + [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md) backflow。
 
 ## 1. 现状
 
@@ -42,29 +42,15 @@ function storeInfo(workPath, options) {
 
 ## 2. 塌缩设计
 
-### D-SC1 — PackerContext 加 temporaryTargetPath
+### D-SC1 — OrchestratorState 加 scratch（方案 C lock）
 
-PackerContext interface 加 `temporaryTargetPath: string`（TEMP 构建目录，computePathInfo mkdtemp per-request）。关闭唯一 gap。
+PackerSessionState 加 `scratch: string`（TEMP mkdtemp per-orchestrate，每次 orchestrate 覆盖）。**PackerContext 不加 temporaryTargetPath**（保持纯 I/O：workPath/targetPath FINAL）。
 
-**scratch 流（关键待决）**：Output 抽象后 publisher/dist-preparer 用 `opts.scratch`（per-request）。塌缩后 scratch = `ctx.temporaryTargetPath`。
+**scratch 流**：storeInfo 算 computePathInfo → `state.scratch = localPathInfo.targetPath`。publisher/dist-preparer 读 `sctx.state.scratch`（非 sctx.storeInfo）。
 
-**时机问题**：computePathInfo 在 storeInfo 跑（config-collector）。PackerContext 是 orchestrate 入参（index.ts buildPackerContext，config-collector 前）。temporaryTargetPath 须在 storeInfo 后设——但 PackerContext immutable（入口参数）。
+**修正分析文档**：分析文档 §3/§5 说"PackerContext 加 temporaryTargetPath"，但 temporaryTargetPath 是 TEMP（非 FINAL），加到 PackerContext 违反纯 I/O。**方案 C**——scratch 在 PackerSessionState（per-orchestrate 合法持久），PackerContext 保持纯 I/O。
 
-**方案 A（ctx 可变）**：PackerContext 改 mutable（temporaryTargetPath optional，storeInfo 后设）。但 PackerContext 是 interface（值传递），mutable 不优雅。
-
-**方案 B（storeInfo 算 pathInfo 再建 ctx）**：orchestrate 入口不建完整 PackerContext。config-collector 调 storeInfo（算 pathInfo + graph），然后用 pathInfo 建完整 PackerContext 设 sctx.ctx。storeInfo 返回 pathInfo（或 mutate state.pathInfo）。
-
-**方案 C（state.scratch）**：scratch 存 OrchestratorState（state.scratch = computePathInfo mkdtemp）。publisher/dist-preparer 读 state.scratch。PackerContext 不加 temporaryTargetPath。
-
-倾向 **方案 C**——scratch 是 per-orchestrate TEMP（OrchestratorState 合法持久），非 PackerContext I/O 能力。PackerContext 保持纯 I/O（workPath/targetPath FINAL）。scratch 在 state。
-
-但——分析文档说"PackerContext 加 temporaryTargetPath（关闭唯一 gap）"。但 temporaryTargetPath 是 TEMP（非 FINAL）。PackerContext.targetPath 是 FINAL。混 TEMP + FINAL 到 PackerContext 违反 PackerContext 纯 I/O 定位。
-
-方案 C 更对——scratch 在 state（OrchestratorState），非 PackerContext。temporaryTargetPath 不加到 PackerContext。
-
-**修正**：D-SC1 改——scratch 存 state.scratch（OrchestratorState），PackerContext 不加 temporaryTargetPath。storeInfo 算 pathInfo → state.scratch = pathInfo.targetPath。publisher/dist-preparer 读 state.scratch（非 sctx.storeInfo）。
-
-### D-SC2 — collaborator 迁读 PackerContext + state.scratch
+### D-SC2 — collaborator 迁读 PackerContext + state.scratch（sctx.ctx/sctx.state lock）
 
 - `sctx.storeInfo.pathInfo.workPath` → `ctx.workPath`（sctx.ctx 或 deps）
 - `sctx.storeInfo.pathInfo.targetPath`（scratch TEMP）→ `state.scratch`（OrchestratorState）
@@ -92,7 +78,7 @@ PackerContext 流给 collaborator：sctx.ctx（StageChannelContext 加 ctx?）�
 - 删 storeInfo 返回值 + compat 写
 - compat 写自然死
 
-### D-SC5 — worker ALS bridge 保留
+### D-SC5 — worker ALS bridge 保留 + resetStoreInfo 数据源（组装 lock）
 
 resetStoreInfo + getters + defaultCompilerContext 保留。compiler/* parse-walk 仍读 ALS getters（阶段 3 迁）。
 
@@ -120,14 +106,51 @@ tsc 0 + vitest 88/88 + 7-diff=0。compiler/* 不动 + env.ts ALS 门面不删 + 
 - **PackerContext 流时机**（D-SC2）：config-collector 设 sctx.ctx（storeInfo 后）。但 PackerContext 是 orchestrate 入参（config-collector 前）。sctx.ctx 须在 storeInfo 后设——但 collaborator 在 storeInfo 后跑。OK。
 - **行为 0**：sctx.storeInfo 全 6 消费方迁——每步独立验证。
 
-## 5. 待决问题
+## 5. 方案 lock（3 待决问题解决）
 
-1. **scratch 流方案**（A ctx.mutable / B storeInfo 建 ctx / C state.scratch）——倾向 C（scratch 在 state，PackerContext 纯 I/O）
-2. **resetStoreInfo 数据源**（storeInfo 内部算 pathInfo/configInfo 给 resetStoreInfo？或从 state 拿？）
-3. **PackerContext 流**（sctx.ctx vs deps.ctx）——倾向 sctx.ctx
-4. **config-collector sctx.storeInfo L51/L55 自身读**（config-collector 设 sctx.storeInfo 后又读——须迁 sctx.ctx）
+### 5.1 scratch 流——方案 C（state.scratch）
 
-## 6. scope 取舍
+**决策**：scratch 存 **PackerSessionState.scratch**（per-orchestrate TEMP，每次 orchestrate 覆盖），**PackerContext 不加 temporaryTargetPath**（保持 PackerContext 纯 I/O：workPath/targetPath FINAL）。
+
+**理由**：temporaryTargetPath 是 TEMP（非 FINAL），加到 PackerContext 违反纯 I/O 定位（PackerContext.targetPath = FINAL）。scratch 是 per-orchestrate TEMP（PackerSessionState 合法持久，每次覆写）。
+
+**流**：storeInfo 算 computePathInfo → `state.scratch = localPathInfo.targetPath`。publisher/dist-preparer 读 `sctx.state.scratch`（非 sctx.storeInfo）。
+
+### 5.2 PackerContext 流——sctx.ctx + sctx.state 注入
+
+**决策**：orchestrator `tasks.run({ output, ctx, state })` 注入（ctx + state 经 listr2 ctx）。StageChannelContext 加 `ctx?: PackerContext` + `state?: PackerSessionState`。collaborator 读 `sctx.ctx`（workPath/fileTypes）+ `sctx.state.scratch`。
+
+**理由**：与 output 同（listr2 ctx 注入）。config-collector 跑前 sctx.ctx + sctx.state 已存在。collaborator 不需 deps 加 ctx/state（统一 sctx）。
+
+**config-collector deps.state**：可删（用 sctx.state）或保留（冗余但无害）。倾向删——统一 sctx.state。
+
+### 5.3 resetStoreInfo 数据源——从 sctx.ctx + sctx.state 组装
+
+**决策**：logic-emitter 组装 `{ pathInfo: { workPath: sctx.ctx.workPath, targetPath: sctx.state.scratch }, configInfo: sctx.state.graph.getConfigData(), compilerOptions: sctx.ctx.fileTypes, dependencyGraph: sctx.state.graph.getInnerGraph() }` 给 emit-engine → resetStoreInfo。
+
+**理由**：storeInfo 塌缩后无返回值，resetStoreInfo 须 pathInfo + configInfo + compilerOptions + dependencyGraph。从 sctx.ctx（workPath/fileTypes）+ sctx.state（scratch/graph）组装。resetStoreInfo 本身不变（阶段 3 保留）。
+
+### 5.4 project-store.getDependencyGraph 退役（compat 写死额外影响）
+
+**发现**：compat 写 `context.graph = graph`（env.ts L216）喂 `project-store.getDependencyGraph()`（返 ALS graph）。compat 写死后 defaultCompilerContext.graph 不设，getDependencyGraph 返 undefined。
+
+**消费方**：config-collector L36 `sctx.dependencyGraph = store.getDependencyGraph()`（唯一 src/ 消费方；compiler/view/wxml/load 用 env.getDependencyGraph，worker 侧阶段 3）。
+
+**决策**：config-collector L36 改 `sctx.dependencyGraph = state.graph.getInnerGraph()`（直接 state.graph，非 ALS）。project-store.getDependencyGraph 退役（死代码——可删或保留 stub）。
+
+**project-store.merge/snapshot**：无 src/ 消费方（grep 确认）——可删或保留 stub（非 blocking）。
+
+## 6. 塌缩路径（方案 lock 后）
+
+| 步 | 内容 | 效果 |
+|---|---|---|
+| 1 | PackerSessionState 加 scratch + orchestrator tasks.run({output, ctx, state}) 注入 | scratch 流 + ctx/state 流 |
+| 2 | storeInfo 改纯函数 `storeInfo(ctx, graph, state) → void`（算 computePathInfo → state.scratch + build/reconcile graph，无 return 无 compat 写）+ project-store.load 改 `load(ctx, opts, state) → void` | storeInfo 纯化 |
+| 3 | StageChannelContext 加 ctx? + state?（config-collector 设 sctx.dependencyGraph = state.graph.getInnerGraph()） | sctx.ctx + sctx.state |
+| 4 | collaborator 迁读 sctx.ctx + sctx.state.scratch（全 6 消费方）+ logic-emitter 组装 resetStoreInfoData | 消 sctx.storeInfo 读者 |
+| 5 | 删 sctx.storeInfo + StageChannelContext.storeInfo + storeInfo 返回值 + compat 写 + project-store.getDependencyGraph 退役 | compat 写自然死 |
+
+## 7. scope 取舍
 
 采用 **B 塌缩**（概念分析 §7 选项 B）——消 sctx.storeInfo，compat 写自然死。非 A 窄 backflow（打补丁）。
 
