@@ -59,12 +59,14 @@ mkdtemp 归属正位：Output（I/O 层）拥有 TEMP 目录生命周期；store
 
 ## Readiness gaps
 
-**4 项**（design §4 风险）：
+**原 4 项经 5 轮 readiness review（R1-R5）全解**：
 
-1. **dev 模式 scratch 语义**：MemOutput publish no-op，但 config-compiler/npm-builder/dist-preparer 仍写 state.scratch（dev 也 mkdtemp？dev 读 Output.read 内存 vs scratch fs？）——须 audit dev 链路 scratch 用途
-2. **BaseOutput vs DiskOutput 持 scratch**：MemOutput 是否真须 mkdtemp（dev 临时盘是否必需）
-3. **state.scratch 投影 vs 退役**：consumer 改读 output.scratch 直传 vs state.scratch 投影保留（最小改动倾向投影）
-4. **storeInfo compat mkdtemp 与 orchestrate Output mkdtemp 双源**：测试直调 storeInfo（compat mkdtemp）不走 orchestrate（Output mkdtemp）——独立 mkdtemp OK？须确认无冲突
+1. ~~dev 模式 scratch 语义~~ **已解（F-R1-1）**：dev 须 mkdtemp（createDist/compileConfig/npm-builder 防崩）——MemOutput 也 mkdtemp，BaseOutput 共用。dev server 读 Output.read 内存不受影响。
+2. ~~BaseOutput vs DiskOutput 持 scratch~~ **已解（F-R1-1）**：MemOutput 也须 mkdtemp（dev 防崩）→ BaseOutput 共用（dev/disk 同源）。
+3. ~~state.scratch 投影 vs 退役~~ **已解（F-R2-1）**：投影保留（consumer 不改读源，最小改动）——state.scratch = output.scratch 投影。
+4. ~~storeInfo compat mkdtemp 双源~~ **已解（F-R2-1）**：storeInfo compat wrapper 独立 mkdtemp（调 computePathInfo），测试直调不走 orchestrate——无冲突。
+
+**当前无 open 设计 gap**（实施期验证项：D-SI-3 computeStoreInfo pathInfo? 参数行为等价 + D-SI-4 storeInfo compat mkdtemp compile-cli-cache 测试——vitest 覆盖）。
 
 ## Closure conditions
 

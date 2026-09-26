@@ -14,7 +14,7 @@ mkdtemp（TEMP 目录原子分配）是 Output 的 I/O 职责，却由 storeInfo
 
 - `BaseOutput.scratch: string`（readonly，构造时设）
 - `MemOutput` / `DiskOutput` 继承（构造调 super 或 BaseOutput mkdtemp）
-- **dev 模式**（MemOutput）：scratch 仍创建（config-compiler/npm-builder 写 scratch——dev 临时盘；若 audit 证 dev 不须则 MemOutput 跳过——readiness gap 1）
+- **dev 模式**（MemOutput）：scratch 仍创建（config-compiler/npm-builder/dist-preparer 防崩——F-R1-1 实证：dev 须 mkdtemp；dev server 读 Output.read 内存不受影响）
 
 ### R-SI-2 — orchestrator 投影 state.scratch（MUST）
 
@@ -28,7 +28,7 @@ mkdtemp（TEMP 目录原子分配）是 Output 的 I/O 职责，却由 storeInfo
 
 `env-compute.computeStoreInfo` 去 mkdtemp（pathInfo 只 workPath，不 targetPath）+ `storeInfoCtx` 不设 state.scratch（由 orchestrator 预设 = output.scratch）。
 
-- `computeStoreInfo` 返回 pathInfo 只含 workPath（targetPath 不算——orchestrate 链路用 output.scratch）
+- `computeStoreInfo` 收 `pathInfo?` 参数（F-R2-1）——storeInfoCtx 传 `{workPath}`（无 targetPath）；storeInfo wrapper 传 `computePathInfo(workPath)`（含 mkdtemp targetPath）
 - `storeInfoCtx(ctx, graph, state)`：不调 computePathInfo mkdtemp；state.scratch 由 orchestrator 预设（不覆盖）
 - **graph.build** 仍用 ctx.workPath（不读 targetPath——实证 graph.ts:69）
 

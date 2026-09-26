@@ -14,10 +14,10 @@ Status authority: [Action Status](../STATUS.md)
 ### P-SI-2 — orchestrator 投影 + storeInfo 链路去 mkdtemp（B 批：wire）
 
 1. orchestrator.ts L166 后：`state.scratch = output.scratch`（投影）
-2. env-compute.ts `computeStoreInfo` 去 mkdtemp（pathInfo 只 workPath，targetPath 退役）
+2. env-compute.ts `computeStoreInfo` 收 `pathInfo?` 参数（F-R2-1——caller 传：storeInfoCtx 传 {workPath}，storeInfo wrapper 传 computePathInfo）
 3. env-compute.ts `storeInfoCtx` 不设 state.scratch（orchestrator 预设——删 `state.scratch = r.pathInfo.targetPath!`）
-4. env.ts `storeInfo` compat wrapper 补 mkdtemp（调 computePathInfo 保留——设 pathInfo.targetPath + compat 写 context.pathInfo）
-5. computePathInfo 保留 env-compute（storeInfo compat + 可能 BaseOutput 共用——readiness gap 3）
+4. env.ts `storeInfo` compat wrapper 调 computeStoreInfo(workPath, options, **computePathInfo(workPath)**)（传含 mkdtemp targetPath 的 pathInfo——compat 返回 + compat 写不变）
+5. computePathInfo 保留 env-compute（storeInfo compat wrapper 用——F-R2-2；BaseOutput 内联 mkdtemp 不调）
 6. tsc 0
 
 ### P-SI-3 — 行为 0 全量验证（C 批：验）
@@ -30,11 +30,11 @@ Status authority: [Action Status](../STATUS.md)
 ## 验证点
 
 - P-SI-1 后：BaseOutput.scratch 非 0 + MemOutput/DiskOutput 继承 + tsc 0
-- P-SI-2 后：orchestrator 投影生效 + computeStoreInfo pathInfo 无 targetPath + storeInfo wrapper compat mkdtemp + tsc 0
+- P-SI-2 后：orchestrator 投影生效 + computeStoreInfo 收 pathInfo? 参数（storeInfoCtx 传 {workPath} 无 targetPath；storeInfo wrapper 传 computePathInfo 含 targetPath）+ storeInfo wrapper compat mkdtemp + tsc 0
 - P-SI-3：行为 0 三件套绿 + compile-cli-cache 唯一性测试 pass（storeInfo compat mkdtemp 保留）
 
 ## 风险点
 
-- **D-SI-5 dev 模式**：P-SI-1 步 3 须 readiness audit 先决（dev 是否须 scratch）
-- **D-SI-4 storeInfo compat 双源**：P-SI-2 步 4 须确认 compile-cli-cache 测试 pass（storeInfo wrapper mkdtemp 保留）
+- ~~D-SI-5 dev 模式~~（**F-R1-1 已解**）：dev 须 mkdtemp（防崩）——P-SI-1 步 3 MemOutput 也 mkdtemp（BaseOutput 共用）
+- ~~D-SI-4 storeInfo compat 双源~~（**F-R2-1 已解**）：storeInfo wrapper 独立 mkdtemp（computePathInfo），测试不走 orchestrate——P-SI-2 步 4 compile-cli-cache 测试 vitest 验证
 - **P-SI-1/P-SI-2 atomic**：BaseOutput mkdtemp + orchestrator 投影 + storeInfo 链路去 mkdtemp 须 atomic（否则 state.scratch 无源）。建议合并单 commit。
