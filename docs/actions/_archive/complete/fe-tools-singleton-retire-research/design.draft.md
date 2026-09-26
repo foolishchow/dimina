@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-singleton-retire-research
 
-> **状态：ready**——D-SR-1..6 已 review lock。A5 singleton/Proxy 退役实施拆分规划。
+> **状态：complete**——D-SR-1..6 已 lock + 行为 0（git diff=0）。A5 singleton/Proxy 退役实施拆分规划。
 
 ## 1. 研究结论
 
