@@ -11,7 +11,7 @@ Status authority: [Action Status](../STATUS.md)
 3. 迁 fileTypes 规范化（normalizeExt/normalizeTag/mergeUnique/normalizeFileTypes + FileTypesInput type）
 4. 迁 computePathInfo / buildPackerContext / buildResetStoreInfoData / getAppStyleScopeId / getContentByPath（纯函数，逐字搬迁）
 5. 迁 CompilerContext type（internal）+ toPackerContext（internal）
-6. 拆 computeStoreInfo（storeInfo 纯计算部分，无 compat 写）
+6. 拆 computeStoreInfo（storeInfo 纯计算部分，无 compat 写）——**逐字搬迁 graph 分支逻辑（F-R4-1：含 SC_TRACE x2 + 顺序 reconcile→restoreFromSnapshot→reconcile，不清理不「修正」）**
 7. 迁 storeInfoCtx（调 computeStoreInfo，设 state.scratch——**风险 D-EL1-3：去 compat 写，须 7-diff 验**）
 8. 迁 resolveAppAlias（收 appInfo 参数——D-EL1-4 选项 A：env.ts wrapper 读 ALS）
 9. tsc 0
@@ -27,10 +27,11 @@ Status authority: [Action Status](../STATUS.md)
 
 ### P-EL1-3 — 死代码清理 + 测试调整（C 批：删）
 
-1. 删 env.ts 5 薄壳函数（storeProjectConfig/storeAppConfig/storePageConfig/getPages/createInitialDependencyGraph）
-2. 删 env.ts toPackerContext export（迁 env-compute internal，无外部 caller）
-3. env.spec.js 改：storeProjectConfig describe → 测 config-fixpoint.readProjectConfig 直接（或删，config-fixpoint 自有测试覆盖）
-4. tsc 0
+1. 删 env.ts 5 死代码函数（storeProjectConfig/storeAppConfig/storePageConfig/createInitialDependencyGraph/storePathInfo——src/ 0 caller）
+2. 删 env.ts toPackerContext export（迁 env-compute internal，无外部 caller）+ 删 PageConfig/ComponentConfig type re-export（0 外部消费，F-R3-2）+ getCompilerContext 改 internal（0 外部 caller，F-R3-2）
+3. **getPages 保留** env.ts L2（F-R1-1/F-R3-1：测试 **21 文件 47 调用点**）
+4. env.spec.js 改写：storeProjectConfig describe（readProjectConfig project.config.json + private 优先级合并）→ config-fixpoint.readProjectConfig 直测（保留合并覆盖——config-fixpoint 无自有测试）
+5. tsc 0
 
 ### P-EL1-4 — 行为 0 全量验证
 

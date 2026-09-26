@@ -19,6 +19,7 @@ env.ts 是 L1（计算）+ L2（ALS 门面）+ L3（worker 桥接）三层混合
 - **storeInfoCtx**：调 computeStoreInfo → `state.scratch = pathInfo.targetPath!`（orchestrate 链路纯函数，无 compat 写）
 - **buildResetStoreInfoData**：ctx/state → resetStoreInfoData（纯，字段名转换 + configInfo `as ConfigInfo`）
 - **纯工具**：`getAppStyleScopeId`（uuid）、`getContentByPath`（fs.readFileSync）
+- **type**：`PathInfo`/`ConfigInfo` interface 迁 env-compute export（computeStoreInfo 返回 configInfo + buildResetStoreInfoData 用 `as ConfigInfo` 断言须用）+ env.ts re-export（resetStoreInfo/getters 仍用）
 
 ### R-EL1-2 — env.ts 退化为 L2/L3 门面 + re-export（MUST）
 
@@ -32,11 +33,18 @@ env.ts 退化为：
 
 删 src/ 无 caller 的薄壳委托函数（config-fixpoint 已被 graph.build/reconcile 取代）：
 - `storeProjectConfig`/`storeAppConfig`/`storePageConfig`（薄壳委托 config-fixpoint，读 ALS configInfo）
-- `getPages`（薄壳委托 config-fixpoint.getPagesImpl，config-collector 已用显式 FixpointCtx）
 - `createInitialDependencyGraph`（薄壳委托 config-fixpoint.buildInitialGraph，graph.build 已取代）
-- `toPackerContext`（仅 env.ts 内部用——若 computeStoreInfo 内部化则删 export；若迁 env-compute 则 export）
+- `storePathInfo`（写 ALS pathInfo Proxy + npmResolver——src/ 0 caller）
+- `toPackerContext`（仅 env.ts 内部用——computeStoreInfo 内部化后删 export）
 
-**测试调整**：`env.spec.js` 测 storeProjectConfig/getProjectConfig。删 storeProjectConfig 须改 env.spec——测 config-fixpoint.readProjectConfig 直接（或删薄壳测试，config-fixpoint 自有测试覆盖）。
+**保留**（测试 fixture 依赖，非死代码）：
+- `getPages`（**21 测试文件 47 调用点**：style-compiler(7)/custom-file-types(5)/module-cache(4)/module-result-cache(4)/null-safe-member-access(4)/global-usingComponents(4)/custom-tab-bar(2)/compiler-hotpaths(2)/logic-component-traversal(2)/view-style-compile-res(2)/canvas-component-path 等 21 文件——读 ALS configInfo，env.ts L2 getter 保留，不迁 env-compute）
+
+**export 处置补充**（F-R3-2）：
+- `PageConfig`/`ComponentConfig` type re-export（env.ts:64「向后兼容」注释）：0 外部消费方——**删 re-export**（canonical 在 types.ts，死 re-export）
+- `getCompilerContext` export：0 外部 caller——**改 internal**（createCompilerContext/resetStoreInfo/storeInfo wrapper 内部用，删 export）
+
+**测试调整**：`env.spec.js` 唯一 describe = storeProjectConfig（测 readProjectConfig 合并优先级逻辑）。删 storeProjectConfig 后 env.spec 整文件无剩余内容——**改写为 config-fixpoint.readProjectConfig 直测**（保留 project.config.json + private 优先级合并覆盖；config-fixpoint 无自有测试，不可只删 env.spec 丢覆盖）。
 
 ### R-EL1-4 — resolveAppAlias 迁出（MUST）
 

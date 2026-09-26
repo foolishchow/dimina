@@ -15,11 +15,12 @@ Status authority: [Action Status](../STATUS.md)
 | **L1 纯函数** | `getAppStyleScopeId`/`getContentByPath` | 纯（dispatch/registry caller） | 迁 env-compute + env.ts re-export |
 | **L1+L2 混合** | `storeInfo` | 计算 + compat 写（backflow 保留） | 拆 computeStoreInfo（L1）+ wrapper（env.ts L2 compat 写） |
 | **L1+L2 混合** | `storeInfoCtx` | 调 storeInfo（compat 写） | 迁 env-compute 调 computeStoreInfo（无 compat 写） |
-| **L1+L2 混合** | `toPackerContext` | 收 CompilerContext shape，仅内部用 | 内部化（computeStoreInfo 内）或迁 env-compute（不 export） |
+| **L1+L2 混合** | `toPackerContext` | 收 CompilerContext shape，仅内部用 | 迁 env-compute internal（不 export——D-EL1-2 锁定） |
 | **L1+L2 混合** | `resolveAppAlias` | 读 ALS configInfo.appInfo | 迁 env-compute 收 appInfo 参数 + env.ts re-export |
-| **死代码** | `storeProjectConfig`/`storeAppConfig`/`storePageConfig` | 薄壳委托，src/ 0 caller | 删（env.spec 改测 config-fixpoint） |
-| **死代码** | `getPages` | 薄壳委托，src/ 0 caller（config-collector 用显式 FixpointCtx） | 删 |
+| **死代码** | `storeProjectConfig`/`storeAppConfig`/`storePageConfig` | 薄壳委托，src/ 0 caller | 删（env.spec 改写 config-fixpoint 直测） |
 | **死代码** | `createInitialDependencyGraph` | 薄壳委托，src/ 0 caller（graph.build 取代） | 删 |
+| **死代码** | `storePathInfo` | 写 ALS pathInfo Proxy，src/ 0 caller | 删 |
+| **L2 保留** | `getPages` | 薄壳委托，**src/ 0 caller 但测试 21 文件 47 调用点**（F-R1-1/F-R3-1） | env.ts L2 getter 保留（测试 fixture 依赖，不迁） |
 | **L2 ALS 门面** | `defaultCompilerContext`/`createCompilerContext`/`getCompilerContext` + Proxy + getters | singleton + ALS 路由 | env.ts 保留 |
 | **L3 worker** | `resetStoreInfo` | 写 defaultCompilerContext | env.ts 保留 |
 
@@ -37,7 +38,7 @@ src/packer/store/env-compute.ts
 ├── 常量: DEFAULT_TEMPLATE_EXTS, DEFAULT_TEMPLATE_DIRECTIVE_PREFIXES,
 │         DEFAULT_STYLE_EXTS, DEFAULT_VIEW_SCRIPT_EXTS, DEFAULT_VIEW_SCRIPT_TAGS,
 │         MINI_PROGRAM_RUNTIME_TYPE, MINI_GAME_RUNTIME_TYPE, RESERVED_EXTS
-├── type: FileTypesInput (export)
+├── type: FileTypesInput / PathInfo / ConfigInfo (export)
 ├── normalizeExt / normalizeTag / mergeUnique (内部)
 ├── normalizeFileTypes (export)
 ├── computePathInfo (export)
@@ -64,7 +65,7 @@ storeInfo(workPath, options) → {pathInfo, configInfo, compilerOptions, depende
 ```
 
 **拆分**：
-- `computeStoreInfo(workPath, options) → { pathInfo, compilerOptions, graph, configInfo, dependencyGraph }`（纯计算，无 compat 写）。内部建 localCtx + `toPackerContext(localCtx)` + graph.build/reconcile。
+- `computeStoreInfo(workPath, options) → { pathInfo, compilerOptions, graph, configInfo }`（纯计算，无 compat 写；graph 实例返回——wrapper 自取 `graph.toJSON()`（return 值）+ `graph.getInnerGraph()`（compat 写），不冗余返回 dependencyGraph 字段）。内部建 localCtx + `toPackerContext(localCtx)` + graph.build/reconcile。
 - env.ts `storeInfo(workPath, options)` wrapper = `computeStoreInfo(workPath, options)` + compat 写（写 getCompilerContext singleton 6 条）+ return。签名/返回值不变（105 测试 caller 不动）。
 
 **CompilerContext type 处理**：computeStoreInfo 内部用 CompilerContext shape（localCtx）。`toPackerContext(ctx: CompilerContext)` 收 CompilerContext。CompilerContext 是 env.ts 内部 type。**决策**：CompilerContext type 迁 env-compute（computeStoreInfo + toPackerContext 用），不 export（内部）。或 toPackerContext 收 raw 字段（workPath/targetPath/compilerOptions）——但 localCtx 是完整 CompilerContext。**倾向**：CompilerContext type 迁 env-compute internal（不 export），toPackerContext 迁 env-compute internal。
@@ -94,14 +95,20 @@ env.ts re-export（parse-walk import from env.ts 不变）——但 resolveAppAl
 
 **倾向 A**（最小改动，parse-walk 不动）。
 
-### D-EL1-5 — 死代码清理
+### D-EL1-5 — 死代码清理（F-R1-1/F-R1-2 修正后）
 
-删 5 薄壳函数（src/ 0 caller）：
-- `storeProjectConfig`/`storeAppConfig`/`storePageConfig`/`getPages`/`createInitialDependencyGraph`
+删 src/ 0 caller 的薄壳/写函数：
+- `storeProjectConfig`/`storeAppConfig`/`storePageConfig`/`createInitialDependencyGraph`/`storePathInfo`
 - env.ts export 列表删 5 函数
-- env.spec.js 改：测 config-fixpoint.readProjectConfig 直接（或删 storeProjectConfig describe，config-fixpoint 自有测试）
+- env.spec.js 改写：唯一 describe = storeProjectConfig（测 readProjectConfig project.config.json + private 优先级合并）→ 改为 config-fixpoint.readProjectConfig 直测（**保留合并逻辑覆盖**——config-fixpoint 无自有测试，不可只删丢覆盖）
+
+**getPages 保留**（F-R1-1→F-R3-1 修正）：测试 caller **21 文件 47 调用点**（style-compiler(7)/custom-file-types(5)/module-cache(4)/module-result-cache(4)/null-safe-member-access(4)/global-usingComponents(4)/custom-tab-bar(2)/compiler-hotpaths(2)/logic-component-traversal(2)/view-style-compile-res(2)/canvas-component-path/component-index-style-path/component-index-view-path/global-components-wxs/import-support/logic-component-traversal/template-path-resolution/template-prefix/template-semantics/typescript-support/view-compiler-perf-cache/wxs-reserved-context 等 21 文件）。env.ts L2 getter 保留（读 ALS configInfo——测试 fixture 先 storeInfo 设 context 再 getPages 读）。不迁 env-compute。
+
+**export 处置补充**（F-R3-2）：`PageConfig`/`ComponentConfig` type re-export（0 外部消费）删——canonical 在 types.ts；`getCompilerContext` export 删（0 外部 caller，internal 化——createCompilerContext/resetStoreInfo/storeInfo wrapper 内部用）。
 
 **toPackerContext**：迁 env-compute internal（不 export）。env.ts export 列表删 toPackerContext（无外部 caller——source-audit 确认）。
+
+**PathInfo/ConfigInfo type 迁移**（F-R1-3）：type 定义从 env.ts 迁 env-compute export；env.ts `export type { PathInfo, ConfigInfo }` re-export（resetStoreInfo 参数 + getters 返回仍用——消费方 import from env.ts 不变）。
 
 ### D-EL1-6 — env.ts 终态
 
@@ -117,8 +124,12 @@ src/packer/store/env.ts
 │   └── resetStoreInfo (写 defaultCompilerContext)
 ├── storeInfo wrapper (调 env-compute.computeStoreInfo + compat 写)
 ├── resolveAppAlias wrapper (若选项 A——读 ALS appInfo + 调 env-compute)
-└── re-export from env-compute: buildPackerContext/storeInfoCtx/buildResetStoreInfoData/
-    getAppStyleScopeId/getContentByPath/normalizeFileTypes(?)
+├── re-export from env-compute: buildPackerContext/storeInfoCtx/buildResetStoreInfoData/
+│   getAppStyleScopeId/getContentByPath + type PathInfo/ConfigInfo
+│   （内部 import: normalizeFileTypes——resetStoreInfo fallback/getTemplateDirectivePrefixes
+│      fallback/createCompilerContext 用，F-R4-2，非 re-export）
+└── 保留 L2: getPages（21 文件 47 测试调用点）/ getters / getCompilerContext(internal 化)
+    删: PageConfig/ComponentConfig re-export（0 消费）
 ```
 
 ## 3. 塌缩路径
@@ -129,7 +140,7 @@ src/packer/store/env.ts
 | 2 | computeStoreInfo 拆出（storeInfo 纯计算）+ CompilerContext/toPackerContext internal | storeInfo 可拆 |
 | 3 | storeInfoCtx 迁 env-compute（调 computeStoreInfo，无 compat 写）+ resolveAppAlias 迁（收 appInfo） | L1 函数迁完 |
 | 4 | env.ts 退化：storeInfo wrapper（compat 写保留）+ re-export L1 + L2/L3 | env.ts 瘦身 |
-| 5 | 死代码清理（5 薄壳 + toPackerContext export）+ env.spec 改 | 殁骸清 |
+| 5 | 死代码清理（5 死代码函数 + toPackerContext/PageConfig/ComponentConfig/getCompilerContext export）+ env.spec 改写 | 殁骸清 |
 
 ## 4. 风险
 

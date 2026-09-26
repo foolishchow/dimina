@@ -14,10 +14,10 @@
 `fe-tools-storeinfo-collapse` 归档时记录 backflow：**阶段 2（L1 迁出）推迟为后续 initiative**。env.ts 当前是 L1（计算）+ L2（ALS 门面 singleton + Proxy + getters）+ L3（worker 桥接 resetStoreInfo）三层混合（概念分析 §1 L21 表）。
 
 L1 计算层包含：
-- **纯函数**：`normalizeFileTypes`（+ `normalizeExt`/`normalizeTag`/`mergeUnique` + 常量 `DEFAULT_*`/`RESERVED_EXTS`）、`computePathInfo`、`buildPackerContext`、`buildResetStoreInfoInfo`、`getAppStyleScopeId`、`getContentByPath`
-- **L1+L2 混合**：`storeInfo`（纯计算 + compat 写——backflow 保留）、`storeInfoCtx`（调 storeInfo）、`toPackerContext`（收 CompilerContext shape）、薄壳委托 config-fixpoint（`storeProjectConfig`/`storeAppConfig`/`storePageConfig`/`resolveAppAlias`/`getPages`/`createInitialDependencyGraph`——从 ALS 读 ctx+npm 再调 config-fixpoint）
+- **纯函数**：`normalizeFileTypes`（+ `normalizeExt`/`normalizeTag`/`mergeUnique` + 常量 `DEFAULT_*`/`RESERVED_EXTS`）、`computePathInfo`、`buildPackerContext`、`buildResetStoreInfoData`、`getAppStyleScopeId`、`getContentByPath`
+- **L1+L2 混合**：`storeInfo`（纯计算 + compat 写——backflow 保留）、`storeInfoCtx`（调 storeInfo）、`toPackerContext`（收 CompilerContext shape）、薄壳委托 config-fixpoint（`storeProjectConfig`/`storeAppConfig`/`storePageConfig`/`resolveAppAlias`/`getPages`/`createInitialDependencyGraph`/`storePathInfo`——从 ALS 读再调 config-fixpoint/写 Proxy）
 
-**死代码发现**（source-audit）：薄壳委托函数 `storeProjectConfig`/`storeAppConfig`/`storePageConfig`/`getPages`/`createInitialDependencyGraph` 在 src/ **无 caller**（config-fixpoint 已被 `graph.build`/`graph.reconcile` 取代；仅 `__tests__/env.spec.js` 测 `storeProjectConfig`）。`toPackerContext` 在 src/ 无外部 caller（仅 env.ts 内部）。
+**死代码发现**（source-audit）：`storeProjectConfig`/`storeAppConfig`/`storePageConfig`/`createInitialDependencyGraph`/`storePathInfo` 在 src/ **无 caller**（config-fixpoint 已被 `graph.build`/`graph.reconcile` 取代；仅 `__tests__/env.spec.js` 测 `storeProjectConfig`）。`toPackerContext` 无外部 caller（仅 env.ts 内部）。**`getPages` 保留**（src/ 0 caller 但测试 21 文件 47 调用点——L2 getter 保留）。`PageConfig`/`ComponentConfig` re-export + `getCompilerContext` export 删（0 外部消费）。
 
 ## Goal
 
