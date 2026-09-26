@@ -1,10 +1,10 @@
 # fe-tools-scratch-internalize
 
 - Action: `fe-tools-scratch-internalize`
-- Status: `draft`
+- Status: `ready`
 - Created: 2026-10-10
 - Status authority: [Action Status](../STATUS.md)
-- 设计门：[design.draft.md](design.draft.md)（**D-SI-1..N 待 lock**——mkdtemp 归属 / state.scratch 源 / dev 模式 / storeInfo compat）
+- 设计门：[design.draft.md](design.draft.md)（**D-SI-1..6 已 review lock**——10 轮 readiness review 收敛 R9+R10 连续 0-finding）
 - 实施计划：[implementation-plan.md](implementation-plan.md)
 - 验证：[validation.md](validation.md)
 - 背景：[`fe-tools-storeinfo-collapse`](../_archive/complete/fe-tools-storeinfo-collapse/README.md)（scratch 内化 backflow）+ [`fe-tools-env-l1-extract`](../_archive/complete/fe-tools-env-l1-extract/README.md)（scratch 内化 follow-up）+ [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（DiskOutput 封装 scratch→final）
