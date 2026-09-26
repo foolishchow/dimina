@@ -1,8 +1,8 @@
 # fe-tools-worker-ctx-direct
 
-- Status: `draft`
+- Status: `ready`
 - Status authority: [Action Status](../STATUS.md)
-- 设计门：[design.draft.md](design.draft.md)（**D-WCD-1..N 待 lock**——worker ctx 直传机制 + logic parse-walk 迁移）
+- 设计门：[design.draft.md](design.draft.md)（**D-WCD-1..7 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)
 - 验收门：[acceptance.md](acceptance.md)
@@ -46,18 +46,18 @@ L2+L3 退役大倡议的第一步。research Action（fe-tools-l2-l3-retire-rese
 - D-WCD-2：logicParseWalk 加 ctx 参数 + 内部 getter 改 ctx 读（15 处）
 - D-WCD-3：logic/index.ts worker 路径改 ctx（resetStoreInfo→buildPackerContext 透传）
 - D-WCD-4：registry-impl 主线程路径改 _ctx 透传
-- D-WCD-5：successPayload logic 路径改 ctx（非 ALS）
+- D-WCD-5：successPayload 保留 ALS（不改——F-R2-1）（非 ALS）
 - D-WCD-6：ALS compat 保留（view/style resetStoreInfo 不动）
 - D-WCD-7：测试 fixture（logic-loader.spec:53）改传 ctx
 
-## Readiness gaps
+## Readiness gaps（R1-R3 resolve）
 
-**4 项**（design 待 lock）：
+**4 项**（R1-R3 全 resolve）：
 
-1. **ctx 参数位置**：logicParseWalk 第 8 参（末尾）还是 options 内嵌？
-2. **worker 引擎 compile 建 PackerContext 时机**：compile 入口建 + 透传 parse-walk？
-3. **successPayload ctx 来源**：compile 建 ctx 后透传 successPayload？
-4. **ALS compat 边界**：logic 路径迁 ctx 后 ALS 仍写（resetStoreInfo）——view/style 仍读 ALS，logic 不再读？
+1. **ctx 参数位置**（R1 resolve）：logicParseWalk 第 8 参末尾（D-WCD-2）
+2. **worker 引擎 compile 建 PackerContext 时机**（R1/R3 resolve）：compile 入口建 + 透传 parse-walk（D-WCD-1）+ storeInfo compilerOptions 形状匹配 ✓（F-R3-1）
+3. **successPayload ctx 来源**（R2 resolve）：successPayload 保留 ALS 不改（F-R2-1——getDependencyGraph 仍 ALS，A5 统一迁）
+4. **ALS compat 边界**（R3 resolve）：logic 迁 ctx 后 resetStoreInfo 保留（view/style compat + logic ALS 残留 19 处 getter 读——F-R3-3）
 
 ## Closure conditions
 

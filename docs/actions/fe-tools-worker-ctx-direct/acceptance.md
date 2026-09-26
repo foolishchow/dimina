@@ -5,10 +5,10 @@ Status authority: [Action Status](../STATUS.md)
 | ID | Requirement | Title | Acceptance criterion | Status |
 | --- | --- | --- | --- | --- |
 | A-WCD-1 | R-WCD-1 | worker ctx 直传机制（A0） | logic/index.ts compile 入口建 PackerContext（from storeInfo data——buildPackerContextFromOptions）+ defineEngine 透传 + ALS compat 保留（resetStoreInfo 仍调）；tsc 0 | pending |
-| A-WCD-2 | R-WCD-2 | logicParseWalk 加 ctx 参数（A1） | logicParseWalk 第 8 参加 ctx: PackerContext + 15 处 getter 部分改 ctx 读（workPath/targetPath/fileTypes/readContent/resolveAlias/resolveNpm 改 ctx；getDependencyGraph/getAppId/getNpmResolver 保留 ALS——方案 b）；tsc 0 | pending |
+| A-WCD-2 | R-WCD-2 | logicParseWalk 加 ctx 参数（A1） | logicParseWalk 第 8 参加 ctx: PackerContext + 16 处 getter 部分改 ctx 读（ctx 读 4 getter（getWorkPath/getTargetPath/resolveAppAlias/getContentByPath→ctx.readContent）；保留 ALS 6 getter（getDependencyGraph/getAppId/getNpmResolver/getAppConfigInfo/getComponent/isMiniGame——F-R1-1/R1-2）——方案 b）；tsc 0 | pending |
 | A-WCD-3 | R-WCD-3 | logic/index.ts worker 路径改 ctx | logic/index.ts:211 logicParseWalk 传 ctx + 内部 getter 部分改 ctx（workPath/targetPath/readContent；getDependencyGraph/getAppConfigInfo/getComponent/isMiniGame 保留 ALS）；tsc 0 | pending |
 | A-WCD-4 | R-WCD-4 | registry-impl 主线程路径改 _ctx | registry-impl.ts _ctx → ctx + getContentByPath → ctx.readContent + logicParseWalk 传 ctx；tsc 0 | pending |
-| A-WCD-5 | R-WCD-5 | successPayload logic 路径改 ctx | logic/index.ts successPayload 改（readiness lock——getDependencyGraph 仍 ALS or ctx 收 graph）；tsc 0 | pending |
+| A-WCD-5 | R-WCD-5 | successPayload 保留 ALS（不改——F-R2-1） | logic/index.ts successPayload 保留 ALS（getDependencyGraph 仍 ALS——A5 统一迁，F-R2-1）；tsc 0 | pending |
 | A-WCD-6 | R-WCD-6 | ALS compat 保留 | resetStoreInfo 保留（logic/index.ts:275 仍调——view/style compat）+ view/index.ts:192 + style/index.ts:57 + emit-engine.ts:12 不动 | pending |
 | A-WCD-7 | R-WCD-7 | 测试 fixture 改传 ctx | logic-loader.spec:53 logicParseWalk 直调加 ctx（buildPackerContext fixture） | pending |
 | A-WCD-8 | R-WCD-8 | 行为 0 | tsc 0 + vitest 88/88（flaky solo pass）+ one-shot 7-diff=0 | pending |

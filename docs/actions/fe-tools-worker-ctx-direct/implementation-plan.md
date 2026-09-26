@@ -7,13 +7,13 @@ Status authority: [Action Status](../STATUS.md)
 ### P-WCD-1 — logicParseWalk 加 ctx 参数 + 内部 getter 改 ctx 读（A 批）
 
 1. logic/parse-walk.ts logicParseWalk 第 8 参加 ctx: PackerContext
-2. logic/parse-walk.ts 15 处 getter 改 ctx 读（方案 b 部分迁移——workPath/targetPath/fileTypes/readContent/resolveAlias/resolveNpm 改 ctx；getDependencyGraph/getAppId/getNpmResolver 保留 ALS——PackerContext 无 graph 字段）
+2. logic/parse-walk.ts 16 处 getter 改 ctx 读（方案 b 部分迁移——ctx 读 4 getter（getWorkPath/getTargetPath/resolveAppAlias/getContentByPath→ctx.readContent）；保留 ALS 6 getter（getDependencyGraph/getAppId/getNpmResolver/getAppConfigInfo/getComponent/isMiniGame——F-R1-1/R1-2）——PackerContext 无 graph 字段）
 3. tsc 0
 
-### P-WCD-2 — worker 引擎 compile 建 PackerContext + 透传 + logic/index 路径改 ctx（B 批）
+### P-WCD-2 — worker 引擎 compile 建 PackerContext + compileJS/buildJSByPath 透传 + logic/index 路径改 ctx（B 批）
 
 1. logic/index.ts compile 入口建 PackerContext（from storeInfo data——buildPackerContextFromOptions 内核）
-2. logic/index.ts:211 logicParseWalk 调用传 ctx
+2. logic/index.ts:211 logicParseWalk 调用传 ctx + compileJS/buildJSByPath 加 ctx 必传参数（F-R4-1/R4-2 透传链）
 3. logic/index.ts 内部 getter 改 ctx 读（workPath/targetPath/readContent 改 ctx；getDependencyGraph/getAppConfigInfo/getComponent/isMiniGame 保留 ALS）
 4. resetStoreInfo 保留（ALS compat——view/style 仍读）
 5. tsc 0
@@ -34,7 +34,7 @@ Status authority: [Action Status](../STATUS.md)
 
 ## 验证点
 
-- P-WCD-1 后：logicParseWalk 签名加 ctx + 15 处 getter 部分改 ctx + tsc 0
+- P-WCD-1 后：logicParseWalk 签名加 ctx + 16 处 getter 部分改 ctx + tsc 0
 - P-WCD-2 后：compile 建 PackerContext + logicParseWalk 传 ctx + logic/index 部分改 ctx + tsc 0
 - P-WCD-3 后：registry-impl 传 ctx + successPayload + 测试 fixture + tsc 0
 - P-WCD-4：行为 0 三件套绿

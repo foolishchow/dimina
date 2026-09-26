@@ -49,6 +49,7 @@ compile: async (opts: CompileOptions) => {
 ```
 
 - worker 引擎 compile 入口建 PackerContext（from storeInfo data——buildPackerContextFromOptions 内核，packer-context-dedup 产出）
+- **形状匹配确认**（F-R3-1）：ResetStoreInfoOptions.compilerOptions = `{ templateExts, templateDirectivePrefixes, styleExts, viewScriptExts, viewScriptTags }`（env-compute）= buildPackerContextFromOptions compilerOptions 参数（config-fixpoint）形状一致 ✓——`buildPackerContextFromOptions(storeInfo.pathInfo.workPath, storeInfo.pathInfo.targetPath, storeInfo.compilerOptions)` 可行
 - ALS compat 保留（resetStoreInfo 仍调——view/style 仍读 ALS）
 - ctx 透传 logicParseWalk（A1 消费）
 
@@ -60,23 +61,34 @@ export async function logicParseWalk(
 	source, modulePath, currentPath, sourceFile, packageName, extraInfoCode, options,
 	ctx: PackerContext,  // D-WCD-2: 第 8 参
 ): Promise<LogicParseWalkResult> {
-	// getWorkPath() → ctx.workPath
-	// getDependencyGraph() → ??? （ctx 无 graph 字段——须 ctx 读 or 保留 ALS?）
-	// getAppId() → ??? （ctx 无 appId）
-	// getTargetPath() → ctx.targetPath
-	// getNpmResolver() → ??? （ctx.resolveNpm stub）
-	// resolveAppAlias(specifier) → ctx.resolveAlias(specifier)
+	// 方案 b 部分迁移（F-R1-1/R1-2 精确归类）：
+	// ctx 读 4 getter：getWorkPath→ctx.workPath（×7）/ getTargetPath→ctx.targetPath（×1）/ resolveAppAlias→ctx.resolveAlias（×1）
+	//   getContentByPath（registry-impl 路径，非 parse-walk）→ctx.readContent
+	// 保留 ALS 6 getter：getDependencyGraph（×5——ctx 无 graph）/ getAppId（×1——ctx 无 appId）/ getNpmResolver（×1——F-R1-1 返回 NpmResolver 实例非 function，ctx.resolveNpm 签名不匹配）
 }
 ```
 
-**问题**（readiness gap）：PackerContext 无 graph/appId/npmResolver 字段——getDependencyGraph/getAppId/getNpmResolver 须保留 ALS 读 or 扩 PackerContext？
+- **getter 调用点 count**（F-R1-3）：16 处（getWorkPath ×7 + getDependencyGraph ×5 + getAppId ×1 + getTargetPath ×1 + resolveAppAlias ×1 + getNpmResolver ×1）——非 15
+- **ctx 读 4 getter**（F-R1-2）：getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / resolveAppAlias→ctx.resolveAlias / getContentByPath→ctx.readContent（registry-impl 路径）
+- **保留 ALS 6 getter**（F-R1-1/R1-2）：getDependencyGraph（ctx 无 graph）/ getAppId（ctx 无 appId）/ getNpmResolver（返回 NpmResolver 实例——ctx.resolveNpm function 签名不匹配）/ getAppConfigInfo / getComponent / isMiniGame（logic/index.ts 路径——ctx 无 configInfo/component）
+- **fileTypes 不读**：logic/parse-walk 无 fileTypes getter 调用（fileTypes 在 normalize/compile-config 层，非 parse-walk）
+- **调用点 ctx 来源差异**（F-R2-3）：logic/index:211（worker——compile 建 ctx）+ registry-impl:33（主线程——orchestrate 传 ctx）——见 D-WCD-4 ctx 来源双路径
 
 ### D-WCD-3 — logic/index.ts worker 路径改 ctx
 
 - logic/index.ts:211 logicParseWalk 调用传 ctx（compile 建的 ctx）
-- logic/index.ts 内部 getter 改 ctx 读（getWorkPath→ctx.workPath 等）——但 getDependencyGraph/getAppConfigInfo/getComponent/isMiniGame 须 graph 数据（ctx 无）
+- **compileJS/buildJSByPath 透传链**（F-R4-1）：logicCompile:274 建 ctx → compileJS(pages, root, ..., ctx, options) → buildJSByPath(packageName, module, ..., ctx, options) → logicParseWalk(..., ctx)——ctx 须透传两层
+- **ctx 透传方式 lock**（F-R4-2）：ctx 加为 compileJS/buildJSByPath 必传参数（options 前末尾——CompileJSOptions 内嵌不合适，ctx 非可选 PackerContext）
+- logic/index.ts 内部 getter 改 ctx 读：getWorkPath→ctx.workPath（×2）/ getContentByPath→ctx.readContent（×1）
+- **保留 ALS**（F-R1-2）：getDependencyGraph（×3——ctx 无 graph）/ getAppConfigInfo（×2——ctx 无 configInfo）/ getComponent（×2——ctx 无 component store）/ isMiniGame（×1——ctx 无 isMiniGame）
+- resetStoreInfo 保留（ALS compat——view/style 仍读）
 
-**问题**（readiness gap）：logic/index.ts 读 graph 数据（getDependencyGraph/getAppConfigInfo/getComponent/isMiniGame）——ctx 无 graph 字段。须扩 PackerContext 或保留 ALS 读 graph？
+### 跨权威一致性（F-R3-2/R4）
+
+- **D-PCS-1**：PackerContext 形状不改（workPath/targetPath/readContent/resolveAlias/resolveNpm/fileTypes）——A0 复用现有形状
+- **D-SC5**：buildResetStoreInfoData 返 storeInfo data（pathInfo/configInfo/compilerOptions/dependencyGraph）——A0 worker compile 从 storeInfo data 建 ctx
+- **D-PC**（packer-context-dedup）：buildPackerContextFromOptions 内核（config-fixpoint）——A0 复用（storeInfo compilerOptions 形状匹配 ✓ F-R3-1）
+- **D-LR**（l2-l3-retire-research）：A0+A1 合并（worker ctx 直传 + logic parse-walk 迁移）——research 拆分方案 b 锁定
 
 ### D-WCD-4 — registry-impl 主线程路径改 _ctx
 
@@ -88,24 +100,31 @@ async load(input: LoadInput, ctx: PackerContext): Promise<LoadedModule> {  // _c
 }
 ```
 
-- _ctx → ctx（Loader.load 契约已有）
+- _ctx → ctx（Loader.load 契约已有——F-R2-2 主线程 ctx 来源）
+- **ctx 来源**（F-R2-2）：主线程路径 ctx = orchestrate 传 ctx（buildPackerContext from env-compute，env-compute:211）；worker 路径 ctx = compile 入口建（buildPackerContextFromOptions from storeInfo data，D-WCD-1）
 - getContentByPath → ctx.readContent
 - logicParseWalk 传 ctx
 
-### D-WCD-5 — successPayload logic 路径改 ctx
+### ctx 来源双路径（F-R2-2/R2-3）
 
-```
-// logic/index.ts successPayload
-successPayload: (ctx) => ({ dependencyGraph: ctx.??? })  // getDependencyGraph().toJSON() → ctx 读
-```
+| 路径 | 调用点 | ctx 来源 |
+| --- | --- | --- |
+| worker | logic/index.ts:211（compileJS 内） | compile 入口建（D-WCD-1——buildPackerContextFromOptions from storeInfo data） |
+| 主线程 | registry-impl.ts:33（Loader.load 内） | orchestrate 传 ctx（buildPackerContext from env-compute:211） |
 
-**问题**（readiness gap）：successPayload 读 graph——ctx 无 graph 字段。须 ctx 扩 graph or successPayload 收 graph？
+### D-WCD-5 — successPayload 保留 ALS（不改）
+
+- **F-R2-1**：defineEngine `successPayload: (ctx: { logger }) => Record`——ctx 只收 logger 不收 graph/PackerContext
+- logicSuccessPayload 读 `getDependencyGraph().toJSON()`（ALS）——R1 方案 b 锁 getDependencyGraph 保留 ALS
+- **A0 不改 successPayload**（getDependencyGraph 仍 ALS——A5 singleton 退役时统一迁）
 
 ### D-WCD-6 — ALS compat 保留
 
-- resetStoreInfo 保留（logic/index.ts:275 仍调——但 logic 路径迁 ctx 后 ALS 写冗余？或保留 view/style compat）
-- view/index.ts:192 + style/index.ts:57 + emit-engine.ts:12 resetStoreInfo 不动（A2/A3 独立 Action）
-- ALS singleton 保留（view/style parse-walk 仍读）
+- resetStoreInfo 保留（logic/index.ts:275 仍调——view/style compat + logic ALS 残留 getter 读）
+- **4 处 resetStoreInfo caller**（F-R3-2）：logic/index.ts:275（A0 scope——保留）+ view/index.ts:192（A2 不动）+ style/index.ts:57（A3 不动）+ emit-engine.ts:12（**emit worker——A0 不动，非 logic 路径**）
+- **emit-engine scope 确认**（F-R3-2）：emit-engine.ts:12 是 emit worker 引擎（非 logic/view/style）——A0 不动（emit worker 独立，A2/A3 同类暂不动）
+- ALS singleton 保留（view/style parse-walk 仍读 + logic 残留 getter 读）
+- **logic ALS 残留量**（F-R3-3）：parse-walk 8 处（getDependencyGraph ×5 + getAppId ×1 + getNpmResolver ×1 + ？）+ index.ts 11 处 = 19 处 ALS 残留（A5 singleton 退役统一迁）
 
 ### D-WCD-7 — 测试 fixture 改传 ctx
 
@@ -117,18 +136,17 @@ logicParseWalk(source, modulePath, 'pages/index', null, null, undefined, options
 
 ## 4. 核心关路：PackerContext 无 graph/appId/npmResolver 字段
 
-**问题**：logic getter 读 graph 数据（getDependencyGraph/getAppConfigInfo/getComponent/isMiniGame/getAppId/getNpmResolver）——PackerContext 无这些字段（只有 workPath/targetPath/readContent/resolveAlias/resolveNpm/fileTypes）。
+**PackerContext 形状**（types.ts）：workPath / targetPath / readContent / resolveAlias / resolveNpm(function) / fileTypes。无 graph / appId / configInfo / component / isMiniGame / NpmResolver。
 
-**方案候选**：
-- **a：扩 PackerContext**（加 graph/configInfo/appId 字段）——但 PackerContext 形状改变（Non-scope）
-- **b：logic 路径保留 ALS 读 graph**（getDependencyGraph 等仍读 ALS）——只迁 workPath/targetPath/fileTypes/readContent/resolveAlias/resolveNpm（ctx 读）；graph/appId/configInfo 仍 ALS
-- **c：ctx 扩可选 graph/configInfo**（PackerContext 加 optional graph?/configInfo?）——形状扩展但 optional 不破
-
-**倾向**：方案 b（部分迁移——ctx 读 workPath/targetPath/fileTypes/readContent/resolveAlias/resolveNpm；graph/appId/configInfo 仍 ALS——A5 singleton 退役时统一迁）。最小改动 + 不破 PackerContext 形状。
+**方案 b 部分迁移锁定**（F-R1-1/R1-2 精确归类）：
+- **ctx 读 4 getter**：getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / resolveAppAlias→ctx.resolveAlias / getContentByPath→ctx.readContent
+- **保留 ALS 6 getter**：getDependencyGraph（ctx 无 graph）/ getAppId（ctx 无 appId）/ getNpmResolver（**F-R1-1**：返回 NpmResolver 实例，ctx.resolveNpm 是 function 签名不匹配）/ getAppConfigInfo（ctx 无 configInfo）/ getComponent（ctx 无 component store）/ isMiniGame（ctx 无 isMiniGame）
+- **A5 统一迁**：保留 ALS 的 6 getter 在 A5 singleton/Proxy 退役时统一迁（须扩 PackerContext 或 ctx 加 graph/configInfo optional）
+- **fileTypes 不读**：logic/parse-walk + logic/index 无 fileTypes getter（fileTypes 在 normalize/compile-config 层）
 
 ## 5. 风险
 
-1. **PackerContext 无 graph 字段**（readiness gap §4）——logic getter 部分迁 ctx + 部分保留 ALS
+1. **PackerContext 无 graph 字段**（§4 lock——方案 b 部分迁移：ctx 读 4 getter + 保留 ALS 6 getter）
 2. **ALS compat 边界**（D-WCD-6）——logic 迁 ctx 后 ALS 写冗余？或保留 view/style compat
 3. **successPayload ctx 来源**——compile 建 ctx 透传 successPayload
 4. **测试 fixture**——logic-loader.spec:53 须建 ctx（buildPackerContext）

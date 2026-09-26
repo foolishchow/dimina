@@ -6,11 +6,11 @@ Status authority: [Action Status](../STATUS.md)
 
 | ID | Title | Requirement |
 | --- | --- | --- |
-| R-WCD-1 | worker ctx 直传机制（A0） | worker 引擎 compile 内建 PackerContext（from storeInfo data，方案 b——buildPackerContext(data)）+ defineEngine 透传 + successPayload 改 ctx（非 ALS） |
-| R-WCD-2 | logicParseWalk 加 ctx 参数（A1） | logicParseWalk 第 8 参加 ctx: PackerContext + 内部 15 处 getter 改 ctx 读（getWorkPath→ctx.workPath / getDependencyGraph→ctx... / getAppId / getTargetPath / getNpmResolver / resolveAppAlias） |
-| R-WCD-3 | logic/index.ts worker 路径改 ctx | logic/index.ts:211 logicParseWalk 调用传 ctx（compile 建 PackerContext 透传）+ logic/index.ts 内部 getter 改 ctx 读（~15 处）+ resetStoreInfo→保留（view/style compat）|
+| R-WCD-1 | worker ctx 直传机制（A0） | worker 引擎 compile 内建 PackerContext（from storeInfo data，方案 b——buildPackerContext(data)）+ defineEngine 透传 + successPayload 保留 ALS（getDependencyGraph 仍 ALS——A5 统一迁，A0 不改——F-R2-1） |
+| R-WCD-2 | logicParseWalk 加 ctx 参数（A1） | logicParseWalk 第 8 参加 ctx: PackerContext + 内部 16 处 getter 改 ctx 读（getWorkPath→ctx.workPath / getDependencyGraph→ctx... / getAppId / getTargetPath / getNpmResolver / resolveAppAlias） |
+| R-WCD-3 | logic/index.ts worker 路径改 ctx | logic/index.ts:211 logicParseWalk 调用传 ctx（compile 建 PackerContext 透传）+ logic/index.ts 内部 getter 改 ctx 读（~16 处）+ resetStoreInfo→保留（view/style compat）|
 | R-WCD-4 | registry-impl 主线程路径改 _ctx | registry-impl.ts:33 logicParseWalk 调用传 _ctx（Loader.load 契约已有 _ctx: PackerContext）+ getContentByPath 改 ctx.readContent |
-| R-WCD-5 | successPayload logic 路径改 ctx | defineEngine successPayload（logic/index.ts:301 getDependencyGraph().toJSON()）改读 ctx（非 ALS）——compile 建 ctx 透传 successPayload |
+| R-WCD-5 | successPayload 保留 ALS（不改——F-R2-1） | defineEngine successPayload（logic/index.ts:301 getDependencyGraph().toJSON()）改读 ctx（非 ALS）——compile 建 ctx 透传 successPayload |
 | R-WCD-6 | ALS compat 保留 | resetStoreInfo 保留（view/style worker 引擎仍调——A2/A3 后续迁移）+ view/index.ts:192 + style/index.ts:57 + emit-engine.ts:12 不动 |
 | R-WCD-7 | 测试 fixture 改传 ctx | logic-loader.spec:53 logicParseWalk 直调加 ctx 参数（buildPackerContext 测试 fixture） |
 | R-WCD-8 | 行为 0 | tsc 0 + vitest 88/88（flaky solo pass）+ one-shot 7-diff=0（PackerContext 构造 + logic parse-walk 全局路径→全量 7 项目） |
