@@ -116,4 +116,4 @@
 | `fe-tools-compat-write-retire-research` | `complete` |
 | `fe-tools-singleton-retire-research` | `complete` |
 | `fe-tools-singleton-retire-impl-core` | `complete` |
-| `fe-tools-singleton-retire-impl-cleanup` | `in_progress` |
+| `fe-tools-singleton-retire-impl-cleanup` | `complete` |

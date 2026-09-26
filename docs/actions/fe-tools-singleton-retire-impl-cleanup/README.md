@@ -1,6 +1,6 @@
 # fe-tools-singleton-retire-impl-cleanup
 
-- Status: `in_progress`
+- Status: `complete`
 - Type: impl（D-SR-4+5+6 cleanup——resetStoreInfo 退役 + 测试迁 + env.ts singleton 删）
 - Parent: fe-tools-singleton-retire-research（D-SR-4+5+6）+ fe-tools-singleton-retire-impl-core（A5a 核心完成）
 - Gates: A0-A4 + A5 research + A5a 核心 全 complete

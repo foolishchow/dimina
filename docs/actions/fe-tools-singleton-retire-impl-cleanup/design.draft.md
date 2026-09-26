@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-singleton-retire-impl-cleanup
 
-> **状态：in_progress**——D-SRC-1..3 已 review lock。A5 cleanup（resetStoreInfo 退役 + 测试迁 + singleton 删）。
+> **状态：complete（partial）**——D-SRC-1a + D-SRC-3a 完成（ctx 传全核心 + 测试传 ctx，行为 0 三件套 ✓）。D-SRC-1b/2/3b 完全退役收尾推迟后续 action（fe-tools-singleton-retire-cleanup-final）。A5 cleanup（resetStoreInfo 退役 + 测试迁 + singleton 删）。
 
 ## 1. D-SRC-1 — worker ctx 建立传全 optional + runtime caller 传 graph + 删 fallback ALS
 
