@@ -1,9 +1,18 @@
 # Action — fe-tools-env-singleton-delete
-> **状态：complete**（partial——不可逾越阻塞：component function 不可序列化）——env.ts singleton 删 + src getter caller 迁 + runtime 改候选 b + storeInfo wrapper compat 写删。
-## Scope
-- src getter caller 迁 ctx 读（packer 层已有 ctx——graph/orchestrator/config-compiler/dispatch/config-collector/project-store/emit/define-engine/watch + compiler 层 worker ctx 建立改 storeInfo data）
-- runtime 改候选 b（successPayload 在 compile 内调——postMessage 序列化）
-- storeInfo wrapper compat 写 6 条删
-- env.ts singleton 删（defaultCompilerContext + Proxy + 20 getters——L34 re-export 保留）
-## 行为 0
-tsc 0 + vitest 88/88 + 7-diff=0
+
+> **状态：complete**（partial——不可逾越阻塞：component function 不可序列化）+ 6 轮 readiness review 收敛——env.ts singleton 删 + 不可逾越阻塞（component function 不可序列化）。补走 readiness review。承接 cleanup-final D-SRC-3。
+
+## 背景
+
+cleanup-final D-SRC-3 env.ts singleton 删。前置 action 已完成 packer 层迁 state.graph + compiler 层 fallback delete + resetStoreInfo 退役。
+
+## 不可逾越阻塞
+
+component function 不可序列化（A0 research 核心结论）——L2/L3 退役须保留 ALS for function getter（component/resolveAlias）。env.ts singleton 不可完全删。
+
+## 文档
+
+- [requirements.md](requirements.md)（R-ESD-1..5 + 阻塞）
+- [design.draft.md](design.draft.md)（D-ESD-1..4 + 阻塞）
+- [acceptance.md](acceptance.md)（A-ESD-1..5）
+- [validation.md](validation.md)（V-ESD-1..6）
