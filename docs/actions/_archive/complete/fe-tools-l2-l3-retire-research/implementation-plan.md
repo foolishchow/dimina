@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-l2-l3-retire-research
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## 性质
 

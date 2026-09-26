@@ -1,7 +1,7 @@
 # fe-tools-l2-l3-retire-research
 
-- Status: `ready`
-- Status authority: [Action Status](../STATUS.md)
+- Status: `complete`
+- Status authority: [Action Status](../../../STATUS.md)
 - source-audit：[source-audit.md](source-audit.md)（L2+L3 退役门控分析 + 拆分方案）
 - 设计门：[design.draft.md](design.draft.md)（A0-A5 拆分方案 + 根门控）
 - 需求门：[requirements.md](requirements.md)
@@ -27,7 +27,7 @@ env.ts L2 ALS 门面（15 getters + singleton + Proxy）+ L3 worker 桥接（res
 
 ## Design inputs
 
-- **背景**：[`fe-tools-scratch-internalize`](../_archive/complete/fe-tools-scratch-internalize/README.md) + [`fe-tools-packer-context-dedup`](../_archive/complete/fe-tools-packer-context-dedup/README.md)（backflow 记录 L2/L3 退役）
+- **背景**：[`fe-tools-scratch-internalize`](../fe-tools-scratch-internalize/README.md) + [`fe-tools-packer-context-dedup`](../fe-tools-packer-context-dedup/README.md)（backflow 记录 L2/L3 退役）
 - **前置 audit**：compiler/* 10 文件 import env.ts 15 getters + resetStoreInfo 3 worker 引擎 + storeInfo wrapper 112 caller
 - **门控链条**：L2 getters 退役 ← compiler/* 迁 PackerContext ← worker ctx 直传 ← PackerContext 序列化（readContent function 不可序列化）
 
@@ -42,6 +42,13 @@ env.ts L2 ALS 门面（15 getters + singleton + Proxy）+ L3 worker 桥接（res
 
 ## Closure conditions
 
-- source-audit 完整（L2/L3/compat 全 caller 分布 + 门控链条 + 拆分方案）
-- design 拆分方案 lock（A0-A5 scope + 门控 + 依赖）
-- 无代码实施（research 性质）
+- source-audit 完整（L2/L3/compat 全 caller 分布 + 门控链条 + 拆分方案）✓
+- design 拆分方案 lock（A0-A5 scope + 门控 + 依赖 + 序列化方案 b 锁定）✓
+- 无代码实施（research 性质——git diff = 0）✓
+
+## Implementation result（P-LR-1..3 产出验证完成）
+
+- **research 性质**——无代码改动（git diff = 0）
+- 产出完整：source-audit 7 section（L2 15 getters × 10 文件 / L3 resetStoreInfo 4 处 / compat 112 caller / 门控链条 4 层 / 拆分 A0-A5 / 序列化方案 b）+ design D-LR-1..6（A0 根门控 + A1-A3 parse-walk + A4 compat + A5 singleton）
+- 双重收敛（readiness R6+R7 + 深度 R13+R14 连续 0-finding）
+- backflow：A0-A5 各自 formalize 独立 Action（后续）
