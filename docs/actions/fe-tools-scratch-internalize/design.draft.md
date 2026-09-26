@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：draft**——D-SI-1..6 **已 review lock**（5 轮 readiness review：R1-R5，8 findings 全修正——含 F-R1-1 dev 模式实证 / F-R2-1 computeStoreInfo pathInfo? 参数 / F-R2-2 BaseOutput 内联 / F-R4-1/2 constructor 签名）。基于 scratch 流 source-audit + storeInfo/env-l1 backflow。
+> **状态：ready**——D-SI-1..6 **已 review lock**（5 轮 readiness review：R1-R5，8 findings 全修正——含 F-R1-1 dev 模式实证 / F-R2-1 computeStoreInfo pathInfo? 参数 / F-R2-2 BaseOutput 内联 / F-R4-1/2 constructor 签名）。基于 scratch 流 source-audit + storeInfo/env-l1 backflow。
 
 ## 1. scratch 流现状（source-audit）
 
