@@ -16,6 +16,7 @@ import type { Attribute as SelectorAttribute, AttributeOptions } from 'postcss-s
 import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.ts'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath } from '../../packer/store/env.ts'
+import type { PackerContext } from '../../packer/types.ts'
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../../shared/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { StyleCompileError } from '../../shared/utils.ts'
@@ -105,10 +106,10 @@ function styleLoad(module: StyleModule, compiledPaths: Set<string>): StyleModule
  * style C phase（F-H2-1 拆分）：per-module enhanceCSS（preprocess + transform + minify）。
  * @import 子 fixpoint 保留在 enhanceCSS 内部（AtRule 递归走 buildCompileCss 组合）。
  */
-async function styleCompile(loadedModules: StyleModule[], options: StyleOptions): Promise<StyleCompileResult[]> {
+async function styleCompile(loadedModules: StyleModule[], options: StyleOptions, ctx?: PackerContext): Promise<StyleCompileResult[]> {
 	const chunks: StyleCompileResult[] = []
 	for (const module of loadedModules) {
-		const result = await enhanceCSS(module, options)
+		const result = await enhanceCSS(module, options, ctx)
 		if (result.code) {
 			chunks.push(result)
 		}
@@ -131,9 +132,9 @@ function styleEmit(chunks: StyleCompileResult[], options: StyleOptions): StyleCo
  * L/C/E 组合入口（F-H2-1 拆分后）：styleLoad（发现）→ styleCompile（变换）→ styleEmit（装配）。
  * 字节恒等于原 monolithic while 循环（发现/编译解交织安全——见 styleLoad 注释）。
  */
-export async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> = new Set(), options: StyleOptions = {}): Promise<StyleCompileResult> {
+export async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> = new Set(), options: StyleOptions = {}, ctx?: PackerContext): Promise<StyleCompileResult> {
 	const loadedModules = styleLoad(module, compiledPaths)
-	const chunks = await styleCompile(loadedModules, options)
+	const chunks = await styleCompile(loadedModules, options, ctx)
 	return styleEmit(chunks, options)
 }
 function createExternalClassPlugin(moduleId: string): { postcssPlugin: string; Rule: (rule: postcss.Rule) => void } {
@@ -187,8 +188,8 @@ export function boostExternalClassSelectors(cssCode: string, moduleId: string): 
 	return postcss([createExternalClassPlugin(moduleId)])
 		.process(cssCode, { from: undefined }).css
 }
-function getStyleSourcePath(absolutePath: string): string {
-	const workPath = getWorkPath()
+function getStyleSourcePath(absolutePath: string, ctx?: PackerContext): string {
+	const workPath = ctx?.workPath ?? getWorkPath()
 	if (absolutePath === workPath || absolutePath.startsWith(`${workPath}${path.sep}`)) {
 		return `/${path.relative(workPath, absolutePath).split(path.sep).join('/')}`
 	}
@@ -228,7 +229,7 @@ function normalizePreprocessorMap(inputMap: string | RawSourceMap, absolutePath:
 		return resolvedPath
 	})
 
-	map.sources = sourcePaths.map(getStyleSourcePath)
+	map.sources = sourcePaths.map((p) => getStyleSourcePath(p))
 	map.sourcesContent = map.sources.map((_, index) => {
 		if (sourcePaths[index] === absolutePath) {
 			return inputCSS
@@ -248,7 +249,7 @@ function getPostcssMapOptions(sourcemap: boolean, prev: unknown): boolean | Reco
 		prev,
 	}
 }
-function createStyleTransformPlugin(module: StyleModule, absolutePath: string, importResults: Promise<StyleCompileResult>[], options: StyleOptions): { postcssPlugin: string; AtRule: (node: postcss.AtRule) => void; Rule: (rule: postcss.Rule) => void; Comment: (comment: postcss.Comment) => void; Declaration: (declaration: postcss.Declaration) => void } {
+function createStyleTransformPlugin(module: StyleModule, absolutePath: string, importResults: Promise<StyleCompileResult>[], options: StyleOptions, ctx?: PackerContext): { postcssPlugin: string; AtRule: (node: postcss.AtRule) => void; Rule: (rule: postcss.Rule) => void; Comment: (comment: postcss.Comment) => void; Declaration: (declaration: postcss.Declaration) => void } {
 	const processedRules = new WeakSet()
 	const selectorProcessor = selectorParser((selectors) => {
 		selectors.walkTags((tag) => {
@@ -303,13 +304,14 @@ function createStyleTransformPlugin(module: StyleModule, absolutePath: string, i
 				declaration.value,
 				absolutePath,
 				module.ownerPath || module.path,
+				ctx,
 			)
 			declaration.value = transformRpx(declaration.value)
 		},
 	}
 }
-async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Promise<StyleCompileResult> {
-	const absolutePath = module.absolutePath ? module.absolutePath : getAbsolutePath(module.path)
+async function enhanceCSS(module: StyleModule, options: StyleOptions = {}, ctx?: PackerContext): Promise<StyleCompileResult> {
+	const absolutePath = module.absolutePath ? module.absolutePath : getAbsolutePath(module.path, ctx)
 	if (!absolutePath) {
 		// 样式文件不存在
 		return { code: '', map: null }
@@ -320,7 +322,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	}
 	const cacheKey = `${absolutePath}::${module.id || ''}::${options.sourcemap ? 'map' : 'plain'}::minify:${options.minify !== false}`
 
-	const inputCSS = getContentByPath(absolutePath)
+	const inputCSS = ctx?.readContent(absolutePath) ?? getContentByPath(absolutePath)
 	if (!inputCSS) {
 		return { code: '', map: null }
 	}
@@ -332,7 +334,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	// 预处理器编译
 	let processedCSS = normalizeRootStyleImports(inputCSS)
 	let processedMap: RawSourceMap | string | null = options.sourcemap
-		? createLineSourcemap(processedCSS, getStyleSourcePath(absolutePath), inputCSS)
+		? createLineSourcemap(processedCSS, getStyleSourcePath(absolutePath, ctx), inputCSS)
 		: null
 	const ext = path.extname(absolutePath).toLowerCase()
 
@@ -341,7 +343,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 			const less = await loadLess()
 			const result = await less.render(processedCSS, {
 				filename: absolutePath,
-				paths: [path.dirname(absolutePath), getWorkPath()],
+				paths: [path.dirname(absolutePath), ctx?.workPath ?? getWorkPath()],
 				sourceMap: options.sourcemap
 					? {
 						outputSourceFiles: true,
@@ -357,7 +359,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 		else if (ext === '.scss' || ext === '.sass') {
 			const sass = await loadSass()
 			const result = sass.compileString(processedCSS, {
-				loadPaths: [path.dirname(absolutePath), getWorkPath()],
+				loadPaths: [path.dirname(absolutePath), ctx?.workPath ?? getWorkPath()],
 				syntax: ext === '.sass' ? 'indented' : 'scss',
 				url: options.sourcemap ? pathToFileURL(absolutePath) : undefined,
 				sourceMap: !!options.sourcemap,
@@ -385,12 +387,12 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 	try {
 		scopedResult = compileStyle({
 			source: fixedCSS,
-			filename: getStyleSourcePath(absolutePath),
+			filename: getStyleSourcePath(absolutePath, ctx),
 			id: moduleId!,
 			scoped: !!moduleId,
 			inMap: options.sourcemap ? (processedMap as RawSourceMap) : undefined,
 			postcssPlugins: [
-				createStyleTransformPlugin(module, absolutePath, importResults, options),
+				createStyleTransformPlugin(module, absolutePath, importResults, options, ctx),
 			],
 		})
 		if (scopedResult.errors.length > 0) {
@@ -458,7 +460,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}): Prom
 
 	return result
 }
-function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPath: string | undefined): string {
+function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPath: string | undefined, ctx?: PackerContext): string {
 	return value.replace(/url\(([^)]+)\)/g, (fullMatch, rawUrl) => {
 		const cleanedUrl = rawUrl.trim().replace(/^['"]|['"]$/g, '')
 
@@ -477,19 +479,19 @@ function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPat
 		if (graphOwnerPath && isCollectableImageAsset(cleanedUrl)) {
 			getDependencyGraph().addFile(
 				graphOwnerPath,
-				resolveAssetSourcePath(getWorkPath(), absolutePath, cleanedUrl),
+				resolveAssetSourcePath(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl),
 				'style',
 			)
 		}
-		const realSrc = collectAssets(getWorkPath(), absolutePath, cleanedUrl, getTargetPath(), getAppId()!)
+		const realSrc = collectAssets(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl, ctx?.targetPath ?? getTargetPath(), getAppId()!)
 		return `url(${realSrc})`
 	})
 }
-function getAbsolutePath(modulePath: string): string | undefined {
-	const workPath = getWorkPath()
+function getAbsolutePath(modulePath: string, ctx?: PackerContext): string | undefined {
+	const workPath = ctx?.workPath ?? getWorkPath()
 	const src = modulePath.startsWith('/') ? modulePath : `/${modulePath}`
 
-	for (const ssType of getStyleExts()) {
+	for (const ssType of (ctx?.fileTypes.styleExts ?? getStyleExts())) {
 		const ssFullPath = `${workPath}${src}${ssType}`
 		if (fs.existsSync(ssFullPath)) {
 			return ssFullPath

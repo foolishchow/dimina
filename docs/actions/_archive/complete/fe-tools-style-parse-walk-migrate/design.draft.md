@@ -1,8 +1,8 @@
 # Design Draft — fe-tools-style-parse-walk-migrate
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
-> **状态：ready**——D-SPM-1..6 已 review lock。基于 A0/A2（worker ctx 直传机制）+ 复用 optional + fallback ALS 模式。
+> **状态：complete**——D-SPM-1..6 已实施 + 行为 0 三件套全绿（tsc 0 + vitest 88/88 + 7-diff=0）。基于 A0/A2（worker ctx 直传机制）+ 复用 optional + fallback ALS 模式。
 
 ## 1. 复用 A0/A2 模式
 
@@ -104,7 +104,7 @@ export async function buildCompileCss(
 **透传链深度 2 层**（F-R2-1）：buildCompileCss → styleCompile → createStyleTransformPlugin/getAbsolutePath/getStyleSourcePath/normalizeCssUrlValue
 
 - **styleCompile**(loadedModules, options, ctx?)——L108（中间层透传——buildCompileCss L136 调，须透传 ctx 到 createStyleTransformPlugin/getAbsolutePath/getStyleSourcePath/normalizeCssUrlValue）
-- styleLoad(module, compiledPaths, ctx?)——L90 getDependencyGraph + L95 getComponent（保留 ALS）
+- styleLoad(module, compiledPaths)——**ctx 撤回**（D-SPM-dev1：styleLoad 内 getDependencyGraph/getComponent 保留 ALS，不读 ctx，不透传——noUnusedLocals 报）
 - getStyleSourcePath(absolutePath, ctx?)——L191 getWorkPath→ctx?.workPath ?? getWorkPath()
 - createStyleTransformPlugin(module, absolutePath, importResults, options, ctx?)——L319 getDependencyGraph（保留 ALS）+ L323 getContentByPath→ctx?.readContent ?? getContentByPath + L344/360 getWorkPath→ctx?.workPath ?? getWorkPath() + **内部调用关系**（F-R8-2：L302 normalizeCssUrlValue + L312 getAbsolutePath + L335/388 getStyleSourcePath——须透传 ctx 到这些子调用）
 - normalizeCssUrlValue(value, absolutePath, graphOwnerPath, ctx?)——L478 getDependencyGraph（保留 ALS）+ L480/484 getWorkPath→ctx?.workPath ?? getWorkPath() + L484 getTargetPath→ctx?.targetPath ?? getTargetPath() + getAppId（保留 ALS）+ **2 处测试外部调用者**（F-R8-1：style-compiler.spec.js L112/117 传 2 参不传 ctx——fallback ALS 兼容 ✓）
@@ -173,6 +173,13 @@ export async function buildCompileCss(
 - **D-SC5**：buildResetStoreInfoData 返 storeInfo data——A3 styleCompile 从 storeInfo 建 ctx
 - **D-PC**（packer-context-dedup）：buildPackerContextFromOptions 内核——A3 复用
 - **A0 R8**（resolveAppAlias 行为 0 守护）：style 不用 resolveAppAlias ✓（F-R1-3 确认）
+
+## 6b2. 实施 deviations（D-SPM-dev1..4 回填）
+
+- **D-SPM-dev1**：styleLoad ctx 撤回——styleLoad 内 getDependencyGraph/getComponent 保留 ALS，不读 ctx，不透传（noUnusedLocals 报）
+- **D-SPM-dev2**：enhanceCSS 加 ctx——独立函数（非 createStyleTransformPlugin 内嵌套），L324/345/361 getter 在 enhanceCSS 内，须加 ctx 参数 + 透传 createStyleTransformPlugin/getStyleSourcePath/getAbsolutePath
+- **D-SPM-dev3**：normalizePreprocessorMap 不加 ctx——L232 getStyleSourcePath fallback ALS（sourcemap 预处理非热路径）
+- **D-SPM-dev4**：createStyleCompileError 不加 ctx——L206 getStyleSourcePath fallback ALS（错误处理路径非热路径）
 
 ## 6c. 行为 0 等价确认（F-R9）
 

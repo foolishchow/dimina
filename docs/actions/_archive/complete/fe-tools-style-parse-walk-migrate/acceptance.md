@@ -1,6 +1,6 @@
 # Acceptance — fe-tools-style-parse-walk-migrate
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 | ID | Requirement | Title | Acceptance criterion | Status |
 | --- | --- | --- | --- | --- |

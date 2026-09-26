@@ -1,4 +1,6 @@
 import { resetStoreInfo } from '../../packer/store/env.ts'
+import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
+import type { PackerContext } from '../../packer/types.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../../packer/worker/define-engine.ts'
 import { abilityALS } from '../../packer/worker/context.ts'  // P-WR03
@@ -12,7 +14,7 @@ interface Progress {
 	completedTasks: number
 }
 
-async function compileSS(pages: StyleModule[], root: string | null, progress: Progress, options: StyleOptions = {}, styleCache?: Map<string, StyleCompiledModule>, invalidated?: string[] | null): Promise<StyleCompiledModule[]> {
+async function compileSS(pages: StyleModule[], root: string | null, progress: Progress, options: StyleOptions = {}, styleCache?: Map<string, StyleCompiledModule>, invalidated?: string[] | null, ctx?: PackerContext): Promise<StyleCompiledModule[]> {
 	// G4 D-G4-2 / G5 D-G5-5: 收集 cache-miss StyleCompiledModule[]（cache-hit 不返——D-G5-3/D-IU-5 只返 dirty）
 	const results: StyleCompiledModule[] = []
 	// page 样式
@@ -27,7 +29,7 @@ async function compileSS(pages: StyleModule[], root: string | null, progress: Pr
 			map = cached.map
 		} else {
 			// cache-miss：编译 + push（stage-channel 写 cache）
-			const result = await buildCompileCss(page, new Set(), options)
+			const result = await buildCompileCss(page, new Set(), options, ctx)
 			code = result.code
 			map = result.map
 			results.push({ moduleId: page.path, kind: 'style', code, map, dependencies: [] })
@@ -55,13 +57,14 @@ export { compileSS }
 async function styleCompile({ msg, progress, config }: CompileOptions): Promise<{ styleCompileResults: StyleCompiledModule[] }> {
 	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: StyleModule[]; subPages: Record<string, { info: StyleModule[]; independent: boolean }> }; styleCache?: Map<string, StyleCompiledModule> | null; invalidatedModules?: string[] | null }
 	resetStoreInfo(m.storeInfo)
+	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!)
 
 	const styleOptions: StyleOptions = { sourcemap: m.sourcemap, minify: (config as { minify?: boolean }).minify }
 	// G4 D-G4-2 / G5 D-G5-3: compile 只返 { styleCompileResults }（只 cache-miss——D-IU-5 只返 dirty）；styleEngine 用 defineEngine 默认 successPayload
 	const styleCompileResults: StyleCompiledModule[] = []
-	styleCompileResults.push(...await compileSS(m.pages.mainPages, null, progress as Progress, styleOptions, m.styleCache ?? undefined, m.invalidatedModules))
+	styleCompileResults.push(...await compileSS(m.pages.mainPages, null, progress as Progress, styleOptions, m.styleCache ?? undefined, m.invalidatedModules, ctx))
 	for (const [root, subPages] of Object.entries(m.pages.subPages)) {
-		styleCompileResults.push(...await compileSS(subPages.info, root, progress as Progress, styleOptions, m.styleCache ?? undefined, m.invalidatedModules))
+		styleCompileResults.push(...await compileSS(subPages.info, root, progress as Progress, styleOptions, m.styleCache ?? undefined, m.invalidatedModules, ctx))
 	}
 
 	clearStyleCaches()

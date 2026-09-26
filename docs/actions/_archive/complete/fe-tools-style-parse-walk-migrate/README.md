@@ -1,7 +1,7 @@
 # fe-tools-style-parse-walk-migrate
 
-- Status: `ready`
-- Status authority: [Action Status](../STATUS.md)
+- Status: `complete`
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-SPM-1..6 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)

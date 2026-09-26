@@ -1,6 +1,6 @@
 # Requirements — fe-tools-style-parse-walk-migrate
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## 功能需求
 
