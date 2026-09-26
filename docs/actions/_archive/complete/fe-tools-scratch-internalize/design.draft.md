@@ -1,8 +1,8 @@
 # Design Draft — fe-tools-scratch-internalize
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
-> **状态：in_progress**——D-SI-1..6 **已 review lock**（10 轮 readiness review：R1-R8 全 findings 修正 + R9+R10 连续 0-finding 收敛——含 F-R1-1 dev 模式实证 / F-R2-1 computeStoreInfo pathInfo? 参数 / F-R2-2 BaseOutput 内联 / F-R4-1/2 constructor 签名）。基于 scratch 流 source-audit + storeInfo/env-l1 backflow。
+> **状态：complete**——D-SI-1..6 **已 review lock**（10 轮 readiness review：R1-R8 全 findings 修正 + R9+R10 连续 0-finding 收敛——含 F-R1-1 dev 模式实证 / F-R2-1 computeStoreInfo pathInfo? 参数 / F-R2-2 BaseOutput 内联 / F-R4-1/2 constructor 签名）。基于 scratch 流 source-audit + storeInfo/env-l1 backflow。
 
 ## 1. scratch 流现状（source-audit）
 

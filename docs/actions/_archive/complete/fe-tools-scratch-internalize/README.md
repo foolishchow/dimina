@@ -1,13 +1,13 @@
 # fe-tools-scratch-internalize
 
 - Action: `fe-tools-scratch-internalize`
-- Status: `in_progress`
+- Status: `complete`
 - Created: 2026-10-10
-- Status authority: [Action Status](../STATUS.md)
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-SI-1..6 已 review lock**——10 轮 readiness review 收敛 R9+R10 连续 0-finding）
 - 实施计划：[implementation-plan.md](implementation-plan.md)
 - 验证：[validation.md](validation.md)
-- 背景：[`fe-tools-storeinfo-collapse`](../_archive/complete/fe-tools-storeinfo-collapse/README.md)（scratch 内化 backflow）+ [`fe-tools-env-l1-extract`](../_archive/complete/fe-tools-env-l1-extract/README.md)（scratch 内化 follow-up）+ [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（DiskOutput 封装 scratch→final）
+- 背景：[`fe-tools-storeinfo-collapse`](../fe-tools-storeinfo-collapse/README.md)（scratch 内化 backflow）+ [`fe-tools-env-l1-extract`](../fe-tools-env-l1-extract/README.md)（scratch 内化 follow-up）+ [`fe-tools-packer-output-abstraction`](../fe-tools-packer-output-abstraction/README.md)（DiskOutput 封装 scratch→final）
 
 ## Background
 
@@ -38,9 +38,9 @@ mkdtemp 归属正位：Output（I/O 层）拥有 TEMP 目录生命周期；store
 
 ## Design inputs
 
-- storeInfo 塌缩 backflow：[`fe-tools-storeinfo-collapse`](../_archive/complete/fe-tools-storeinfo-collapse/README.md) Non-goals（scratch 内化）
-- env-l1 backflow：[`fe-tools-env-l1-extract`](../_archive/complete/fe-tools-env-l1-extract/README.md) Non-goals（scratch 内化）
-- Output 抽象：[`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（DiskOutput 封装 scratch→final；D-O1..7 + D-OL1..4）
+- storeInfo 塌缩 backflow：[`fe-tools-storeinfo-collapse`](../fe-tools-storeinfo-collapse/README.md) Non-goals（scratch 内化）
+- env-l1 backflow：[`fe-tools-env-l1-extract`](../fe-tools-env-l1-extract/README.md) Non-goals（scratch 内化）
+- Output 抽象：[`fe-tools-packer-output-abstraction`](../fe-tools-packer-output-abstraction/README.md)（DiskOutput 封装 scratch→final；D-O1..7 + D-OL1..4）
 - env-compute 现状：`computePathInfo`（mkdtemp）+ `storeInfoCtx`（设 state.scratch）+ `computeStoreInfo`
 - types.ts:419 注释（「后续 DiskOutput 内化 mkdtemp」）
 

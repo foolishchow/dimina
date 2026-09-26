@@ -1,6 +1,6 @@
 # Requirements — fe-tools-scratch-internalize
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## Problem
 
