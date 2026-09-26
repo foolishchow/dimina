@@ -8,7 +8,7 @@ Status authority: [Action Status](../STATUS.md)
 | --- | --- | --- |
 | R-SPM-1 | styleCompile 建 ctx（A0/A2 复用） | style/index.ts styleCompile 入口建 PackerContext（from storeInfo data——buildPackerContextFromOptions，复用 A0/A2 模式）+ resetStoreInfo 保留（ALS compat） |
 | R-SPM-2 | buildCompileCss 加 ctx 第 4 参 | buildCompileCss(module, compiledPaths?, options?, ctx?: PackerContext)——optional + fallback ALS（复用 A0 dev1/A2 模式） |
-| R-SPM-3 | style/parse-walk getter 改 ctx 读 | 16 处 getter——ctx 读 4 getter（getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / getContentByPath→ctx.readContent / getStyleExts→ctx.fileTypes.styleExts）+ 保留 ALS 3 getter（getDependencyGraph/getComponent/getAppId） |
+| R-SPM-3 | style/parse-walk getter 改 ctx 读 | 16 处 getter（独立函数透传——F-R1-1）——ctx 读 4 getter（getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / getContentByPath→ctx.readContent / getStyleExts→ctx.fileTypes.styleExts）+ 保留 ALS 3 getter（getDependencyGraph/getComponent/getAppId） |
 | R-SPM-4 | style/index.ts compileSS/buildCompileCss 调用传 ctx | style/index.ts:30 buildCompileCss 调用传 ctx（styleCompile 建的 ctx）+ compileSS 加 ctx 透传 |
 | R-SPM-5 | buildCompileCss 递归透传 | style/parse-walk.ts:270 buildCompileCss 递归调传 ctx |
 | R-SPM-6 | resolveStyleImportPath/normalizeRootStyleImports default param | export 独立函数 default param `workPath = getWorkPath()`——加 ctx? 后 default param 处理（保留 default getWorkPath fallback ALS or 加 ctx 参数） |

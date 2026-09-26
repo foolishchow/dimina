@@ -1,8 +1,8 @@
 # fe-tools-style-parse-walk-migrate
 
-- Status: `draft`
+- Status: `ready`
 - Status authority: [Action Status](../STATUS.md)
-- 设计门：[design.draft.md](design.draft.md)（**D-SPM-1..N 待 lock**——style parse-walk ctx 迁移）
+- 设计门：[design.draft.md](design.draft.md)（**D-SPM-1..6 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)
 - 验收门：[acceptance.md](acceptance.md)
@@ -42,18 +42,18 @@ L2+L3 退役大倡议第三步。A0（worker ctx 直传机制）+ A1（logic）+
 
 - D-SPM-1：styleCompile 建 ctx（buildPackerContextFromOptions from storeInfo，复用 A0/A2 模式）
 - D-SPM-2：buildCompileCss 加 ctx 第 4 参（optional + fallback ALS）
-- D-SPM-3：style/parse-walk 16 处 getter 改 ctx 读（ctx 读 4 getter + 保留 ALS 3 getter）
+- D-SPM-3：style/parse-walk 独立函数 16 处 getter 改 ctx 读（F-R1-1 透传链）（ctx 读 4 getter + 保留 ALS 3 getter）
 - D-SPM-4：style/index.ts compileSS/buildCompileCss 调用传 ctx
 - D-SPM-5：ALS compat 保留（resetStoreInfo + logic/view/emit-engine 已迁/不动）
 - D-SPM-6：resolveStyleImportPath/normalizeRootStyleImports default param（export 独立函数）
 
-## Readiness gaps
+## Readiness gaps（R1-R2 resolve）
 
-**3 项**（design 待 lock）：
+**3 项**（R1-R2 全 resolve）：
 
-1. **getStyleExts ctx 读**：ctx.fileTypes.styleExts 与 ALS 等价确认
-2. **buildCompileCss 内部函数透传**：16 处 getter 分布——ctx 须透传内部函数 or 顶部建 local
-3. **resolveStyleImportPath/normalizeRootStyleImports default param**：export 独立函数 default param getWorkPath——加 ctx 后 default param 处理
+1. **getStyleExts ctx 读**（R1 resolve）：ctx.fileTypes.styleExts 同源 ALS getCompilerContext().compilerOptions ✓（F-R1-2 等价确认）
+2. **独立函数透传链**（R1/R2 resolve）：6 独立函数加 ctx optional（styleLoad/getStyleSourcePath/createStyleTransformPlugin/normalizeCssUrlValue/getAbsolutePath/styleCompile——F-R1-1）+ 透传链 2 层（F-R2-1）+ 测试调用者 fallback ALS（F-R2-2）
+3. **resolveStyleImportPath/normalizeRootStyleImports default param**（R2 resolve）：保留 default getWorkPath fallback ALS + 2 处测试直调传 workPath（F-R2-2）
 
 ## Closure conditions
 

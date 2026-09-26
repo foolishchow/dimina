@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：draft**——D-SPM-1..6 待 readiness review lock。基于 A0/A2（worker ctx 直传机制）+ 复用 optional + fallback ALS 模式。
+> **状态：ready**——D-SPM-1..6 已 review lock。基于 A0/A2（worker ctx 直传机制）+ 复用 optional + fallback ALS 模式。
 
 ## 1. 复用 A0/A2 模式
 
@@ -73,6 +73,7 @@ async function styleCompile({ msg, progress, config }: CompileOptions): Promise<
 ```
 
 - 复用 A0 D-WCD-1/A2 D-VPM-1 模式（buildPackerContextFromOptions from storeInfo data）
+- **import 变更**（F-R4-2）：style/index.ts 须加 `import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'` + `import type { PackerContext } from '../../packer/types.ts'`
 - ALS compat 保留（resetStoreInfo 仍调——logic/view 已迁 + emit-engine 仍读）
 - storeInfo compilerOptions 形状匹配 ✓（A0 F-R3-1 确认）
 
@@ -94,26 +95,41 @@ export async function buildCompileCss(
 - 复用 A0 dev1/A2（ctx?: PackerContext + fallback ALS）
 - getWorkPath/getTargetPath DRY 提前到函数顶部（复用 A0 dev3/A2）
 
-### D-SPM-3 — style/parse-walk 16 处 getter 改 ctx 读
+### D-SPM-3 — 独立函数加 ctx 透传 + 16 处 getter 改 ctx 读（F-R1-1 修正）
 
-- **ctx 读 4 getter**：
-  - getWorkPath→workPath（DRY 顶部 local，L191/344/360/480/484/489 + L505/511 default param 保留）
-  - getTargetPath→targetPath（DRY 顶部 local，L484）
-  - getContentByPath→ctx?.readContent(path) ?? getContentByPath(path)（L323）
-  - getStyleExts→ctx?.fileTypes.styleExts ?? getStyleExts()（L492——等价确认 §4）
+**关键**（F-R1-1）：buildCompileCss 自身（L134-138）无 getter 调用——只调 styleLoad/styleCompile/styleEmit。16 处 getter 全在独立函数。须独立函数加 ctx 参数透传。
+
+**独立函数透传链**（6 函数加 ctx 参数 + 透传深度 2 层——F-R2-1）：
+
+**透传链深度 2 层**（F-R2-1）：buildCompileCss → styleCompile → createStyleTransformPlugin/getAbsolutePath/getStyleSourcePath/normalizeCssUrlValue
+
+- **styleCompile**(loadedModules, options, ctx?)——L108（中间层透传——buildCompileCss L136 调，须透传 ctx 到 createStyleTransformPlugin/getAbsolutePath/getStyleSourcePath/normalizeCssUrlValue）
+- styleLoad(module, compiledPaths, ctx?)——L90 getDependencyGraph + L95 getComponent（保留 ALS）
+- getStyleSourcePath(absolutePath, ctx?)——L191 getWorkPath→ctx?.workPath ?? getWorkPath()
+- createStyleTransformPlugin(module, absolutePath, importResults, options, ctx?)——L319 getDependencyGraph（保留 ALS）+ L323 getContentByPath→ctx?.readContent ?? getContentByPath + L344/360 getWorkPath→ctx?.workPath ?? getWorkPath() + **调 getStyleSourcePath（L335/388——F-R2-3 须透传 ctx）**
+- normalizeCssUrlValue(value, absolutePath, graphOwnerPath, ctx?)——L478 getDependencyGraph（保留 ALS）+ L480/484 getWorkPath→ctx?.workPath ?? getWorkPath() + L484 getTargetPath→ctx?.targetPath ?? getTargetPath() + getAppId（保留 ALS）
+- getAbsolutePath(modulePath, ctx?)——L489 getWorkPath→ctx?.workPath ?? getWorkPath() + L492 getStyleExts→ctx?.fileTypes.styleExts ?? getStyleExts()
+- resolveStyleImportPath/normalizeRootStyleImports（export，default param——D-SPM-6）
+
+**ctx 读 4 getter**（F-R1-2 等价确认）：
+- getWorkPath→ctx?.workPath ?? getWorkPath()（L191/344/360/480/484/489 + L505/511 default param 保留）
+- getTargetPath→ctx?.targetPath ?? getTargetPath()（L484）
+- getContentByPath→ctx?.readContent(path) ?? getContentByPath(path)（L323）
+- getStyleExts→ctx?.fileTypes.styleExts ?? getStyleExts()（L492——**F-R1-2 等价确认**：env.ts:142 getCompilerContext().compilerOptions.styleExts = ctx.fileTypes.styleExts 同源 ✓）
 - **保留 ALS 3 getter**：getDependencyGraph（×3——ctx 无 graph）/ getComponent（×1——ctx 无 component store）/ getAppId（×1——ctx 无 appId）
 
-### D-SPM-4 — style/index.ts compileSS/buildCompileCss 调用传 ctx
+### D-SPM-4 — style/index.ts compileSS/buildCompileCss 调用传 ctx（3 层透传——F-R3-1/R3-2）
 
-- compileSS 签名加 ctx 透传：compileSS(pages, root, progress, options, styleCache?, invalidated?, ctx?)
-- L30 `buildCompileCss(page, new Set(), options, ctx)`
-- styleCompile L57 后建 ctx + 透传 compileSS
+- **透传链 3 层**（F-R3-2）：styleCompile L55 建 ctx → compileSS L64/67 透传 → buildCompileCss L31 传 ctx
+- **compileSS 签名加 ctx 透传**（F-R3-1）：compileSS(pages, root, progress, options, styleCache?, invalidated?, ctx?)——L31 `buildCompileCss(page, new Set(), options, ctx)`
+- styleCompile L57 后建 ctx + 透传 compileSS L64/67
 
 ### D-SPM-5 — ALS compat 保留
 
 - resetStoreInfo 保留（style/index.ts:57 仍调——logic/view 已迁 + emit-engine compat）
 - emit-engine.ts:12 resetStoreInfo 不动
 - ALS singleton 保留（emit-engine 仍读 + style ALS 残留 getter 读）
+- **style ALS 残留量**（F-R4-1）：parse-walk 5 处（getDependencyGraph ×3 + getComponent ×1 + getAppId ×1）——A5 singleton 退役统一迁（logic 7 + view 8 + style 5 = 20 处 ALS 残留）
 
 ### D-SPM-6 — resolveStyleImportPath/normalizeRootStyleImports default param
 
@@ -121,10 +137,12 @@ export async function buildCompileCss(
 
 **方案**：保留 default param `workPath = getWorkPath()`（fallback ALS）。caller 传 workPath 时不调 default；不传时 fallback ALS。不须加 ctx 参数（这两个函数只读 workPath，不读其他 getter——workPath 参数已够）。
 
-## 4. getStyleExts ctx 读 等价确认
+**测试调用者**（F-R2-2）：style-compiler.spec.js:97/103 2 处直调——传 workPath 参数（不调 default getWorkPath）——fallback ALS 兼容 ✓
+
+## 4. getStyleExts ctx 读 等价确认（F-R1-2）
 
 **确认**（A0 F-R3-1/A2 F-R1-2 模式）：
-- getStyleExts（env.ts）= `getCompilerContext().compilerOptions.styleExts`（ALS）
+- getStyleExts（env.ts:142）= `getCompilerContext().compilerOptions.styleExts`（ALS）
 - ctx.fileTypes.styleExts（buildPackerContextFromOptions）来自 storeInfo.compilerOptions（buildResetStoreInfoData 从 ctx.fileTypes 组装）——**同源** ✓
 - ctx.fileTypes.styleExts = ALS getStyleExts() 字节等价 ✓
 
@@ -133,7 +151,7 @@ export async function buildCompileCss(
 1. **getStyleExts ctx 读**（§4 确认等价 ✓）
 2. **buildCompileCss 内部函数透传**：16 处 getter 分布——ctx 须透传内部函数 or 顶部建 local（DRY 提前——复用 A0 dev3/A2）
 3. **resolveStyleImportPath/normalizeRootStyleImports default param**（D-SPM-6——保留 default getWorkPath fallback ALS）
-4. **resolveAppAlias 行为 0 守护**（A0 R8）：style 若用 resolveAppAlias 须保留 ALS（A5 实体化）——须确认 style 是否用 resolveAppAlias
+4. **resolveAppAlias 行为 0 守护**（A0 R8——**F-R1-3 确认 style 不用 resolveAppAlias** ✓）：style/parse-walk 无 resolveAppAlias 调用——A0 R8 行为 0 守护不适用 style
 
 ## 6. Non-scope 守
 
@@ -141,6 +159,15 @@ export async function buildCompileCss(
 - logic/view parse-walk 不动（A1/A2 已迁）
 - compat 写 / singleton / Proxy 不动（A4/A5）
 - emit-engine.ts 不动
+
+## 6b. 跨权威一致性
+
+- **A0（fe-tools-worker-ctx-direct）**：复用 worker ctx 直传机制 + optional + fallback ALS + DRY 提前 + buildPackerContextFromOptions
+- **A2（fe-tools-view-parse-walk-migrate）**：复用独立函数透传链模式（4 层 view vs A3 2 层 style）+ ctx optional + fallback ALS
+- **D-PCS-1**：PackerContext 形状不改（workPath/targetPath/readContent/resolveAlias/resolveNpm/fileTypes）
+- **D-SC5**：buildResetStoreInfoData 返 storeInfo data——A3 styleCompile 从 storeInfo 建 ctx
+- **D-PC**（packer-context-dedup）：buildPackerContextFromOptions 内核——A3 复用
+- **A0 R8**（resolveAppAlias 行为 0 守护）：style 不用 resolveAppAlias ✓（F-R1-3 确认）
 
 ## 7. 结论
 
