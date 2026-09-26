@@ -459,10 +459,6 @@ function getAppStyleScopeId(): string {
 	return uuid('app')
 }
 
-function isTemporaryTargetPath(): boolean {
-	return pathInfo.temporaryTargetPath === true
-}
-
 export {
 	getCompilerContext,
 	getAppConfigInfo,
@@ -485,7 +481,6 @@ export {
 	getViewScriptTags,
 	getWorkPath,
 	isMiniGame,
-	isTemporaryTargetPath,
 	resetStoreInfo,
 	resolveAppAlias,
 	storeAppConfig,

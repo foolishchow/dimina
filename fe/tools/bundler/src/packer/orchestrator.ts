@@ -154,15 +154,14 @@ async function _orchestrate(
 		prepareConfig = true,
 		prepareNpm = true,
 		invalidatedModules,
-		skipMaterialize,
+		outputMode,
 		parallel = true,
 		compileOptions = {},
 	} = request
 
 	// D-OL1（方案 B——orchestrator 入口 mode-aware 创建 + listr2 ctx 注入）：
-	// P-O1/P-O2 过渡：dev（skipMaterialize=true）→ MemOutput；one-shot → DiskOutput
-	// P-O3 后：消 skipMaterialize 改 request.outputMode 'dev'|'disk'（F-R30-1/F-R34-1）
-	const output: Output | undefined = request.skipMaterialize ? new MemOutput() : new DiskOutput()
+	// F-R30-1/F-R34-1：outputMode 'dev'|'disk'（缺省 'disk'）；dev → MemOutput / disk → DiskOutput
+	const output: Output | undefined = request.outputMode === 'dev' ? new MemOutput() : new DiskOutput()
 
 	const store = (runStore ?? providedStore ?? createProjectStore()) as {
 		load: (w: string, o: unknown) => Record<string, unknown>
@@ -190,7 +189,7 @@ async function _orchestrate(
 		seedPath,
 		prepareConfig,
 		prepareNpm,
-		skipMaterialize,
+		outputMode,
 		parallel: request.parallel,
 		incremental: request.incremental,
 		configChanged: request.configChanged,
@@ -304,7 +303,6 @@ async function _orchestrate(
 		name: state.graph.getAppName(),
 		path: (state.graph.getAppConfigInfo().entryPagePath as string | undefined) || ((context as { allPages?: { mainPages?: { path: string }[] } }).allPages?.mainPages?.[0]?.path),
 		dependencyGraph: state.graph.toJSON(),
-		buildModel: undefined,
 		output: outputFromCtx,
 	}
 		await lifecycle.emit(LIFECYCLE_EVENTS.BUILD_END, {

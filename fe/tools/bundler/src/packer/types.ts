@@ -27,7 +27,6 @@ import type { EmitEntry, EmitTransformConfig } from './emit/emit.ts'
 import type { GraphSnapshot } from './graph/dependency-graph.ts'
 import type { GraphConfigData } from './graph/graph.ts'
 import type { CachedModuleResult } from './cache/module-result-cache.ts'
-import type { BuildModel } from './emit/build-model.ts'
 import type { Lifecycle } from '../shared/lifecycle.ts'
 
 // ════════════════════════════════════════════════════════════════════
@@ -120,7 +119,6 @@ export interface PackerContext {
  */
 export interface StageChannelContext {
 	// load stage（orchestrator）
-	buildModel?: unknown
 	output?: unknown
 	storeInfo?: unknown
 	dependencyGraph?: unknown
@@ -472,8 +470,8 @@ export interface CompileOptions {
 	stages?: string[]
 	prepareConfig?: boolean
 	prepareNpm?: boolean
-	/** .dev：跳过 materialize。 */
-	skipMaterialize?: boolean
+	/** D-O4/F-R30-1/F-R34-1：output mode（dev=MemOutput memfs / disk=DiskOutput；缺省 disk）。 */
+	outputMode?: 'dev' | 'disk'
 }
 
 /** watch 增量数据（D-NS-5：watch-only）。 */
@@ -539,8 +537,7 @@ export interface BuildResult {
 	path: string | undefined
 	/** guaranteed GraphSnapshot（source state.graph.toJSON()——F-AG1-1）。 */
 	dependencyGraph: GraphSnapshot
-	buildModel: BuildModel | undefined
-	/** D-O1/F-OL3：Output 替代 buildModel（P-O1 阶段并行；P-O3 后 buildModel 删）。 */
+	/** D-O1/F-OL3：Output 替代 buildModel。 */
 	output?: Output | undefined
 }
 

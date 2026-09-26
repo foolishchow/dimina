@@ -23,7 +23,7 @@ const ORCH_OPTION_KEYS = new Set([
 	'seedPath',
 	'prepareConfig',
 	'prepareNpm',
-	'skipMaterialize',
+	'outputMode',
 	'invalidatedModules',
 	'incremental',
 	'configChanged',
@@ -75,7 +75,7 @@ async function runBuild(targetPath: string, workPath: string, useAppIdDir = true
 			seedPath: options.seedPath as string | undefined,
 			prepareConfig: options.prepareConfig as boolean | undefined,
 			prepareNpm: options.prepareNpm as boolean | undefined,
-			skipMaterialize: options.skipMaterialize as boolean | undefined,
+			outputMode: options.outputMode as 'dev' | 'disk' | undefined,
 		},
 	)
 }

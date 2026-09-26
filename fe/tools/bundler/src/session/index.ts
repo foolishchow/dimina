@@ -36,7 +36,6 @@ import { createProjectStore } from '../packer/store/project-store.ts'
 import { createSessionRunner, COMPILE_KEYS } from './runner.ts'
 import type { ResolvedBundlerInput } from './resolve.ts'
 import type { ReloadContext } from './preview-adapter.ts'
-import type { BuildModel } from '../packer/emit/build-model.ts'
 import type { Output } from '../packer/types.ts'
 
 /** server on Resolved / session — host/port only (D-R3) */
@@ -57,7 +56,6 @@ export interface SessionState {
 	lifecycle: Lifecycle
 	activeLoop: null | 'watch' | 'dev'
 	store: ProjectStore
-	buildModel?: BuildModel
 	/** D-OL4（F-R9-2）：output 字段加到 SessionState（session 内部 state，持 Output 引用）。 */
 	output?: Output
 }
@@ -235,7 +233,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 				onRebuild: onRebuild as WatchOpts['onRebuild'],
 				options: {
 					fileTypes: state.fileTypes,
-					skipMaterialize: !previewAdapter,
+					outputMode: previewAdapter ? 'disk' : 'dev',
 				},
 			})
 
@@ -244,7 +242,6 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 			try {
 				const buildResult = await watcher.start()
 
-				state.buildModel = (buildResult as { buildModel?: BuildModel }).buildModel
 				state.output = (buildResult as { output?: Output }).output
 
 				await adapter.createServer({
@@ -256,8 +253,7 @@ export function createBundler(resolved: ResolvedBundlerInput) {
 				// KNOWN LIMITATION (A1 v1, no off()): these stay mounted after
 				// rollback/close — accumulate, but harmless (see above).
 				state.lifecycle.on('bundle:published', () => adapter.notifyBuildPublished())
-				state.lifecycle.on('build:end', (({ result }: { result?: { buildModel?: BuildModel; output?: Output } }) => {
-					state.buildModel = result?.buildModel
+				state.lifecycle.on('build:end', (({ result }: { result?: { output?: Output } }) => {
 					state.output = result?.output
 				}) as (payload: unknown) => void)
 				state.lifecycle.on('build:error', (({ error }: { error?: { message?: string } }) => {

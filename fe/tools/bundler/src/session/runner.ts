@@ -37,7 +37,7 @@ const PIPELINE_OPTION_KEYS = Object.freeze([
 	'seedPath',
 	'prepareConfig',
 	'prepareNpm',
-	'skipMaterialize',
+	'outputMode',
 	'invalidatedModules',
 	'incremental',
 	'configChanged',

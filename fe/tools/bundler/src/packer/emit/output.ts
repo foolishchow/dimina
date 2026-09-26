@@ -87,6 +87,23 @@ function syncIncremental(srcDir: string, destDir: string): void {
 	}
 }
 
+// ── createDist（F-R18-1：从 publish.ts 迁入，dist-preparer 用，export）──
+
+/**
+ * 准备 scratch 目录（initPhases[1]，dist-preparer 调）。
+ * 删 scratch + mkdir + seed copy（if seedPath）。
+ * F-R13-1：seed copy 是 incremental sync 前提。
+ */
+export function createDist(scratch: string, seedPath?: string | null): void {
+	if (fs.existsSync(scratch)) {
+		fs.rmSync(scratch, { recursive: true, force: true })
+	}
+	fs.mkdirSync(scratch, { recursive: true })
+	if (seedPath && fs.existsSync(seedPath)) {
+		copyDir(seedPath, scratch)
+	}
+}
+
 // ── BaseOutput abstract base（F-R10-2 lock——read/getEntries 共用 + add virtual）──
 
 /**
@@ -142,7 +159,7 @@ export abstract class BaseOutput implements Output {
 // ── MemOutput——dev memfs（D-O2）──
 
 /**
- * dev 模式（skipMaterialize=true）：产物在内存（entries Map），dev server 读 Output.read + fs fallback。
+ * dev 模式（outputMode='dev'）：产物在内存（entries Map），dev server 读 Output.read + fs fallback。
  * publish no-op——dev 不写盘（D-O5：MemOutput.publish no-op 等价 skipMaterialize）。
  */
 export class MemOutput extends BaseOutput {
@@ -159,8 +176,7 @@ export class MemOutput extends BaseOutput {
  *
  * publish 封装 materialize（write entries→scratch + dirty guard）+ publishToDist（scratch→final）语义。
  *
- * - scratch = getTargetPath()（ALS TEMP，computePathInfo mkdtemp per-build；P-O2 过渡用 ALS，
- *   P-O3 后内化——须重构 config-compiler/npm-builder 写 DiskOutput.scratch）
+ * - scratch = opts.scratch（per-request TEMP，P-O2 过渡用 sctx.storeInfo.pathInfo.targetPath）
  * - temporary=true hardcode（F-R10-1：不读 isTemporaryTargetPath——computePathInfo 总 mkdtemp → temporary=true）
  * - appId 从 opts 传（F-R19-4：不读 ALS getAppId——publisher deps 传）
  * - incremental sync（F-R14-1：!!seedPath——content-diff，无 rm 窗口）

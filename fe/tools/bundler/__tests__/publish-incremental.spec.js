@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { publishToDist } from '../src/packer/emit/publish.ts'
+import { DiskOutput } from '../src/packer/emit/output.ts'
 
-// H4 Phase 2 (F-H4-2): publishToDist 增量 sync——content-diff（无 rm 窗口）+ deletion handling (F6)。
-// 测试用 TARGET_PATH 环境变量（temporaryTargetPath=false → copy 路径）+ useAppIdDir=false（免 config）。
+// H4 Phase 2 (F-H4-2): DiskOutput.publish 增量 sync——content-diff（无 rm 窗口）+ deletion handling (F6)。
+// 测试用 scratch=targetDir（per-request TEMP，opts.scratch 传）+ useAppIdDir=false（免 config）。
 
 describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 	let tempDir
@@ -57,7 +57,7 @@ describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 		writeFile(targetDir, 'main/view.js', 'same-view')
 
 		const viewMtimeBefore = fs.statSync(path.join(distDir, 'main/view.js')).mtimeMs
-		publishToDist(distDir, false, true)
+		new DiskOutput().publish(distDir, { useAppIdDir: false, scratch: targetDir, incremental: true })
 
 		expect(fs.readFileSync(path.join(distDir, 'main/logic.js'), 'utf8')).toBe('new-logic')
 		expect(fs.readFileSync(path.join(distDir, 'main/view.js'), 'utf8')).toBe('same-view')
@@ -75,7 +75,7 @@ describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 		writeFile(targetDir, 'main/logic.js', 'old')
 		writeFile(targetDir, 'pages/new/deep/view.js', 'brand-new')
 
-		publishToDist(distDir, false, true)
+		new DiskOutput().publish(distDir, { useAppIdDir: false, scratch: targetDir, incremental: true })
 
 		expect(fs.readFileSync(path.join(distDir, 'pages/new/deep/view.js'), 'utf8')).toBe('brand-new')
 	})
@@ -90,14 +90,14 @@ describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 		writeFile(distDir, 'main/logic.js', 'logic-v1')
 		writeFile(distDir, 'gone/old.js', 'stale')
 
-		publishToDist(distDir, false, true)
+		new DiskOutput().publish(distDir, { useAppIdDir: false, scratch: targetDir, incremental: true })
 
 		// 等价基准：全量 copy 到另一目录
 		const fullDist = path.join(tempDir, 'dist-full')
 		fs.mkdirSync(fullDist, { recursive: true })
 		writeFile(fullDist, 'placeholder', 'x')
 		process.env.TARGET_PATH = targetDir
-		publishToDist(fullDist, false, false)
+		new DiskOutput().publish(fullDist, { useAppIdDir: false, scratch: targetDir, incremental: false })
 
 		// 目录树等价（除 placeholder 被 rm 后重 copy）
 		const listDir = (root) => {
@@ -125,7 +125,7 @@ describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 		writeFile(targetDir, 'main/logic.js', 'only')
 		const missingDist = path.join(tempDir, 'not-yet')
 
-		publishToDist(missingDist, false, true)
+		new DiskOutput().publish(missingDist, { useAppIdDir: false, scratch: targetDir, incremental: true })
 
 		expect(fs.readFileSync(path.join(missingDist, 'main/logic.js'), 'utf8')).toBe('only')
 	})
@@ -135,7 +135,7 @@ describe('publishToDist — incremental sync (H4 Phase 2 F-H4-2)', () => {
 		writeFile(distDir, 'main/logic.js', 'aaaa')
 		writeFile(targetDir, 'main/logic.js', 'bbbb')
 
-		publishToDist(distDir, false, true)
+		new DiskOutput().publish(distDir, { useAppIdDir: false, scratch: targetDir, incremental: true })
 
 		expect(fs.readFileSync(path.join(distDir, 'main/logic.js'), 'utf8')).toBe('bbbb')
 	})
