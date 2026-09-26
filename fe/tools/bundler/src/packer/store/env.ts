@@ -7,6 +7,7 @@ import { NpmResolver } from '../graph/npm-resolver.ts'
 import { DependencyGraph } from '../graph/dependency-graph.ts'
 import { PackerGraph } from '../graph/graph.ts'
 import type { PackerContext, PageConfig, ComponentConfig } from '../types.ts'
+import type { PackerSessionState } from '../state/session-state.ts'
 import {
 	type FixpointCtx,
 	readProjectConfig,
@@ -197,7 +198,7 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 		// 首次 build: reconcile on empty = build + merge empty = build（等价）
 		// Watch rebuild: reconcile 保留旧图 source-level edges
 		graph.reconcile(toPackerContext(localCtx))
-	} else if (options.dependencyGraph) {
+		if (process.env.SC_TRACE) console.error('[storeInfo reconcile] configData=', Object.keys(graph.getConfigData()))
 		// 旧路径（无 state）：从快照重建旧图 → reconcile
 		graph.restoreFromSnapshot(localCtx.configInfo, options.dependencyGraph)
 		graph.reconcile(toPackerContext(localCtx))
@@ -205,6 +206,7 @@ function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo
 		// 无 state 无快照：首次 build fresh
 		graph.build(toPackerContext(localCtx))
 	}
+	if (process.env.SC_TRACE) console.error('[storeInfo] path=', graph === options.graph ? 'reconcile' : 'build', 'configData=', Object.keys(graph.getConfigData()).length, 'nodes=', graph.getInnerGraph()?.toJSON?.()?.nodes?.length)
 
 	// compat: 将结果写回 defaultCompilerContext（主线程 pathInfo/configInfo Proxy +
 	// getter 读者：dist-preparer createDist(targetPath)、npm-builder fallback、view/style/logic
@@ -242,6 +244,31 @@ function resetStoreInfo(opts: { pathInfo: PathInfo; configInfo: ConfigInfo; comp
 	// 重新初始化 npm 解析器
 	if (pathInfo.workPath) {
 		context.npmResolver = new NpmResolver(pathInfo.workPath!)
+	}
+}
+
+// D-SC3 storeInfoCtx: orchestrate 链路用（config-collector 经 store.load）。
+// Backflow: 内部调旧 storeInfo（compat 写保留——测试 fixture 依赖 ALS getter
+// getTemplateExts/getWorkPath 等；design D-SC3 「删 compat 写」推迟为后续 initiative）。
+// orchestrate collaborator 已迁 sctx.ctx/sctx.state（不读 ALS getter），compat 写副作用
+// 不影响 orchestrate 链路。sctx.storeInfo 殁骸已清（R-SC4 完成）。
+export function storeInfoCtx(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState): void {
+	const r = storeInfo(ctx.workPath, { graph })
+	state.scratch = r.pathInfo.targetPath!
+}
+
+export function buildResetStoreInfoData(ctx: PackerContext, state: PackerSessionState): Parameters<typeof resetStoreInfo>[0] {
+	return {
+		pathInfo: { workPath: ctx.workPath, targetPath: state.scratch },
+		configInfo: state.graph.getConfigData() as ConfigInfo,
+		compilerOptions: {
+			templateExts: ctx.fileTypes.templateExts,
+			templateDirectivePrefixes: ctx.fileTypes.directivePrefixes,
+			styleExts: ctx.fileTypes.styleExts,
+			viewScriptExts: ctx.fileTypes.viewScriptExts,
+			viewScriptTags: ctx.fileTypes.viewScriptTags,
+		},
+		dependencyGraph: state.graph.getInnerGraph(),
 	}
 }
 

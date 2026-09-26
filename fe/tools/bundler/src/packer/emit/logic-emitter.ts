@@ -14,6 +14,7 @@
 import { deriveLogicBuckets } from './convergence.ts'
 import { executeTask } from '../worker/executor.ts'
 import { emitEngine } from './emit-engine.ts'
+import { buildResetStoreInfoData } from '../store/env.ts'
 import type { Output } from '../types.ts'
 import type { EmitEntry } from './emit.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
@@ -36,7 +37,7 @@ export function createLogicEmitter(): BuildCollaborator<LogicEmitterDeps> {
 			const compileConfigOpts = sctx.compileConfig as { minify: boolean; esTarget: { logic: string } } | undefined
 			if (!pages || !compileConfigOpts) return  // logic stage 未跑（partial-stage）→ skip emit
 			const output = (sctx as { output?: Output }).output
-			const storeInfo = sctx.storeInfo
+			const storeInfo = buildResetStoreInfoData(sctx.ctx!, sctx.state!)
 			const sourcemap = !!sctx.sourcemap
 			const sourcemapTargetPath = sctx.sourcemapTargetPath as string | undefined
 			const transform = { strategy: 'perModule', minify: compileConfigOpts.minify, target: compileConfigOpts.esTarget.logic, platform: 'neutral' }

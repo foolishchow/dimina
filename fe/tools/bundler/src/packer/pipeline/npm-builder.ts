@@ -290,9 +290,9 @@ export function createNpmBuilderCollaborator(): BuildCollaborator<NpmBuilderDeps
 	return {
 		async run(sctx: StageChannelContext, deps: NpmBuilderDeps) {
 			const { lifecycle } = deps
-			// B 切法（PC-B2/B3a）：build dir/workPath + fileTypes 从 sctx.storeInfo 显式读（非 ALS）
-			const storeInfo = sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string }; compilerOptions: NpmFileTypes }
-			const npmBuilder = new NpmBuilder(storeInfo.pathInfo.workPath, storeInfo.pathInfo.targetPath, (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null, storeInfo.compilerOptions)
+			// D-SC2: build dir/workPath + fileTypes 从 sctx.ctx + sctx.state.scratch 读（非 ALS，非 sctx.storeInfo）
+			const ctx = sctx.ctx!
+			const npmBuilder = new NpmBuilder(ctx.workPath, sctx.state!.scratch, (sctx.dependencyGraph as { addFile: (n: string, f: string, k: string) => void } | undefined) ?? null, ctx.fileTypes as unknown as NpmFileTypes)
 			await npmBuilder.buildNpmPackages()
 			await lifecycle.emit(LIFECYCLE_EVENTS.NPM_BUILT, {})
 		},

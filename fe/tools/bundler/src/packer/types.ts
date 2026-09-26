@@ -28,6 +28,7 @@ import type { GraphSnapshot } from './graph/dependency-graph.ts'
 import type { GraphConfigData } from './graph/graph.ts'
 import type { CachedModuleResult } from './cache/module-result-cache.ts'
 import type { Lifecycle } from '../shared/lifecycle.ts'
+import type { PackerSessionState } from './state/session-state.ts'
 
 // ════════════════════════════════════════════════════════════════════
 // §1 基础类型
@@ -120,7 +121,10 @@ export interface PackerContext {
 export interface StageChannelContext {
 	// load stage（orchestrator）
 	output?: unknown
-	storeInfo?: unknown
+	/** D-SC2: PackerContext（orchestrator tasks.run 注入）。collaborator 读 workPath/fileTypes。 */
+	ctx?: PackerContext
+	/** D-SC2: PackerSessionState（orchestrator tasks.run 注入）。collaborator 读 scratch/graph。 */
+	state?: PackerSessionState
 	dependencyGraph?: unknown
 	loadedModules?: Map<string, unknown>
 	cache?: unknown
@@ -412,7 +416,7 @@ export interface ModuleResultCache<V = CachedModuleResult> {
 export interface PublishOpts {
 	/** app 子目录（useAppIdDir）。 */
 	useAppIdDir?: boolean
-	/** scratch 路径（per-request TEMP——P-O2 过渡用 sctx.storeInfo.pathInfo.targetPath；P-O3 后 DiskOutput 内化 mkdtemp）。 */
+	/** scratch 路径（per-request TEMP——D-SC1 后 sctx.state.scratch；后续 DiskOutput 内化 mkdtemp）。 */
 	scratch?: string
 	/** seed 路径（incremental sync 前提——F-R13-1：scratch 预 seed copy）。 */
 	seedPath?: string

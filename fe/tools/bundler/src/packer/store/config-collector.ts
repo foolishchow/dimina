@@ -16,24 +16,24 @@ import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
 import type { BuildCollaborator, LoaderRegistry, StageChannelContext } from '../types.ts'
 import type { ProjectStore } from './project-store.ts'
-import type { PackerSessionState } from '../state/session-state.ts'
 
 export interface ConfigCollectorDeps {
 	store: ProjectStore
-	state: PackerSessionState
 	lifecycle: Lifecycle
 	loaderRegistry: LoaderRegistry
-	workPath: string
-	fileTypes?: unknown
 	invalidatedModules?: string[]
 }
 
 export function createConfigCollector(): BuildCollaborator<ConfigCollectorDeps> {
 	return {
 		async run(sctx: StageChannelContext, deps: ConfigCollectorDeps) {
-			const { store, state, lifecycle, loaderRegistry, workPath, fileTypes, invalidatedModules } = deps
-			sctx.storeInfo = store.load(workPath, { fileTypes, graph: state.graph })
-			sctx.dependencyGraph = store.getDependencyGraph()
+			const { store, lifecycle, loaderRegistry, invalidatedModules } = deps
+			const ctx = sctx.ctx!
+			const state = sctx.state!
+			// D-SC3: storeInfo 纯函数（mutate state.scratch + state.graph）。
+			store.load(ctx, state)
+			// D-SC5.4: getDependencyGraph 退役——直接 state.graph.getInnerGraph()。
+			sctx.dependencyGraph = state.graph.getInnerGraph()
 			sctx.cache = state.moduleCache
 			// D-HR-1：loaderRegistry 生产消费点——kinds() 派发配置查询（grep 非零）。
 			// 阶段函数形状适配是后续门，dispatch 不接线（locked B：compile/emit 维持 worker）。
@@ -48,11 +48,18 @@ export function createConfigCollector(): BuildCollaborator<ConfigCollectorDeps> 
 			sctx.styleCache = state.styleCache
 			if (invalidatedModules) sctx.invalidatedModules = invalidatedModules
 			// B 切法（PC-B5）：getPages 显式 FixpointCtx 路由（非 ALS getPages）。
-			const si = sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string }; compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] } }
-			const fc = buildFixpointCtx(si.pathInfo.workPath, si.pathInfo.targetPath, si.compilerOptions, state.graph.getConfigData())
+			// D-SC2: 从 sctx.ctx + sctx.state.scratch 组装（非 sctx.storeInfo）。
+			const compilerOptions = {
+				templateExts: ctx.fileTypes.templateExts,
+				templateDirectivePrefixes: ctx.fileTypes.directivePrefixes,
+				styleExts: ctx.fileTypes.styleExts,
+				viewScriptExts: ctx.fileTypes.viewScriptExts,
+				viewScriptTags: ctx.fileTypes.viewScriptTags,
+			}
+			const fc = buildFixpointCtx(ctx.workPath, state.scratch, compilerOptions, state.graph.getConfigData())
 			const allPages = getPagesImpl(fc)
 			await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COLLECTED, {
-				fileTypes: ((sctx.storeInfo as { compilerOptions?: unknown }).compilerOptions),
+				fileTypes: ctx.fileTypes,
 				pagesCount: allPages.mainPages.length
 					+ Object.values(allPages.subPages).reduce((sum: number, item: { info: unknown[] }) => sum + item.info.length, 0),
 				miniGame: state.graph.isMiniGame(),

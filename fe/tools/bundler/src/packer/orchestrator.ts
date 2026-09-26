@@ -64,6 +64,8 @@ export interface OrchestrateRequest extends CompileOptions, WatchOptions {
 	workPath: string
 	useAppIdDir?: boolean
 	state: PackerSessionState
+	/** D-SC2: PackerContext 注入 sctx.ctx（orchestrate 入参）。 */
+	ctx: PackerContext
 	store?: unknown
 	lifecycle?: Lifecycle
 	fileTypes?: unknown
@@ -119,7 +121,7 @@ export function createPackerOrchestrator({
 	async function orchestrate(ctx: PackerContext, state: PackerSessionState, options: CompileRequest | WatchRequest): Promise<BuildResult> {
 		// B 切法（PC-B10a）：北星签名 (ctx, state, options) 落地——ctx 显式 PackerContext（非 ALS 派生）。
 		// D-OR-7 已消解（P-NS4/5）：: PackerOrchestrator 注解 + BuildResult composite + CompileRequest|WatchRequest 收敛。
-		const request: OrchestrateRequest = { ...options, workPath: ctx.workPath, targetPath: ctx.targetPath, state }
+		const request: OrchestrateRequest = { ...options, workPath: ctx.workPath, targetPath: ctx.targetPath, state, ctx }
 		return _orchestrate(request, providedStore, pipelineLifecycle, dispatchRegistry, loaderRegistry, collaborators)
 	}
 
@@ -163,10 +165,7 @@ async function _orchestrate(
 	// F-R30-1/F-R34-1：outputMode 'dev'|'disk'（缺省 'disk'）；dev → MemOutput / disk → DiskOutput
 	const output: Output | undefined = request.outputMode === 'dev' ? new MemOutput() : new DiskOutput()
 
-	const store = (runStore ?? providedStore ?? createProjectStore()) as {
-		load: (w: string, o: unknown) => Record<string, unknown>
-		getDependencyGraph: () => { addFile: (n: string, f: string, k: string) => void; toJSON: () => unknown }
-	}
+	const store = (runStore ?? providedStore ?? createProjectStore()) as ProjectStore
 
 	const runOptions: Record<string, unknown> = {
 		...compileOptions,
@@ -219,11 +218,8 @@ async function _orchestrate(
 				task: async (ctx: Record<string, unknown>) => {
 					await collaborators.configCollector.run(ctx as unknown as StageChannelContext, {
 						store: store as ProjectStore,
-						state,
 						lifecycle,
 						loaderRegistry,
-						workPath,
-						fileTypes,
 						invalidatedModules,
 					})
 				},
@@ -294,7 +290,7 @@ async function _orchestrate(
 		} as ListrBaseClassOptions,
 		)
 
-		const context = await tasks.run({ output } as Record<string, unknown>)
+		const context = await tasks.run({ output, ctx: request.ctx, state: request.state } as Record<string, unknown>)
 		printCompatibilityWarnings(workPath, (context as { compatibilityWarnings?: Set<string> }).compatibilityWarnings)
 	const outputFromCtx = (context as { output?: Output }).output
 	const result: BuildResult = {

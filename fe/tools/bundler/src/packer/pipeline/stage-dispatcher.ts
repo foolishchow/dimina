@@ -81,8 +81,18 @@ export function createStageDispatcher(): BuildCollaborator<StageDispatcherDeps> 
 	return {
 		async run(sctx: StageChannelContext, deps: StageDispatcherDeps) {
 			const { dispatchRegistry, compileTarget, affectedEntries, state, lifecycle } = deps
-			// B 切法（PC-B7）：readLoadBindings 从 state.graph + sctx.storeInfo 显式读（非 ALS）
-			const si = sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string }; compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] } }
+			// D-SC2: readLoadBindings 从 state.graph + sctx.ctx/sctx.state 组装（非 ALS，非 sctx.storeInfo）
+			const ctx = sctx.ctx!
+			const si = {
+				pathInfo: { workPath: ctx.workPath, targetPath: sctx.state!.scratch },
+				compilerOptions: {
+					templateExts: ctx.fileTypes.templateExts,
+					templateDirectivePrefixes: ctx.fileTypes.directivePrefixes,
+					styleExts: ctx.fileTypes.styleExts,
+					viewScriptExts: ctx.fileTypes.viewScriptExts,
+					viewScriptTags: ctx.fileTypes.viewScriptTags,
+				},
+			}
 			sctx.loadBindings = readLoadBindings(state, si) as { pages?: unknown; appId?: string } | null
 			sctx.allPages = (sctx.loadBindings as { pages?: unknown } | null)?.pages as unknown
 			sctx.compatibilityWarnings = new Set<string>()

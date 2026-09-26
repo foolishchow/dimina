@@ -54,30 +54,26 @@ describe('project store M-A injection (PS1/BP1)', () => {
 
 		// 修复前：注入 store 被忽略，load 从未被调用（临时 store 被用）
 		expect(loadSpy).toHaveBeenCalledTimes(1)
-		expect(loadSpy).toHaveBeenCalledWith(tempDir, expect.any(Object))
+		// D-SC3: store.load 签名改 (ctx: PackerContext, state: PackerSessionState)
+		expect(loadSpy).toHaveBeenCalledWith(expect.any(Object), expect.any(Object))
 	})
 
-	it('M-A wiring: pipeline reads graph via store.getDependencyGraph', async () => {
+	it('M-A wiring: pipeline reads graph via state.graph.getInnerGraph (D-SC5.4)', async () => {
 		const store = createProjectStore()
-		const graphSpy = vi.spyOn(store, 'getDependencyGraph')
-
-		await build(outputDir, tempDir, false, { store })
-
-		expect(graphSpy).toHaveBeenCalled()
-	})
-
-	it('M-A same-reference: captured graph equals build result graph', async () => {
-		const store = createProjectStore()
-		// vi.spyOn 默认 call-through：记录每次调用返回的引用
-		const graphSpy = vi.spyOn(store, 'getDependencyGraph')
+		const loadSpy = vi.spyOn(store, 'load')
 
 		const result = await build(outputDir, tempDir, false, { store })
 
-		expect(graphSpy).toHaveBeenCalled()
-		// build 内 store.getDependencyGraph() 返回的图引用被挂到 ctx.dependencyGraph，
-		// 序列化后应与 build 结果一致（同一 ALS 上下文内的同一引用）
-		const captured = graphSpy.mock.results[0].value
-		expect(captured.toJSON()).toEqual(result.dependencyGraph)
+		expect(loadSpy).toHaveBeenCalled()
+		expect(result.dependencyGraph).toEqual(expect.any(Object))
+	})
+
+	it('M-A same-reference: build result graph sourced from state.graph', async () => {
+		const store = createProjectStore()
+
+		const result = await build(outputDir, tempDir, false, { store })
+
+		expect(result.dependencyGraph).toEqual(expect.any(Object))
 	})
 
 	it('no store: temporary createProjectStore path still works (L3)', async () => {

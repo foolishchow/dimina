@@ -14,7 +14,9 @@ import { executeTask } from '../worker/executor.ts'
 import { viewEngine } from '../../compiler/view/index.ts'
 import { logicEngine } from '../../compiler/logic/index.ts'
 import { styleEngine } from '../../compiler/style/index.ts'
-import type { StageChannelContext } from '../types.ts'
+import type { StageChannelContext, PackerContext } from '../types.ts'
+import type { PackerSessionState } from './session-state.ts'
+import { buildResetStoreInfoData } from '../store/env.ts'
 
 const ENGINES = { view: viewEngine, logic: logicEngine, style: styleEngine }
 
@@ -42,7 +44,7 @@ export async function runCompileStage({ script, engine, ctx, task, options = {},
 		engine: engine ?? ENGINES[script as 'view' | 'logic' | 'style'],
 		input: {
 			pages,
-			storeInfo: sctx.storeInfo,
+			storeInfo: buildResetStoreInfoData(sctx.ctx as PackerContext, sctx.state as PackerSessionState),
 			sourcemap: !!options.sourcemap,
 			sourcemapTargetPath: options.sourcemapTargetPath,
 			compileConfig: options.compileConfig,

@@ -27,7 +27,7 @@ export function createPublisher(): BuildCollaborator<PublisherDeps> {
 			const { targetPath, useAppIdDir, seedPath, appId, lifecycle, output } = deps
 			// P-O2 过渡：scratch = sctx.storeInfo.pathInfo.targetPath（per-request TEMP，并发安全）
 			// P-O3 后：DiskOutput 内化 mkdtemp（删 sctx.storeInfo.pathInfo 读，F-R11-1）
-			const scratch = (sctx.storeInfo as { pathInfo: { targetPath: string } }).pathInfo.targetPath
+			const scratch = sctx.state!.scratch
 			// D-O3/F-R11-1：output.publish 封装 materialize+publishToDist（DiskOutput 内 dirty guard + rename/sync）
 			// MemOutput.publish no-op（dev 不写盘）
 			output?.publish(targetPath, { useAppIdDir, scratch, seedPath, appId, incremental: !!seedPath })

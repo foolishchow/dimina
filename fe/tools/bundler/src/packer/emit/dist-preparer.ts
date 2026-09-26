@@ -22,7 +22,7 @@ export function createDistPreparer(): BuildCollaborator<DistPreparerDeps> {
 	return {
 		async run(sctx: StageChannelContext, deps: DistPreparerDeps) {
 			const { seedPath, lifecycle } = deps
-			const scratch = (sctx.storeInfo as { pathInfo: { targetPath: string } }).pathInfo.targetPath
+			const scratch = sctx.state!.scratch
 			createDist(scratch, seedPath)
 			await lifecycle.emit(LIFECYCLE_EVENTS.DIST_PREPARED, { seedPath })
 		},

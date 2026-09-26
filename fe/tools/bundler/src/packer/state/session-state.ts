@@ -21,6 +21,8 @@ import type { ViewCompiledModule, StyleCompiledModule } from '../types.ts'  // G
 export class PackerSessionState {
 	readonly graph: PackerGraph = new PackerGraph()
 	readonly moduleCache: ModuleResultCache = new ModuleResultCache()
+	/** D-SC1: TEMP 构建目录（computePathInfo mkdtemp per-orchestrate，每次覆写）。mutable——storeInfo 跑后赋值。 */
+	scratch!: string
 	// H3 D-PMC-1: view cache per-module（was G5 per-page-bundle Map<string, ViewCompiledModule[]>）。
 	// viewCache: key = moduleId, value = ViewCompiledModule（单 module）。
 	// viewOrderList: key = pagePath, value = moduleId[]（ordered——viewParseWalk DFS 序）。

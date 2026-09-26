@@ -186,7 +186,8 @@ describe('createBuildWatcher', () => {
 		expect(build).toHaveBeenCalledTimes(1)
 		const [, , , buildOptions] = build.mock.calls[0]
 		expect(buildOptions.store).toBeTruthy()
-		expect(typeof buildOptions.store.getDependencyGraph).toBe('function')
+		// D-SC5.4: getDependencyGraph 退役——改断 store.load 存在
+		expect(typeof buildOptions.store.load).toBe('function')
 	})
 
 	it('PS2: rebuild plan reads the live graph from sessionState.graph (D-OS-3)', async () => {

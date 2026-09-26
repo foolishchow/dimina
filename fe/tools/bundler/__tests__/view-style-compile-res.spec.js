@@ -30,6 +30,9 @@ function makeCtx({ cache, viewCache, viewOrderList, styleCache } = {}) {
 	const ctx = {
 		dependencyGraph: { merge: vi.fn() },
 		compatibilityWarnings: new Set(),
+		// D-SC2: buildResetStoreInfoData 读 sctx.ctx + sctx.state
+		ctx: { workPath: '/test', targetPath: '/test/out', fileTypes: { templateExts: ['.wxml'], styleExts: ['.wxss'], viewScriptExts: ['.wxs'], viewScriptTags: ['wxs'], directivePrefixes: ['wx'] } },
+		state: { scratch: '/test/scratch', graph: { getInnerGraph: () => ({ merge: vi.fn(), toJSON: () => ({ nodes: [] }) }), getConfigData: () => ({}) } },
 	}
 	if (cache) (ctx).cache = cache
 	if (viewCache) (ctx).viewCache = viewCache

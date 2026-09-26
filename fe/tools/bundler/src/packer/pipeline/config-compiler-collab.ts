@@ -25,9 +25,10 @@ export function createConfigCompiler(): BuildCollaborator<ConfigCompilerDeps> {
 	return {
 		async run(sctx, deps) {
 			const { state, lifecycle } = deps
-			// B 切法（PC-B4c4）：workPath/targetPath 从 sctx.storeInfo.pathInfo 读，appId/appConfig/pageConfig/appName 从 state.graph 读（非 ALS）
-			const pathInfo = (sctx.storeInfo as { pathInfo: { workPath: string; targetPath: string } }).pathInfo
-			compileConfig(state.graph, pathInfo)
+			if (process.env.SC_TRACE) console.error('[config-compiler-collab] sctx.ctx?', !!sctx.ctx, 'sctx.state?', !!sctx.state)
+			// B 切法（PC-B4c4）：workPath/targetPath 从 sctx.ctx 读（D-SC2），appId/appConfig/pageConfig/appName 从 state.graph 读（非 ALS）
+			const ctx = sctx.ctx!
+			compileConfig(state.graph, { workPath: ctx.workPath, targetPath: sctx.state!.scratch })
 			await lifecycle.emit(LIFECYCLE_EVENTS.CONFIG_COMPILED, {})
 		},
 	}

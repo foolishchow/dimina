@@ -1,7 +1,7 @@
 /**
  * ProjectStore — 工程上下文 + 依赖图权威的管家（build-model M1 后续 / project-store PS1）。
  *
- * 职责：装载结果的持有与图权威（load≈storeInfo、seed/merge/snapshot/query）。
+ * 职责：装载结果的持有与图权威（load≈storeInfo）。
  * 不是 session、不做 worker 派工、不做 Listr/HTTP/ws/产品 .dev/管会话。
  *
  * 生命周期：随 session 始终存在（非可选）；load 按需。
@@ -10,13 +10,14 @@
  * D-PS-SESSION：session 是唯一会话管理者；ProjectStore 不升级为会话。
  * PS1 不做 applyChanges/subscribe（PS3+）、graphDelta、TS-2 IR。
  *
- * 设计：ProjectStore 是 storeInfo + ALS 的**薄包**——load 调用 storeInfo
- * （其结果写入 ALS），后续 getDependencyGraph 从同一 ALS 读。
- * M-A：ctx.dependencyGraph 与 store.getDependencyGraph() 是同一引用。
+ * D-SC3/§5.4: ProjectStore 退化为 storeInfo 单调用薄包——
+ * getDependencyGraph/merge/snapshot 退役（compat 写死后 ALS graph 死；
+ * config-collector 改读 state.graph.getInnerGraph()）。
  */
 
-import { getDependencyGraph, storeInfo } from './env.ts'
-import type { GraphSnapshot } from '../graph/dependency-graph.ts'
+import { storeInfoCtx } from './env.ts'
+import type { PackerContext } from '../types.ts'
+import type { PackerSessionState } from '../state/session-state.ts'
 
 /**
  * ProjectStore 形状契约（facade-collaborator D-FC-1 类型来源）。
@@ -25,10 +26,7 @@ import type { GraphSnapshot } from '../graph/dependency-graph.ts'
  * 而非 inferred 返回类型。load 按需（session 内首 build 调）。
  */
 export interface ProjectStore {
-	load(workPath: string, opts?: Record<string, unknown>): Record<string, unknown>
-	getDependencyGraph(): { addFile: (n: string, f: string, k: string) => void; merge: (d: GraphSnapshot) => void; toJSON: () => unknown; getInnerGraph?: () => unknown }
-	merge(delta: GraphSnapshot): void
-	snapshot(): unknown
+	load(ctx: PackerContext, state: PackerSessionState): void
 }
 
 /**
@@ -36,35 +34,13 @@ export interface ProjectStore {
  * @returns {object} ProjectStore
  */
 export function createProjectStore(_options: Record<string, unknown> = {}): ProjectStore {
-	/** @type {object | null} storeInfo 返回值 */
-	let snapshot = null
-
 	return {
 		/**
-		 * 装载工程上下文（薄包 storeInfo + ALS）——与今日语义一致。
-		 *
-		 * @param {string} workPath
-		 * @param {object} [opts] { fileTypes, dependencyGraph }
-		 * @returns {object} storeInfo 返回值
+		 * 装载工程上下文（薄包 storeInfo）——D-SC3 纯函数。
+		 * storeInfo(ctx, state.graph, state) → void（mutate state.scratch + state.graph）。
 		 */
-		load(workPath: string, opts: Record<string, unknown> = {}) {
-			snapshot = storeInfo(workPath, opts)
-			return snapshot
-		},
-
-		/** 获取活依赖图引用（M-A：与 ctx.dependencyGraph 同一引用） */
-		getDependencyGraph() {
-			return getDependencyGraph()
-		},
-
-		/** 合并依赖图增量 */
-		merge(delta: GraphSnapshot) {
-			getDependencyGraph().merge(delta)
-		},
-
-		/** 快照 */
-		snapshot() {
-			return getDependencyGraph().toJSON()
+		load(ctx: PackerContext, state: PackerSessionState) {
+			storeInfoCtx(ctx, state.graph, state)
 		},
 	}
 }
