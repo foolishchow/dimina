@@ -1,6 +1,6 @@
 # Design — fe-tools-singleton-retire-cleanup-final
 
-> **状态：ready**——D-SCF-1..3 已 review lock（R1-R4 findings 全 fix + R5 收敛）。承接 A5b 推迟的 D-SRC-1b/2/3b 完全退役收尾。
+> **状态：complete（partial）**——D-SCF-1-1 logic parse-walk 完成（6 函数加 ctx + 行为 0 三件套 ✓）。D-SCF-1-1 view/style + 1-2/2/3b 推迟（递归 caller 链 + A2 deviation 阻塞 + scope 极大）。
 
 ## 背景
 

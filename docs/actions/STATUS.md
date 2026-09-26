@@ -117,4 +117,4 @@
 | `fe-tools-singleton-retire-research` | `complete` |
 | `fe-tools-singleton-retire-impl-core` | `complete` |
 | `fe-tools-singleton-retire-impl-cleanup` | `complete` |
-| `fe-tools-singleton-retire-cleanup-final` | `in_progress` | D-SRC-1b/2/3b 完全退役收尾（A5b 推迟）——独立函数迁 + 删 fallback + resetStoreInfo 退役 + env.ts singleton 删 |
+| `fe-tools-singleton-retire-cleanup-final` | `complete` | D-SRC-1b/2/3b 完全退役收尾（A5b 推迟）——独立函数迁 + 删 fallback + resetStoreInfo 退役 + env.ts singleton 删 |
