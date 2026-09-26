@@ -10,8 +10,8 @@ Status authority: [Action Status](../STATUS.md)
 | R-PCD-2 | buildPackerContext dedup | `buildPackerContext`(env-compute) 改为 `normalizeFileTypes(fileTypes) + 内核`（收 RAW FileTypesInput 仍 normalize 先——public 签名不变） |
 | R-PCD-3 | toPackerContext dedup | `toPackerContext`(env-compute) 改为从 CompilerContext 取字段（workPath/targetPath/compilerOptions）+ 内核 |
 | R-PCD-4 | buildFixpointCtx dedup | `buildFixpointCtx`(config-fixpoint) 内部 ctx 构造改为调内核（收已 normalized compilerOptions）+ 包 FixpointCtx 保留 |
-| R-PCD-5 | 内核放置 + 循环依赖 | 内核放置经 readiness audit 锁定（graph 层 config-fixpoint / 新建纯工具层——避免 env-compute↔config-fixpoint 反向循环） |
-| R-PCD-6 | 字段名差异统一 | 内核收 normalized compilerOptions（`templateDirectivePrefixes`）——config-collector 反向解构（`directivePrefixes` → `templateDirectivePrefixes`）去除或保留（audit 定） |
+| R-PCD-5 | 内核放置 + 循环依赖 | 内核放 config-fixpoint（graph 层——F-R1-1 实证：无循环，store→graph 单向已存在；buildFixpointCtx 同文件就近） |
+| R-PCD-6 | 字段名差异统一 | 内核统一正向映射（`templateDirectivePrefixes` → `directivePrefixes`）——F-R1-2/R1-3 实证：正向 3 处 + 反向 1 处 + config-collector:51-58 反向解构保留（最小改动） |
 | R-PCD-7 | 行为 0 | tsc 0 + vitest 88/88（flaky solo pass）+ one-shot 7-diff=0（PackerContext 构造全局路径→全量 7 项目） |
 
 ## Constraints

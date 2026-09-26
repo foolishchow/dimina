@@ -2,7 +2,7 @@
 
 - Status: `draft`
 - Status authority: [Action Status](../STATUS.md)
-- 设计门：[design.draft.md](design.draft.md)（**D-PCD-1..N 待 lock**——三构造点同质性 dedup + 内核放置 + 字段名差异）
+- 设计门：[design.draft.md](design.draft.md)（**D-PCD-1..6 已 review lock**——5 轮 readiness review 收敛；三构造点同质性 dedup + 内核放置选项 A + 字段名映射统一）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)
 - 验收门：[acceptance.md](acceptance.md)
@@ -55,17 +55,17 @@ dedup 收敛 PackerContext 构造逻辑到单一内核函数，消除三处逐�
 - D-PCD-2：`buildPackerContext` = `normalizeFileTypes + 内核`
 - D-PCD-3：`toPackerContext` = 从 CompilerContext 取字段 + 内核
 - D-PCD-4：`buildFixpointCtx` = 内核 + 包 FixpointCtx
-- D-PCD-5：内核放置（循环依赖 audit——graph 层或新建纯工具层）
+- D-PCD-5：内核放置（选项 A 锁定——config-fixpoint graph 层，无循环；F-R1-1 实证）
 - D-PCD-6：字段名差异处理（directivePrefixes vs templateDirectivePrefixes）
 
 ## Readiness gaps
 
-**4 项**（design 待 lock）：
+**原 4 项经 readiness review（R1-R2）全解**：
 
-1. **内核放置**：env-compute（store）vs config-fixpoint（graph）vs 新建纯工具层——循环依赖（env-compute→config-fixpoint 已存在；config-fixpoint→env-compute 会新增反向循环）
-2. **字段名差异**：内核收 normalized compilerOptions（`templateDirectivePrefixes`）还是 PackerFileTypes（`directivePrefixes`）——config-collector 反向解构去除
-3. **toPackerContext 从 CompilerContext**：内核收散参（workPath/targetPath/compilerOptions）——toPackerContext 从 ctx 取字段，是否保留 CompilerContext 依赖
-4. **caller 签名最小改动**：buildFixpointCtx 签名是否改（收 PackerFileTypes vs compilerOptions）
+1. ~~内核放置~~ **已解（F-R1-1）**：选项 A 锁定——内核放 config-fixpoint（graph 层，无循环——store→graph 单向已存在；buildFixpointCtx 同文件就近）。
+2. ~~字段名差异~~ **已解（F-R1-2/R1-3）**：内核统一正向映射（`templateDirectivePrefixes` → `directivePrefixes`）；config-collector 反向解构保留（最小改动）。
+3. ~~toPackerContext CompilerContext 依赖~~ **已解（F-R2-2）**：toPackerContext 仍收 CompilerContext，从 ctx 取字段调内核（散参）——依赖保留。
+4. ~~caller 签名最小改动~~ **已解**：buildFixpointCtx 签名不改（收 compilerOptions——测试 fixture 依赖 + 最小改动）。
 
 ## Closure conditions
 

@@ -6,7 +6,7 @@ Status authority: [Action Status](../STATUS.md)
 
 ### P-PCD-1 — 抽内核 buildPackerContextFromOptions（A 批：添加）
 
-1. 内核放置（D-PCD-5 readiness lock 后定）：config-fixpoint.ts（选项 A）或新建纯工具层（选项 C）
+1. 内核放置 config-fixpoint.ts（D-PCD-5 F-R1-1 锁定选项 A——无循环，store→graph 单向已存在）
 2. 抽 `buildPackerContextFromOptions(workPath, targetPath, compilerOptions) → PackerContext`（readContent/resolveAlias/resolveNpm stub 逐字搬迁 + fileTypes 字段名映射统一）
 3. tsc 0
 
@@ -15,7 +15,7 @@ Status authority: [Action Status](../STATUS.md)
 1. env-compute.ts `buildPackerContext` 改为 `normalizeFileTypes(fileTypes) + 内核`
 2. env-compute.ts `toPackerContext` 改为从 CompilerContext 取字段 + 内核
 3. config-fixpoint.ts `buildFixpointCtx` 内部 ctx 构造改为调内核 + 包 FixpointCtx 保留
-4. config-collector.ts 反向解构去留（D-PCD-6 readiness lock 后定）
+4. config-collector.ts 反向解构保留（D-PCD-6 F-R1-2/R1-3 锁定——内核映射统一，反向解构最小改动保留）
 5. tsc 0
 
 ### P-PCD-3 — 行为 0 全量验证（C 批：验）
@@ -33,6 +33,6 @@ Status authority: [Action Status](../STATUS.md)
 
 ## 风险点
 
-- **D-PCD-5 内核放置**：P-PCD-1 步 1 须 readiness audit 先决（循环依赖）
-- **D-PCD-6 字段名差异**：P-PCD-2 步 4 config-collector 反向解构去留须 readiness lock
+- ~~D-PCD-5 内核放置~~（**F-R1-1 已解**）：选项 A 锁定——内核放 config-fixpoint（无循环）
+- ~~D-PCD-6 字段名差异~~（**F-R1-2/R1-3 已解**）：内核统一正向映射 + config-collector 反向解构保留
 - **P-PCD-1/P-PCD-2 atomic**：内核 + 三构造点 dedup 须 atomic（否则重复残留）。建议合并单 commit。

@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：draft**——D-PCD-1..6 待 readiness review lock。基于三构造点同质性 audit（scratch-internalize + env-l1 backflow）。
+> **状态：draft**——D-PCD-1..6 **已 review lock**（5 轮 readiness review：R1-R4 全 findings 修正 + R5 收敛——F-R1-1 内核放置选项 A / F-R1-2/3 字段名映射 / F-R2-1/2 buildResetStoreInfoData 排除 + CompilerContext 依赖 / F-R4-1/2 as 断言 + npm 独有）。基于三构造点同质性 audit（scratch-internalize + env-l1 backflow）。
 
 ## 1. 三构造点现状（audit 确认同质）
 
@@ -19,6 +19,8 @@ Status authority: [Action Status](../STATUS.md)
 - `fileTypes` 字段映射全同（templateExts/styleExts/viewScriptExts/viewScriptTags/directivePrefixes ← compilerOptions）
 
 **唯一差异**：入参形态（RAW FileTypesInput vs CompilerContext vs 已 normalized compilerOptions）。
+
+**注记（F-R2-1）**：`buildResetStoreInfoData`（env-compute:309）组装 `ResetStoreInfoOptions`（pathInfo/configInfo/compilerOptions/dependencyGraph）——非 PackerContext 构造。其 :318 `templateDirectivePrefixes: ctx.fileTypes.directivePrefixes` 是 **反向字段映射**（PackerContext.fileTypes → compilerOptions），非 PackerContext 字面量构造。**不在 dedup scope**（仅 3 处 PackerContext 构造点 dedup）。
 
 ## 2. dedup 策略（内核 + 三构造点调内核）
 
@@ -48,9 +50,10 @@ function buildPackerContextFromOptions(
 }
 ```
 
-- 内核收已 normalized compilerOptions（统一入参形态）
+- 内核收已 normalized compilerOptions（统一入参形态——签名匹配 normalizeFileTypes 返回类型 5 字段）
 - readContent/resolveAlias/resolveNpm stub 逐字搬迁（行为 0）
 - fileTypes 字段名映射（`templateDirectivePrefixes` → `directivePrefixes`）统一在内核
+- **无须 `as PackerFileTypes` 断言**（F-R4-1——字段逐字匹配 PackerFileTypes 形状；buildPackerContext/toPackerContext 现状无断言即证；buildFixpointCtx 现状 `as PackerFileTypes` 是冗余断言，内核去除）
 
 ### D-PCD-2 — buildPackerContext = normalize + 内核
 
@@ -87,33 +90,37 @@ export function buildFixpointCtx(workPath, targetPath, compilerOptions, configDa
 ```
 
 - 内部 ctx 构造去重（调内核）+ FixpointCtx 包装保留
-- npm: new NpmResolver(workPath) 保留（buildFixpointCtx 独有）
+- **npm 独有**（F-R4-2——`new NpmResolver(workPath)` 是 FixpointCtx 契约独有；内核只构造 PackerContext 不收 npm；buildFixpointCtx 自己加 npm）
 
-### D-PCD-5 — 内核放置（readiness gap 1——循环依赖 audit）
+### D-PCD-5 — 内核放置（F-R1-1 实证已解——选项 A 锁定）
 
-**现状依赖**：
-- `env-compute`(store) → `config-fixpoint`(graph) 单向（resolveAppAliasImpl）
-- `config-fixpoint`(graph) 不 import env-compute
+**现状依赖**（R1 实证）：
+- `env-compute`(store) → `config-fixpoint`(graph) 单向（resolveAppAliasImpl，env-compute.ts:19）
+- `config-fixpoint`(graph) **不 import env-compute**（grep = 0——config-fixpoint imports: fs/path/oxc-parser/oxc-walker/shared/utils + graph 内部 npm-resolver/dependency-graph/graph + types.ts）
 
-**选项**：
-- **A：内核放 config-fixpoint（graph 层）**——env-compute import config-fixpoint 的内核（store→graph 已存在，不新增循环）。但 PackerContext 构造语义放 graph 层不契合（config-fixpoint 是配置定点）。
-- **B：内核放 env-compute（store 层）**——config-fixpoint 须 import env-compute 的内核 → **新增 graph→store 反向依赖** → 循环（env-compute→config-fixpoint + config-fixpoint→env-compute）。**不可行**。
-- **C：新建纯工具层**（如 `packer/context.ts`）——env-compute + config-fixpoint 都 import。无循环。但新增文件 + 目录结构须遵循 boundaries。
+**选项评估**：
+- **A：内核放 config-fixpoint（graph 层）** ✅ 锁定——env-compute import config-fixpoint 的 `buildPackerContextFromOptions`（store→graph 已存在单向，**不新增循环**）。buildFixpointCtx 同文件就近调内核。语义可接受（buildFixpointCtx 已在 config-fixpoint——PackerContext 构造包装已存在此层）。
+- ~~B：内核放 env-compute（store 层）~~ **不可行**——config-fixpoint 须 import env-compute → 新增 graph→store 反向依赖 → 循环。
+- ~~C：新建纯工具层~~ 不必要——选项 A 无循环 + 不新增文件。
 
-**倾向**：选项 A（graph 层 config-fixpoint——避免循环 + 不新增文件）或选项 C（纯工具层——语义清晰）。readiness review lock。
+**结论**：选项 A 锁定（内核放 config-fixpoint——避免循环 + buildFixpointCtx 就近 + 不新增文件）。
 
-### D-PCD-6 — 字段名差异（readiness gap 2）
+### D-PCD-6 — 字段名差异（F-R1-2/R1-3 实证已解——内核映射统一）
 
-**现状**：
-- normalized compilerOptions：`templateDirectivePrefixes`
-- PackerFileTypes：`directivePrefixes`
-- config-collector.ts:51-58 反向解构（`ctx.fileTypes.directivePrefixes` → `compilerOptions.templateDirectivePrefixes`）传 buildFixpointCtx
+**现状**（R1 实证）：
+- `types.ts:46` PackerFileTypes.`directivePrefixes`
+- `env-compute.ts:149` normalized compilerOptions.`templateDirectivePrefixes`
+- **正向映射 3 处**（compilerOptions → PackerContext.fileTypes）：
+  - env-compute.ts:201（toPackerContext）`directivePrefixes: ctx.compilerOptions.templateDirectivePrefixes`
+  - env-compute.ts:224（buildPackerContext）`directivePrefixes: compilerOptions.templateDirectivePrefixes`
+  - config-fixpoint.ts:67（buildFixpointCtx 内部）`directivePrefixes: compilerOptions.templateDirectivePrefixes`
+- **反向映射 1 处**（PackerContext.fileTypes → compilerOptions）：
+  - env-compute.ts:318（buildResetStoreInfoData）`templateDirectivePrefixes: ctx.fileTypes.directivePrefixes`
+- **config-collector.ts:51-58 反向解构**：从 `ctx.fileTypes.directivePrefixes` → `compilerOptions.templateDirectivePrefixes` 传 buildFixpointCtx（F-R1-3 实证）
 
-**方案**：
-- 内核收 normalized compilerOptions（`templateDirectivePrefixes`）→ 内核内映射到 `directivePrefixes`（D-PCD-1 已含）
-- config-collector 反向解构保留（ctx.fileTypes → compilerOptions 形态传 buildFixpointCtx）——或 buildFixpointCtx 改收 PackerFileTypes？
-
-**倾向**：内核收 normalized compilerOptions + config-collector 反向解构保留（最小改动）。readiness review lock。
+**方案（锁定）**：
+- 内核收 normalized compilerOptions（`templateDirectivePrefixes`）→ 内核内映射到 `directivePrefixes`（D-PCD-1 已含——统一正向映射）
+- config-collector 反向解构**保留**（最小改动——ctx.fileTypes → compilerOptions 形态传 buildFixpointCtx；buildFixpointCtx 签名不改收 compilerOptions）
 
 ## 3. dedup 路径
 
@@ -125,12 +132,12 @@ export function buildFixpointCtx(workPath, targetPath, compilerOptions, configDa
 | 4 | buildFixpointCtx = 内核 + 包 FixpointCtx | dedup（config-fixpoint） |
 | 5 | 行为 0 全量验证 | 7-diff=0 |
 
-## 4. 风险（readiness gaps）
+## 4. 风险（R1-R2 全解）
 
-1. **内核放置**（D-PCD-5）：循环依赖（env-compute↔config-fixpoint）——选项 A/C 待 lock
-2. **字段名差异**（D-PCD-6）：config-collector 反向解构去留——最小改动倾向保留
-3. **toPackerContext CompilerContext 依赖**：内核收散参——toPackerContext 从 ctx 取字段，CompilerContext 依赖保留（不破）
-4. **caller 签名**：buildFixpointCtx 签名是否改（收 PackerFileTypes vs compilerOptions）——最小改动倾向不改
+1. ~~内核放置~~（D-PCD-5——**F-R1-1 实证已解**）：选项 A 锁定（内核放 config-fixpoint——无循环，store→graph 单向已存在）
+2. ~~字段名差异~~（D-PCD-6——**F-R1-2/R1-3 实证已解**）：内核统一正向映射（templateDirectivePrefixes → directivePrefixes）；config-collector 反向解构保留（最小改动）
+3. ~~toPackerContext CompilerContext 依赖~~（**F-R2-2 实证已解**）：toPackerContext 仍收 CompilerContext（env-compute type），从 ctx 取 pathInfo + compilerOptions 调内核（散参）；CompilerContext 依赖保留（不破）
+4. ~~caller 签名~~（**已解**）：buildFixpointCtx 签名不改（收 compilerOptions——测试 fixture 依赖 + 最小改动）；config-collector/dispatch caller 不变
 
 ## 5. Non-scope 守
 
