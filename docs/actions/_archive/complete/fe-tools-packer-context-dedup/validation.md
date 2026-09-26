@@ -1,6 +1,6 @@
 # Validation — fe-tools-packer-context-dedup
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 | ID | Requirement | Validation | Status |
 | --- | --- | --- | --- |

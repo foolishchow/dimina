@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-packer-context-dedup
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## 分相（行为 0 每相 gate）
 

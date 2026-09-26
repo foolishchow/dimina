@@ -1,7 +1,7 @@
 # fe-tools-packer-context-dedup
 
-- Status: `in_progress`
-- Status authority: [Action Status](../STATUS.md)
+- Status: `complete`
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-PCD-1..6 已 review lock**——5 轮 readiness review 收敛；三构造点同质性 dedup + 内核放置选项 A + 字段名映射统一）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)
@@ -41,7 +41,7 @@ dedup 收敛 PackerContext 构造逻辑到单一内核函数，消除三处逐�
 
 ## Design inputs
 
-- **背景**：[`fe-tools-scratch-internalize`](../_archive/complete/fe-tools-scratch-internalize/README.md)（mkdtemp 内化 + backflow 记录 PackerContext dedup）+ [`fe-tools-env-l1-extract`](../_archive/complete/fe-tools-env-l1-extract/README.md)（L1 迁出 + buildPackerContext/toPackerContext export）
+- **背景**：[`fe-tools-scratch-internalize`](../fe-tools-scratch-internalize/README.md)（mkdtemp 内化 + backflow 记录 PackerContext dedup）+ [`fe-tools-env-l1-extract`](../fe-tools-env-l1-extract/README.md)（L1 迁出 + buildPackerContext/toPackerContext export）
 - **前置 audit**：三构造点同质性确认（readContent/resolveAlias/resolveNpm stub 全同 + fileTypes 映射全同）
 - **循环依赖现状**：`env-compute`(store) → `config-fixpoint`(graph) 单向依赖（resolveAppAlias）；`config-fixpoint` 不 import env-compute
 - **字段名差异**：normalized compilerOptions 有 `templateDirectivePrefixes`；PackerFileTypes 有 `directivePrefixes`——dedup 须统一
