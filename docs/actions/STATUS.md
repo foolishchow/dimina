@@ -114,3 +114,4 @@
 | `fe-tools-view-parse-walk-migrate` | `complete` |
 | `fe-tools-style-parse-walk-migrate` | `complete` |
 | `fe-tools-compat-write-retire-research` | `complete` |
+| `fe-tools-singleton-retire-research` | `draft` |
