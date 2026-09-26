@@ -106,8 +106,8 @@ export async function buildCompileCss(
 - **styleCompile**(loadedModules, options, ctx?)——L108（中间层透传——buildCompileCss L136 调，须透传 ctx 到 createStyleTransformPlugin/getAbsolutePath/getStyleSourcePath/normalizeCssUrlValue）
 - styleLoad(module, compiledPaths, ctx?)——L90 getDependencyGraph + L95 getComponent（保留 ALS）
 - getStyleSourcePath(absolutePath, ctx?)——L191 getWorkPath→ctx?.workPath ?? getWorkPath()
-- createStyleTransformPlugin(module, absolutePath, importResults, options, ctx?)——L319 getDependencyGraph（保留 ALS）+ L323 getContentByPath→ctx?.readContent ?? getContentByPath + L344/360 getWorkPath→ctx?.workPath ?? getWorkPath() + **调 getStyleSourcePath（L335/388——F-R2-3 须透传 ctx）**
-- normalizeCssUrlValue(value, absolutePath, graphOwnerPath, ctx?)——L478 getDependencyGraph（保留 ALS）+ L480/484 getWorkPath→ctx?.workPath ?? getWorkPath() + L484 getTargetPath→ctx?.targetPath ?? getTargetPath() + getAppId（保留 ALS）
+- createStyleTransformPlugin(module, absolutePath, importResults, options, ctx?)——L319 getDependencyGraph（保留 ALS）+ L323 getContentByPath→ctx?.readContent ?? getContentByPath + L344/360 getWorkPath→ctx?.workPath ?? getWorkPath() + **内部调用关系**（F-R8-2：L302 normalizeCssUrlValue + L312 getAbsolutePath + L335/388 getStyleSourcePath——须透传 ctx 到这些子调用）
+- normalizeCssUrlValue(value, absolutePath, graphOwnerPath, ctx?)——L478 getDependencyGraph（保留 ALS）+ L480/484 getWorkPath→ctx?.workPath ?? getWorkPath() + L484 getTargetPath→ctx?.targetPath ?? getTargetPath() + getAppId（保留 ALS）+ **2 处测试外部调用者**（F-R8-1：style-compiler.spec.js L112/117 传 2 参不传 ctx——fallback ALS 兼容 ✓）
 - getAbsolutePath(modulePath, ctx?)——L489 getWorkPath→ctx?.workPath ?? getWorkPath() + L492 getStyleExts→ctx?.fileTypes.styleExts ?? getStyleExts()
 - resolveStyleImportPath/normalizeRootStyleImports（export，default param——D-SPM-6）
 
@@ -124,6 +124,11 @@ export async function buildCompileCss(
 - **compileSS 签名加 ctx 透传**（F-R3-1）：compileSS(pages, root, progress, options, styleCache?, invalidated?, ctx?)——L31 `buildCompileCss(page, new Set(), options, ctx)`
 - styleCompile L57 后建 ctx + 透传 compileSS L64/67
 
+### D-SPM-5b — buildCompileCss 递归（L270）+ resolveStyleImportPath default param（F-R8-3）
+
+- **buildCompileCss 递归**（L270）：`buildCompileCss({...}, new Set(), options, ctx)`——递归须传 ctx
+- **L268 resolveStyleImportPath default param**（F-R8-3）：`resolveStyleImportPath(absolutePath, importPath)`——不传 workPath（default getWorkPath fallback ALS）
+
 ### D-SPM-5 — ALS compat 保留
 
 - resetStoreInfo 保留（style/index.ts:57 仍调——logic/view 已迁 + emit-engine compat）
@@ -133,7 +138,7 @@ export async function buildCompileCss(
 
 ### D-SPM-6 — resolveStyleImportPath/normalizeRootStyleImports default param
 
-**问题**（readiness gap 3）：export 独立函数 default param `workPath = getWorkPath()`——加 ctx? 后 default param 处理。
+**已 resolve**（R2/D-SPM-6）：export 独立函数 default param `workPath = getWorkPath()`——保留 default fallback ALS（不须加 ctx 参数——只读 workPath）。
 
 **方案**：保留 default param `workPath = getWorkPath()`（fallback ALS）。caller 传 workPath 时不调 default；不传时 fallback ALS。不须加 ctx 参数（这两个函数只读 workPath，不读其他 getter——workPath 参数已够）。
 
@@ -168,6 +173,14 @@ export async function buildCompileCss(
 - **D-SC5**：buildResetStoreInfoData 返 storeInfo data——A3 styleCompile 从 storeInfo 建 ctx
 - **D-PC**（packer-context-dedup）：buildPackerContextFromOptions 内核——A3 复用
 - **A0 R8**（resolveAppAlias 行为 0 守护）：style 不用 resolveAppAlias ✓（F-R1-3 确认）
+
+## 6c. 行为 0 等价确认（F-R9）
+
+- **ctx.readContent = getContentByPath**：fs.readFileSync(path, 'utf-8') 字节等价 ✓（A0/A2 F-R9-1）
+- **getStyleExts**：ctx.fileTypes.styleExts 同源 ALS getCompilerContext().compilerOptions ✓（R1 F-R1-2）
+- **ctx.workPath/targetPath**：storeInfo.pathInfo 同源 ALS ✓（A0 确认）
+- **fallback ALS 行为等价**：独立函数不传 ctx 时 `ctx?.x ?? ALSGetter()` = ALSGetter()（原行为）✓
+- **resolveStyleImportPath/normalizeRootStyleImports default param**：测试传 workPath（不调 default）✓ + 不传时 fallback ALS ✓
 
 ## 7. 结论
 
