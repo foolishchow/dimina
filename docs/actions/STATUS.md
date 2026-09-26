@@ -122,3 +122,4 @@
 | `fe-tools-view-parse-walk-ctx-deep` | `complete` | view parse-walk 递归 caller 链 + wxml/load 透传 + A2 deviation 撤回 |
 | `fe-tools-fallback-als-delete` | `complete` | 删 fallback ALS 34 处 |
 | `fe-tools-reset-storeinfo-retire` | `complete` | resetStoreInfo 退役 + storeInfo wrapper 重构 + emit.ts:142 |
+| `fe-tools-env-singleton-delete` | `complete` | env.ts singleton 删 + src getter caller 迁 + runtime 改候选 b |
