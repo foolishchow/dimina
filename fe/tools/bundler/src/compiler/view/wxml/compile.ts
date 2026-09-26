@@ -1,4 +1,5 @@
 import { toMiniProgramModuleId } from '../../../shared/path-utils.ts'
+import type { PackerContext } from '../../../packer/types.ts'
 import { checkTemplateCompatibility } from '../../../packer/aspect/compatibility.ts'
 import {
 	getContentByPath,
@@ -28,13 +29,13 @@ import { transTagTemplate } from './load/template.ts'
 /**
  * 转换成底层框架模板 —— parse → load → vue.render
  */
-export function toCompileTemplate(isComponent: boolean, path: string, components: Record<string, unknown> | undefined, componentPlaceholder: Record<string, unknown> | undefined, processedPaths: Set<string> = new Set()) {
-	const workPath = getWorkPath()
+export function toCompileTemplate(isComponent: boolean, path: string, components: Record<string, unknown> | undefined, componentPlaceholder: Record<string, unknown> | undefined, processedPaths: Set<string> = new Set(), ctx?: PackerContext) {
+	const workPath = ctx?.workPath ?? getWorkPath()
 	const fullPath = getViewPath(workPath, path)
 	if (!fullPath) {
 		return { tpl: undefined }
 	}
-	getDependencyGraph().addFile(path, fullPath, 'view')
+	(ctx?.graph ?? getDependencyGraph()).addFile(path, fullPath, 'view')
 	const sourcePath = toMiniProgramModuleId(fullPath, workPath)
 		.replace(buildExtStripRegex(getTemplateExts()), '')
 	const diagnosticSource = fullPath.startsWith(workPath)
@@ -71,7 +72,7 @@ export function toCompileTemplate(isComponent: boolean, path: string, components
 			transAsses: transAsses!,
 			resolveTemplateDependencyPath,
 			collectIncludedComponentTags,
-			processIncludedFileWxsDependencies: processIncludedFileWxsDependencies!,
+			processIncludedFileWxsDependencies: (componentTags: unknown, includePath: string, scriptModule: unknown[], components: Record<string, unknown>, processedPaths: Set<string> = new Set()) => processIncludedFileWxsDependencies!(componentTags, includePath, scriptModule, components, processedPaths, ctx),
 			processIncludeConditionalAttrs,
 			checkTemplateCompatibility,
 		},

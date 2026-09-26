@@ -273,14 +273,14 @@ interface ViewLoadedModule {
 	sourceContents: Map<string, string>
 }
 
-function viewLoadModule(isComponent: boolean, module: ViewModule, skipTemplatePaths: Set<string>): {
+function viewLoadModule(isComponent: boolean, module: ViewModule, skipTemplatePaths: Set<string>, ctx?: PackerContext): {
 	loaded: ViewLoadedModule | null
 	instruction: Record<string, unknown>
 	templateModule: unknown[]
 	compileInstruction: Record<string, unknown>
 	canUseCache: boolean
 } {
-	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder)
+	const { tpl, instruction, sourceInfo, origins, sourceContents } = toCompileTemplate(isComponent, module.path, module.usingComponents, module.componentPlaceholder, undefined, ctx)
 	if (!tpl || !instruction) {
 		return { loaded: null, instruction: {}, templateModule: [], compileInstruction: {}, canUseCache: false }
 	}
@@ -406,7 +406,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 			skipTemplatePaths: isComponent ? inheritedTemplatePaths : new Set(),
 			sourceMapRes,
 			select,
-		})
+		}, ctx)
 	}
 	catch (error) {
 		const err = error as EnhancedError
@@ -470,7 +470,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 		// 重新编译页面，包含所有收集到的 wxs 模块
 		// F3：此二次编译失败不进失败缓存（不在 MC1 try 内）——无行为影响（页面同 stage 不二次编译）
 		// D-ET-9：compileModuleWithAllWxs 合并进 compileModule（allScriptModules 参数）
-		compileModule(module, false, scriptRes, { skipTemplatePaths: new Set(), sourceMapRes, allScriptModules, select })
+		compileModule(module, false, scriptRes, { skipTemplatePaths: new Set(), sourceMapRes, allScriptModules, select }, ctx)
 	}
 
 	activePaths.delete(currentPath)
@@ -487,8 +487,9 @@ function mergeWxsModules(
 	instruction: { scriptModule?: Array<{ path: string; code: string; originalName?: string }> },
 	scriptRes: Map<string, string>,
 	scriptModuleSeed: object[],
+	ctx?: PackerContext,
 ): Array<{ path: string; code: string }> {
-	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), scriptModuleSeed)
+	const allWxsModules = collectAllWxsModules(scriptRes, new Set(), scriptModuleSeed, ctx)
 	if (allWxsModules.length > 0) {
 		const existingModules = instruction.scriptModule || []
 		const mergedModules = [...existingModules]
@@ -514,6 +515,7 @@ function tryModuleCache(
 	instruction: Record<string, unknown>,
 	sourceMapRes: Map<string, string>,
 	canUseCache: boolean,
+	ctx?: PackerContext,
 ): { code: string; instruction: Record<string, unknown> } | null {
 	if (!canUseCache || scriptRes.has(module.path)) {
 		return null
@@ -550,11 +552,11 @@ function tryModuleCache(
 		sourceMapRes.set(module.path, cachedMap)
 	}
 
-	mergeWxsModules(instruction as { scriptModule?: Array<{ path: string; code: string; originalName?: string }> }, scriptRes, instruction.scriptModule as object[] || [])
+	mergeWxsModules(instruction as { scriptModule?: Array<{ path: string; code: string; originalName?: string }> }, scriptRes, instruction.scriptModule as object[] || [], ctx)
 
 	return {
 		code: cachedCode,
-		instruction: { ...instruction, scriptModule: collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as object[] || []) },
+		instruction: { ...instruction, scriptModule: collectAllWxsModules(scriptRes, new Set(), instruction.scriptModule as object[] || [], ctx) },
 	}
 }
 
@@ -658,11 +660,11 @@ function finalizeModule(
  *
  * F-H2-1 拆分后：viewLoadModule（L）→ tryModuleCache → compileModuleRender（C）→ finalizeModule（缓存+装配）。
  */
-function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: { skipTemplatePaths?: Set<string>; sourceMapRes?: Map<string, string>; allScriptModules?: Array<{ path: string; code: string; originalName?: string }>; select?: ViewSelectContext } = {}): Record<string, unknown> | null {
+function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<string, string>, options: { skipTemplatePaths?: Set<string>; sourceMapRes?: Map<string, string>; allScriptModules?: Array<{ path: string; code: string; originalName?: string }>; select?: ViewSelectContext } = {}, ctx?: PackerContext): Record<string, unknown> | null {
 	const skipTemplatePaths = options.skipTemplatePaths || new Set()
 	const sourceMapRes = options.sourceMapRes as Map<string, string> || new Map<string, string>()
 	// L 阶段：模板加载（parse + 发现）
-	const { loaded, instruction, templateModule, compileInstruction: loadedCompileInstruction, canUseCache } = viewLoadModule(isComponent, module, skipTemplatePaths as Set<string>)
+	const { loaded, instruction, templateModule, compileInstruction: loadedCompileInstruction, canUseCache } = viewLoadModule(isComponent, module, skipTemplatePaths as Set<string>, ctx)
 	if (!loaded) {
 		return null
 	}
@@ -690,7 +692,7 @@ function compileModule(module: ViewModule, isComponent: boolean, scriptRes: Map<
 	}
 
 	// 1. 缓存命中分派
-	const cached = tryModuleCache(module, scriptRes, instruction, sourceMapRes, canUseCache)
+	const cached = tryModuleCache(module, scriptRes, instruction, sourceMapRes, canUseCache, ctx)
 	if (cached) {
 		return cached.instruction
 	}
@@ -856,7 +858,7 @@ function processWxsDependency(wxsFilePath: string, moduleName: string, scriptMod
  * @param {*} components 当前可用的组件映射
  * @param {Set} processedPaths 已处理的路径集合，防止循环引用和栈溢出
  */
-export function processIncludedFileWxsDependencies(componentTags: unknown, includePath: string, scriptModule: unknown[], components: Record<string, unknown>, processedPaths: Set<string> = new Set()): void {
+export function processIncludedFileWxsDependencies(componentTags: unknown, includePath: string, scriptModule: unknown[], components: Record<string, unknown>, processedPaths: Set<string> = new Set(), ctx?: PackerContext): void {
 	// 如果当前路径已经处理过，直接返回避免循环引用
 	if (processedPaths.has(includePath)) {
 		return
@@ -868,7 +870,7 @@ export function processIncludedFileWxsDependencies(componentTags: unknown, inclu
 	// 对每个组件，直接处理其 wxs 依赖（避免递归调用 buildCompileView）
 	for (const tagName of componentTags as Iterable<string>) {
 		const componentPath = String(components[tagName!])
-		const componentModule = getComponent(componentPath)
+		const componentModule = (ctx?.component ? ctx.component(componentPath) as unknown : getComponent(componentPath))
 		if (componentModule) {
 			// 检查组件路径是否已经处理过，避免循环引用
 			if (processedPaths.has((componentModule as { path: string }).path)) {
@@ -876,7 +878,7 @@ export function processIncludedFileWxsDependencies(componentTags: unknown, inclu
 			}
 
 			// 直接获取组件的模板和 wxs 依赖，避免递归调用
-			const componentTemplate = toCompileTemplate(true, (componentModule as ViewModule).path, (componentModule as ViewModule).usingComponents, (componentModule as ViewModule).componentPlaceholder, processedPaths)
+			const componentTemplate = toCompileTemplate(true, (componentModule as ViewModule).path, (componentModule as ViewModule).usingComponents, (componentModule as ViewModule).componentPlaceholder, processedPaths, ctx)
 
 			if (componentTemplate && componentTemplate.instruction && componentTemplate.instruction.scriptModule) {
 				// 将组件的 wxs 模块添加到当前的 scriptModule 中
@@ -1299,7 +1301,7 @@ function collectAllWxsModules(scriptRes: Map<string, string>, collectedPaths = n
 				if (!collectedPaths.has(depPath)) {
 					if (scriptRes.has(depPath)) {
 						// 如果依赖已经在 scriptRes 中，递归处理
-						const depModules = collectAllWxsModules(new Map([[depPath, scriptRes.get(depPath)!]]), collectedPaths, scriptModule)
+						const depModules = collectAllWxsModules(new Map([[depPath, scriptRes.get(depPath)!]]), collectedPaths, scriptModule, ctx)
 						allWxsModules.push(...depModules)
 					} else {
 						// 如果依赖不在 scriptRes 中，尝试从文件系统加载
@@ -1311,7 +1313,7 @@ function collectAllWxsModules(scriptRes: Map<string, string>, collectedPaths = n
 							collectedPaths.add(depPath)
 
 							// 递归处理新加载模块的依赖
-							const depModules = collectAllWxsModules(new Map([[depPath, (loaded as { code: string }).code]]), collectedPaths, scriptModule)
+							const depModules = collectAllWxsModules(new Map([[depPath, (loaded as { code: string }).code]]), collectedPaths, scriptModule, ctx)
 							allWxsModules.push(...depModules)
 						}
 					}
