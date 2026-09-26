@@ -121,3 +121,4 @@
 | `fe-tools-style-parse-walk-ctx-leaf` | `complete` | styleLoad 加 ctx optional（叶子） |
 | `fe-tools-view-parse-walk-ctx-deep` | `complete` | view parse-walk 递归 caller 链 + wxml/load 透传 + A2 deviation 撤回 |
 | `fe-tools-fallback-als-delete` | `complete` | 删 fallback ALS 34 处 |
+| `fe-tools-reset-storeinfo-retire` | `complete` | resetStoreInfo 退役 + storeInfo wrapper 重构 + emit.ts:142 |

@@ -1,6 +1,6 @@
 import { transform } from 'esbuild'
+import type { PackerContext } from '../types.ts'
 import { relative, resolve, sep } from 'node:path'
-import { getWorkPath } from '../store/env.ts'
 import { mergeSourcemap } from '../../shared/sourcemap.ts'
 import { effectiveJsMinify } from '../../shared/compile-config.ts'
 import { abilityALS } from '../worker/context.ts'  // P-WR03：收敛点 tryGet
@@ -66,7 +66,7 @@ export interface EmitEntryParams {
 const strategies = {
 	// bundle 策略（view 整包拼接 + moduleRanges 行定位，布局私有）
 	bundle: {
-		async apply({ modules, transform: cfg, sourcemap, filename, relPrefix, entryId }: EmitBundleCtx): Promise<{ entry: EmitEntry }> {
+		async apply({ modules, transform: cfg, sourcemap, filename, relPrefix, entryId }: EmitBundleCtx, _ctx?: PackerContext): Promise<{ entry: EmitEntry }> {
 			const moduleList = [...modules]
 			if (sourcemap) {
 				const compileRes = moduleList.map(m => ({ path: m.moduleId, code: m.code, map: m.map }))
@@ -129,7 +129,7 @@ const strategies = {
 	},
 	// perModule 策略（logic 逐模块 + sourcemap rebase，布局私有）
 	perModule: {
-		async apply({ modules, transform: cfg, sourcemap, sourcemapTargetPath, relPrefix, entryId }: EmitPerModuleCtx): Promise<{ entry: EmitEntry }> {
+		async apply({ modules, transform: cfg, sourcemap, sourcemapTargetPath, relPrefix, entryId }: EmitPerModuleCtx, ctx?: PackerContext): Promise<{ entry: EmitEntry }> {
 			const moduleList = [...modules]
 			if (sourcemap) {
 				// rebase（D-E-12 留策略）：module.map.sources 绝对路径 → relative(finalOutputDir, resolve(workPath, source))
@@ -139,7 +139,7 @@ const strategies = {
 					const moduleMap = JSON.parse(m.map) as { sources: string[] }
 					moduleMap.sources = moduleMap.sources.map((source) => {
 						const sourcePath = source.replace(/^[/\\]+/, '')
-						return relative(finalOutputDir, resolve(getWorkPath(), sourcePath)).split(sep).join('/')
+						return relative(finalOutputDir, resolve(ctx!.workPath!, sourcePath)).split(sep).join('/')
 					})
 					return { path: m.moduleId, code: m.code, map: JSON.stringify(moduleMap), extraInfoCode: m.extraInfoCode }
 				})
@@ -201,12 +201,12 @@ ${m.code}
  * @param params
  * @returns {Promise<EmitEntry>}
  */
-export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> {
+export async function produceEntry(params: EmitEntryParams, ctx?: PackerContext): Promise<EmitEntry> {
 	const strategy = strategies[params.transform.strategy as keyof typeof strategies]
 	if (!strategy) {
 		throw new Error(`produceEntry: 未知 transform 策略 ${params.transform.strategy}`)
 	}
-	const { entry } = await strategy.apply(params)
+	const { entry } = await strategy.apply(params, ctx)
 	return entry
 }
 
@@ -225,8 +225,8 @@ export async function produceEntry(params: EmitEntryParams): Promise<EmitEntry> 
  * @param {string} params.relPrefix
  * @returns {Promise<void>}
  */
-export async function emitEntry(params: EmitEntryParams) {
-	const entry = await produceEntry(params)
+export async function emitEntry(params: EmitEntryParams, ctx?: PackerContext) {
+	const entry = await produceEntry(params, ctx)
 	const sink = abilityALS.tryGet()?.sink  // 收敛点 tryGet（不兜底——产物必须 sink，F55）
 	sink?.write(entry)
 }

@@ -3,7 +3,8 @@
  * parse+walk 代码在 parse-walk.ts（D-PW-2 真抽出）。
  */
 
-import { getDependencyGraph, getWorkPath, getAppId, getComponent, getAppConfigInfo, getRuntimeType, getNpmResolver, resetStoreInfo } from '../../packer/store/env.ts'
+import { getDependencyGraph, getWorkPath, getAppId, getComponent, getAppConfigInfo, getRuntimeType, getNpmResolver } from '../../packer/store/env.ts'
+import type { ResetStoreInfoOptions } from '../../packer/store/env-compute.ts'
 import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import type { PackerContext } from '../../packer/types.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
@@ -119,7 +120,7 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 				const m = viewCache!.get(id)!
 				return { moduleId: m.moduleId, code: m.code, map: m.map }
 			})
-			await emitEntry({ ...emitParams, modules })
+			await emitEntry({ ...emitParams, modules }, ctx)
 			// 不 push——D-G5-3 cache-hit 不返（已在 main-thread cache）
 		} else if (orderList && viewCache && orderList.every(id => viewCache.has(id) || (invalidated?.includes(id) ?? false))) {
 			// ★ H3 Phase 2: selective recompile——order list 存在 + 全 module（cached ∪ dirty）→
@@ -133,7 +134,7 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 			// orderList 全量回传（selective：modules 只带 dirty，序不能从子集派生——wxs 集变更时
 			// 新 id 须入序，否则下轮 cache-hit assemble 缺 module）
 			pageBundles.push({ pagePath: page.path, modules: dirtyMods, selective: true, orderList: viewMods.map(m => m.moduleId) })
-			await emitEntry({ ...emitParams, modules })
+			await emitEntry({ ...emitParams, modules }, ctx)
 		} else {
 			// cache-miss（无 order list / 未知 module → 全量 viewParseWalk）
 			const modules = viewParseWalk(page, { sourcemap: enableSourcemap }, undefined, ctx)
@@ -141,7 +142,7 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 			const viewMods: ViewCompiledModule[] = modules.map(mod => ({ moduleId: mod.moduleId, kind: 'view', code: mod.code, map: mod.map, dependencies: [] }))
 			results.push(...viewMods)
 			pageBundles.push({ pagePath: page.path, modules: viewMods })
-			await emitEntry({ ...emitParams, modules })
+			await emitEntry({ ...emitParams, modules }, ctx)
 		}
 
 		progress.completedTasks++
@@ -190,8 +191,7 @@ export {
 
 // P-WR02: engine export（不动调度，F47；onMessage 旧版保留，compile 函数声明供 export）
 async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{ viewCompileResults: ViewCompiledModule[]; viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[]; selective?: boolean; orderList?: string[] }> }> {
-	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: ViewModule[]; subPages: Record<string, { info: ViewModule[]; independent: boolean }> }; viewCache?: Map<string, ViewCompiledModule> | null; viewOrderList?: Map<string, string[]> | null; invalidatedModules?: string[] | null }
-	resetStoreInfo(m.storeInfo)
+	const m = msg as { storeInfo: ResetStoreInfoOptions; sourcemap?: boolean; pages: { mainPages: ViewModule[]; subPages: Record<string, { info: ViewModule[]; independent: boolean }> }; viewCache?: Map<string, ViewCompiledModule> | null; viewOrderList?: Map<string, string[]> | null; invalidatedModules?: string[] | null }
 	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!, { graph: getDependencyGraph(), appId: getAppId(), component: (src) => getComponent(src), configInfo: getAppConfigInfo(), npmResolver: getNpmResolver() ?? undefined, runtimeType: getRuntimeType(), appInfo: getAppConfigInfo() })
 	setEnableSourcemap(!!m.sourcemap)
 	activeCompileConfig = config as { minify: boolean; sourcemap: boolean; esTarget: { logic: string; view: string } }

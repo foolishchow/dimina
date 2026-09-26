@@ -1,5 +1,6 @@
-import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getAppId, getRuntimeType, getNpmResolver, isMiniGame, resetStoreInfo } from '../../packer/store/env.ts'
+import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getAppId, getRuntimeType, getNpmResolver, isMiniGame } from '../../packer/store/env.ts'
 import { MINI_GAME_RUNTIME_TYPE } from '../../packer/store/env-compute.ts'
+import type { ResetStoreInfoOptions } from '../../packer/store/env-compute.ts'
 import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../../packer/worker/define-engine.ts'
@@ -276,8 +277,7 @@ function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minif
 	}
 }
 async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
-	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: PageModule[]; subPages: Record<string, { info: PageModule[]; independent: boolean }> } }
-	resetStoreInfo(m.storeInfo)
+	const m = msg as { storeInfo: ResetStoreInfoOptions; sourcemap?: boolean; pages: { mainPages: PageModule[]; subPages: Record<string, { info: PageModule[]; independent: boolean }> } }
 	const ctx = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!, { graph: getDependencyGraph(), appId: getAppId(), component: (src) => getComponent(src), configInfo: getAppConfigInfo(), npmResolver: getNpmResolver() ?? undefined, runtimeType: getRuntimeType(), appInfo: getAppConfigInfo() })
 	enableSourcemap = !!m.sourcemap
 	activeCompileConfig = config as ActiveCompileConfig
