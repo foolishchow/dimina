@@ -1,7 +1,7 @@
 # fe-tools-storeinfo-collapse
 
 - Action: `fe-tools-storeinfo-collapse`
-- Status: `in_progress`
+- Status: `review`
 - Created: 2026-10-10
 - Status authority: [Action Status](../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-SC1..6 locked**——3 待决问题解决：scratch 流方案 C state.scratch + PackerContext 流 sctx.ctx/sctx.state + resetStoreInfo 组装 + project-store.getDependencyGraph 退役）
