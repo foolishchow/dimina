@@ -119,7 +119,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 	}
 
 	const src = module.path.startsWith('/') ? module.path : `/${module.path}`
-	const modulePath = getJSAbsolutePath(src)
+	const modulePath = getJSAbsolutePath(src, ctx)
 	if (!modulePath) {
 		console.warn('[logic]', `找不到模块文件: ${src}`)
 		return

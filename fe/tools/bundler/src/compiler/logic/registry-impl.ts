@@ -21,7 +21,7 @@ import { getJSAbsolutePath, logicParseWalk } from './parse-walk.ts'
 export const logicLoader: Loader = {
 	async load(input: LoadInput, ctx?: PackerContext): Promise<LoadedModule> {
 		const src = input.moduleId.startsWith('/') ? input.moduleId : `/${input.moduleId}`
-		const modulePath = getJSAbsolutePath(src)
+		const modulePath = getJSAbsolutePath(src, ctx)
 		if (!modulePath) {
 			throw new Error(`[logic:load] 找不到模块文件: ${src}`)
 		}

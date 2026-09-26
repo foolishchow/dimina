@@ -270,9 +270,9 @@ export function getLineByIndex(content: string, index: number | undefined): numb
  * @param {string} modulePath - 模块路径
  * @returns {string|null} - 文件的绝对路径，如果找不到则返回 null
  */
-export function getJSAbsolutePath(modulePath: string): string | null {
-	const workPath = getWorkPath()
-	const resolvedModuleId = resolveModuleIdToExistingPath(modulePath)
+export function getJSAbsolutePath(modulePath: string, ctx?: PackerContext): string | null {
+	const workPath = ctx?.workPath ?? getWorkPath()
+	const resolvedModuleId = resolveModuleIdToExistingPath(modulePath, ctx)
 	if (!resolvedModuleId) {
 		return null
 	}
@@ -288,7 +288,7 @@ export function getJSAbsolutePath(modulePath: string): string | null {
 	return null
 }
 
-export function resolveDependencyId(specifier: string, modulePath: string, allowAbsolute: boolean): { id: string; shouldProcess: boolean } {
+export function resolveDependencyId(specifier: string, modulePath: string, allowAbsolute: boolean, ctx?: PackerContext): { id: string; shouldProcess: boolean } {
 	if (!specifier) {
 		return { id: specifier, shouldProcess: false }
 	}
@@ -296,26 +296,26 @@ export function resolveDependencyId(specifier: string, modulePath: string, allow
 	if (specifier.startsWith('miniprogram_npm/')) {
 		const npmModuleId = normalizeModuleId(`/${specifier}`)
 		return {
-			id: resolveModuleIdToExistingPath(npmModuleId) || npmModuleId,
+			id: resolveModuleIdToExistingPath(npmModuleId, ctx) || npmModuleId,
 			shouldProcess: true,
 		}
 	}
 
 	if (specifier.startsWith('./') || specifier.startsWith('../')) {
 		return {
-			id: resolveRelativeModuleId(specifier, modulePath),
+			id: resolveRelativeModuleId(specifier, modulePath, ctx),
 			shouldProcess: true,
 		}
 	}
 
 	if (specifier.startsWith('/')) {
 		return {
-			id: allowAbsolute ? normalizeModuleId(specifier) : resolveRelativeModuleId(specifier, modulePath),
+			id: allowAbsolute ? normalizeModuleId(specifier) : resolveRelativeModuleId(specifier, modulePath, ctx),
 			shouldProcess: true,
 		}
 	}
 
-	const aliasResolved = resolveAppAlias(specifier)
+	const aliasResolved = (ctx?.resolveAlias ?? resolveAppAlias)(specifier)
 	if (aliasResolved) {
 		return {
 			id: normalizeModuleId(aliasResolved),
@@ -324,7 +324,7 @@ export function resolveDependencyId(specifier: string, modulePath: string, allow
 	}
 
 	if (specifier.startsWith('@') || isBareModuleSpecifier(specifier)) {
-		const npmModuleId = resolveNpmModuleId(specifier, modulePath)
+		const npmModuleId = resolveNpmModuleId(specifier, modulePath, ctx)
 		if (npmModuleId) {
 			return {
 				id: npmModuleId,
@@ -332,7 +332,7 @@ export function resolveDependencyId(specifier: string, modulePath: string, allow
 			}
 		}
 
-		const siblingModuleId = resolveBareSiblingModuleId(specifier, modulePath)
+		const siblingModuleId = resolveBareSiblingModuleId(specifier, modulePath, ctx)
 		return {
 			id: siblingModuleId || specifier,
 			shouldProcess: Boolean(siblingModuleId),
@@ -346,15 +346,15 @@ function isBareModuleSpecifier(specifier: string): boolean {
 	return !specifier.startsWith('.') && !specifier.startsWith('/')
 }
 
-function resolveRelativeModuleId(specifier: string, modulePath: string): string {
+function resolveRelativeModuleId(specifier: string, modulePath: string, ctx?: PackerContext): string {
 	const requireFullPath = resolve(modulePath, `../${specifier}`)
-	const relativeId = requireFullPath.split(`${getWorkPath()}${sep}`)[1]!
+	const relativeId = requireFullPath.split(`${ctx?.workPath ?? getWorkPath()}${sep}`)[1]!
 	return normalizeModuleId(relativeId)
 }
 
-function resolveBareSiblingModuleId(specifier: string, modulePath: string): string | null {
-	const siblingModuleId = resolveRelativeModuleId(`./${specifier}`, modulePath)
-	return resolveModuleIdToExistingPath(siblingModuleId)
+function resolveBareSiblingModuleId(specifier: string, modulePath: string, ctx?: PackerContext): string | null {
+	const siblingModuleId = resolveRelativeModuleId(`./${specifier}`, modulePath, ctx)
+	return resolveModuleIdToExistingPath(siblingModuleId, ctx)
 }
 
 function normalizeModuleId(moduleId: string): string {
@@ -365,17 +365,17 @@ function normalizeModuleId(moduleId: string): string {
 	return normalized
 }
 
-function resolveNpmModuleId(specifier: string, modulePath: string): string | null {
-	const npmResolver = getNpmResolver()
+function resolveNpmModuleId(specifier: string, modulePath: string, ctx?: PackerContext): string | null {
+	const npmResolver = ctx?.npmResolver ?? getNpmResolver()
 	if (!npmResolver) {
 		return null
 	}
-	return npmResolver.resolveScriptModule(specifier, modulePath, resolveModuleIdToExistingPath)
+	return npmResolver.resolveScriptModule(specifier, modulePath, (id) => resolveModuleIdToExistingPath(id, ctx))
 }
 
-function resolveModuleIdToExistingPath(moduleId: string): string | null {
+function resolveModuleIdToExistingPath(moduleId: string, ctx?: PackerContext): string | null {
 	const normalizedModuleId = normalizeModuleId(moduleId)
-	const workPath = getWorkPath()
+	const workPath = ctx?.workPath ?? getWorkPath()
 
 	for (const ext of ['.js', '.ts']) {
 		if (fs.existsSync(`${workPath}${normalizedModuleId}${ext}`)) {
@@ -396,7 +396,7 @@ function resolveModuleIdToExistingPath(moduleId: string): string | null {
 			for (const entryField of ['miniprogram', 'main']) {
 				if (typeof packageInfo[entryField] === 'string' && packageInfo[entryField]) {
 					const entryModuleId = normalizeModuleId(resolve(normalizedModuleId, String(packageInfo[entryField])))
-					const resolvedEntry = resolveModuleIdToExistingPath(entryModuleId)
+					const resolvedEntry = resolveModuleIdToExistingPath(entryModuleId, ctx)
 					if (resolvedEntry) {
 						return resolvedEntry
 					}
