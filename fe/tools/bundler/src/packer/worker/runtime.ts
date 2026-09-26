@@ -3,6 +3,7 @@ import { abilityALS } from './context.ts'
 import type { Engine } from './define-engine.ts'
 import { PostMessageSink } from './sinks.ts'
 import { BufferingLogger } from './loggers.ts'
+import { getDependencyGraph } from '../store/env.ts'
 
 // makeProgress 由 runtime 内部定义：持 parentPort（worker 侧，不持 onProgress）
 // progress.completedTasks setter → parentPort.postMessage({completedTasks})
@@ -27,7 +28,7 @@ export function runWorker(engine: Engine): void {
 				engine.cleanup()
 				const response: Record<string, unknown> = {
 					success: true,
-					...engine.successPayload({ logger }),  // F27/F28：payload 归 successPayload（含 dependencyGraph + 可选 compatibilityWarnings）
+					...engine.successPayload({ logger, graph: getDependencyGraph() }),  // F27/F28：payload 归 successPayload（含 dependencyGraph + 可选 compatibilityWarnings）
 					outputCount: sink.count,  // D-WR-6
 				}
 				if (compileResult) Object.assign(response, compileResult)

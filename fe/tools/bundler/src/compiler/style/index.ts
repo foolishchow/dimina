@@ -1,4 +1,4 @@
-import { resetStoreInfo, getDependencyGraph } from '../../packer/store/env.ts'
+import { resetStoreInfo, getDependencyGraph, getAppId, getComponent, getAppConfigInfo, getRuntimeType, getNpmResolver } from '../../packer/store/env.ts'
 import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import type { PackerContext } from '../../packer/types.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
@@ -57,7 +57,7 @@ export { compileSS }
 async function styleCompile({ msg, progress, config }: CompileOptions): Promise<{ styleCompileResults: StyleCompiledModule[] }> {
 	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: StyleModule[]; subPages: Record<string, { info: StyleModule[]; independent: boolean }> }; styleCache?: Map<string, StyleCompiledModule> | null; invalidatedModules?: string[] | null }
 	resetStoreInfo(m.storeInfo)
-	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!, { graph: getDependencyGraph() })
+	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!, { graph: getDependencyGraph(), appId: getAppId(), component: (src) => getComponent(src), configInfo: getAppConfigInfo(), npmResolver: getNpmResolver() ?? undefined, runtimeType: getRuntimeType(), appInfo: getAppConfigInfo() })
 
 	const styleOptions: StyleOptions = { sourcemap: m.sourcemap, minify: (config as { minify?: boolean }).minify }
 	// G4 D-G4-2 / G5 D-G5-3: compile 只返 { styleCompileResults }（只 cache-miss——D-IU-5 只返 dirty）；styleEngine 用 defineEngine 默认 successPayload

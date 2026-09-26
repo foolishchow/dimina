@@ -3,7 +3,7 @@
  * parse+walk 代码在 parse-walk.ts（D-PW-2 真抽出）。
  */
 
-import { getDependencyGraph, getWorkPath, resetStoreInfo } from '../../packer/store/env.ts'
+import { getDependencyGraph, getWorkPath, getAppId, getComponent, getAppConfigInfo, getRuntimeType, getNpmResolver, resetStoreInfo } from '../../packer/store/env.ts'
 import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import type { PackerContext } from '../../packer/types.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
@@ -192,7 +192,7 @@ export {
 async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{ viewCompileResults: ViewCompiledModule[]; viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[]; selective?: boolean; orderList?: string[] }> }> {
 	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: ViewModule[]; subPages: Record<string, { info: ViewModule[]; independent: boolean }> }; viewCache?: Map<string, ViewCompiledModule> | null; viewOrderList?: Map<string, string[]> | null; invalidatedModules?: string[] | null }
 	resetStoreInfo(m.storeInfo)
-	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!)
+	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!, { graph: getDependencyGraph(), appId: getAppId(), component: (src) => getComponent(src), configInfo: getAppConfigInfo(), npmResolver: getNpmResolver() ?? undefined, runtimeType: getRuntimeType(), appInfo: getAppConfigInfo() })
 	setEnableSourcemap(!!m.sourcemap)
 	activeCompileConfig = config as { minify: boolean; sourcemap: boolean; esTarget: { logic: string; view: string } }
 	resetWxsScan()
