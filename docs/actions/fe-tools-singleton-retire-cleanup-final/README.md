@@ -24,7 +24,7 @@ A5b（`fe-tools-singleton-retire-impl-cleanup`）partial completion：D-SRC-1a�
 ## 文档
 
 - [requirements.md](requirements.md)（R-SCF-1..6）
-- [design.draft.md](design.draft.md)（D-SCF-1..3，待 readiness review lock）
+- [design.draft.md](design.draft.md)（**D-SCF-1..3 已 review lock**——R1-R4 findings 全 fix + R5/R6/R7 收敛）
 - [acceptance.md](acceptance.md)（A-SCF-1..6）
 - [validation.md](validation.md)（V-SCF-1..6）
 

@@ -1,6 +1,6 @@
 # Design — fe-tools-singleton-retire-cleanup-final
 
-> **状态：draft**——D-SCF-1..3 待 readiness review lock。承接 A5b 推迟的 D-SRC-1b/2/3b 完全退役收尾。
+> **状态：ready**——D-SCF-1..3 已 review lock（R1-R4 findings 全 fix + R5 收敛）。承接 A5b 推迟的 D-SRC-1b/2/3b 完全退役收尾。
 
 ## 背景
 
@@ -13,23 +13,29 @@ A5b 实证：D-SRC-1b 删 fallback 破坏 121 测试——独立函数（enhance
 ### D-SCF-1-1 独立函数加 ctx 参数（前置）
 
 独立函数 10 处加 ctx optional 参数 + caller 链传 ctx：
-- **logic parse-walk**：getJSAbsolutePath/resolveDependencyId/resolveNpmModuleId/resolveModuleIdToExistingPath（4 处——L318 resolveAppAlias/L369 getNpmResolver/L274/351/378 getWorkPath）
-- **view parse-walk**：processIncludedFileWxsDependencies/collectAllWxsModules（2 处——L871 getComponent/L1280 workPath）
-- **style parse-walk**：styleLoad（4 处——L91 getDependencyGraph.getDirectDependencies/L96 getComponent/L321/480 addFile）
+- **logic parse-walk**：getJSAbsolutePath(L273)/resolveDependencyId(L291)/resolveNpmModuleId(L368)/resolveModuleIdToExistingPath(L376)——4 处无 ctx（读 getWorkPath/resolveAppAlias/getNpmResolver）
+- **view parse-walk**：processIncludedFileWxsDependencies(L859——无 ctx，L871 getComponent)/collectAllWxsModules(L1278——**已有 ctx optional 但 caller 不传** F-R1-2，L1280 workPath)
+- **style parse-walk**：styleLoad(L72——无 ctx，L91 getDependencyGraph.getDirectDependencies/L96 getComponent)
 
-caller 链传 ctx（parse-walk 主函数 → 独立函数 + 测试直调须传 ctx）。
+**caller 链注记**（F-R1-1）：
+- parse-walk 主函数内 caller（ctx 可传——主函数已有 ctx optional）
+- **测试直调 caller**（须测试传 ctx——getJSAbsolutePath/resolveDependencyId 测试直调须迁）
+- **collectAllWxsModules caller 须传 ctx**（F-R1-2——L1278 已有 ctx optional 但 caller 不传，A5b 实证 121 failed）
 
-### D-SCF-1-2 删 fallback ALS 15 处
+### D-SCF-1-2 删 fallback ALS（修正计数——含 workPath/targetPath）
 
-fallback 15 处删（ctx 必传——独立函数已迁）：
-- logic index 5（L89/90/127/160/161）
-- style parse-walk 3（L321/480/486）
-- logic parse-walk 2（L45/98）
-- view parse-walk 5（L388/787/905/911/1180）
+fallback 删（ctx 必传——独立函数已迁）——**不止 15 处**（F-R2-1 修正——含 workPath/targetPath）：
+- **graph fallback**：logic index 5（L89/90/127/160/161）+ logic parse-walk L45 + view parse-walk L388/787/905/1180 + style parse-walk L321/480
+- **appId fallback**：logic parse-walk L98 + view parse-walk L911 + style parse-walk L486
+- **configInfo fallback**：logic index L89/160
+- **workPath fallback**：logic parse-walk L73 + style parse-walk L192/346/362/482 + view parse-walk L911
+- **targetPath fallback**：logic parse-walk L74 + style parse-walk L486 + view parse-walk L911
 
-`ctx?.x ?? ALSGetter()` → `ctx!.x[!]`（ctx 非空断言——worker + 测试已传全）。helper 变量 `_graph = ctx!.graph!`（双重非空——ctx.graph optional 类型）。
+`ctx?.x ?? ALSGetter()` → `ctx!.x[!]`（ctx 非空断言——worker + 测试已传全）。
 
-import 清理：删 fallback 后未用 getter import 删（getDependencyGraph/getAppId/getTargetPath 等——保留独立函数用 + worker ctx 建立用）。
+**ctx.graph 类型 + TS quirks**（F-R2-2）：types.ts PackerContext.graph?: DependencyGraph（optional）。`ctx!.graph!` 双重非空——**helper 变量** `_graph = ctx!.graph!`（A5a deviation D-SIC-dev3——内联 `!` 报 void TS quirks，helper 变量解决）。
+
+import 清理：删 fallback 后未用 getter import 删（getDependencyGraph/getAppId/getTargetPath/getWorkPath 等——保留独立函数用 + worker ctx 建立用）。
 
 ## D-SCF-2 — resetStoreInfo 退役 + storeInfo wrapper 重构
 
@@ -43,9 +49,11 @@ resetStoreInfo 函数删（env.ts）。worker ctx 已传全（D-SRC-1a）——r
 
 ### storeInfo wrapper 重构
 
-storeInfo wrapper 删 compat 写 6 条（pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph 写到 defaultCompilerContext ALS singleton）。storeInfo 保留纯 compute（返 storeInfo data）。
+**compat 写 6 条位置确认**（F-R4-1）：storeInfo wrapper 内 L88-94（非 resetStoreInfo）——`context.pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph = r.*`（6 条写回 defaultCompilerContext）。
 
-**门控**：D-SCF-1-2 删 fallback 后（src caller=0 已确认——orchestrate 链路已不调 wrapper，仅 __tests__ 107 caller——D-SRC-3a 已迁 compileSS/compileML，storeInfo 调用保留建 ALS + 返 data）。
+storeInfo wrapper 删 compat 写 6 条（L88-94）——storeInfo 保留纯 compute（返 storeInfo data）。
+
+**门控**（F-R4-2）：src storeInfo caller=0（orchestrate 已不调）+ test 107 caller（建 ALS + 返 data——D-SRC-3a 已迁 compileSS/compileML 传 ctx，storeInfo 调用保留建 ALS + 返 data）。D-SCF-1-2 删 fallback 后可重构。
 
 ## D-SCF-3 — env.ts singleton 删 + src getter caller 迁 + runtime 改候选 b
 
