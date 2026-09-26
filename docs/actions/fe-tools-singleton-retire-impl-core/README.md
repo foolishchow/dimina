@@ -1,6 +1,6 @@
 # fe-tools-singleton-retire-impl-core
 
-- Status: `draft`
+- Status: `ready`
 - Type: impl（D-SR-1+2+3 核心迁移——PackerContext 扩 optional + ALS 残留 31 处迁 ctx 读 + successPayload 改 ctx.graph）
 - Parent: fe-tools-singleton-retire-research（D-SR-1..6 拆分——A5a 核心 + A5b cleanup）
 - Gates: A0+A1（worker-ctx-direct）+ A2（view-parse-walk-migrate）+ A3（style-parse-walk-migrate）+ A4（compat-write-retire-research）+ A5（singleton-retire-research）全 complete
@@ -29,7 +29,7 @@ L2/L3 退役第六步（A5-impl 核心）。A5 research 锁定：
 
 ## 设计门
 
-[design.draft.md](design.draft.md)（**D-SIC-1..N 待 readiness review lock**——PackerContext 扩 + ALS 迁 + successPayload）
+[design.draft.md](design.draft.md)（**D-SIC-1..3 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 
 ## 文档
 

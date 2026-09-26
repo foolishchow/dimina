@@ -115,4 +115,4 @@
 | `fe-tools-style-parse-walk-migrate` | `complete` |
 | `fe-tools-compat-write-retire-research` | `complete` |
 | `fe-tools-singleton-retire-research` | `complete` |
-| `fe-tools-singleton-retire-impl-core` | `draft` |
+| `fe-tools-singleton-retire-impl-core` | `ready` |
