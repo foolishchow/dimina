@@ -1,6 +1,6 @@
 # fe-tools-packer-context-dedup
 
-- Status: `draft`
+- Status: `ready`
 - Status authority: [Action Status](../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-PCD-1..6 已 review lock**——5 轮 readiness review 收敛；三构造点同质性 dedup + 内核放置选项 A + 字段名映射统一）
 - 需求门：[requirements.md](requirements.md)
