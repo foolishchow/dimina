@@ -88,16 +88,24 @@ export function viewParseWalk(
 
 **关键**（F-R1-1）：viewParseWalk 自身（L320-330）无 getter 调用——17 处 getter 全在独立函数。须独立函数加 ctx 参数透传。
 
-**独立函数透传链**（7+ 函数加 ctx 参数）：
-- compileViewTree(module, isComponent, scriptRes, ..., select?, ctx?)——L431/436 getter
-- transAsses(document, imageNodes, path, graphOwnerPath, ctx?)——L902/904/908 getter（export 独立函数）
+**独立函数透传链**（9 函数加 ctx 参数 + 透传深度 4 层——F-R8-1）：
+
+**透传链深度 4 层**（F-R8-1）：
+- viewParseWalk → compileViewTree → compileModule → processWxsDependency → processWxsContent（4 层）
+- compileModule → transTagWxs/collectAllWxsModules（互调）
+
+**9 函数加 ctx 参数**：
+- compileViewTree(module, isComponent, scriptRes, ..., select?, ctx?)——L431/436 getter + 递归 L446
+- compileModule(module, isComponent, scriptRes, options, ctx?)——L752 调 processWxsDependency + L1206/1248 调 processWxsContent
+- transAsses(document, imageNodes, path, graphOwnerPath, ctx?)——L902/904/908 getter（export，**wxml/load 主线程路径**——F-R8-3，fallback ALS）
 - processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath, ctx?)——L784 getter（export）
 - processWxsDependency(wxsFilePath, moduleName, scriptModule, workPath, filePath, graphOwnerPath, ctx?)——L830 getter
 - processIncludedFileWxsDependencies(componentTags, includePath, scriptModule, components, processedPaths, ctx?)——L868 getter
 - scanWxsFiles(dir, workPath, ctx?)——L359 getter（已收 workPath，F-R1-3）
-- 其他含 getter的内部函数（L1144/1156/1177/1191/1242/1277）
-- **外部调用者 fallback ALS 兼容**（F-R2-1/R2-2）：transAsses（wxml/load/index.ts:262——1 处外部，不传 ctx → fallback ALS）+ processWxsContent（view-compiler.spec.js 9 处测试直调，不传 ctx → fallback ALS）——ctx optional + fallback ALS 模式确保外部调用者不崩 ✓
-- **compileViewTree 递归透传**（F-R2-3）：L324 viewParseWalk 调 + L446 递归调——2 处须传 ctx（ctx optional + fallback）
+- **transTagWxs**（F-R8-2/R9-1，L1142 export）——L1144 getViewScriptTags + L1156 getWorkPath + L1177 getDependencyGraph + L1191 getContentByPath（4 处 getter）+ **3 处外部调用者**（wxml/load/index.ts L167/209/249——主线程，fallback ALS）
+- **collectAllWxsModules**（F-R8-2/R9-2，L1275）——L1277 getWorkPath（1 处 getter）+ **4 处内部调用**（L489 mergeWxsModules + L555 tryModuleCache + L1299/1311 递归——须递归透传 ctx）
+- **外部调用者 fallback ALS 兼容**（F-R2-1/R2-2/R8-3）：transAsses（wxml/load/index.ts:262——**主线程路径**，非 worker，fallback ALS）+ processWxsContent（view-compiler.spec.js 9 处测试直调，fallback ALS）+ transTagWxs（export，外部调用者 fallback ALS）
+- **compileViewTree 递归透传**（F-R2-3）：L324 viewParseWalk 调 + L446 递归调——2 处须传 ctx
 
 **ctx 读 5 getter**（F-R1-2 等价确认）：
 - getWorkPath→ctx?.workPath ?? getWorkPath()（L904/908/1156/1277）
@@ -156,6 +164,13 @@ export function viewParseWalk(
 - **D-SC5**：buildResetStoreInfoData 返 storeInfo data——A2 viewCompile 从 storeInfo 建 ctx
 - **D-PC**（packer-context-dedup）：buildPackerContextFromOptions 内核——A2 复用
 - **A0 R8**（resolveAppAlias 行为 0 守护）：view 不用 resolveAppAlias ✓（F-R1 确认）
+
+## 6c. 行为 0 等价确认（F-R9）
+
+- **ctx.readContent = getContentByPath**：fs.readFileSync(path, 'utf-8') 字节等价 ✓（A0 F-R9-1）
+- **getViewScriptExts/getViewScriptTags**：ctx.fileTypes 同源 ALS getCompilerContext().compilerOptions ✓（R1 F-R1-2）
+- **ctx.workPath/targetPath**：storeInfo.pathInfo 同源 ALS ✓（A0 确认）
+- **fallback ALS 行为等价**：独立函数不传 ctx 时 `ctx?.x ?? ALSGetter()` = ALSGetter()（原行为）✓
 
 ## 7. 结论
 
