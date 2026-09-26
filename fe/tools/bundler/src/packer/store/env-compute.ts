@@ -16,7 +16,7 @@ import { uuid } from '../../shared/utils.ts'
 import { NpmResolver } from '../graph/npm-resolver.ts'
 import { DependencyGraph } from '../graph/dependency-graph.ts'
 import { PackerGraph } from '../graph/graph.ts'
-import { resolveAppAlias as resolveAppAliasImpl } from '../graph/config-fixpoint.ts'
+import { resolveAppAlias as resolveAppAliasImpl, buildPackerContextFromOptions } from '../graph/config-fixpoint.ts'
 import type { PackerContext, PageConfig, ComponentConfig } from '../types.ts'
 import type { PackerSessionState } from '../state/session-state.ts'
 
@@ -182,48 +182,23 @@ export function computePathInfo(workPath: string): PathInfo {
 
 /**
  * CompilerContext → PackerContext 适配器（D-GB build-pipeline / watch-plan 共用）。
- * 字段映射: compilerOptions.templateDirectivePrefixes → fileTypes.directivePrefixes
- * D-PCS-1: resolveAlias / resolveNpm 为 deferred stub（讨论调度器时定）。
+ * D-PCD-3（fe-tools-packer-context-dedup）：调 buildPackerContextFromOptions 内核（逐字搬迁去重）。
+ * 从 CompilerContext 取 workPath/targetPath/compilerOptions 调内核（散参）。
+ * `!` 窄断言保留（pathInfo optional——现状同）。CompilerContext 依赖保留（不破）。
  */
 export function toPackerContext(ctx: CompilerContext): PackerContext {
-	return {
-		workPath: ctx.pathInfo.workPath!,
-		targetPath: ctx.pathInfo.targetPath!,
-		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
-		// D-PCS-1: deferred stub — NpmResolver integration TBD
-		resolveAlias: (_src: string) => null,
-		resolveNpm: (src: string, _baseFile: string) => src,
-		fileTypes: {
-			templateExts: ctx.compilerOptions.templateExts,
-			styleExts: ctx.compilerOptions.styleExts,
-			viewScriptExts: ctx.compilerOptions.viewScriptExts,
-			viewScriptTags: ctx.compilerOptions.viewScriptTags,
-			directivePrefixes: ctx.compilerOptions.templateDirectivePrefixes,
-		},
-	}
+	return buildPackerContextFromOptions(ctx.pathInfo.workPath!, ctx.pathInfo.targetPath!, ctx.compilerOptions)
 }
 
 /**
  * B 切法（PC-B10a）：从原始 workPath/targetPath/fileTypes 显式建 PackerContext。
  * orchestrate(ctx, state, options) 签名落地用——ctx 是显式入参（非 ALS 派生）。
  * fileTypes 是 RAW FileTypesInput（store.load 用）；ctx.fileTypes 是 normalized（PackerContext 形状）。
+ * D-PCD-2（fe-tools-packer-context-dedup）：调 buildPackerContextFromOptions 内核（normalize 先 + 内核）。
+ * public 签名不变（收 RAW FileTypesInput）。
  */
 export function buildPackerContext(workPath: string, targetPath: string, fileTypes?: FileTypesInput): PackerContext {
-	const compilerOptions = normalizeFileTypes(fileTypes)
-	return {
-		workPath,
-		targetPath,
-		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
-		resolveAlias: (_src: string) => null,
-		resolveNpm: (src: string, _baseFile: string) => src,
-		fileTypes: {
-			templateExts: compilerOptions.templateExts,
-			styleExts: compilerOptions.styleExts,
-			viewScriptExts: compilerOptions.viewScriptExts,
-			viewScriptTags: compilerOptions.viewScriptTags,
-			directivePrefixes: compilerOptions.templateDirectivePrefixes,
-		},
-	}
+	return buildPackerContextFromOptions(workPath, targetPath, normalizeFileTypes(fileTypes))
 }
 
 // ── computeStoreInfo（storeInfo 纯计算拆分——D-EL1-2）──

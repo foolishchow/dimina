@@ -49,13 +49,20 @@ export interface FixpointCtx {
  * B 切法（PC-B5/B7）：从 storeInfo 产物显式建 FixpointCtx（镜像 env.ts toPackerContext，但非 ALS）。
  * ConfigCollector（PC-B5）+ readLoadBindings（PC-B7）共用——消除 getPages/getComponent 等 ALS getter 回环。
  */
-export function buildFixpointCtx(
+/**
+ * D-PCD-1（fe-tools-packer-context-dedup）：PackerContext 构造内核。
+ * 收已 normalized compilerOptions（统一入参形态）——readContent/resolveAlias/resolveNpm
+ * stub 逐字搬迁（行为 0）+ fileTypes 字段名映射（templateDirectivePrefixes →
+ * directivePrefixes）统一在内核。无须 `as PackerFileTypes` 断言（字段逐字匹配）。
+ * 放 config-fixpoint（graph 层——D-PCD-5 选项 A：store→graph 单向已存在，无循环）。
+ * compilerOptions 类型 inline 3 处重复属 normalizeFileTypes 重构 non-scope（不 export 统一 type）。
+ */
+export function buildPackerContextFromOptions(
 	workPath: string,
 	targetPath: string,
 	compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] },
-	configData: GraphConfigData,
-): FixpointCtx {
-	const ctx: PackerContext = {
+): PackerContext {
+	return {
 		workPath,
 		targetPath,
 		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
@@ -67,8 +74,23 @@ export function buildFixpointCtx(
 			viewScriptExts: compilerOptions.viewScriptExts,
 			viewScriptTags: compilerOptions.viewScriptTags,
 			directivePrefixes: compilerOptions.templateDirectivePrefixes,
-		} as PackerFileTypes,
+		},
 	}
+}
+
+/**
+ * B 切法（PC-B5/B7）：从 storeInfo 产物显式建 FixpointCtx（镜像 env.ts toPackerContext，但非 ALS）。
+ * ConfigCollector（PC-B5）+ readLoadBindings（PC-B7）共用——消除 getPages/getComponent 等 ALS getter 回环。
+ * D-PCD-4（fe-tools-packer-context-dedup）：内部 ctx 构造去重——调 buildPackerContextFromOptions 内核。
+ * npm 独有（FixpointCtx 契约——内核只构造 PackerContext，npm 由 buildFixpointCtx 自己加）。
+ */
+export function buildFixpointCtx(
+	workPath: string,
+	targetPath: string,
+	compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] },
+	configData: GraphConfigData,
+): FixpointCtx {
+	const ctx = buildPackerContextFromOptions(workPath, targetPath, compilerOptions)
 	return { ctx, configData, npm: new NpmResolver(workPath) }
 }
 

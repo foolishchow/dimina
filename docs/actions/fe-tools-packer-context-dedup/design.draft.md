@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：ready**——D-PCD-1..6 **已 review lock**（5 轮 readiness review：R1-R4 全 findings 修正 + R5 收敛——F-R1-1 内核放置选项 A / F-R1-2/3 字段名映射 / F-R2-1/2 buildResetStoreInfoData 排除 + CompilerContext 依赖 / F-R4-1/2 as 断言 + npm 独有）。基于三构造点同质性 audit（scratch-internalize + env-l1 backflow）。
+> **状态：in_progress**——D-PCD-1..6 **已 review lock**（5 轮 readiness review：R1-R4 全 findings 修正 + R5 收敛——F-R1-1 内核放置选项 A / F-R1-2/3 字段名映射 / F-R2-1/2 buildResetStoreInfoData 排除 + CompilerContext 依赖 / F-R4-1/2 as 断言 + npm 独有）。基于三构造点同质性 audit（scratch-internalize + env-l1 backflow）。
 
 ## 1. 三构造点现状（audit 确认同质）
 
