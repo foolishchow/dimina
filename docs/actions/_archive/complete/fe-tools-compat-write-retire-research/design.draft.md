@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-compat-write-retire-research
 
-> **状态：ready**——D-CWR-1..6 已 review lock。A5 singleton/Proxy 退役迁移规划。
+> **状态：complete**——D-CWR-1..6 已 lock + 行为 0（git diff=0）。A5 singleton/Proxy 退役迁移规划。
 
 ## 1. 研究结论
 

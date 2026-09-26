@@ -1,6 +1,6 @@
 # fe-tools-compat-write-retire-research
 
-- Status: `ready`
+- Status: `complete`
 - Type: research（无代码改动——产出 source-audit + A5 迁移规划）
 - Parent: fe-tools-l2-l3-retire-research（D-LR-3 A4 细化）
 - Gates: A0+A1（worker-ctx-direct complete）+ A2（view-parse-walk-migrate complete）+ A3（style-parse-walk-migrate complete）
