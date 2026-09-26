@@ -1,13 +1,13 @@
 # fe-tools-env-l1-extract
 
 - Action: `fe-tools-env-l1-extract`
-- Status: `in_progress`
+- Status: `complete`
 - Created: 2026-10-10
-- Status authority: [Action Status](../STATUS.md)
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-EL1-1..N 待 lock**——L1 函数清单 + 迁出策略 + 死代码清理 + toPackerContext/CompilerContext type 处理）
 - 实施计划：[implementation-plan.md](implementation-plan.md)
 - 验证：[validation.md](validation.md)
-- 背景：[`storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1（env.ts 三层混合）+ [`fe-tools-storeinfo-collapse`](../_archive/complete/fe-tools-storeinfo-collapse/README.md)（阶段 2 backflow：L1 迁出推迟）
+- 背景：[`storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1（env.ts 三层混合）+ [`fe-tools-storeinfo-collapse`](../fe-tools-storeinfo-collapse/README.md)（阶段 2 backflow：L1 迁出推迟）
 
 ## Background
 
@@ -36,8 +36,8 @@ env.ts 三层混合 → L2/L3 薄门面，L1 纯模块卫生（可独立测试�
 
 ## Design inputs
 
-- 概念分析：[`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1（env.ts 三层定位表）
-- storeinfo-collapse backflow：[`fe-tools-storeinfo-collapse`](../_archive/complete/fe-tools-storeinfo-collapse/README.md) Non-goals（阶段 2 L1 迁出）
+- 概念分析：[`2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1（env.ts 三层定位表）
+- storeinfo-collapse backflow：[`fe-tools-storeinfo-collapse`](../fe-tools-storeinfo-collapse/README.md) Non-goals（阶段 2 L1 迁出）
 - env.ts 现状：`src/packer/store/env.ts`（L1 函数 + L2 singleton/Proxy/getters + L3 resetStoreInfo）
 - env.ts 消费方：~20 文件 import（getters + resetStoreInfo + buildResetStoreInfoData + buildPackerContext）
 
@@ -62,6 +62,10 @@ env.ts 三层混合 → L2/L3 薄门面，L1 纯模块卫生（可独立测试�
 3. ~~死代码清理测试影响~~ **已解**（F-R1-5/F-R3-1）：getPages 保留 env.ts L2（21 文件 47 调用点）；env.spec.js 改写 config-fixpoint.readProjectConfig 直测（保留合并覆盖——config-fixpoint 无自有测试）。
 
 **当前唯一 open 项（实施期验证，非设计 gap）**：D-EL1-3 storeInfoCtx 去 compat 写的 7-diff 终验 + vitest 88 files 覆盖（F-R7-1 test-then-orchestrate 模式在内）；fallback = storeInfoCtx 留 env.ts。
+
+## 实施期 deviation（close review 回填）
+
+- **D-EL1-2 CompilerContext/toPackerContext export**：原 design「internal 不 export」修正为 env-compute export（env.ts getPages 薄壳调 toPackerContext(getCompilerContext()) 须引用）；env.ts 对外不 re-export（API 收缩意图保持）。
 
 ## Closure conditions
 

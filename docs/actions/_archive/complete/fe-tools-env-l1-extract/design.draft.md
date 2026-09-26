@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-env-l1-extract
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 > **状态：draft**——D-EL1-1..6 **已 review lock**（10 轮 readiness review：R1-R10，16+ findings 全修正——含 F-R4-1 迁移细则 / F-R6-1 npmResolver / F-R9-1 选项 A 锁定）。基于 env.ts 现状 source-audit + storeinfo-collapse backflow。
 
@@ -68,7 +68,9 @@ storeInfo(workPath, options) → {pathInfo, configInfo, compilerOptions, depende
 - `computeStoreInfo(workPath, options) → { pathInfo, compilerOptions, graph, configInfo, npmResolver }`（纯计算，无 compat 写；graph 实例返回——wrapper 自取 `graph.toJSON()`（return 值）+ `graph.getInnerGraph()`（compat 写），不冗余返回 dependencyGraph 字段；**npmResolver 返出**（F-R6-1——localCtx.npmResolver = new NpmResolver(workPath)，wrapper compat 写 `context.npmResolver = r.npmResolver` 喂主线程 parse-walk 测试路径：parse-walk.ts:363 getNpmResolver ← 9 测试文件 storeInfo 后主线程直调 logicParseWalk 依赖））。内部建 localCtx + `toPackerContext(localCtx)` + graph.build/reconcile。
 - env.ts `storeInfo(workPath, options)` wrapper = `computeStoreInfo(workPath, options)` + compat 写（写 getCompilerContext singleton 6 条）+ return。签名/返回值不变（~107 调用点/34 测试文件不动）。
 
-**CompilerContext type 处理**：computeStoreInfo 内部用 CompilerContext shape（localCtx）。`toPackerContext(ctx: CompilerContext)` 收 CompilerContext。CompilerContext 是 env.ts 内部 type。**决策**：CompilerContext type 迁 env-compute（computeStoreInfo + toPackerContext 用），不 export（内部）。
+**CompilerContext type 处理**：computeStoreInfo 内部用 CompilerContext shape（localCtx）。`toPackerContext(ctx: CompilerContext)` 收 CompilerContext。CompilerContext 是 env.ts 内部 type。**决策**：CompilerContext type 迁 env-compute（computeStoreInfo + toPackerContext 用）。
+
+**实施期 deviation（close review 回填）**：原 design「internal 不 export」修正为 **export**——env.ts 保留的 getPages 薄壳（21 文件 47 测试 fixture 依赖）调 `toPackerContext(getCompilerContext())` 须引用 CompilerContext type + toPackerContext 函数。env-compute export 二者（env.ts import）；env.ts 对外 **不 re-export toPackerContext**（保持 API 收缩意图——对外 caller=0）。CompilerContext type 同理（env.ts 内部用，不 re-export 对外）。
 
 **迁移细则（F-R4-1——行为 0 纪律）**：computeStoreInfo **逐字搬迁** storeInfo 的 graph 分支逻辑（env.ts:196-209）：
 - `if (options.graph)` 分支内**顺序执行** reconcile → restoreFromSnapshot → reconcile（注释写「State 路径 / 旧路径」但实际两段都跑——storeinfo-collapse 后 7-diff=0 已验证此行为正确）——**不「修正」为二选一**（行为变化）

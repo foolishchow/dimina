@@ -1,6 +1,6 @@
 # Requirements — fe-tools-env-l1-extract
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## Problem
 
