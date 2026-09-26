@@ -5,6 +5,8 @@ import type { CachedModuleResult } from '../../packer/cache/module-result-cache.
 import { hasCompileInfo } from '../../shared/utils.ts'
 import { logicParseWalk, processedModules, getJSAbsolutePath } from './parse-walk.ts'
 import { transformCjs } from './transform.ts'
+import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
+import type { PackerContext } from '../../packer/types.ts'
 
 // 是否生成 sourcemap
 let enableSourcemap = false
@@ -47,21 +49,21 @@ interface CompileJSOptions {
 	/** 输出：每 moduleId → require/import dep ID 列表（仅 dirty 模块有条目）。 */
 	logicDependencies?: Record<string, string[]>
 }
-async function compileJS(pages: PageModule[], root: string | null, mainCompileRes: CompileInfo[] | null, progress: Progress, options?: CompileJSOptions): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
+async function compileJS(pages: PageModule[], root: string | null, mainCompileRes: CompileInfo[] | null, progress: Progress, options?: CompileJSOptions, ctx?: PackerContext): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
 	const compileRes: CompileInfo[] = []
 	const logicDependencies = options?.logicDependencies ?? {}
 	const buildOptions: CompileJSOptions = { ...options, logicDependencies }
 	if (!root && !isMiniGame()) {
-		await buildJSByPath(root, { path: 'app' }, compileRes, mainCompileRes, false, new Set(), false, buildOptions)
+		await buildJSByPath(root, { path: 'app' }, compileRes, mainCompileRes, false, new Set(), false, buildOptions, ctx)
 	}
 
 	for (const page of pages) {
-		await buildJSByPath(root, page, compileRes, mainCompileRes, true, new Set(), false, buildOptions)
+		await buildJSByPath(root, page, compileRes, mainCompileRes, true, new Set(), false, buildOptions, ctx)
 		progress.completedTasks++
 	}
 	return { compileRes, logicDependencies }
 }
-async function buildJSByPath(packageName: string | null, module: PageModule, compileRes: CompileInfo[], mainCompileRes: CompileInfo[] | null, addExtra: boolean, activePaths: Set<string> = new Set(), putMain = false, options?: CompileJSOptions): Promise<void> {
+async function buildJSByPath(packageName: string | null, module: PageModule, compileRes: CompileInfo[], mainCompileRes: CompileInfo[] | null, addExtra: boolean, activePaths: Set<string> = new Set(), putMain = false, options?: CompileJSOptions, ctx?: PackerContext): Promise<void> {
 	const currentPath = module.path
 
 	if (!currentPath) {
@@ -97,7 +99,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 				} else { toMainSubPackage = false }
 				const componentModule = getComponent(componentPath) as PageModule | null
 				if (componentModule) {
-					await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage, options)
+					await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage, options, ctx)
 				}
 			}
 		}
@@ -105,7 +107,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		if (putMain) { mainCompileRes!.push(cached.compileInfo) } else { compileRes.push(cached.compileInfo) }
 		// 遍历 cached.logicDependencies（require/import dep ID 列表，transform 时捕获）
 		for (const depId of cached.logicDependencies) {
-			await buildJSByPath(packageName, { path: depId }, compileRes, mainCompileRes, false, activePaths, putMain, options)
+			await buildJSByPath(packageName, { path: depId }, compileRes, mainCompileRes, false, activePaths, putMain, options, ctx)
 		}
 		return
 	}
@@ -125,7 +127,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 	// [MC0 D-MC-5] dirty 模块 AST walk 前清 outgoing 'logic' 边，避免 stale edge
 	getDependencyGraph().clearOutgoingEdges(currentPath, 'logic')
 
-	const sourceCode = getContentByPath(modulePath)
+	const sourceCode = ctx?.readContent(modulePath) ?? getContentByPath(modulePath)
 	if (!sourceCode) {
 		console.warn('[logic]', `无法读取模块文件: ${modulePath}`)
 		return
@@ -134,7 +136,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 	// 记录源文件路径，用于 sourcemap
 	if (enableSourcemap) {
-		const workPath = getWorkPath()
+		const workPath = ctx?.workPath ?? getWorkPath()
 		compileInfo.sourceFile = modulePath.startsWith(workPath)
 			? modulePath.slice(workPath.length)
 			: src
@@ -187,7 +189,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 			}
 
 			if (componentModule) {
-				await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage, options)
+				await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage, options, ctx)
 			}
 			componentsObj[name] = path
 		}
@@ -216,6 +218,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		packageName,
 		extraInfoCode,
 		{ isTypeScript, sourcemap: enableSourcemap },
+		ctx,
 	)
 
 	// M2: 存 logicDependencies 供 cache（全量 require/import dep ID）
@@ -225,7 +228,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 	// 处理所有依赖模块（异步）
 	for (const depId of dependenciesToProcess) {
-		await buildJSByPath(packageName, { path: depId }, compileRes, mainCompileRes, false, activePaths, putMain, options)
+		await buildJSByPath(packageName, { path: depId }, compileRes, mainCompileRes, false, activePaths, putMain, options, ctx)
 	}
 
 	// transform：esbuild CJS 转换 + sourcemap remap
@@ -272,8 +275,10 @@ function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minif
 	}
 }
 async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
-	resetStoreInfo((msg as { storeInfo: Parameters<typeof resetStoreInfo>[0] }).storeInfo)
-	enableSourcemap = !!(msg as { sourcemap?: boolean }).sourcemap
+	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: PageModule[]; subPages: Record<string, { info: PageModule[]; independent: boolean }> } }
+	resetStoreInfo(m.storeInfo)
+	const ctx = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!)
+	enableSourcemap = !!m.sourcemap
 	activeCompileConfig = config as ActiveCompileConfig
 
 	// M2: 从 msg 读 cache snapshot + invalidatedModules
@@ -283,11 +288,11 @@ async function logicCompile({ msg, progress, config }: CompileOptions): Promise<
 	const logicDependencies: Record<string, string[]> = {}
 	const compileJSOptions = cache ? { cache, invalidatedModules, logicDependencies } : undefined
 
-	const { compileRes: mainCompileRes } = await compileJS((msg as { pages: { mainPages: PageModule[]; subPages: Record<string, { info: PageModule[]; independent: boolean }> } }).pages.mainPages, null, null, progress as Progress, compileJSOptions)
+	const { compileRes: mainCompileRes } = await compileJS(m.pages.mainPages, null, null, progress as Progress, compileJSOptions, ctx)
 	const subs: { root: string, modules: CompileInfo[] }[] = []
 	for (const [root, subPages] of Object.entries((msg as { pages: { subPages: Record<string, { info: PageModule[]; independent: boolean }> } }).pages.subPages)) {
 		const { compileRes: subCompileRes } = await compileJS(
-			subPages.info, root, subPages.independent ? [] as CompileInfo[] : mainCompileRes, progress as Progress, compileJSOptions,
+			subPages.info, root, subPages.independent ? [] as CompileInfo[] : mainCompileRes, progress as Progress, compileJSOptions, ctx,
 		)
 		subs.push({ root, modules: subCompileRes })
 	}

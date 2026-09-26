@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-worker-ctx-direct
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 > **状态：draft**——D-WCD-1..7 待 readiness review lock。基于 research（fe-tools-l2-l3-retire-research）拆分方案 A0+A1 合并。
 
@@ -156,6 +156,13 @@ logicParseWalk(source, modulePath, 'pages/index', null, null, undefined, options
 2. **ALS compat 边界**（D-WCD-6）——logic 迁 ctx 后 ALS 写冗余？或保留 view/style compat
 3. **successPayload ctx 来源**——compile 建 ctx 透传 successPayload
 4. **测试 fixture**——logic-loader.spec:53 须建 ctx（buildPackerContext）
+
+## 5b. Implementation deviations（P-WCD-1..3 atomic 后回填）
+
+- **D-WCD-dev1**：ctx 参数改为 **optional + fallback ALS**（非 design lock 的「必传」）。原因：34 处测试直调 compileJS（传 options 作为第 5 参）——ctx 必传破坏测试调用签名。方案：`ctx?: PackerContext` + 内部 `ctx?.workPath ?? getWorkPath()` fallback ALS。worker 路径传 ctx（新，buildPackerContextFromOptions），测试路径不传（fallback ALS）。行为等价（ctx 读 = ALS 读）。
+- **D-WCD-dev2**：ctx 参数位置调整为 **末尾**（options 后，非 options 前）。原因：测试传 options 作为第 5 参——ctx 占第 5 参位置破坏。签名 `compileJS(pages, root, mainCompileRes, progress, options?, ctx?)` + `buildJSByPath(..., options?, ctx?)`。
+- **D-WCD-dev3**：logicParseWalk 内 getWorkPath/getTargetPath 提前到函数顶部（`const workPath = ctx?.workPath ?? getWorkPath()`）——原散落 4 处合并为 1 处（DRY）。
+- **D-WCD-dev4**：registry-impl.ts:83 测试传 `{}` 作为 ctx——改为不传 ctx（fallback ALS）。orchestrator 调 logicLoader.load 传真 ctx（buildPackerContext）。
 
 ## 6. Non-scope 守
 

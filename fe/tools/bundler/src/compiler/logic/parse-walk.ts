@@ -10,6 +10,7 @@ import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath } from '
 import { getAppId, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, resolveAppAlias } from '../../packer/store/env.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { EmitModule } from '../../packer/emit/emit.ts'
+import type { PackerContext } from '../../packer/types.ts'
 
 // 用于缓存已处理的模块
 export const processedModules = new Set()
@@ -37,6 +38,7 @@ export async function logicParseWalk(
 	packageName: string | null,
 	extraInfoCode: string | undefined,
 	options: LogicParseWalkOptions,
+	ctx?: PackerContext,
 ): Promise<LogicParseWalkResult> {
 	const { isTypeScript, sourcemap } = options
 
@@ -66,8 +68,10 @@ export async function logicParseWalk(
 	const logicDeps: string[] = [] // M2: 全量 require/import dep ID（AST walk 捕获，供 cache）
 
 	const src = currentPath.startsWith('/') ? currentPath : `/${currentPath}`
-	const diagnosticSource = modulePath.startsWith(getWorkPath())
-		? modulePath.slice(getWorkPath().length)
+	const workPath = ctx?.workPath ?? getWorkPath()
+	const targetPath = ctx?.targetPath ?? getTargetPath()
+	const diagnosticSource = modulePath.startsWith(workPath)
+		? modulePath.slice(workPath.length)
 		: src
 
 	walk(ast, {
@@ -83,13 +87,13 @@ export async function logicParseWalk(
 			if ((node.type === 'Literal' && typeof node.value === 'string') && isLocalAssetString(node.value)) {
 				getDependencyGraph().addFile(
 					currentPath,
-					resolveAssetSourcePath(getWorkPath(), modulePath, node.value),
+					resolveAssetSourcePath(workPath, modulePath, node.value),
 					'logic',
 				)
 				pathReplacements.push({
 					start: node.start,
 					end: node.end,
-					newValue: collectAssets(getWorkPath(), modulePath, node.value, getTargetPath(), getAppId()!),
+					newValue: collectAssets(workPath, modulePath, node.value, targetPath, getAppId()!),
 				})
 			}
 

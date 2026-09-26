@@ -44,7 +44,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 		const { logicParseWalk } = await import('../src/compiler/logic/parse-walk.js')
 
 		const loaded = await runWithAbilities(outputDir, () =>
-			logicLoader.load({ moduleId: 'pages/index', kind: 'logic', source: '' }, {}))
+			logicLoader.load({ moduleId: 'pages/index', kind: 'logic', source: '' }))
 
 		// 等价性：直接调 logicParseWalk（同参数）
 		const modulePath = path.join(tempDir, 'pages/index.js')
@@ -80,7 +80,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 		const { logicLoader } = await import('../src/compiler/logic/registry-impl.js')
 
 		const loaded = await runWithAbilities(outputDir, () =>
-			logicLoader.load({ moduleId: 'pages/index', kind: 'logic', source: '' }, {}))
+			logicLoader.load({ moduleId: 'pages/index', kind: 'logic', source: '' }))
 
 		expect(loaded.kind).toBe('logic')
 		expect(loaded.metadata.sourcePath.endsWith('.ts')).toBe(true)
@@ -99,7 +99,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 
 		// input.source 非空 → 使用它（不读磁盘）
 		const loaded = await runWithAbilities(outputDir, () =>
-			logicLoader.load({ moduleId: 'pages/index', kind: 'logic', source: 'const x = 1\n' }, {}))
+			logicLoader.load({ moduleId: 'pages/index', kind: 'logic', source: 'const x = 1\n' }))
 
 		expect(loaded.source).toBe('const x = 1\n')
 		expect(loaded.dependencies).toEqual([])
@@ -114,7 +114,7 @@ describe('logicLoader — Loader registry wrap（H2 Phase 2a）', () => {
 
 		await expect(
 			runWithAbilities(outputDir, () =>
-				logicLoader.load({ moduleId: 'pages/missing', kind: 'logic', source: '' }, {})),
+				logicLoader.load({ moduleId: 'pages/missing', kind: 'logic', source: '' })),
 		).rejects.toThrow(/找不到模块文件/)
 	})
 })

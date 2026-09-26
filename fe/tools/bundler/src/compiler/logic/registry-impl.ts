@@ -19,13 +19,13 @@ import { getContentByPath } from '../../packer/store/env.ts'
 import { getJSAbsolutePath, logicParseWalk } from './parse-walk.ts'
 
 export const logicLoader: Loader = {
-	async load(input: LoadInput, _ctx: PackerContext): Promise<LoadedModule> {
+	async load(input: LoadInput, ctx?: PackerContext): Promise<LoadedModule> {
 		const src = input.moduleId.startsWith('/') ? input.moduleId : `/${input.moduleId}`
 		const modulePath = getJSAbsolutePath(src)
 		if (!modulePath) {
 			throw new Error(`[logic:load] 找不到模块文件: ${src}`)
 		}
-		const source = input.source || getContentByPath(modulePath) || ''
+		const source = input.source || ctx?.readContent(modulePath) || getContentByPath(modulePath) || ''
 		if (!source) {
 			throw new Error(`[logic:load] 无法读取模块文件: ${modulePath}`)
 		}
@@ -38,6 +38,7 @@ export const logicLoader: Loader = {
 			null,      // packageName（buildJSByPath 编排传）
 			undefined, // extraInfoCode（buildJSByPath 编排传）
 			{ isTypeScript, sourcemap: false },
+			ctx,
 		)
 		return {
 			moduleId: input.moduleId,

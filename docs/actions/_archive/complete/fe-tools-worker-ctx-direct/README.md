@@ -1,13 +1,13 @@
 # fe-tools-worker-ctx-direct
 
-- Status: `ready`
-- Status authority: [Action Status](../STATUS.md)
+- Status: `complete`
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-WCD-1..7 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)
 - 验收门：[acceptance.md](acceptance.md)
 - 验证门：[validation.md](validation.md)
-- 前置 research：[`fe-tools-l2-l3-retire-research`](../_archive/complete/fe-tools-l2-l3-retire-research/source-audit.md)（拆分方案 A0-A5 + 序列化方案 b）
+- 前置 research：[`fe-tools-l2-l3-retire-research`](../../_archive/complete/fe-tools-l2-l3-retire-research/source-audit.md)（拆分方案 A0-A5 + 序列化方案 b）
 
 ## Background
 
@@ -32,7 +32,7 @@ L2+L3 退役大倡议的第一步。research Action（fe-tools-l2-l3-retire-rese
 
 ## Design inputs
 
-- **前置 research**：[source-audit](../_archive/complete/fe-tools-l2-l3-retire-research/source-audit.md)（A0-A5 拆分 + 序列化方案 b + defineEngine 透传路径 + successPayload ALS 依赖）
+- **前置 research**：[source-audit](../../_archive/complete/fe-tools-l2-l3-retire-research/source-audit.md)（A0-A5 拆分 + 序列化方案 b + defineEngine 透传路径 + successPayload ALS 依赖）
 - **A0 改造点 4 处**：emit-engine.ts:12 + logic/index.ts:275 + view/index.ts:192 + style/index.ts:57（resetStoreInfo caller——**A0 只改 logic 路径，view/style 保留 ALS compat**）
 - **A1 logic getter 调用**：logic/parse-walk 15 处 + logic/index.ts ~15 处 + registry-impl 1 处
 - **logicParseWalk 签名**：7 参（加 ctx 第 8 参）
