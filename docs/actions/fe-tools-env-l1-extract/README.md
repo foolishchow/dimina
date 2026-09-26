@@ -1,7 +1,7 @@
 # fe-tools-env-l1-extract
 
 - Action: `fe-tools-env-l1-extract`
-- Status: `ready`
+- Status: `in_progress`
 - Created: 2026-10-10
 - Status authority: [Action Status](../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-EL1-1..N 待 lock**——L1 函数清单 + 迁出策略 + 死代码清理 + toPackerContext/CompilerContext type 处理）

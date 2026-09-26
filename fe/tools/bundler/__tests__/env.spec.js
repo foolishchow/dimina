@@ -2,7 +2,15 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getProjectConfig, resetStoreInfo, storeProjectConfig } from '../src/packer/store/env.ts'
+import { readProjectConfig } from '../src/packer/graph/config-fixpoint.ts'
+import { buildPackerContext } from '../src/packer/store/env-compute.ts'
+
+/**
+ * fe-tools-env-l1-extract（F-R1-5）：原 env.spec.js 测 env.storeProjectConfig 薄壳
+ * （已删——src/ 0 caller 死代码）。改为 config-fixpoint.readProjectConfig 直测，
+ * 保留 project.config.json + project.private.config.json 合并优先级覆盖
+ * （config-fixpoint 无自有测试）。
+ */
 
 // Mock fs module
 vi.mock('node:fs', async (importOriginal) => {
@@ -21,7 +29,7 @@ vi.mock('node:fs', async (importOriginal) => {
 	}
 })
 
-describe('storeProjectConfig', () => {
+describe('readProjectConfig（config-fixpoint 直测）', () => {
 	const mockWorkPath = path.join(os.tmpdir(), 'dimina-test-project')
 	const originalEnv = { ...process.env }
 
@@ -51,24 +59,21 @@ describe('storeProjectConfig', () => {
 			}
 			return '{}'
 		})
-
-		// Reset store before each test
-		resetStoreInfo({
-			pathInfo: {
-				workPath: mockWorkPath,
-			},
-			configInfo: {},
-		})
 	})
 
 	afterEach(() => {
 		process.env = { ...originalEnv }
 	})
 
+	function runReadProjectConfig() {
+		const configData = {}
+		readProjectConfig({ ctx: buildPackerContext(mockWorkPath, '/out'), configData, npm: null })
+		return configData.projectInfo ?? {}
+	}
+
 	it('should load and merge both config files with private config taking precedence', () => {
 		// Test case when both config files exist
-		storeProjectConfig()
-		const config = getProjectConfig()
+		const config = runReadProjectConfig()
 
 		expect(config).toEqual({
 			appid: 'wx1234567890abcdef', // From project.config.json
@@ -82,8 +87,7 @@ describe('storeProjectConfig', () => {
 			return filePath.includes('project.config.json')
 		})
 
-		storeProjectConfig()
-		const config = getProjectConfig()
+		const config = runReadProjectConfig()
 
 		expect(config).toEqual({
 			appid: 'wx1234567890abcdef',
@@ -97,8 +101,7 @@ describe('storeProjectConfig', () => {
 			return filePath.includes('project.private.config.json')
 		})
 
-		storeProjectConfig()
-		const config = getProjectConfig()
+		const config = runReadProjectConfig()
 
 		expect(config).toEqual({
 			projectname: 'Private Project Name',
@@ -109,8 +112,7 @@ describe('storeProjectConfig', () => {
 		const { existsSync } = fs.default || fs
 		existsSync.mockReturnValue(false)
 
-		storeProjectConfig()
-		const config = getProjectConfig()
+		const config = runReadProjectConfig()
 
 		expect(config).toEqual({})
 	})
@@ -126,8 +128,7 @@ describe('storeProjectConfig', () => {
 
 		const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-		storeProjectConfig()
-		const config = getProjectConfig()
+		const config = runReadProjectConfig()
 
 		expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to parse project.config.json:', 'Invalid JSON')
 		expect(config).toEqual({})
