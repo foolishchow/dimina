@@ -1,8 +1,8 @@
 # Design Draft — fe-tools-storeinfo-collapse
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
-> **D-SC1..6 locked**（3 待决问题解决：scratch 流方案 C state.scratch + PackerContext 流 sctx.ctx/sctx.state 注入 + resetStoreInfo 从 sctx.ctx/sctx.state 组装 + project-store.getDependencyGraph 退役）。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§8 讨论 + [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md) backflow。
+> **D-SC1..6 locked**（3 待决问题解决：scratch 流方案 C state.scratch + PackerContext 流 sctx.ctx/sctx.state 注入 + resetStoreInfo 从 sctx.ctx/sctx.state 组装 + project-store.getDependencyGraph 退役）。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§8 讨论 + [`fe-tools-packer-output-abstraction`](../fe-tools-packer-output-abstraction/README.md) backflow。
 
 ## 1. 现状
 

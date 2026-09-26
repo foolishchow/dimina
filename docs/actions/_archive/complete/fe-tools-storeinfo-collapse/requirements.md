@@ -1,10 +1,10 @@
 # Requirements — fe-tools-storeinfo-collapse
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## Problem
 
-storeInfo 矛盾身份（消耗品 + singleton mutator）+ sctx.storeInfo 冗余投影（PackerContext + state.graph 的影子）+ compat 写 load-bearing（喂未迁 getter）。详见 [README](README.md) Background + [`storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§4。
+storeInfo 矛盾身份（消耗品 + singleton mutator）+ sctx.storeInfo 冗余投影（PackerContext + state.graph 的影子）+ compat 写 load-bearing（喂未迁 getter）。详见 [README](README.md) Background + [`storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§4。
 
 Output 抽象完成后，compat 写的 output-path 消费方全死（createDist/publishToDist/materialize 殁骸 + publisher/dist-preparer 改 opts.scratch）——但 compat 写仍 load-bearing（喂 compiler/* parse-walk 经 worker resetStoreInfo + 主线程 config 消费方如 project-store.getDependencyGraph）。塌缩消除 sctx.storeInfo，compat 写自然死。
 

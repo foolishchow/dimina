@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-storeinfo-collapse
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## P-SC1 — PackerSessionState 加 scratch + storeInfo 改纯函数
 

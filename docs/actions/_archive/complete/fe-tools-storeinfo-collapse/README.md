@@ -1,13 +1,13 @@
 # fe-tools-storeinfo-collapse
 
 - Action: `fe-tools-storeinfo-collapse`
-- Status: `in_progress`
+- Status: `complete`
 - Created: 2026-10-10
-- Status authority: [Action Status](../STATUS.md)
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-SC1..6 locked**——3 待决问题解决：scratch 流方案 C state.scratch + PackerContext 流 sctx.ctx/sctx.state + resetStoreInfo 组装 + project-store.getDependencyGraph 退役）
 - 实施计划：[implementation-plan.md](implementation-plan.md)（P-SC1..N 分相）
 - 验证：[validation.md](validation.md)
-- 背景：[`docs/fe-tools/2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§7（概念分析）+ [`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（backflow：compat 写 output-path 消费方死）
+- 背景：[`docs/fe-tools/2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§7（概念分析）+ [`fe-tools-packer-output-abstraction`](../fe-tools-packer-output-abstraction/README.md)（backflow：compat 写 output-path 消费方死）
 
 ## Background
 
@@ -34,8 +34,8 @@
 
 ## Design inputs
 
-- 概念分析：[`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§8（三概念定位 + 冗余实证 + 塌缩路径）
-- Output 抽象（backflow）：[`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（compat 写 output-path 消费方死——createDist/publishToDist/materialize 殁骸 + publisher/dist-preparer 改 opts.scratch）
+- 概念分析：[`2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) §1-§8（三概念定位 + 冗余实证 + 塌缩路径）
+- Output 抽象（backflow）：[`fe-tools-packer-output-abstraction`](../fe-tools-packer-output-abstraction/README.md)（compat 写 output-path 消费方死——createDist/publishToDist/materialize 殁骸 + publisher/dist-preparer 改 opts.scratch）
 - 北星 D-NS-1：Graph 5 accessors（getAppId/getAppName/getAppConfigInfo/getConfigData/getPageConfigInfo）——state.graph 是 config 源
 - PackerContext 现状：纯 I/O 能力 interface（workPath/targetPath/readContent/resolveAlias/resolveNpm/fileTypes）
 - storeInfo 现状：env.ts L179（双角色）+ L209-219 compat 写 + L229 resetStoreInfo（worker 桥接）
