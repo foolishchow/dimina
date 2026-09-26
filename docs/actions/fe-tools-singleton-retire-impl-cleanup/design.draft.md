@@ -17,6 +17,8 @@ buildPackerContextFromOptions(workPath, targetPath, compilerOptions, {
 })
 ```
 - **view/index.ts 补传 graph**（F-R1-2——A5a 遗漏：viewCompile 建 ctx 未传 graph，logic/style 已传）
+- **import 补全**（F-R13-1）：worker ctx 传全须补 import——logic 缺 getAppId/getRuntimeType/getNpmResolver；view 缺 getAppId/getComponent/getAppConfigInfo/getRuntimeType/getNpmResolver（+5）；style 缺更多（+ getAppId/getComponent/getAppConfigInfo/getRuntimeType/getNpmResolver）
+- **resolveAppAlias appInfo 同源**（F-R13-2）：resolveAppAlias env.ts:129 读 configInfo.appInfo；getAppConfigInfo() 返回 appInfo——appInfo 同源 ctx.configInfo（buildPackerContextFromOptions appInfo 参数 = getAppConfigInfo()）
 - import 补：getAppId/getComponent/getAppConfigInfo/getRuntimeType/getNpmResolver（view/style 须加）
 
 **runtime caller 传 graph**（runtime.ts:30）——**graph 来源候选**（F-R1-1）：
@@ -26,10 +28,11 @@ buildPackerContextFromOptions(workPath, targetPath, compilerOptions, {
 - **emit-engine 候选 b/c 须建 ctx**（F-R8-2）：emit-engine.ts 当前不建 ctx（只 resetStoreInfo）。候选 b/c 须 emit-engine 建 ctx + 返回 graph or 透传
 - **A5b 渐进**：D-SRC-1a 用候选 a（过渡），D-SRC-3b env.ts singleton 删前改候选 b（compile 返回 graph）
 
-**删 fallback ALS（完全迁移）**：
-- parse-walk × 3 + index × 3：`ctx?.x ?? ALSGetter()` → `ctx!.x`（ctx 必传——非 optional）
-- 但 ctx 参数仍 optional（测试直调可能不传——须测试迁 D-SRC-3 同步）
-- **渐进**：先 worker ctx 传全 + runtime 传 graph（行为 0），后删 fallback（D-SRC-3 测试迁后）
+**删 fallback ALS（完全迁移）**（F-R14-1/R14-2）：
+- **fallback ALS 15 处**：logic index 5 + style parse-walk 3 + logic parse-walk 2 + view parse-walk 5——`ctx?.x ?? ALSGetter()` → `ctx!.x`（ctx 必传）
+- **独立函数保留 ALS 10 处**（F-R14-1——A1-A3 dev）：logic parse-walk 4（getJSAbsolutePath/resolveNpmModuleId/resolveModuleIdToExistingPath/resolveDependencyId）+ view parse-walk 2（processIncludedFileWxsDependencies）+ style parse-walk 4（styleLoad）——D-SRC-1b 须加 ctx 参数 + caller 传
+- **测试直调破坏**（F-R14-2）：5 文件直调 compileSS/compileML 不传 ctx——D-SRC-1b ctx 必传破坏。须 D-SRC-3a 测试迁同步（compileSS/compileML 签名 ctx 必传后测试须传）
+- **渐进**：先 worker ctx 传全 + runtime 传 graph（行为 0），后删 fallback（D-SRC-3a 测试迁后 D-SRC-1b）
 
 ## 2. D-SRC-2 — resetStoreInfo 4 处退役 + storeInfo wrapper 重构
 
