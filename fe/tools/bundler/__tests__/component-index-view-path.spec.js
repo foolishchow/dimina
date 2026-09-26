@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 describe('目录组件视图编译', () => {
 	let tempDir
@@ -58,11 +58,12 @@ describe('目录组件视图编译', () => {
 		process.env.TARGET_PATH = outputDir
 
 		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
 		const pagesInfo = getPages()
-		await runWithAbilities(outputDir, async () => compileML(pagesInfo.mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(pagesInfo.mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		const outputPath = path.join(outputDir, 'main/pages_home_index.js')
 		expect(fs.existsSync(outputPath)).toBe(true)

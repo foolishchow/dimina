@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 describe('mini-program template semantics', () => {
 	let tempDir
@@ -54,9 +54,10 @@ describe('mini-program template semantics', () => {
 		process.env.TARGET_PATH = outputDir
 
 		const { getPages, storeInfo } = await import('../src/packer/store/env.ts')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 		return fs.readFileSync(path.join(outputDir, `main/${pagePath.replace(/\//g, '_')}.js`), 'utf8')
 	}
 

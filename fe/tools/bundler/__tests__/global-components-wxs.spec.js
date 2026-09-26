@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 describe('全局组件 wxs 问题修复', () => {
 	let tempDir
@@ -124,7 +124,8 @@ describe('全局组件 wxs 问题修复', () => {
 		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
 		
 		// 执行配置收集
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 		
 		// 获取页面信息
 		const pagesInfo = getPages()
@@ -139,7 +140,7 @@ describe('全局组件 wxs 问题修复', () => {
 		
 		// 编译页面
 		const progress = { completedTasks: 0 }
-		await runWithAbilities(outputDir, async () => compileML(pagesInfo.mainPages, null, progress))
+		await runWithAbilities(outputDir, async () => compileML(pagesInfo.mainPages, null, progress, undefined, undefined, null, ctx))
 
 		// 验证编译结果
 		const mainDir = path.join(outputDir, 'main')

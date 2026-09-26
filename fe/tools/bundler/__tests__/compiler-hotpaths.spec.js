@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 const hotpathSpies = vi.hoisted(() => ({
 	cheerioLoad: vi.fn(),
@@ -83,9 +83,10 @@ describe('compiler CPU hot paths', () => {
 		writeFile('components/card.wxml', '<view><slot name="content" /></view>')
 
 		const { getPages, storeInfo } = await import('../src/packer/store/env.ts')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		expect(hotpathSpies.cheerioLoad).toHaveBeenCalledTimes(0) // 默认 napi；cheerio 不在热路径
 		expect(hotpathSpies.esbuildTransform).toHaveBeenCalledTimes(1)
@@ -101,9 +102,10 @@ describe('compiler CPU hot paths', () => {
 		writeFile('pages/index.wxss', 'view { display: flex; user-select: none; }')
 
 		const { getPages, storeInfo } = await import('../src/packer/store/env.ts')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 		const { compileSS } = await import('../src/compiler/style/index.js')
-		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, {}, undefined, null, ctx))
 
 		const postprocessPasses = hotpathSpies.postcssPlugins.mock.calls
 			.map(([plugins]) => plugins)

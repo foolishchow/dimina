@@ -10,7 +10,7 @@ import {
 	resetStoreInfo,
 	storeInfo,
 } from '../src/packer/store/env.ts'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 /**
  * 「可配置小程序自定义文件类型（custom file types）」特性的契约测试。
@@ -332,10 +332,11 @@ describe('custom file types — 行为层（集成）', () => {
 		const outputDir = setTargetPath()
 
 		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
-		store(tempDir, { fileTypes: { template: ['qdml'] } })
+		const si = store(tempDir, { fileTypes: { template: ['qdml'] } })
+		const ctx = buildCtxFromStoreInfo(si)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		const outputPath = path.join(outputDir, 'main/pages_tpl_index.js')
 		expect(fs.existsSync(outputPath)).toBe(true)
@@ -360,10 +361,11 @@ describe('custom file types — 行为层（集成）', () => {
 		const outputDir = setTargetPath()
 
 		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
-		store(tempDir) // 不注入自定义文件类型
+		const si = store(tempDir)
+		const ctx = buildCtxFromStoreInfo(si) // 不注入自定义文件类型
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		const outputPath = path.join(outputDir, 'main/pages_tplneg_index.js')
 		const exists = fs.existsSync(outputPath)
@@ -388,10 +390,11 @@ describe('custom file types — 行为层（集成）', () => {
 		const outputDir = setTargetPath()
 
 		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
-		store(tempDir, { fileTypes: { template: ['qdml'], style: ['qdss'] } })
+		const si = store(tempDir, { fileTypes: { template: ['qdml'], style: ['qdss'] } })
+		const ctx = buildCtxFromStoreInfo(si)
 
 		const { compileSS } = await import('../src/compiler/style/index.js')
-		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, {}, undefined, null, ctx))
 
 		const outputPath = path.join(outputDir, 'main/pages_sty_index.css')
 		expect(fs.existsSync(outputPath)).toBe(true)
@@ -431,10 +434,11 @@ module.exports = { srcFn: srcFn }
 		const outputDir = setTargetPath()
 
 		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
-		store(tempDir, { fileTypes: { template: ['qdml'], viewScript: ['qds'] } })
+		const si = store(tempDir, { fileTypes: { template: ['qdml'], viewScript: ['qds'] } })
+		const ctx = buildCtxFromStoreInfo(si)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		const outputPath = path.join(outputDir, 'main/pages_vs_index.js')
 		expect(fs.existsSync(outputPath)).toBe(true)
@@ -471,10 +475,11 @@ module.exports = { srcFn: srcFn }
 		const outputDir = setTargetPath()
 
 		const { storeInfo: store, getPages } = await import('../src/packer/store/env.ts')
-		store(tempDir, { fileTypes: { template: ['qdml'] } })
+		const si = store(tempDir, { fileTypes: { template: ['qdml'] } })
+		const ctx = buildCtxFromStoreInfo(si)
 
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_dir_index.js'), 'utf-8')
 		// qd:if/qd:else → 条件分支：以 show 为条件的三元块

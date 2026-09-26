@@ -4,7 +4,7 @@ import path from 'node:path'
 import { SourceMapConsumer } from 'source-map-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import build from '../src/index.ts'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 const perfCacheSpies = vi.hoisted(() => ({
 	compileTemplateCalls: [],
@@ -92,9 +92,10 @@ describe('templateRenderCache 命中路径 - 两页共享具名模板 + WXS 的�
 		process.env.TARGET_PATH = outputDir
 
 		const { getDependencyGraph, getPages, storeInfo } = await import('../src/packer/store/env.ts')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 		const { compileML } = await import('../src/compiler/view/index.js')
-		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileML(getPages().mainPages, null, { completedTasks: 0 }, undefined, undefined, null, ctx))
 
 		const outputOne = fs.readFileSync(path.join(outputDir, 'main/pages_one_index.js'), 'utf8')
 		const outputTwo = fs.readFileSync(path.join(outputDir, 'main/pages_two_index.js'), 'utf8')

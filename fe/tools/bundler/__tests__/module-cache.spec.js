@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getPages, storeInfo } from '../src/packer/store/env.ts'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 const hotpathSpies = {}
 
@@ -53,20 +53,22 @@ describe('module cache (MC3)', () => {
 		writeFile('project.config.json', JSON.stringify({ appid: 'module-cache' }))
 		writeFile(`${pagePath}.json`, '{}')
 		writeFile(`${pagePath}.wxss`, 'view { color: red; }')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		ctx = buildCtxFromStoreInfo(si)
 	}
+	let ctx
 
 	it('style compileRes: same content + same config hits cache (process once)', async () => {
 		setupMiniApp()
 		const { compileSS } = await import('../src/compiler/style/index.js')
 
 		// 第一次：postcss.process 应执行（缓存 miss）
-		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }))
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }, undefined, null, ctx))
 		const afterFirst = hotpathSpies.postcssProcess
 		expect(afterFirst).toBeGreaterThan(0)
 
 		// 第二次同内容同配置：compileRes 命中 → postcss 不再重跑
-		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }))
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }, undefined, null, ctx))
 		expect(hotpathSpies.postcssProcess).toBe(afterFirst)
 	})
 
@@ -74,11 +76,11 @@ describe('module cache (MC3)', () => {
 		setupMiniApp()
 		const { compileSS } = await import('../src/compiler/style/index.js')
 
-		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }))
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: false }, undefined, null, ctx))
 		const afterFirst = hotpathSpies.postcssProcess
 
 		// minify 变化 → cacheKey 不同（::minify:true vs false）→ miss → process 重跑
-		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: true }))
+		await runWithAbilities(tempDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, { minify: true }, undefined, null, ctx))
 		expect(hotpathSpies.postcssProcess).toBeGreaterThan(afterFirst)
 	})
 })

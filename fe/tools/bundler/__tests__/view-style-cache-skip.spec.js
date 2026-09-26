@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { storeInfo, getDependencyGraph } from '../src/packer/store/env.ts'
 import { compileML } from '../src/compiler/view/index.ts'
 import { compileSS } from '../src/compiler/style/index.ts'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 import build from '../src/index.ts'
 import { PackerSessionState } from '../src/packer/state/session-state.ts'
 
@@ -32,8 +32,10 @@ beforeEach(() => {
 	fs.writeFileSync(path.join(tempDir, 'pages/home/index.wxml'), '<view>home</view>\n')
 	fs.writeFileSync(path.join(tempDir, 'pages/home/index.wxss'), '.home { color: red; }\n')
 	fs.writeFileSync(path.join(tempDir, 'pages/home/index.js'), 'Page({})\n')
-	storeInfo(tempDir)
+	const si = storeInfo(tempDir)
+	ctx = buildCtxFromStoreInfo(si)
 })
+let ctx
 
 afterEach(() => {
 	if (tempDir && fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true })
@@ -53,7 +55,7 @@ describe('compileSS cache-hit (G5 D-G5-5)', () => {
 		const styleCache = new Map([['pages/home/index', styleMod('pages/home/index')]])
 		const sinkWrites = []
 		await runWithAbilities(outDir, async () => {
-			const results = await compileSS([page], null, { completedTasks: 0 }, { sourcemap: false, minify: true }, styleCache, null)
+			const results = await compileSS([page], null, { completedTasks: 0 }, { sourcemap: false, minify: true }, styleCache, null, ctx)
 			expect(results).toEqual([])  // cache-hit 不返（D-G5-3）
 			return results
 		}).then(() => { /* sink 侧效 */ }, () => {})
@@ -68,7 +70,7 @@ describe('compileSS cache-hit (G5 D-G5-5)', () => {
 		const pagePath = pages[0].path
 		const styleCache = new Map([[pagePath, styleMod(pagePath, 'OLD')]])
 		const results = await runWithAbilities(outDir, () =>
-			compileSS(pages, null, { completedTasks: 0 }, { sourcemap: false, minify: true }, styleCache, [pagePath]),
+			compileSS(pages, null, { completedTasks: 0 }, { sourcemap: false, minify: true }, styleCache, [pagePath], ctx),
 		)
 		expect(results.length).toBe(1)
 		expect(results[0].moduleId).toBe(pagePath)
@@ -78,7 +80,7 @@ describe('compileSS cache-hit (G5 D-G5-5)', () => {
 		const { getPages: gp } = await import('../src/packer/store/env.ts')
 		const pages = gp().mainPages
 		const results = await runWithAbilities(outDir, () =>
-			compileSS(pages, null, { completedTasks: 0 }, { sourcemap: false, minify: true }, undefined, null),
+			compileSS(pages, null, { completedTasks: 0 }, { sourcemap: false, minify: true }, undefined, null, ctx),
 		)
 		expect(results.length).toBe(pages.length)
 		expect(results[0].kind).toBe('style')

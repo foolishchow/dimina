@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { runWithAbilities } from './helpers/run-with-abilities.js'
+import { runWithAbilities, buildCtxFromStoreInfo } from './helpers/run-with-abilities.js'
 
 describe('目录组件样式路径', () => {
 	let tempDir
@@ -55,10 +55,11 @@ describe('目录组件样式路径', () => {
 		process.env.TARGET_PATH = outputDir
 
 		const { storeInfo, getPages } = await import('../src/packer/store/env.ts')
-		storeInfo(tempDir)
+		const si = storeInfo(tempDir)
+		const ctx = buildCtxFromStoreInfo(si)
 
 		const { compileSS } = await import('../src/compiler/style/index.js')
-		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }))
+		await runWithAbilities(outputDir, async () => compileSS(getPages().mainPages, null, { completedTasks: 0 }, {}, undefined, null, ctx))
 
 		const output = fs.readFileSync(path.join(outputDir, 'main/pages_home_index.css'), 'utf-8')
 		expect(output).toContain('.nav')
