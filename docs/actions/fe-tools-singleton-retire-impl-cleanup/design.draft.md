@@ -21,8 +21,9 @@ buildPackerContextFromOptions(workPath, targetPath, compilerOptions, {
 
 **runtime caller 传 graph**（runtime.ts:30）——**graph 来源候选**（F-R1-1）：
 - **候选 a**：runtime import getDependencyGraph（过渡——A5b 完全迁移前。但 env.ts singleton 删后失效）
-- **候选 b**：compile 返回 ctx.graph，runtime 读 `compileResult.graph` 传 successPayload（须 compile 返回值扩 graph 字段）
+- **候选 b**：compile 返回 ctx.graph，runtime 读 `compileResult.graph` 传 successPayload（须 compile 返回值扩 graph 字段）。**postMessage 序列化问题**（F-R8-1）：runtime.ts:34 `Object.assign(response, compileResult)`——compileResult 合入 response postMessage。若 compile 返回 graph 实例（可变单例），结构化克隆失败。**候选 b refined**：compile 不返回 graph 实例；successPayload 在 compile 内调用（读 ctx.graph 后 toJSON）or runtime 读 compileResult.graph 但不 Object.assign（graph 实例不入 response）
 - **候选 c**：successPayload 内部读 ctx.graph（引擎 ctx 透传——须 runtime 访问引擎 ctx，复杂）
+- **emit-engine 候选 b/c 须建 ctx**（F-R8-2）：emit-engine.ts 当前不建 ctx（只 resetStoreInfo）。候选 b/c 须 emit-engine 建 ctx + 返回 graph or 透传
 - **A5b 渐进**：D-SRC-1a 用候选 a（过渡），D-SRC-3b env.ts singleton 删前改候选 b（compile 返回 graph）
 
 **删 fallback ALS（完全迁移）**：
@@ -47,7 +48,7 @@ buildPackerContextFromOptions(workPath, targetPath, compilerOptions, {
 **__tests__ 107 caller 迁移**：
 - 改 ctx 直传（buildPackerContextFromOptions from storeInfo() 返回值 + graph 实例）
 - 或删 storeInfo() 调用（若测试已建 ctx）
-- **分批 atomic**（测试 fixture 大量）
+- **分批 atomic**（F-R9-2：35 文件——最大 custom-file-types 26 + require-path-resolution 11 + style-compiler 8 + 5 × 2 等。批次可按 caller 数划分：batch1（26+11=37）/batch2（8+5+5=18）/batch3（其余 52））
 
 **getPages 21 caller 迁移**（F-R2-1）：
 - 测试调 `storeInfo() → getPages().mainPages → compileSS(getPages().mainPages)`——getPages 读 ALS
@@ -55,7 +56,7 @@ buildPackerContextFromOptions(workPath, targetPath, compilerOptions, {
   - **候选 a**：getPages 改 ctx 参数（`getPages(ctx)` 读 ctx.configInfo）——但 getPagesImpl 须 FixpointCtx（ctx + configData + npm），getPages 须组装 FixpointCtx
   - **候选 b**：删 getPages，测试改 getPagesImpl 直调（须 FixpointCtx——复杂，测试须组装）
   - **候选 c**：getPages 保留（fallback ALS），A5b 不删 getPages（推迟 A5b 后续 or 保留 compat）
-- **A5b 倾向**：候选 a（getPages 改 ctx 参数——最小改动，测试传 ctx）
+- **A5b 倾向**：候选 a（getPages 改 ctx 参数——最小改动，测试传 ctx）。**候选 a refined**（F-R9-1）：getPagesImpl 读 `fc.configData.runtimeType`（GraphConfigData）。A5a ctx.configInfo = getAppConfigInfo()（只 appInfo，不含 runtimeType）。候选 a 须 ctx 扩 `configData?: GraphConfigData`（非 configInfo: Record）or getPages 保留 fallback（configData from ALS configInfo）
 - **compileSS/compileML 测试传 ctx 签名位置**（F-R2-2）：ctx 第 7 参（optional）——测试调 `compileSS(getPages().mainPages, null, {...})` 须补 undefined × 3 + ctx
 
 **env.ts singleton 删**（F-R4-1）：
