@@ -25,10 +25,10 @@ function storeInfo(workPath, options = {}) {
 |---|---|---|---|
 | dist-preparer | ❌（读 sctx.storeInfo.pathInfo.targetPath——per-request scratch） | 已迁 | 无须改 |
 | npm-builder | ❌（无 getTargetPath/getWorkPath 调用） | 已迁 | 无须改 |
-| worker resetStoreInfo（logic/view/style） | ⚠️ fallback ALS（A1-A3 已迁 ctx optional——ctx 传则不走 ALS） | 4 处 caller 保留 resetStoreInfo | A5 删 resetStoreInfo |
+| worker resetStoreInfo（logic/view/style） | ✅ load-bearing（保留 ALS getter：getDependencyGraph/getComponent/getAppId 经 resetStoreInfo 恢复 ALS 读——A5 退役） | 4 处 caller 保留 resetStoreInfo | A5 删 resetStoreInfo |
 | 测试 fixture（107 caller） | ✅（调 storeInfo() 建立 ALS + compileSS/compileML fallback ALS 读） | 未迁 | A5 迁测试 ctx 直传 |
 
-**结论**：compat 写 6 条 **仅测试 fixture load-bearing**（107 caller）+ worker resetStoreInfo fallback（A1-A3 已走 ctx，ALS 仅 fallback）。src orchestrate 链路 caller=0。
+**结论**（F-R1-1 修正）：compat 写 6 条 **load-bearing 消费方**——测试 fixture（107 caller）+ worker resetStoreInfo（保留 ALS getter：getDependencyGraph/getComponent/getAppId——A5 退役）。src orchestrate 链路 caller=0（dist-preparer/npm-builder 已迁不读 ALS）。
 
 ## 2. storeInfo wrapper caller 分布（112 → 107 __tests__ + 3 env.ts + 2 注释）
 
@@ -92,21 +92,21 @@ getPages()                      // 读 ALS configInfo
 
 | caller | 现状 | A5 退役 |
 |---|---|---|
-| logic/index.ts:279 | 保留（A1 已迁 ctx optional——fallback ALS） | A5 删 |
-| view/index.ts:192 | 保留（A2 已迁 ctx optional——fallback ALS） | A5 删 |
-| style/index.ts:59 | 保留（A3 已迁 ctx optional——fallback ALS） | A5 删 |
+| logic/index.ts:279 | 保留（A1 已迁 ctx optional——ctx 读 getter 走 ctx，保留 ALS getter 仍走 ALS） | A5 删 |
+| view/index.ts:192 | 保留（A2 已迁 ctx optional——ctx 读 getter 走 ctx，保留 ALS getter 仍走 ALS） | A5 删 |
+| style/index.ts:59 | 保留（A3 已迁 ctx optional——ctx 读 getter 走 ctx，保留 ALS getter 仍走 ALS） | A5 删 |
 | emit-engine.ts:12 | 保留（emit worker 独立——A2/A3 不动） | A5 删 |
 
-**A1-A3 已迁**：worker 引擎 styleCompile/viewCompile/logicCompile 建 ctx + 透传 parse-walk。resetStoreInfo 仍调但 ALS 仅 fallback（ctx 传则不走 ALS）。
+**A1-A3 已迁**（F-R1-2）：worker 引擎 styleCompile/viewCompile/logicCompile 建 ctx + 透传 parse-walk。ctx 读 getter（getWorkPath/getTargetPath/getContentByPath/getStyleExts 等）走 ctx；**保留 ALS getter**（getDependencyGraph/getComponent/getAppId）仍走 ALS（经 resetStoreInfo 恢复 ALS 读——A5 退役）。
 
 ## 5. ALS 残留 getter 总量（A5 统一迁）
 
 | 子系统 | ctx 读 getter | 保留 ALS getter | ALS 残留处 |
 |---|---|---|---|
-| logic（A1） | 3（getWorkPath/getTargetPath/getContentByPath） | 7（getDependencyGraph/getAppId/getNpmResolver/resolveAppAlias/getAppConfigInfo/getComponent/isMiniGame） | 19 处 |
+| logic（A1） | 3（getWorkPath/getTargetPath/getContentByPath） | 7（getDependencyGraph/getAppId/getNpmResolver/resolveAppAlias/getAppConfigInfo/getComponent/isMiniGame） | 18 处（parse-walk 8 + index 10——F-R4-1 修正） |
 | view（A2） | 5（+getViewScriptExts/getViewScriptTags） | 3（getDependencyGraph/getComponent/getAppId） | 8 处 |
 | style（A3） | 4（+getStyleExts） | 3（getDependencyGraph/getComponent/getAppId） | 5 处 |
-| **合计** | — | — | **~32 处 ALS 残留** |
+| **合计** | — | — | **31 处 ALS 残留**（logic 18 + view 8 + style 5——F-R4-1 修正） |
 
 ## 6. A5 退役 scope 评估
 

@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-compat-write-retire-research
 
-> **状态：draft**——D-CWR-1..6 待 readiness review lock。A5 singleton/Proxy 退役迁移规划。
+> **状态：ready**——D-CWR-1..6 已 review lock。A5 singleton/Proxy 退役迁移规划。
 
 ## 1. 研究结论
 
@@ -20,6 +20,7 @@ A4 原定实施性（storeInfo wrapper 删 + 测试 fixture 迁）。A1-A3 实�
 - 删 pathInfo/configInfo Proxy（getter 陷阱）
 - 删 15 getters（getWorkPath/getTargetPath/getContentByPath/getStyleExts/getViewScriptExts/getViewScriptTags/getDependencyGraph/getComponent/getAppId/getNpmResolver/resolveAppAlias/getAppConfigInfo/isMiniGame/getPages）
 - **PackerContext 扩 optional 字段**：graph/appId/component/configInfo/resolveAlias/resolveNpm（A5 实体化——ctx 加 optional）
+- **形状纪律冲突**（F-R2-1）：D-PCS-1/D-PCS-6 说 graph/moduleCache 在 OrchestratorState（不在 PackerContext）。A5 实施时定——**候选 a**：扩 PackerContext optional 字段（违反 D-PCS-1/D-PCS-6）；**候选 b**：用 OrchestratorState 传 graph（保留形状纪律，须 collaborator 读 state.graph）；**候选 c**：graph 经 collaborator 注入（非 ctx 字段）
 
 ### D-CWR-2 — storeInfo wrapper 重构
 
@@ -37,22 +38,24 @@ A4 原定实施性（storeInfo wrapper 删 + 测试 fixture 迁）。A1-A3 实�
 
 - logic 19 处 + view 8 处 + style 5 处
 - getDependencyGraph/getComponent/getAppId/getNpmResolver/resolveAppAlias/getAppConfigInfo/isMiniGame 改 ctx 读
-- **ctx 扩 optional 字段**（D-CWR-1）——A5 实体化
+- **ctx 扩 optional 字段**（D-CWR-1a）——A5 实体化
+- **完全迁**（F-R3-2）：须无 fallback ALS——D-CWR-4 完全迁后 D-CWR-3 才能退役 resetStoreInfo（ALS 不再 load-bearing）
+- **resolveAppAlias 实体化路径**（F-R2-2）：env.ts:128 读 ALS configInfo.appInfo；config-fixpoint.ts:470 `resolveAppAlias(src, appInfo?)` appInfo 是参数——A5 可改 ctx.resolveAlias 闭包 appInfo（不须 ctx 加 configInfo，直接传 appInfo 作 ctx.resolveAlias 闭包）。须 A0 R8 行为 0 守护（ctx.resolveAlias 非 stub `(_src) => null`）
 
 ### D-CWR-5 — __tests__ 107 caller 迁移
 
 - 改 ctx 直传（buildPackerContextFromOptions from storeInfo() 返回值）
 - 或删 storeInfo() 调用（若测试已建 ctx）
-- **getPages 22 caller**（D-CWR-1 子步骤）：改 ctx.fileTypes.configInfo.pages or 显式传 pages
+- **getPages 22 caller**（F-R2-3 修正）：getPages 读 ALS configInfo + npmResolver（非 fileTypes.configInfo）——A5 迁移改 ctx.configInfo.pages（须 ctx 加 configInfo optional——D-CWR-1 候选 a）or 显式传 pages 参数
 
-### D-CWR-6 — 迁移顺序 + 门控
+### D-CWR-6 — 迁移顺序 + 门控（F-R3-1 拆 D-CWR-1a/1b）
 
-1. D-CWR-1 PackerContext 扩 optional 字段（graph/appId/component/configInfo/resolveAlias/resolveNpm）
-2. D-CWR-4 parse-walk ALS 残留 ~32 处改 ctx 读（ctx optional + fallback ALS——渐进）
-3. D-CWR-3 worker resetStoreInfo 4 处退役（ctx 必传）
-4. D-CWR-5 __tests__ 107 caller 迁移 + getPages 22 caller
-5. D-CWR-2 storeInfo wrapper 重构（删 compat 写 6 条）
-6. D-CWR-1 env.ts singleton + Proxy + 15 getters 删
+1. **D-CWR-1a** PackerContext 扩 optional 字段（graph/appId/component/configInfo/resolveAlias/resolveNpm）——形状纪律冲突见 D-CWR-1 候选 a/b/c
+2. **D-CWR-4** parse-walk ALS 残留 ~32 处改 ctx 读（**完全迁——无 fallback ALS**，F-R3-2 修正：D-CWR-4 须完全迁后 D-CWR-3 才能退役）
+3. **D-CWR-3** worker resetStoreInfo 4 处退役（ctx 必传——D-CWR-4 完全迁后 ALS 不再 load-bearing）
+4. **D-CWR-5** __tests__ 107 caller 迁移 + getPages 22 caller
+5. **D-CWR-2** storeInfo wrapper 重构（删 compat 写 6 条）
+6. **D-CWR-1b** env.ts singleton + Proxy + 15 getters 删
 
 ## 3. 风险
 

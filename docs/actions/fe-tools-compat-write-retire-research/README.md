@@ -1,6 +1,6 @@
 # fe-tools-compat-write-retire-research
 
-- Status: `draft`
+- Status: `ready`
 - Type: research（无代码改动——产出 source-audit + A5 迁移规划）
 - Parent: fe-tools-l2-l3-retire-research（D-LR-3 A4 细化）
 - Gates: A0+A1（worker-ctx-direct complete）+ A2（view-parse-walk-migrate complete）+ A3（style-parse-walk-migrate complete）
@@ -22,11 +22,11 @@ L2/L3 退役第四步（A4）。research design D-LR-3 原定 A4 为实施性（
 ## 产出
 
 - source-audit（compat 写 load-bearing + 112 caller + getPages 22 caller）
-- design.draft（A5 迁移规划 D-CWR-1..N）
+- design.draft（A5 迁移规划 D-CWR-1..6 已 review lock）
 
 ## 设计门
 
-[design.draft.md](design.draft.md)（**D-CWR-1..N 待 readiness review lock**——A5 singleton/Proxy 退役迁移规划）
+[design.draft.md](design.draft.md)（**D-CWR-1..6 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 
 ## 文档
 
