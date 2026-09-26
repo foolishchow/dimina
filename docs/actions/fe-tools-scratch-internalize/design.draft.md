@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：ready**——D-SI-1..6 **已 review lock**（10 轮 readiness review：R1-R8 全 findings 修正 + R9+R10 连续 0-finding 收敛——含 F-R1-1 dev 模式实证 / F-R2-1 computeStoreInfo pathInfo? 参数 / F-R2-2 BaseOutput 内联 / F-R4-1/2 constructor 签名）。基于 scratch 流 source-audit + storeInfo/env-l1 backflow。
+> **状态：in_progress**——D-SI-1..6 **已 review lock**（10 轮 readiness review：R1-R8 全 findings 修正 + R9+R10 连续 0-finding 收敛——含 F-R1-1 dev 模式实证 / F-R2-1 computeStoreInfo pathInfo? 参数 / F-R2-2 BaseOutput 内联 / F-R4-1/2 constructor 签名）。基于 scratch 流 source-audit + storeInfo/env-l1 backflow。
 
 ## 1. scratch 流现状（source-audit）
 
@@ -26,17 +26,24 @@ Status authority: [Action Status](../STATUS.md)
 ### D-SI-1 — BaseOutput 构造 mkdtemp
 
 ```
-class BaseOutput {
-	readonly scratch: string
-	constructor() {
-		this.scratch = computePathInfo-style mkdtemp  // 复刻 computePathInfo 的 mkdtemp 逻辑
+export abstract class BaseOutput implements Output {
+	declare readonly scratch: string  // non-enumerable（Object.defineProperty）
+	protected constructor() {
+		// 内联 mkdtemp（不调 env-compute.computePathInfo——F-R2-2 自包含）
+		// 优先 TARGET_PATH env（permanent）；否则 mkdtemp 临时分配
+		const s = process.env.TARGET_PATH
+			?? fs.mkdtempSync(path.join(process.env.GITHUB_WORKSPACE || os.tmpdir(), 'dimina-fe-dist-'))
+		Object.defineProperty(this, 'scratch', { value: s, writable: false, enumerable: false, configurable: false })
 	}
+	// ...existing entries/_artifactIndex/add/read/getEntries/publish
 }
 ```
 
+- **`protected constructor()`**（F-R4-2——abstract class；子类 DiskOutput/MemOutput **须显式 `constructor() { super() }`**——实施 deviation：TS protected constructor 不自动合成子类 public constructor）
 - **内联 mkdtemp 逻辑**（F-R2-2——BaseOutput 自包含，不调 env-compute.computePathInfo，避免 output.ts→store/env-compute 依赖；复刻 TARGET_PATH env / GITHUB_WORKSPACE / os.tmpdir / `dimina-fe-dist-` 前缀语义）
-- **TARGET_PATH env**：computePathInfo 优先 `process.env.TARGET_PATH`（非 mkdtemp）。BaseOutput 须复刻此分支？若 TARGET_PATH 设 → scratch = TARGET_PATH（非临时）。须保留 env 分支（行为 0）。
-- MemOutput / DiskOutput 构造调 super()（继承 scratch）
+- **不设 `temporaryTargetPath` flag**（F-R4-1——flag 退役 0 caller，仅 computePathInfo compat 保留 for storeInfo wrapper；BaseOutput 只须 scratch 路径）
+- **scratch non-enumerable**（实施 deviation——`Object.defineProperty(this, 'scratch', { enumerable: false })`：mkdtemp 随机路径不进 BuildResult.output 深对比，行为 0 纪律；property access 不受影响——`output.scratch` 仍可读）
+- MemOutput / DiskOutput 显式 `constructor() { super() }` 继承 scratch
 
 ### D-SI-2 — orchestrator 投影 state.scratch
 
@@ -64,9 +71,10 @@ function computeStoreInfo(workPath, options, pathInfo?: PathInfo): { pathInfo: P
 	return { pathInfo: localPathInfo, ... }
 }
 
-function storeInfoCtx(ctx, graph, state): void {
-	const r = computeStoreInfo(ctx.workPath, { graph })  // pathInfo 默认 {workPath}——不 mkdtemp
-	// 不设 state.scratch——由 orchestrator 预设（= output.scratch）
+export function storeInfoCtx(ctx: PackerContext, graph: PackerGraph, _state: PackerSessionState): void {
+	// D-SI-3: state 参数保留（store.load 契约）但标记不用——mkdtemp 内化入 BaseOutput，
+	// orchestrator 预设 state.scratch = output.scratch（投影）。storeInfoCtx 不设 state.scratch。
+	computeStoreInfo(ctx.workPath, { graph })  // pathInfo 默认 {workPath}——不 mkdtemp
 }
 ```
 

@@ -229,8 +229,13 @@ export function buildPackerContext(workPath: string, targetPath: string, fileTyp
 // ── computeStoreInfo（storeInfo 纯计算拆分——D-EL1-2）──
 
 /**
- * storeInfo 的纯计算部分（fe-tools-env-l1-extract D-EL1-2 拆分）：
- * normalizeFileTypes + computePathInfo + NpmResolver + graph build/reconcile。
+ * storeInfo 的纯计算部分（fe-tools-env-l1-extract D-EL1-2 拆分）。
+ *
+ * D-SI-3（fe-tools-scratch-internalize）：收 pathInfo? 参数（caller 传）——
+ * storeInfoCtx 传 {workPath}（无 targetPath——orchestrate 链路用 output.scratch 投影）；
+ * storeInfo wrapper 传 computePathInfo(workPath)（含 mkdtemp targetPath——compat backflow）。
+ * mkdtemp 不再在 computeStoreInfo 内跑（内化入 BaseOutput 构造）。
+ *
  * 无 compat 写（compat 写留 env.ts storeInfo wrapper——backflow，测试 fixture 依赖）。
  *
  * 返回 npmResolver（F-R6-1）：wrapper compat 写 `context.npmResolver = r.npmResolver`
@@ -242,11 +247,12 @@ export function buildPackerContext(workPath: string, targetPath: string, fileTyp
  * （两段都跑——storeinfo-collapse 后 7-diff=0 已验证此行为正确，不「修正」为二选一）；
  * SC_TRACE console.error x2 逐字搬迁（debug-only env-gate 不影响产物）。
  */
-export function computeStoreInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: PathInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; graph: PackerGraph; configInfo: ConfigInfo; npmResolver: NpmResolver } {
+export function computeStoreInfo(workPath: string, options: StoreInfoOptions = {}, pathInfo?: PathInfo): { pathInfo: PathInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; graph: PackerGraph; configInfo: ConfigInfo; npmResolver: NpmResolver } {
 	// B 切法（PC-B8a）：graph build 从 local context（非 ALS getCompilerContext 读）。
-	// pathInfo/compilerOptions 本地计算；PackerContext 从 localCtx 建（不经 ALS Proxy 读）。
+	// D-SI-3: pathInfo 由 caller 传——storeInfoCtx 传 {workPath}（orchestrate 链路用 output.scratch）；
+	// storeInfo wrapper 传 computePathInfo(workPath)（含 mkdtemp targetPath——compat backflow）。
 	const compilerOptions = normalizeFileTypes(options.fileTypes)
-	const localPathInfo = computePathInfo(workPath)
+	const localPathInfo = pathInfo ?? { workPath }
 	const localCtx: CompilerContext = {
 		pathInfo: localPathInfo,
 		compilerOptions,
@@ -290,10 +296,15 @@ export function computeStoreInfo(workPath: string, options: StoreInfoOptions = {
  * 调 computeStoreInfo（无 compat 写——主线程 orchestrate 0 ALS 活读实证 D-EL1-3；
  * compat 写保留在 env.ts storeInfo wrapper，测试 fixture 走 wrapper）。
  * sctx.storeInfo 殁骸已清（storeinfo-collapse R-SC4 完成）。
+ *
+ * D-SI-3（fe-tools-scratch-internalize）：不设 state.scratch——mkdtemp 内化入 BaseOutput
+ * 构造，orchestrator 预设 state.scratch = output.scratch（投影，consumer 不改读源）。
+ * computeStoreInfo 传 {workPath}（pathInfo 默认——orchestrate 链路不 mkdtemp）。
  */
-export function storeInfoCtx(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState): void {
-	const r = computeStoreInfo(ctx.workPath, { graph })
-	state.scratch = r.pathInfo.targetPath!
+export function storeInfoCtx(ctx: PackerContext, graph: PackerGraph, _state: PackerSessionState): void {
+	// D-SI-3: state 参数保留（store.load 契约）但不再使用——mkdtemp 内化入 BaseOutput，
+	// orchestrator 预设 state.scratch = output.scratch（投影）。storeInfoCtx 不设 state.scratch。
+	computeStoreInfo(ctx.workPath, { graph })
 }
 
 // ── buildResetStoreInfoData（worker reset 数据组装——D-SC5 §5.3）──

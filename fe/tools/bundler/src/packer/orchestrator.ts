@@ -163,7 +163,10 @@ async function _orchestrate(
 
 	// D-OL1（方案 B——orchestrator 入口 mode-aware 创建 + listr2 ctx 注入）：
 	// F-R30-1/F-R34-1：outputMode 'dev'|'disk'（缺省 'disk'）；dev → MemOutput / disk → DiskOutput
-	const output: Output | undefined = request.outputMode === 'dev' ? new MemOutput() : new DiskOutput()
+	// D-SI-2（fe-tools-scratch-internalize）：output 创建后预设 state.scratch = output.scratch（投影——
+	// mkdtemp 内化入 BaseOutput 构造，orchestrator 预设 state.scratch 供 7 consumer 读，consumer 不改读源）。
+	const output: Output = request.outputMode === 'dev' ? new MemOutput() : new DiskOutput()
+	state.scratch = output.scratch
 
 	const store = (runStore ?? providedStore ?? createProjectStore()) as ProjectStore
 

@@ -16,6 +16,7 @@
  */
 import path from 'node:path'
 import process from 'node:process'
+import os from 'node:os'
 import fs from 'node:fs'
 import type { EmitEntry } from '../emit/emit.ts'
 import type { Output, PublishOpts } from '../types.ts'
@@ -108,12 +109,43 @@ export function createDist(scratch: string, seedPath?: string | null): void {
 
 /**
  * entries Map key = `${kind}:${entryId}`（复刻 BuildModel.add key 语义，保持同形）。
+ *
+ * D-SI-1（fe-tools-scratch-internalize）：构造内化 mkdtemp（scratch 属性）。
+ * mkdtemp 归属正位——I/O 层拥有 TEMP 生命周期（原 env-compute.computePathInfo）。
+ * 内联复刻 computePathInfo 语义（TARGET_PATH env / GITHUB_WORKSPACE / os.tmpdir /
+ * dimina-fe-dist- 前缀）；不调 computePathInfo（Output 层自包含，不依赖 env-compute）。
+ * 不设 temporaryTargetPath flag（flag 退役 0 caller，仅 computePathInfo compat 保留）。
+ * MemOutput 也 mkdtemp（dev 须 scratch 防崩——createDist/compileConfig/npm-builder；
+ * dev server 读 Output.read 内存不受影响——F-R1-1 实证）。
+ * scratch 用 non-enumerable（Object.defineProperty）——mkdtemp 随机路径不进
+ * BuildResult.output 深对比（toEqual 忽略 non-enumerable；property access 不受影响）。
  */
 export abstract class BaseOutput implements Output {
+	/** D-SI-1: TEMP 构建目录（mkdtemp 内化入 Output 层）。dev/disk 共用。non-enumerable——不进 BuildResult 对比。 */
+	declare readonly scratch: string
 	/** entryId → EmitEntry（累积产物，stage onOutput add）。 */
 	protected readonly entries: Map<string, EmitEntry> = new Map()
 	/** lazy path → {code} index（read 用，add 后失效——复刻 BuildModel._artifactIndex）。 */
 	private _artifactIndex: Map<string, { code: string }> | null = null
+
+	/**
+	 * D-SI-1: 内联 mkdtemp（复刻 env-compute.computePathInfo 语义）。
+	 * protected——abstract class；子类 DiskOutput/MemOutput 须显式 constructor 调 super()。
+	 * scratch 用 Object.defineProperty non-enumerable——mkdtemp 随机路径不进
+	 * BuildResult.output 深对比（toEqual 忽略 non-enumerable；property access 不受影响）。
+	 */
+	protected constructor() {
+		// 优先 TARGET_PATH env（非临时——permanent）；否则 mkdtemp 临时分配
+		const scratch = process.env.TARGET_PATH
+			? process.env.TARGET_PATH
+			: fs.mkdtempSync(path.join(process.env.GITHUB_WORKSPACE || os.tmpdir(), 'dimina-fe-dist-'))
+		Object.defineProperty(this, 'scratch', {
+			value: scratch,
+			writable: false,
+			enumerable: false,
+			configurable: false,
+		})
+	}
 
 	/**
 	 * 收编一个产物条目（stage onOutput 调，全 4 路径）。
@@ -161,8 +193,13 @@ export abstract class BaseOutput implements Output {
 /**
  * dev 模式（outputMode='dev'）：产物在内存（entries Map），dev server 读 Output.read + fs fallback。
  * publish no-op——dev 不写盘（D-O5：MemOutput.publish no-op 等价 skipMaterialize）。
+ * D-SI-1：MemOutput 也 mkdtemp（dev 须 scratch 防崩——createDist/compileConfig/npm-builder；
+ * dev 读 Output.read 内存不受影响——F-R1-1 实证）。
  */
 export class MemOutput extends BaseOutput {
+	/** D-SI-1: 显式 public constructor 调 super()——继承 scratch（mkdtemp 防崩）。 */
+	constructor() { super() }
+
 	/** dev 不写盘——no-op。 */
 	publish(_target: string, _opts?: PublishOpts): void {
 		// no-op：dev 模式产物在内存，dev server 读 Output.read（miss → fs.readFile fallback）
@@ -184,6 +221,9 @@ export class MemOutput extends BaseOutput {
  * 字节等价：逐行复刻 materialize（build-model.ts L104-120）+ publishToDist（publish.ts L106-140）。
  */
 export class DiskOutput extends BaseOutput {
+	/** D-SI-1: 显式 public constructor 调 super()——继承 scratch（mkdtemp 内化）。 */
+	constructor() { super() }
+
 	/** H4 D-PUSH-3: dirty entries set——自上次 publish 后 add/changed 的 entry keys。 */
 	private _dirtyEntries: Set<string> = new Set()
 

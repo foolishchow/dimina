@@ -416,7 +416,7 @@ export interface ModuleResultCache<V = CachedModuleResult> {
 export interface PublishOpts {
 	/** app 子目录（useAppIdDir）。 */
 	useAppIdDir?: boolean
-	/** scratch 路径（per-request TEMP——D-SC1 后 sctx.state.scratch；后续 DiskOutput 内化 mkdtemp）。 */
+	/** scratch 路径（per-request TEMP——D-SC1 后 sctx.state.scratch；D-SI-1 后 BaseOutput 内化 mkdtemp，publisher 仍读 sctx.state.scratch 投影）。 */
 	scratch?: string
 	/** seed 路径（incremental sync 前提——F-R13-1：scratch 预 seed copy）。 */
 	seedPath?: string
@@ -433,8 +433,11 @@ export interface PublishOpts {
  * - read(path)：读累积内存 lazy index（dev server 调，miss → fs.readFile fallback；F-R4-1：previewAdapter-dev 须即时内存读，不等 publish）
  * - publish(target, opts?)：写盘（MemOutput no-op；DiskOutput mkdtemp+seed+write+publish+clearDirty）
  * - getEntries()：返累积 EmitEntry[]（BuildResult.entries 契约，F-R4-2）
+ * - scratch（D-SI-1）：TEMP 构建目录（mkdtemp 内化入 BaseOutput 构造——Output 层拥有 TEMP 生命周期；dev/disk 共用）
  */
 export interface Output {
+	/** D-SI-1: TEMP 构建目录（mkdtemp 内化入 BaseOutput 构造）。dev/disk 共用。 */
+	readonly scratch: string
 	add(entry: EmitEntry): void
 	read(relativePath: string): { code: string } | null
 	publish(target: string, opts?: PublishOpts): void

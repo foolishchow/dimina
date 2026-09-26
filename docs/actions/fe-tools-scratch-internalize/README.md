@@ -1,7 +1,7 @@
 # fe-tools-scratch-internalize
 
 - Action: `fe-tools-scratch-internalize`
-- Status: `ready`
+- Status: `in_progress`
 - Created: 2026-10-10
 - Status authority: [Action Status](../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-SI-1..6 已 review lock**——10 轮 readiness review 收敛 R9+R10 连续 0-finding）
@@ -70,7 +70,13 @@ mkdtemp 归属正位：Output（I/O 层）拥有 TEMP 目录生命周期；store
 
 ## Closure conditions
 
-- 全 MUST Acceptance passed with evidence
+- 全 MUST Acceptance passed with evidence（A-SI-1..6 done——行为 0 三件套达成）
+
+## Implementation deviations（P-SI-1..3 实施期发现，已回填 design）
+
+1. **scratch non-enumerable**（`Object.defineProperty` enumerable:false）——mkdtemp 随机路径不进 BuildResult.output 深对比（lifecycle-integration.spec:281 toEqual——行为 0 纪律）；property access 不受影响。
+2. **MemOutput/DiskOutput 显式 `constructor() { super() }`**——TS protected constructor 不自动合成子类 public constructor（须显式 super 调）。
+3. **storeInfoCtx `_state` 参数**——noUnusedLocals（state 保留 store.load 契约但不再使用——mkdtemp 内化后 storeInfoCtx 不设 state.scratch）。
 - 行为 0 三件套绿（tsc 0 + vitest 88/88 + 7-diff=0）
 - grep `computePathInfo` mkdtemp caller=0（orchestrate 链路）+ `state.scratch` 源 = output.scratch 投影
 - storeInfo compat wrapper mkdtemp 保留（测试 fixture backflow）

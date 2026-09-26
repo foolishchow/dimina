@@ -24,6 +24,7 @@ import {
 	type ResetStoreInfoOptions,
 	normalizeFileTypes,
 	computeStoreInfo,
+	computePathInfo,
 	toPackerContext,
 	MINI_PROGRAM_RUNTIME_TYPE,
 	MINI_GAME_RUNTIME_TYPE,
@@ -75,7 +76,10 @@ const configInfo: ConfigInfo = new Proxy({}, {
 })
 
 function storeInfo(workPath: string, options: StoreInfoOptions = {}): { pathInfo: PathInfo; configInfo: ConfigInfo; compilerOptions: ReturnType<typeof normalizeFileTypes>; dependencyGraph: ReturnType<DependencyGraph['toJSON']> } {
-	const r = computeStoreInfo(workPath, options)
+	// D-SI-4（fe-tools-scratch-internalize）：传 computePathInfo(workPath) 作 pathInfo 参数
+	// （含 mkdtemp targetPath——compat backflow，测试 fixture 依赖 pathInfo.targetPath）。
+	// computeStoreInfo 内部不再 mkdtemp（内化入 BaseOutput 构造）；wrapper 传 pathInfo 补 targetPath。
+	const r = computeStoreInfo(workPath, options, computePathInfo(workPath))
 
 	// compat: 将结果写回 defaultCompilerContext（主线程 pathInfo/configInfo Proxy +
 	// getter 读者：dist-preparer createDist(targetPath)、npm-builder fallback、view/style/logic
