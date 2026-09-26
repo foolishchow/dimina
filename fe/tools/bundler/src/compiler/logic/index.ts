@@ -1,4 +1,4 @@
-import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getWorkPath, getAppId, getRuntimeType, getNpmResolver, isMiniGame, resetStoreInfo } from '../../packer/store/env.ts'
+import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getAppId, getRuntimeType, getNpmResolver, isMiniGame, resetStoreInfo } from '../../packer/store/env.ts'
 import { MINI_GAME_RUNTIME_TYPE } from '../../packer/store/env-compute.ts'
 import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
@@ -86,8 +86,8 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		activePaths.add(currentPath)
 		// usingComponents 遍历（与下方非 cache 路径同逻辑，但不构建 extraInfo）
 		if (module.usingComponents) {
-			const allSubPackages = (ctx?.configInfo ?? getAppConfigInfo()).subPackages as Array<{ root: string }>
-			const graphDeps = (ctx?.graph ?? getDependencyGraph()).getDirectDependencies(module.path, 'component')
+			const allSubPackages = (ctx!.configInfo!).subPackages as Array<{ root: string }>
+			const graphDeps = (ctx!.graph!).getDirectDependencies(module.path, 'component')
 			const componentDeps = graphDeps.length > 0 ? new Set(graphDeps) : null
 			for (const [, componentPath] of Object.entries(module.usingComponents)) {
 				if (componentDeps && !componentDeps.has(componentPath)) continue
@@ -98,7 +98,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 						if (normalizedPath.startsWith(`${subPackage.root}/`)) { toMainSubPackage = false; break }
 					}
 				} else { toMainSubPackage = false }
-				const componentModule = (ctx?.component ? ctx.component(componentPath) : getComponent(componentPath)) as PageModule | null
+				const componentModule = ((ctx!.component!)(componentPath)) as PageModule | null
 				if (componentModule) {
 					await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage, options, ctx)
 				}
@@ -124,7 +124,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		console.warn('[logic]', `找不到模块文件: ${src}`)
 		return
 	}
-	const _g = ctx?.graph ?? getDependencyGraph(); _g.addFile(currentPath, modulePath, 'logic')
+	const _g = ctx!.graph!; _g.addFile(currentPath, modulePath, 'logic')
 	// [MC0 D-MC-5] dirty 模块 AST walk 前清 outgoing 'logic' 边，避免 stale edge
 	_g.clearOutgoingEdges(currentPath, 'logic')
 
@@ -137,7 +137,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 	// 记录源文件路径，用于 sourcemap
 	if (enableSourcemap) {
-		const workPath = ctx?.workPath ?? getWorkPath()
+		const workPath = ctx!.workPath!
 		compileInfo.sourceFile = modulePath.startsWith(workPath)
 			? modulePath.slice(workPath.length)
 			: src
@@ -157,8 +157,8 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 	if (module.usingComponents) {
 		const componentsObj: Record<string, string> = {}
-		const allSubPackages = (ctx?.configInfo ?? getAppConfigInfo()).subPackages as Array<{ root: string }>
-		const graphDependencies = (ctx?.graph ?? getDependencyGraph()).getDirectDependencies(module.path, 'component')
+		const allSubPackages = (ctx!.configInfo!).subPackages as Array<{ root: string }>
+		const graphDependencies = (ctx!.graph!).getDirectDependencies(module.path, 'component')
 		const componentDependencies = graphDependencies.length > 0
 			? new Set(graphDependencies)
 			: null
@@ -184,7 +184,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 			else {
 				toMainSubPackage = false
 			}
-			const componentModule = (ctx?.component ? ctx.component(path) : getComponent(path)) as PageModule | null
+			const componentModule = ((ctx!.component!)(path)) as PageModule | null
 			if (!componentModule) {
 				continue
 			}

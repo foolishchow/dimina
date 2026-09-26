@@ -7,7 +7,6 @@ import type { Node } from 'oxc-parser'
 type AstNode = Node & { loc?: { start?: { line?: number } } }
 import { getWxMemberName, warnUnsupportedWxApi } from '../../packer/aspect/compatibility.ts'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
-import { getAppId, getDependencyGraph, getNpmResolver, getTargetPath, getWorkPath, resolveAppAlias } from '../../packer/store/env.ts'
 import { errorMessage } from '../../shared/utils.ts'
 import type { EmitModule } from '../../packer/emit/emit.ts'
 import type { PackerContext } from '../../packer/types.ts'
@@ -42,7 +41,7 @@ export async function logicParseWalk(
 ): Promise<LogicParseWalkResult> {
 	const { isTypeScript, sourcemap } = options
 
-	const _graph = ctx?.graph ?? getDependencyGraph()
+	const _graph = ctx!.graph!
 
 	// 使用 oxc-parser 解析代码
 	const parseResult = parseSync(modulePath, source, {
@@ -70,8 +69,8 @@ export async function logicParseWalk(
 	const logicDeps: string[] = [] // M2: 全量 require/import dep ID（AST walk 捕获，供 cache）
 
 	const src = currentPath.startsWith('/') ? currentPath : `/${currentPath}`
-	const workPath = ctx?.workPath ?? getWorkPath()
-	const targetPath = ctx?.targetPath ?? getTargetPath()
+	const workPath = ctx!.workPath!
+	const targetPath = ctx!.targetPath!
 	const diagnosticSource = modulePath.startsWith(workPath)
 		? modulePath.slice(workPath.length)
 		: src
@@ -95,7 +94,7 @@ export async function logicParseWalk(
 				pathReplacements.push({
 					start: node.start,
 					end: node.end,
-					newValue: collectAssets(workPath, modulePath, node.value, targetPath, (ctx?.appId ?? getAppId())!),
+					newValue: collectAssets(workPath, modulePath, node.value, targetPath, ctx!.appId!),
 				})
 			}
 
@@ -271,7 +270,7 @@ export function getLineByIndex(content: string, index: number | undefined): numb
  * @returns {string|null} - 文件的绝对路径，如果找不到则返回 null
  */
 export function getJSAbsolutePath(modulePath: string, ctx?: PackerContext): string | null {
-	const workPath = ctx?.workPath ?? getWorkPath()
+	const workPath = ctx!.workPath!
 	const resolvedModuleId = resolveModuleIdToExistingPath(modulePath, ctx)
 	if (!resolvedModuleId) {
 		return null
@@ -315,7 +314,7 @@ export function resolveDependencyId(specifier: string, modulePath: string, allow
 		}
 	}
 
-	const aliasResolved = (ctx?.resolveAlias ?? resolveAppAlias)(specifier)
+	const aliasResolved = (ctx!.resolveAlias!)(specifier)
 	if (aliasResolved) {
 		return {
 			id: normalizeModuleId(aliasResolved),
@@ -348,7 +347,7 @@ function isBareModuleSpecifier(specifier: string): boolean {
 
 function resolveRelativeModuleId(specifier: string, modulePath: string, ctx?: PackerContext): string {
 	const requireFullPath = resolve(modulePath, `../${specifier}`)
-	const relativeId = requireFullPath.split(`${ctx?.workPath ?? getWorkPath()}${sep}`)[1]!
+	const relativeId = requireFullPath.split(`${ctx!.workPath!}${sep}`)[1]!
 	return normalizeModuleId(relativeId)
 }
 
@@ -366,7 +365,7 @@ function normalizeModuleId(moduleId: string): string {
 }
 
 function resolveNpmModuleId(specifier: string, modulePath: string, ctx?: PackerContext): string | null {
-	const npmResolver = ctx?.npmResolver ?? getNpmResolver()
+	const npmResolver = ctx!.npmResolver!
 	if (!npmResolver) {
 		return null
 	}
@@ -375,7 +374,7 @@ function resolveNpmModuleId(specifier: string, modulePath: string, ctx?: PackerC
 
 function resolveModuleIdToExistingPath(moduleId: string, ctx?: PackerContext): string | null {
 	const normalizedModuleId = normalizeModuleId(moduleId)
-	const workPath = ctx?.workPath ?? getWorkPath()
+	const workPath = ctx!.workPath!
 
 	for (const ext of ['.js', '.ts']) {
 		if (fs.existsSync(`${workPath}${normalizedModuleId}${ext}`)) {

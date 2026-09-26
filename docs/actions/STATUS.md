@@ -120,3 +120,4 @@
 | `fe-tools-singleton-retire-cleanup-final` | `complete` | D-SRC-1b/2/3b 完全退役收尾（A5b 推迟）——独立函数迁 + 删 fallback + resetStoreInfo 退役 + env.ts singleton 删 |
 | `fe-tools-style-parse-walk-ctx-leaf` | `complete` | styleLoad 加 ctx optional（叶子） |
 | `fe-tools-view-parse-walk-ctx-deep` | `complete` | view parse-walk 递归 caller 链 + wxml/load 透传 + A2 deviation 撤回 |
+| `fe-tools-fallback-als-delete` | `complete` | 删 fallback ALS 34 处 |

@@ -15,7 +15,7 @@ import postcss from 'postcss'
 import type { Attribute as SelectorAttribute, AttributeOptions } from 'postcss-selector-parser'
 import selectorParser from 'postcss-selector-parser'
 import { collectAssets, isCollectableImageAsset, resolveAssetSourcePath, tagWhiteList, transformRpx } from '../../shared/utils.ts'
-import { getAppId, getComponent, getContentByPath, getDependencyGraph, getStyleExts, getTargetPath, getWorkPath } from '../../packer/store/env.ts'
+import { getContentByPath, getStyleExts, getWorkPath } from '../../packer/store/env.ts'
 import type { PackerContext } from '../../packer/types.ts'
 import { concatSourcemap, createLineSourcemap, remapSourcemap } from '../../shared/sourcemap.ts'
 import { errorMessage } from '../../shared/utils.ts'
@@ -88,12 +88,12 @@ function styleLoad(module: StyleModule, compiledPaths: Set<string>, ctx?: Packer
 
 		// Preserve the original depth-first, declaration-order traversal while
 		// using an explicit stack instead of the JavaScript call stack.
-		const graphDependencies = (ctx?.graph ?? getDependencyGraph()).getDirectDependencies(currentPath, 'component')
+		const graphDependencies = (ctx!.graph!).getDirectDependencies(currentPath, 'component')
 		const componentPaths: string[] = graphDependencies.length > 0
 			? graphDependencies
 			: Object.values(currentModule.usingComponents || {})
 		for (let index = componentPaths.length - 1; index >= 0; index--) {
-			const componentModule = (ctx?.component ? ctx.component(componentPaths[index]!) as unknown : getComponent(componentPaths[index]!)) as StyleModule | null
+			const componentModule = ((ctx!.component!)(componentPaths[index]!) as unknown) as StyleModule | null
 			if (componentModule) {
 				pendingModules.push(componentModule as StyleModule)
 			}
@@ -189,7 +189,7 @@ export function boostExternalClassSelectors(cssCode: string, moduleId: string): 
 		.process(cssCode, { from: undefined }).css
 }
 function getStyleSourcePath(absolutePath: string, ctx?: PackerContext): string {
-	const workPath = ctx?.workPath ?? getWorkPath()
+	const workPath = ctx!.workPath!
 	if (absolutePath === workPath || absolutePath.startsWith(`${workPath}${path.sep}`)) {
 		return `/${path.relative(workPath, absolutePath).split(path.sep).join('/')}`
 	}
@@ -318,7 +318,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}, ctx?:
 	}
 	const graphOwnerPath = module.ownerPath || module.path
 	if (graphOwnerPath) {
-		const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(graphOwnerPath, absolutePath, 'style')
+		const _graph = ctx!.graph!; _graph.addFile(graphOwnerPath, absolutePath, 'style')
 	}
 	const cacheKey = `${absolutePath}::${module.id || ''}::${options.sourcemap ? 'map' : 'plain'}::minify:${options.minify !== false}`
 
@@ -343,7 +343,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}, ctx?:
 			const less = await loadLess()
 			const result = await less.render(processedCSS, {
 				filename: absolutePath,
-				paths: [path.dirname(absolutePath), ctx?.workPath ?? getWorkPath()],
+				paths: [path.dirname(absolutePath), ctx!.workPath!],
 				sourceMap: options.sourcemap
 					? {
 						outputSourceFiles: true,
@@ -359,7 +359,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}, ctx?:
 		else if (ext === '.scss' || ext === '.sass') {
 			const sass = await loadSass()
 			const result = sass.compileString(processedCSS, {
-				loadPaths: [path.dirname(absolutePath), ctx?.workPath ?? getWorkPath()],
+				loadPaths: [path.dirname(absolutePath), ctx!.workPath!],
 				syntax: ext === '.sass' ? 'indented' : 'scss',
 				url: options.sourcemap ? pathToFileURL(absolutePath) : undefined,
 				sourceMap: !!options.sourcemap,
@@ -477,18 +477,18 @@ function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPat
 		}
 
 		if (graphOwnerPath && isCollectableImageAsset(cleanedUrl)) {
-			const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(
+			const _graph = ctx!.graph!; _graph.addFile(
 				graphOwnerPath,
-				resolveAssetSourcePath(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl),
+				resolveAssetSourcePath(ctx!.workPath!, absolutePath, cleanedUrl),
 				'style',
 			)
 		}
-		const realSrc = collectAssets(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl, ctx?.targetPath ?? getTargetPath(), (ctx?.appId ?? getAppId())!)
+		const realSrc = collectAssets(ctx!.workPath!, absolutePath, cleanedUrl, ctx!.targetPath!, ctx!.appId!)
 		return `url(${realSrc})`
 	})
 }
 function getAbsolutePath(modulePath: string, ctx?: PackerContext): string | undefined {
-	const workPath = ctx?.workPath ?? getWorkPath()
+	const workPath = ctx!.workPath!
 	const src = modulePath.startsWith('/') ? modulePath : `/${modulePath}`
 
 	for (const ssType of (ctx?.fileTypes.styleExts ?? getStyleExts())) {

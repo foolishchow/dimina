@@ -15,7 +15,7 @@ import MagicString from 'magic-string'
 import { compileTemplate } from '@vue/compiler-sfc'
 import { getTemplateDirectiveName } from '../../packer/aspect/compatibility.ts'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
-import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getViewScriptExts, getViewScriptTags, getWorkPath } from '../../packer/store/env.ts'
+import { getContentByPath, getViewScriptExts, getViewScriptTags } from '../../packer/store/env.ts'
 import type { PackerContext } from '../../packer/types.ts'
 import type { WxmlNode } from './wxml/common/document.ts'
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, remapSourcemap } from '../../shared/sourcemap.ts'
@@ -385,7 +385,7 @@ function isRegisteredWxsModule(modulePath: string): boolean {
 }
 function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map(), select?: ViewSelectContext, ctx?: PackerContext): Record<string, unknown> | null {
 	const currentPath = module.path
-	const _graph = ctx?.graph ?? getDependencyGraph()
+	const _graph = ctx!.graph!
 
 	// Recursive component declarations are valid. Stop only the duplicate edge
 	// on the current traversal path; the runtime keeps the recursive mapping.
@@ -435,7 +435,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 			? graphDependencies
 			: Object.values(module.usingComponents)
 		for (const componentInfo of componentDependencies) {
-			const componentModule = (ctx?.component ? ctx.component(componentInfo) : getComponent(componentInfo))
+			const componentModule = ((ctx!.component!)(componentInfo))
 			if (!componentModule) {
 				continue
 			}
@@ -786,7 +786,7 @@ function replaceConstructor(node: { object: { start: number; end: number }; star
  */
 export function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath, ctx?: PackerContext): unknown {
 	if (wxsFilePath && graphOwnerPath) {
-		const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(graphOwnerPath, wxsFilePath, 'view')
+		const _graph = ctx!.graph!; _graph.addFile(graphOwnerPath, wxsFilePath, 'view')
 	}
 	let wxsAst
 	try {
@@ -870,7 +870,7 @@ export function processIncludedFileWxsDependencies(componentTags: unknown, inclu
 	// 对每个组件，直接处理其 wxs 依赖（避免递归调用 buildCompileView）
 	for (const tagName of componentTags as Iterable<string>) {
 		const componentPath = String(components[tagName!])
-		const componentModule = (ctx?.component ? ctx.component(componentPath) as unknown : getComponent(componentPath))
+		const componentModule = ((ctx!.component!)(componentPath) as unknown)
 		if (componentModule) {
 			// 检查组件路径是否已经处理过，避免循环引用
 			if (processedPaths.has((componentModule as { path: string }).path)) {
@@ -904,13 +904,13 @@ export function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: str
 			if (!imgSrc.startsWith('http')
 				&& !imgSrc.startsWith('//')
 				&& isCollectableImageAsset(imgSrc)) {
-				const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(
+				const _graph = ctx!.graph!; _graph.addFile(
 					graphOwnerPath,
-					resolveAssetSourcePath(ctx?.workPath ?? getWorkPath(), path, imgSrc),
+					resolveAssetSourcePath(ctx!.workPath!, path, imgSrc),
 					'view',
 				)
 			}
-			setAttr(elem, 'src', collectAssets(ctx?.workPath ?? getWorkPath(), path, imgSrc, ctx?.targetPath ?? getTargetPath(), (ctx?.appId ?? getAppId())!))
+			setAttr(elem, 'src', collectAssets(ctx!.workPath!, path, imgSrc, ctx!.targetPath!, ctx!.appId!))
 		}
 	}
 }
@@ -1158,7 +1158,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 
 			const src = getAttr(elem, 'src')
 			let wxsFilePath = null
-			const workPath = ctx?.workPath ?? getWorkPath()
+			const workPath = ctx!.workPath!
 
 			if (src) {
 				// 检查是否是 npm 组件路径
@@ -1179,7 +1179,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 				}
 
 				if (wxsFilePath) {
-					const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(graphOwnerPath, wxsFilePath, 'view')
+					const _graph = ctx!.graph!; _graph.addFile(graphOwnerPath, wxsFilePath, 'view')
 					// 为外部 wxs 文件生成唯一的模块名和缓存键
 					const relativePath = stripViewScriptExt(wxsFilePath.replace(workPath, ''))
 					uniqueModuleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
@@ -1279,7 +1279,7 @@ function isWxsModuleByContent(moduleCode: string, modulePath = ''): boolean {
 
 function collectAllWxsModules(scriptRes: Map<string, string>, collectedPaths = new Set<string>(), scriptModule: object[] = [], ctx?: PackerContext): Array<{ path: string; code: string }> {
 	const allWxsModules: Array<{ path: string; code: string }> = []
-	const workPath = ctx?.workPath ?? getWorkPath()
+	const workPath = ctx!.workPath!
 
 	for (const [modulePath, moduleCode] of scriptRes.entries()) {
 		// 避免重复处理

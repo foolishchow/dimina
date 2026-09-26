@@ -6,7 +6,6 @@ import {
 	getDependencyGraph,
 	getTemplateExts,
 	getViewScriptTags,
-	getWorkPath,
 } from '../../../packer/store/env.ts'
 import { attachProjection } from './common/document.ts'
 import { parseWxml } from './parse.ts'
@@ -30,12 +29,12 @@ import { transTagTemplate } from './load/template.ts'
  * 转换成底层框架模板 —— parse → load → vue.render
  */
 export function toCompileTemplate(isComponent: boolean, path: string, components: Record<string, unknown> | undefined, componentPlaceholder: Record<string, unknown> | undefined, processedPaths: Set<string> = new Set(), ctx?: PackerContext) {
-	const workPath = ctx?.workPath ?? getWorkPath()
+	const workPath = ctx!.workPath!
 	const fullPath = getViewPath(workPath, path)
 	if (!fullPath) {
 		return { tpl: undefined }
 	}
-	(ctx?.graph ?? getDependencyGraph()).addFile(path, fullPath, 'view')
+	(ctx!.graph!).addFile(path, fullPath, 'view')
 	const sourcePath = toMiniProgramModuleId(fullPath, workPath)
 		.replace(buildExtStripRegex(getTemplateExts()), '')
 	const diagnosticSource = fullPath.startsWith(workPath)
