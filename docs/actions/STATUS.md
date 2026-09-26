@@ -113,3 +113,4 @@
 | `fe-tools-worker-ctx-direct` | `complete` |
 | `fe-tools-view-parse-walk-migrate` | `complete` |
 | `fe-tools-style-parse-walk-migrate` | `complete` |
+| `fe-tools-compat-write-retire-research` | `draft` |
