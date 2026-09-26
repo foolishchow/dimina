@@ -1,6 +1,6 @@
 # fe-tools-singleton-retire-impl-cleanup
 
-- Status: `draft`
+- Status: `ready`
 - Type: impl（D-SR-4+5+6 cleanup——resetStoreInfo 退役 + 测试迁 + env.ts singleton 删）
 - Parent: fe-tools-singleton-retire-research（D-SR-4+5+6）+ fe-tools-singleton-retire-impl-core（A5a 核心完成）
 - Gates: A0-A4 + A5 research + A5a 核心 全 complete
@@ -29,7 +29,7 @@ L2/L3 退役第七步（A5-impl cleanup）。A5a 已完成核心 migration（Pac
 
 ## 设计门
 
-[design.draft.md](design.draft.md)（**D-SRC-1..N 待 readiness review lock**——resetStoreInfo 退役 + 测试迁 + singleton 删）
+[design.draft.md](design.draft.md)（**D-SRC-1..3 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 
 ## 文档
 
