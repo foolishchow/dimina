@@ -17,10 +17,12 @@ A5b 实证：D-SRC-1b 删 fallback 破坏 121 测试——独立函数（enhance
 - **view parse-walk**：processIncludedFileWxsDependencies(L859——无 ctx，L871 getComponent)/collectAllWxsModules(L1278——**已有 ctx optional 但 caller 不传** F-R1-2，L1280 workPath)
 - **style parse-walk**：styleLoad(L72——无 ctx，L91 getDependencyGraph.getDirectDependencies/L96 getComponent)
 
-**caller 链注记**（F-R1-1）：
-- parse-walk 主函数内 caller（ctx 可传——主函数已有 ctx optional）
+**caller 链注记**（F-R1-1 + F-R8-1/R8-2 实证）——**非全 parse-walk 内**：
+- **parse-walk 主函数内 caller**（ctx 可传——主函数已有 ctx optional）：resolveDependencyId(L119/142/168/194) + resolveNpmModuleId(L327) + resolveModuleIdToExistingPath(L275/299/357/399) + styleLoad(L136) + collectAllWxsModules(L491/557/1302/1314——**已有 ctx optional 但 caller 不传** F-R1-2）
+- **非 parse-walk 内 caller**（F-R8-1/R8-2——须透传链）：
+  - **processIncludedFileWxsDependencies**：view/wxml/load/index.ts:173 + 255（**非 parse-walk 内**——须 wxml/load/index.ts 加 ctx 透传链）
+  - **getJSAbsolutePath**：logic/index.ts:122 + registry-impl.ts:24（**非 parse-walk 内**——须这些 caller 传 ctx）
 - **测试直调 caller**（须测试传 ctx——getJSAbsolutePath/resolveDependencyId 测试直调须迁）
-- **collectAllWxsModules caller 须传 ctx**（F-R1-2——L1278 已有 ctx optional 但 caller 不传，A5b 实证 121 failed）
 
 ### D-SCF-1-2 删 fallback ALS（修正计数——含 workPath/targetPath）
 
@@ -45,7 +47,13 @@ import 清理：删 fallback 后未用 getter import 删（getDependencyGraph/ge
 
 resetStoreInfo 函数删（env.ts）。worker ctx 已传全（D-SRC-1a）——resetStoreInfo 不再 load-bearing。
 
-**emit-engine 退役门控**：emit-engine.ts:12 resetStoreInfo——produceEntry 不直接读 ALS getter（grep 0）。须确认 produceEntry 间接调用链不读 ALS（emit.ts 内调用）。
+**emit-engine 退役门控**（F-R10-1 修正）：
+- emit-engine.ts:12 resetStoreInfo（emit-worker 建 ALS）
+- **emit.ts:142 `resolve(getWorkPath(), sourcePath)` 读 ALS**（produceEntry 间接调用链——perModule 策略调 getWorkPath()，emit.ts L200 注释）
+- **D-SCF-2 须 emit.ts:142 迁 ctx 读**（produceEntry 加 ctx 参数 + emit-engine compile 建 ctx 传 produceEntry）——resetStoreInfo 退役后 ALS 失效
+- emit-engine.ts compile 须建 ctx（buildPackerContextFromOptions from storeInfo data）+ produceEntry 传 ctx
+
+**buildResetStoreInfoData caller 保留**（F-R10-2）：stage-channel.ts:47 + logic-emitter.ts:40 调 buildResetStoreInfoData（返 data——非 reset）。D-SCF-2 退役后仍可用（worker reset data 组装——buildResetStoreInfoData 返 ResetStoreInfoOptions data，resetStoreInfo 删后 data 无消费——须确认是否删 buildResetStoreInfoData or 保留返 data）
 
 ### storeInfo wrapper 重构
 
@@ -63,15 +71,32 @@ storeInfo wrapper 删 compat 写 6 条（L88-94）——storeInfo 保留纯 comp
 
 ### src getter caller 迁
 
-src 非 env.ts 多处引用 getters——config-collector/define-engine/emit/dispatch/graph/orchestrator/config-compiler/view 等。D-SCF-3 删前须这些 caller 迁 ctx 读（同 D-SCF-1-2 模式）。
+**src getter caller 数量实证**（F-R11-1）——几十处，scope 极大：
+- getDependencyGraph: 13 文件 + getAppId: 13 文件 + getWorkPath: 9 文件
+- getComponent: 8 文件 + getAppConfigInfo: 8 文件
+- isMiniGame: 6 文件 + getRuntimeType: 6 文件
+- getNpmResolver: 5 文件 + getTargetPath: 4 文件
+- getPages: 2 文件 + resolveAppAlias: 1 文件
+
+**批次划分**（F-R11-1——按子系统）：
+- batch1: graph 层（getDependencyGraph 13——graph/orchestrator/emit/dispatch 等）
+- batch2: app 层（getAppId 13 + getAppConfigInfo 8 + getRuntimeType 6 + isMiniGame 6 + getNpmResolver 5 + resolveAppAlias 1）
+- batch3: path 层（getWorkPath 9 + getTargetPath 4 + getPages 2）
+
+D-SCF-3 删前须这些 caller 迁 ctx 读（同 D-SCF-1-2 模式——ctx?.x ?? ALSGetter() → ctx!.x）。
+
 
 ### runtime 改候选 b
 
 runtime.ts 候选 a（过渡——import getDependencyGraph）须改候选 b（env.ts singleton 删后 ALS 失效）。
 
-**候选 b refined**（postMessage 序列化）：runtime.ts:34 `Object.assign(response, compileResult)`——compileResult 合入 response postMessage。若 compile 返回 graph 实例（可变单例），结构化克隆失败。
+**候选 b refined**（postMessage 序列化——F-R3-1）：runtime.ts:34 `Object.assign(response, compileResult)`——compileResult 合入 response postMessage。若 compile 返回 graph 实例（可变单例），结构化克隆失败。
 
-**候选 b 实施**：successPayload 在 compile 内调用（读 ctx.graph 后 toJSON）——不 runtime 调。compile 末尾调 successPayload（传入 ctx.graph）。runtime 不读 graph——response 不含 graph 实例。
+**候选 b 实施路径**（F-R3-1）：
+- runtime.ts L31 `engine.successPayload({ logger, graph: getDependencyGraph() })`——候选 a（过渡）。runtime 无 ctx 访问
+- **候选 b**：compile 末尾调 successPayload（读 ctx.graph 后 toJSON——返回 serializedPayload 字段）+ runtime 读 `compileResult.serializedPayload`（不调 successPayload）
+- 或：successPayload 签名改（graph 必传——runtime 从 compileResult 取 graph 实例但不 Object.assign——单独调 successPayload 后 spread）
+- **define-engine.ts L28 默认 fallback 删**（F-R3-2）：`({ graph }) => ({ dependencyGraph: (graph ?? getDependencyGraph()).toJSON() })`——fallback ALS 删，graph 必传
 
 **emit-engine 候选 b 须建 ctx**：emit-engine.ts 当前不建 ctx（只 resetStoreInfo）。候选 b 须 emit-engine 建 ctx + successPayload 读 ctx.graph。
 
