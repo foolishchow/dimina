@@ -1,6 +1,6 @@
 # Validation — fe-tools-singleton-retire-cleanup-final
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## Scope 决策（partial completion）
 
