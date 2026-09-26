@@ -1,8 +1,8 @@
 # Design Draft — fe-tools-view-parse-walk-migrate
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
-> **状态：ready**——D-VPM-1..6 已 review lock。基于 A0（fe-tools-worker-ctx-direct）worker ctx 直传机制 + 复用 optional + fallback ALS 模式。
+> **状态：complete**——D-VPM-1..6 已 review lock。基于 A0（fe-tools-worker-ctx-direct）worker ctx 直传机制 + 复用 optional + fallback ALS 模式。
 
 ## 1. 复用 A0 模式
 
@@ -171,6 +171,13 @@ export function viewParseWalk(
 - **getViewScriptExts/getViewScriptTags**：ctx.fileTypes 同源 ALS getCompilerContext().compilerOptions ✓（R1 F-R1-2）
 - **ctx.workPath/targetPath**：storeInfo.pathInfo 同源 ALS ✓（A0 确认）
 - **fallback ALS 行为等价**：独立函数不传 ctx 时 `ctx?.x ?? ALSGetter()` = ALSGetter()（原行为）✓
+
+## 6d. Implementation deviations（P-VPM-1..2 atomic 后回填）
+
+- **D-VPM-dev1**：compileModule + processIncludedFileWxsDependencies **不加 ctx 参数**（撤回 design D-VPM-3 列的 compileModule ctx）。原因：compileModule 不直接用 ctx（compileModuleRender 无 ctx 需求）+ processIncludedFileWxsDependencies 内 getComponent 保留 ALS（无透传需求）。noUnusedLocals 报 ctx 未用——撤回。
+- **D-VPM-dev2**：replaceWxsRequire 加 ctx 参数（design 未列——实施时发现 replaceWxsRequire 内 L752 processWxsDependency 调用须透传 ctx）。
+- **D-VPM-dev3**：loadWxsModule 加 ctx 参数（design 列了——L1242 getContentByPath + L1249 processWxsContent 透传）。
+- **D-VPM-dev4**：view/index.ts compileML 加 ctx 透传（design D-VPM-6——复用 A0 模式）。
 
 ## 7. 结论
 

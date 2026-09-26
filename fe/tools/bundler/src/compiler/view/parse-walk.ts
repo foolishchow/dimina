@@ -16,6 +16,7 @@ import { compileTemplate } from '@vue/compiler-sfc'
 import { getTemplateDirectiveName } from '../../packer/aspect/compatibility.ts'
 import { collectAssets, getAbsolutePath, isCollectableImageAsset, resolveAssetSourcePath } from '../../shared/utils.ts'
 import { getAppId, getComponent, getContentByPath, getDependencyGraph, getTargetPath, getViewScriptExts, getViewScriptTags, getWorkPath } from '../../packer/store/env.ts'
+import type { PackerContext } from '../../packer/types.ts'
 import type { WxmlNode } from './wxml/common/document.ts'
 import { concatSourcemap, createLineSourcemap, createOriginsSourcemap, remapSourcemap } from '../../shared/sourcemap.ts'
 import {
@@ -317,11 +318,11 @@ function viewEmit(scriptRes: Map<string, string>, sourceMapRes: Map<string, stri
  * F-H2-1 拆分后：compileViewTree（交错编排，L/C per-module）+ viewEmit（E 阶段）。
  * H3 Phase 2：select 可选——clean + cached module 跳过 compile（selective recompile）。
  */
-export function viewParseWalk(pageModule: ViewModule, options: ViewParseWalkOptions, select?: ViewSelectContext): EmitModule[] {
+export function viewParseWalk(pageModule: ViewModule, options: ViewParseWalkOptions, select?: ViewSelectContext, ctx?: PackerContext): EmitModule[] {
 	void options // sourcemap flag consumed via enableSourcemap in inner functions
 	const scriptRes = new Map<string, string>()
 	const sourceMapRes = new Map<string, string>()
-	compileViewTree(pageModule, false, scriptRes, new Set(), new Set(), sourceMapRes, select)
+	compileViewTree(pageModule, false, scriptRes, new Set(), new Set(), sourceMapRes, select, ctx)
 	return viewEmit(scriptRes, sourceMapRes)
 }
 
@@ -345,7 +346,7 @@ export function initWxsFilePathMap(workPath: string): void {
  * @param {string} dir - 目录路径
  * @param {string} workPath - 工作路径
  */
-function scanWxsFiles(dir: string, workPath: string): void {
+function scanWxsFiles(dir: string, workPath: string, ctx?: PackerContext): void {
 	try {
 		const items = fs.readdirSync(dir)
 
@@ -356,7 +357,7 @@ function scanWxsFiles(dir: string, workPath: string): void {
 			if (stat.isDirectory()) {
 				// 递归扫描子目录
 				scanWxsFiles(fullPath, workPath)
-			} else if (stat.isFile() && getViewScriptExts().some(ext => item.endsWith(ext))) {
+			} else if (stat.isFile() && (ctx?.fileTypes.viewScriptExts ?? getViewScriptExts()).some(ext => item.endsWith(ext))) {
 				// 处理 wxs 文件
 				const relativePath = stripViewScriptExt(fullPath.replace(workPath, ''))
 				const moduleName = relativePath.replace(/[\/\@\-]/g, '_').replace(/^_/, '')
@@ -382,7 +383,7 @@ function registerWxsModule(modulePath: string): void {
 function isRegisteredWxsModule(modulePath: string): boolean {
 	return wxsModuleRegistry.has(modulePath)
 }
-function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map(), select?: ViewSelectContext): Record<string, unknown> | null {
+function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map(), select?: ViewSelectContext, ctx?: PackerContext): Record<string, unknown> | null {
 	const currentPath = module.path
 
 	// Recursive component declarations are valid. Stop only the duplicate edge
@@ -443,7 +444,7 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 				continue
 			}
 			// 递归编译组件，并收集其 wxs 模块
-			const componentInstruction = compileViewTree(componentModule as ViewModule, true, scriptRes, activePaths, childInheritedTemplatePaths, sourceMapRes, select)
+			const componentInstruction = compileViewTree(componentModule as ViewModule, true, scriptRes, activePaths, childInheritedTemplatePaths, sourceMapRes, select, ctx)
 			if (componentInstruction && componentInstruction.scriptModule) {
 				// 将组件的 wxs 模块添加到当前模块的 wxs 模块列表中
 				for (const sm of (componentInstruction.scriptModule as unknown[])) {
@@ -740,6 +741,7 @@ function replaceWxsRequire(
 	filePath: string,
 	graphOwnerPath: string,
 	replacements: Array<{ start: number; end: number; value: string }>,
+	ctx?: PackerContext,
 ): void {
 	const requirePath = node.arguments[0]!.value
 	if (!requirePath || typeof requirePath !== 'string') return
@@ -749,7 +751,7 @@ function replaceWxsRequire(
 	const relativePath = stripViewScriptExt(resolvedWxsPath.replace(workPath, ''))
 	const depModuleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
 
-	processWxsDependency(resolvedWxsPath, depModuleName, scriptModule, workPath, filePath, graphOwnerPath)
+	processWxsDependency(resolvedWxsPath, depModuleName, scriptModule, workPath, filePath, graphOwnerPath, ctx)
 
 	replacements.push({
 		start: node.arguments[0]!.start,
@@ -779,7 +781,7 @@ function replaceConstructor(node: { object: { start: number; end: number }; star
  * @param {string} filePath - 当前处理的文件路径
  * @returns {string} 处理后的 wxs 代码
  */
-export function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath): unknown {
+export function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath, ctx?: PackerContext): unknown {
 	if (wxsFilePath && graphOwnerPath) {
 		getDependencyGraph().addFile(graphOwnerPath, wxsFilePath, 'view')
 	}
@@ -803,7 +805,7 @@ export function processWxsContent(wxsContent: string, wxsFilePath: string, scrip
 					replaceGetDate(node as { arguments: Array<{ start: number; end: number }>; start: number; end: number }, wxsContent, replacements)
 				}
 				else if (calleeName === 'require' && node.arguments.length > 0 && wxsFilePath) {
-					replaceWxsRequire(node as { arguments: Array<{ value: string; start: number; end: number }> }, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath, replacements)
+					replaceWxsRequire(node as { arguments: Array<{ value: string; start: number; end: number }> }, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath, replacements, ctx)
 				}
 			}
 			if (node.type === 'MemberExpression') {
@@ -816,7 +818,7 @@ export function processWxsContent(wxsContent: string, wxsFilePath: string, scrip
 	return applyCodeReplacements(wxsContent, replacements)
 }
 // 递归处理 wxs 依赖
-function processWxsDependency(wxsFilePath: string, moduleName: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath): void {
+function processWxsDependency(wxsFilePath: string, moduleName: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath, ctx?: PackerContext): void {
 	if (!fs.existsSync(wxsFilePath)) {
 		console.warn(`[view] wxs 依赖文件不存在: ${wxsFilePath}`)
 		return
@@ -833,7 +835,7 @@ function processWxsDependency(wxsFilePath: string, moduleName: string, scriptMod
 	}
 
 	// 使用公共的处理函数
-	const wxsCode = processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath)
+	const wxsCode = processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, filePath, graphOwnerPath, ctx)
 
 	// 注册为 wxs 模块（因为这是 wxs 依赖，一定是 wxs 脚本）
 	registerWxsModule(moduleName)
@@ -887,7 +889,7 @@ export function processIncludedFileWxsDependencies(componentTags: unknown, inclu
 		}
 	}
 }
-export function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: string, graphOwnerPath = path): void {
+export function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: string, graphOwnerPath = path, ctx?: PackerContext): void {
 	const nodes = Array.isArray(imageNodes) ? imageNodes : queryAll(document, 'image')
 	for (const elem of nodes) {
 		const srcRaw = getAttr(elem, 'src')
@@ -901,11 +903,11 @@ export function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: str
 				&& isCollectableImageAsset(imgSrc)) {
 				getDependencyGraph().addFile(
 					graphOwnerPath,
-					resolveAssetSourcePath(getWorkPath(), path, imgSrc),
+					resolveAssetSourcePath(ctx?.workPath ?? getWorkPath(), path, imgSrc),
 					'view',
 				)
 			}
-			setAttr(elem, 'src', collectAssets(getWorkPath(), path, imgSrc, getTargetPath(), getAppId()!))
+			setAttr(elem, 'src', collectAssets(ctx?.workPath ?? getWorkPath(), path, imgSrc, ctx?.targetPath ?? getTargetPath(), getAppId()!))
 		}
 	}
 }
@@ -1139,9 +1141,9 @@ export function parseTemplateDataExp(exp: string): string {
 	}
 	return `{${parseSafeBraceExp(exp)}}`
 }
-export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePath: string, graphOwnerPath = filePath): void {
+export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePath: string, graphOwnerPath = filePath, ctx?: PackerContext): void {
 	// 同时处理所有视图脚本标签（wxs、dds 及自定义标签），避免同一文件混用多种标签时漏编译。
-	const wxsNodes = queryAll(document, getViewScriptTags().join(','))
+	const wxsNodes = queryAll(document, (ctx?.fileTypes.viewScriptTags ?? getViewScriptTags()).join(','))
 
 	for (const elem of wxsNodes.slice()) {
 		const smName = getAttr(elem, 'module')
@@ -1153,7 +1155,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 
 			const src = getAttr(elem, 'src')
 			let wxsFilePath = null
-			const workPath = getWorkPath()
+			const workPath = ctx?.workPath ?? getWorkPath()
 
 			if (src) {
 				// 检查是否是 npm 组件路径
@@ -1188,7 +1190,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 			else {
 				if (src && wxsFilePath) {
 					if (fs.existsSync(wxsFilePath)) {
-						wxsContent = getContentByPath(wxsFilePath).trim()
+						wxsContent = (ctx?.readContent(wxsFilePath) ?? getContentByPath(wxsFilePath)).trim()
 					} else {
 						console.warn(`[view] wxs 文件不存在: ${wxsFilePath}`)
 						continue
@@ -1203,7 +1205,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 				}
 
 				// 使用公共的处理函数
-				wxsContent = processWxsContent(wxsContent, wxsFilePath!, scriptModule, workPath, filePath, graphOwnerPath) as string
+				wxsContent = processWxsContent(wxsContent, wxsFilePath!, scriptModule, workPath, filePath, graphOwnerPath, ctx) as string
 
 				wxsContentCache.set(cacheKey, wxsContent)
 			}
@@ -1228,7 +1230,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
  * @param {Array} scriptModule - 脚本模块数组
  * @returns {Object|null} 加载的模块对象或 null
  */
-export function loadWxsModule(modulePath: string, workPath: string, scriptModule: unknown[]): unknown {
+export function loadWxsModule(modulePath: string, workPath: string, scriptModule: unknown[], ctx?: PackerContext): unknown {
 	// wxsFilePathMap 记录 miniprogram_npm 下使用任意已配置扩展名的视图脚本文件，
 	// 用于判断并定位模块。不能依赖 '_wxs_' 路径片段，否则会漏掉自定义扩展名
 	// （如 .qds），以及路径中不含 wxs 目录的 .wxs 文件。
@@ -1245,7 +1247,7 @@ export function loadWxsModule(modulePath: string, workPath: string, scriptModule
 		}
 
 		// 使用公共的处理函数
-		const processedContent = processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, '')
+		const processedContent = processWxsContent(wxsContent, wxsFilePath, scriptModule, workPath, '', undefined, ctx)
 
 		// 注册为 wxs 模块
 		registerWxsModule(modulePath)
@@ -1272,9 +1274,9 @@ function isWxsModuleByContent(moduleCode: string, modulePath = ''): boolean {
 }
 
 
-function collectAllWxsModules(scriptRes: Map<string, string>, collectedPaths = new Set<string>(), scriptModule: object[] = []): Array<{ path: string; code: string }> {
+function collectAllWxsModules(scriptRes: Map<string, string>, collectedPaths = new Set<string>(), scriptModule: object[] = [], ctx?: PackerContext): Array<{ path: string; code: string }> {
 	const allWxsModules: Array<{ path: string; code: string }> = []
-	const workPath = getWorkPath()
+	const workPath = ctx?.workPath ?? getWorkPath()
 
 	for (const [modulePath, moduleCode] of scriptRes.entries()) {
 		// 避免重复处理

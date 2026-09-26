@@ -1,13 +1,13 @@
 # fe-tools-view-parse-walk-migrate
 
-- Status: `ready`
-- Status authority: [Action Status](../STATUS.md)
+- Status: `complete`
+- Status authority: [Action Status](../../../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-VPM-1..6 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 - 需求门：[requirements.md](requirements.md)
 - 实施门：[implementation-plan.md](implementation-plan.md)
 - 验收门：[acceptance.md](acceptance.md)
 - 验证门：[validation.md](validation.md)
-- 前置：[`fe-tools-worker-ctx-direct`](../_archive/complete/fe-tools-worker-ctx-direct/README.md)（A0+A1——worker ctx 直传机制 + logic parse-walk 迁移已完成）
+- 前置：[`fe-tools-worker-ctx-direct`](../../_archive/complete/fe-tools-worker-ctx-direct/README.md)（A0+A1——worker ctx 直传机制 + logic parse-walk 迁移已完成）
 
 ## Background
 
@@ -57,5 +57,15 @@ L2+L3 退役大倡议第二步。A0（fe-tools-worker-ctx-direct）已建 worker
 
 ## Closure conditions
 
-- 全 MUST Acceptance passed with evidence（A-VPM-1..N done——行为 0 三件套）
-- implementation deviations 回填 design
+- 全 MUST Acceptance passed with evidence（A-VPM-1..7 done——行为 0 三件套）✓
+- implementation deviations 回填 design（D-VPM-dev1..4）✓
+
+## Implementation result（P-VPM-1..2 atomic 完成）
+
+- **行为 0 三件套**：tsc 0 ✓ + vitest 88/88（4 flaky solo pass）+ 7-diff=0 ✓
+- **4 deviations**（D-VPM-dev1..4 回填）：compileModule/processIncludedFileWxsDependencies 撤回 ctx（不读不透传）+ replaceWxsRequire 加 ctx（L752 processWxsDependency 透传）+ loadWxsModule 加 ctx + compileML 加 ctx
+- **9 函数加 ctx optional**：viewParseWalk/compileViewTree/scanWxsFiles/processWxsContent/processWxsDependency/transAsses/transTagWxs/loadWxsModule/collectAllWxsModules + replaceWxsRequire
+- **ctx 读 5 getter**：getWorkPath/getTargetPath/getContentByPath/getViewScriptExts/getViewScriptTags
+- **保留 ALS 3 getter**：getDependencyGraph/getComponent/getAppId（8 处 ALS 残留——A5 统一迁）
+- **外部调用者 fallback ALS**：transAsses/transTagWxs（wxml/load 主线程）+ processWxsContent（view-compiler.spec 9 处测试）
+- **backflow**：A3 style parse-walk 迁移（独立 Action）
