@@ -24,8 +24,9 @@
 // ── 现有类型引用（import type，tsc 擦除，不产生运行时依赖）──
 // R-PCS-11: 新类型用 import type 引用现有类型，不复制
 import type { EmitEntry, EmitTransformConfig } from './emit/emit.ts'
-import type { GraphSnapshot } from './graph/dependency-graph.ts'
+import type { GraphSnapshot, DependencyGraph } from './graph/dependency-graph.ts'
 import type { GraphConfigData } from './graph/graph.ts'
+import type { NpmResolver } from './graph/npm-resolver.ts'
 import type { CachedModuleResult } from './cache/module-result-cache.ts'
 import type { Lifecycle } from '../shared/lifecycle.ts'
 import type { PackerSessionState } from './state/session-state.ts'
@@ -100,9 +101,23 @@ export interface PackerContext {
 	/** 文件类型 */
 	fileTypes: PackerFileTypes
 
-	// 注意：graph / moduleCache / invalidatedModules 不在 PackerContext
-	// D-PCS-6: 这些在 OrchestratorState（§7）
-	// D-PCS-4: Graph 自己从 ctx.workPath 读 app.json bootstrap
+	// D-SIC-1（fe-tools-singleton-retire-impl-core）：A5 形状纪律候选 a——
+	// D-PCS-1/D-PCS-6 放宽：graph 加 optional（graph 可变单例 worker 透传须 ctx 携带实例）。
+	// 其余字段为 ALS getter 实体化（A5a ctx optional + fallback ALS 渐进）。
+	/** 可变单例实例（addFile/addDependency 写入——worker 重建 + successPayload toJSON 回传） */
+	graph?: DependencyGraph
+	/** getAppId 实体化（configInfo.projectInfo.appid） */
+	appId?: string
+	/** getComponent 实体化（闭包 graph + configInfo——返回 unknown 非 Module|null） */
+	component?: (src: string) => unknown
+	/** getAppConfigInfo 实体化（data——建 ctx 时设 graph.getAppConfigInfo() ?? configInfo.appInfo） */
+	configInfo?: Record<string, unknown>
+	/** getNpmResolver 实体化（NpmResolver 实例——非 resolveNpm function） */
+	npmResolver?: NpmResolver
+	/** isMiniGame 实体化（getRuntimeType——非 configInfo.isMiniGame） */
+	runtimeType?: string
+
+	// Graph 接口定义见 §7（types.ts 自身——PackerGraph implements Graph）
 }
 
 // ════════════════════════════════════════════════════════════════════

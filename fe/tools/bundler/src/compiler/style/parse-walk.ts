@@ -318,7 +318,7 @@ async function enhanceCSS(module: StyleModule, options: StyleOptions = {}, ctx?:
 	}
 	const graphOwnerPath = module.ownerPath || module.path
 	if (graphOwnerPath) {
-		getDependencyGraph().addFile(graphOwnerPath, absolutePath, 'style')
+		const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(graphOwnerPath, absolutePath, 'style')
 	}
 	const cacheKey = `${absolutePath}::${module.id || ''}::${options.sourcemap ? 'map' : 'plain'}::minify:${options.minify !== false}`
 
@@ -477,13 +477,13 @@ function normalizeCssUrlValue(value: string, absolutePath: string, graphOwnerPat
 		}
 
 		if (graphOwnerPath && isCollectableImageAsset(cleanedUrl)) {
-			getDependencyGraph().addFile(
+			const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(
 				graphOwnerPath,
 				resolveAssetSourcePath(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl),
 				'style',
 			)
 		}
-		const realSrc = collectAssets(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl, ctx?.targetPath ?? getTargetPath(), getAppId()!)
+		const realSrc = collectAssets(ctx?.workPath ?? getWorkPath(), absolutePath, cleanedUrl, ctx?.targetPath ?? getTargetPath(), (ctx?.appId ?? getAppId())!)
 		return `url(${realSrc})`
 	})
 }

@@ -61,12 +61,14 @@ export function buildPackerContextFromOptions(
 	workPath: string,
 	targetPath: string,
 	compilerOptions: { templateExts: string[]; styleExts: string[]; viewScriptExts: string[]; viewScriptTags: string[]; templateDirectivePrefixes: string[] },
+	options?: { graph?: import('../types.ts').PackerContext['graph']; appId?: string; component?: (src: string) => unknown; configInfo?: Record<string, unknown>; npmResolver?: NpmResolver; runtimeType?: string; appInfo?: Record<string, unknown> },
 ): PackerContext {
+	const appInfo = options?.appInfo
 	return {
 		workPath,
 		targetPath,
 		readContent: (p: string) => fs.readFileSync(p, { encoding: 'utf-8' }),
-		resolveAlias: (_src: string) => null,
+		resolveAlias: appInfo ? (src: string) => resolveAppAlias(src, appInfo) : (_src: string) => null,
 		resolveNpm: (src: string) => src,
 		fileTypes: {
 			templateExts: compilerOptions.templateExts,
@@ -75,6 +77,12 @@ export function buildPackerContextFromOptions(
 			viewScriptTags: compilerOptions.viewScriptTags,
 			directivePrefixes: compilerOptions.templateDirectivePrefixes,
 		},
+		graph: options?.graph,
+		appId: options?.appId,
+		component: options?.component,
+		configInfo: options?.configInfo,
+		npmResolver: options?.npmResolver,
+		runtimeType: options?.runtimeType,
 	}
 }
 

@@ -1,11 +1,12 @@
 import { getAppConfigInfo, getComponent, getContentByPath, getDependencyGraph, getWorkPath, isMiniGame, resetStoreInfo } from '../../packer/store/env.ts'
+import { MINI_GAME_RUNTIME_TYPE } from '../../packer/store/env-compute.ts'
+import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../../packer/worker/define-engine.ts'
 import type { CachedModuleResult } from '../../packer/cache/module-result-cache.ts'
 import { hasCompileInfo } from '../../shared/utils.ts'
 import { logicParseWalk, processedModules, getJSAbsolutePath } from './parse-walk.ts'
 import { transformCjs } from './transform.ts'
-import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
 import type { PackerContext } from '../../packer/types.ts'
 
 // 是否生成 sourcemap
@@ -53,7 +54,7 @@ async function compileJS(pages: PageModule[], root: string | null, mainCompileRe
 	const compileRes: CompileInfo[] = []
 	const logicDependencies = options?.logicDependencies ?? {}
 	const buildOptions: CompileJSOptions = { ...options, logicDependencies }
-	if (!root && !isMiniGame()) {
+	if (!root && !(ctx?.runtimeType !== undefined ? ctx.runtimeType === MINI_GAME_RUNTIME_TYPE : isMiniGame())) {
 		await buildJSByPath(root, { path: 'app' }, compileRes, mainCompileRes, false, new Set(), false, buildOptions, ctx)
 	}
 
@@ -85,8 +86,8 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		activePaths.add(currentPath)
 		// usingComponents 遍历（与下方非 cache 路径同逻辑，但不构建 extraInfo）
 		if (module.usingComponents) {
-			const allSubPackages = getAppConfigInfo().subPackages as Array<{ root: string }>
-			const graphDeps = getDependencyGraph().getDirectDependencies(module.path, 'component')
+			const allSubPackages = (ctx?.configInfo ?? getAppConfigInfo()).subPackages as Array<{ root: string }>
+			const graphDeps = (ctx?.graph ?? getDependencyGraph()).getDirectDependencies(module.path, 'component')
 			const componentDeps = graphDeps.length > 0 ? new Set(graphDeps) : null
 			for (const [, componentPath] of Object.entries(module.usingComponents)) {
 				if (componentDeps && !componentDeps.has(componentPath)) continue
@@ -97,7 +98,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 						if (normalizedPath.startsWith(`${subPackage.root}/`)) { toMainSubPackage = false; break }
 					}
 				} else { toMainSubPackage = false }
-				const componentModule = getComponent(componentPath) as PageModule | null
+				const componentModule = (ctx?.component ? ctx.component(componentPath) : getComponent(componentPath)) as PageModule | null
 				if (componentModule) {
 					await buildJSByPath(packageName, componentModule, compileRes, mainCompileRes, true, activePaths, putMain || toMainSubPackage, options, ctx)
 				}
@@ -123,9 +124,9 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 		console.warn('[logic]', `找不到模块文件: ${src}`)
 		return
 	}
-	getDependencyGraph().addFile(currentPath, modulePath, 'logic')
+	const _g = ctx?.graph ?? getDependencyGraph(); _g.addFile(currentPath, modulePath, 'logic')
 	// [MC0 D-MC-5] dirty 模块 AST walk 前清 outgoing 'logic' 边，避免 stale edge
-	getDependencyGraph().clearOutgoingEdges(currentPath, 'logic')
+	_g.clearOutgoingEdges(currentPath, 'logic')
 
 	const sourceCode = ctx?.readContent(modulePath) ?? getContentByPath(modulePath)
 	if (!sourceCode) {
@@ -156,8 +157,8 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 
 	if (module.usingComponents) {
 		const componentsObj: Record<string, string> = {}
-		const allSubPackages = getAppConfigInfo().subPackages as Array<{ root: string }>
-		const graphDependencies = getDependencyGraph().getDirectDependencies(module.path, 'component')
+		const allSubPackages = (ctx?.configInfo ?? getAppConfigInfo()).subPackages as Array<{ root: string }>
+		const graphDependencies = (ctx?.graph ?? getDependencyGraph()).getDirectDependencies(module.path, 'component')
 		const componentDependencies = graphDependencies.length > 0
 			? new Set(graphDependencies)
 			: null
@@ -183,7 +184,7 @@ async function buildJSByPath(packageName: string | null, module: PageModule, com
 			else {
 				toMainSubPackage = false
 			}
-			const componentModule = getComponent(path) as PageModule | null
+			const componentModule = (ctx?.component ? ctx.component(path) : getComponent(path)) as PageModule | null
 			if (!componentModule) {
 				continue
 			}
@@ -277,7 +278,7 @@ function logicBuildConfig(msg: Record<string, any>): { sourcemap: boolean; minif
 async function logicCompile({ msg, progress, config }: CompileOptions): Promise<{ compileRes: CompileInfo[], logicDependencies: Record<string, string[]> }> {
 	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: PageModule[]; subPages: Record<string, { info: PageModule[]; independent: boolean }> } }
 	resetStoreInfo(m.storeInfo)
-	const ctx = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!)
+	const ctx = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!, { graph: getDependencyGraph() })
 	enableSourcemap = !!m.sourcemap
 	activeCompileConfig = config as ActiveCompileConfig
 
@@ -301,9 +302,9 @@ async function logicCompile({ msg, progress, config }: CompileOptions): Promise<
 	processedModules.clear()
 	return { compileRes, logicDependencies }
 }
-function logicSuccessPayload({ logger }: { logger: { warn: (msg: string) => void; flush: () => string[] } }): Record<string, unknown> {
+function logicSuccessPayload({ logger, graph }: { logger: { warn: (msg: string) => void; flush: () => string[] }; graph?: import('../../packer/types.ts').PackerContext['graph'] }): Record<string, unknown> {
 	return {
-		dependencyGraph: getDependencyGraph().toJSON(),
+		dependencyGraph: (graph ?? getDependencyGraph()).toJSON(),
 		compatibilityWarnings: logger.flush(),
 	}
 }

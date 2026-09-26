@@ -151,7 +151,7 @@ function getViewScriptTags() {
 	return getCompilerContext().compilerOptions.viewScriptTags
 }
 
-function getDependencyGraph() {
+function getDependencyGraph(): DependencyGraph {
 	return getCompilerContext().graph?.getInnerGraph() ?? getCompilerContext().dependencyGraph
 }
 

@@ -42,6 +42,8 @@ export async function logicParseWalk(
 ): Promise<LogicParseWalkResult> {
 	const { isTypeScript, sourcemap } = options
 
+	const _graph = ctx?.graph ?? getDependencyGraph()
+
 	// 使用 oxc-parser 解析代码
 	const parseResult = parseSync(modulePath, source, {
 		sourceType: 'module',
@@ -85,7 +87,7 @@ export async function logicParseWalk(
 				)
 			}
 			if ((node.type === 'Literal' && typeof node.value === 'string') && isLocalAssetString(node.value)) {
-				getDependencyGraph().addFile(
+				_graph.addFile(
 					currentPath,
 					resolveAssetSourcePath(workPath, modulePath, node.value),
 					'logic',
@@ -93,7 +95,7 @@ export async function logicParseWalk(
 				pathReplacements.push({
 					start: node.start,
 					end: node.end,
-					newValue: collectAssets(workPath, modulePath, node.value, targetPath, getAppId()!),
+					newValue: collectAssets(workPath, modulePath, node.value, targetPath, (ctx?.appId ?? getAppId())!),
 				})
 			}
 
@@ -117,7 +119,7 @@ export async function logicParseWalk(
 						const { id, shouldProcess } = resolveDependencyId(requirePath, modulePath, false)
 
 						if (shouldProcess) {
-							getDependencyGraph().addDependency(currentPath, id, 'logic')
+							_graph.addDependency(currentPath, id, 'logic')
 							logicDeps.push(id)
 							pathReplacements.push({
 								start: arg.start,
@@ -140,7 +142,7 @@ export async function logicParseWalk(
 					const { id, shouldProcess } = resolveDependencyId(importPath, modulePath, true)
 
 					if (shouldProcess) {
-						getDependencyGraph().addDependency(currentPath, id, 'logic')
+						_graph.addDependency(currentPath, id, 'logic')
 						logicDeps.push(id)
 						pathReplacements.push({
 							start: node.source.start,
@@ -166,7 +168,7 @@ export async function logicParseWalk(
 					const { id, shouldProcess } = resolveDependencyId(importPath, modulePath, false)
 
 					if (shouldProcess) {
-						getDependencyGraph().addDependency(currentPath, id, 'logic')
+						_graph.addDependency(currentPath, id, 'logic')
 						logicDeps.push(id)
 						pathReplacements.push({
 							start: importPathNode.start,
@@ -192,7 +194,7 @@ export async function logicParseWalk(
 					const { id, shouldProcess } = resolveDependencyId(exportPath, modulePath, true)
 
 					if (shouldProcess) {
-						getDependencyGraph().addDependency(currentPath, id, 'logic')
+						_graph.addDependency(currentPath, id, 'logic')
 						logicDeps.push(id)
 						pathReplacements.push({
 							start: node.source.start,

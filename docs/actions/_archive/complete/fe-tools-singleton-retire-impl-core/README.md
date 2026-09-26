@@ -1,6 +1,6 @@
 # fe-tools-singleton-retire-impl-core
 
-- Status: `ready`
+- Status: `complete`
 - Type: impl（D-SR-1+2+3 核心迁移——PackerContext 扩 optional + ALS 残留 31 处迁 ctx 读 + successPayload 改 ctx.graph）
 - Parent: fe-tools-singleton-retire-research（D-SR-1..6 拆分——A5a 核心 + A5b cleanup）
 - Gates: A0+A1（worker-ctx-direct）+ A2（view-parse-walk-migrate）+ A3（style-parse-walk-migrate）+ A4（compat-write-retire-research）+ A5（singleton-retire-research）全 complete

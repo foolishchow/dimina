@@ -4,6 +4,8 @@
  */
 
 import { getDependencyGraph, getWorkPath, resetStoreInfo } from '../../packer/store/env.ts'
+import { buildPackerContextFromOptions } from '../../packer/graph/config-fixpoint.ts'
+import type { PackerContext } from '../../packer/types.ts'
 import { defineEngine } from '../../packer/worker/define-engine.ts'  // P-WR02
 import type { CompileOptions } from '../../packer/worker/define-engine.ts'
 import { getWxmlRenderer, registerWxmlRenderer } from './wxml/renderer/registry.ts'
@@ -68,7 +70,7 @@ interface ViewCompileMLResult {
 	pageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[]; selective?: boolean; orderList?: string[] }>
 }
 
-async function compileML(pages: ViewModule[], root: string | null, progress: Progress, viewCache?: Map<string, ViewCompiledModule> | null, viewOrderList?: Map<string, string[]> | null, invalidated?: string[] | null): Promise<ViewCompileMLResult> {
+async function compileML(pages: ViewModule[], root: string | null, progress: Progress, viewCache?: Map<string, ViewCompiledModule> | null, viewOrderList?: Map<string, string[]> | null, invalidated?: string[] | null, ctx?: PackerContext): Promise<ViewCompileMLResult> {
 	const workPath = getWorkPath()
 
 	// IRC D-IRC-3/R9：仅当至少一 page cache-miss 时才扫 wxs（全 cache-hit 跳过——hit 不消费 wxsFilePathMap）。
@@ -123,7 +125,7 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 			// ★ H3 Phase 2: selective recompile——order list 存在 + 全 module（cached ∪ dirty）→
 			// 只重编译 dirty（compileViewTree 内 clean+cached module 跳过 compile，seed from cache）
 			const dirtySet = new Set((invalidated ?? []).filter(id => orderList.includes(id)))
-			const modules = viewParseWalk(page, { sourcemap: enableSourcemap }, { viewCache, dirtySet })
+			const modules = viewParseWalk(page, { sourcemap: enableSourcemap }, { viewCache, dirtySet }, ctx)
 			const viewMods: ViewCompiledModule[] = modules.map(mod => ({ moduleId: mod.moduleId, kind: 'view', code: mod.code, map: mod.map, dependencies: [] }))
 			// dirty 子集（IPC 经济 + cache 更新）：code ≠ cached（重编译 module 或重变换 wxs）
 			const dirtyMods = viewMods.filter(m => viewCache.get(m.moduleId)?.code !== m.code)
@@ -134,7 +136,7 @@ async function compileML(pages: ViewModule[], root: string | null, progress: Pro
 			await emitEntry({ ...emitParams, modules })
 		} else {
 			// cache-miss（无 order list / 未知 module → 全量 viewParseWalk）
-			const modules = viewParseWalk(page, { sourcemap: enableSourcemap })
+			const modules = viewParseWalk(page, { sourcemap: enableSourcemap }, undefined, ctx)
 			// G4 D-G4-1：viewParseWalk 返 EmitModule（{moduleId,code,map}）→ 降级 base ViewCompiledModule，存 per-page-bundle
 			const viewMods: ViewCompiledModule[] = modules.map(mod => ({ moduleId: mod.moduleId, kind: 'view', code: mod.code, map: mod.map, dependencies: [] }))
 			results.push(...viewMods)
@@ -190,6 +192,7 @@ export {
 async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{ viewCompileResults: ViewCompiledModule[]; viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[]; selective?: boolean; orderList?: string[] }> }> {
 	const m = msg as { storeInfo: Parameters<typeof resetStoreInfo>[0]; sourcemap?: boolean; pages: { mainPages: ViewModule[]; subPages: Record<string, { info: ViewModule[]; independent: boolean }> }; viewCache?: Map<string, ViewCompiledModule> | null; viewOrderList?: Map<string, string[]> | null; invalidatedModules?: string[] | null }
 	resetStoreInfo(m.storeInfo)
+	const ctx: PackerContext = buildPackerContextFromOptions(m.storeInfo.pathInfo.workPath!, m.storeInfo.pathInfo.targetPath!, m.storeInfo.compilerOptions!)
 	setEnableSourcemap(!!m.sourcemap)
 	activeCompileConfig = config as { minify: boolean; sourcemap: boolean; esTarget: { logic: string; view: string } }
 	resetWxsScan()
@@ -199,11 +202,11 @@ async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{
 	// viewPageBundles 供 stage-channel 写 per-page-bundle viewCache（活跃）；runtime.ts:33 Object.assign(response, compileResult) 仍 postMessage（vestigial-but-intentional）。
 	const viewCompileResults: ViewCompiledModule[] = []
 	const viewPageBundles: Array<{ pagePath: string; modules: ViewCompiledModule[]; selective?: boolean; orderList?: string[] }> = []
-	const main = await compileML(m.pages.mainPages, null, progress as Progress, m.viewCache ?? undefined, m.viewOrderList ?? undefined, m.invalidatedModules)
+	const main = await compileML(m.pages.mainPages, null, progress as Progress, m.viewCache ?? undefined, m.viewOrderList ?? undefined, m.invalidatedModules, ctx)
 	viewCompileResults.push(...main.results)
 	viewPageBundles.push(...main.pageBundles)
 	for (const [root, subPages] of Object.entries(m.pages.subPages)) {
-		const sub = await compileML(subPages.info as ViewModule[], root, progress as Progress, m.viewCache ?? undefined, m.viewOrderList ?? undefined, m.invalidatedModules)
+		const sub = await compileML(subPages.info as ViewModule[], root, progress as Progress, m.viewCache ?? undefined, m.viewOrderList ?? undefined, m.invalidatedModules, ctx)
 		viewCompileResults.push(...sub.results)
 		viewPageBundles.push(...sub.pageBundles)
 	}
@@ -211,9 +214,9 @@ async function viewCompile({ msg, progress, config }: CompileOptions): Promise<{
 	clearViewCaches()
 	return { viewCompileResults, viewPageBundles }
 }
-function viewSuccessPayload({ logger }: { logger: { warn: (msg: string) => void; flush: () => string[] } }): Record<string, unknown> {
+function viewSuccessPayload({ logger, graph }: { logger: { warn: (msg: string) => void; flush: () => string[] }; graph?: import('../../packer/types.ts').PackerContext['graph'] }): Record<string, unknown> {
 	return {
-		dependencyGraph: getDependencyGraph().toJSON(),
+		dependencyGraph: (graph ?? getDependencyGraph()).toJSON(),
 		compatibilityWarnings: logger.flush(),
 	}
 }

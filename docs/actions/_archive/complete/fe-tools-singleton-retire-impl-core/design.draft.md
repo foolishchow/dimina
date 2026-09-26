@@ -1,6 +1,6 @@
 # Design Draft — fe-tools-singleton-retire-impl-core
 
-> **状态：ready**——D-SIC-1..3 已 review lock。A5 核心迁移（PackerContext 扩 + ALS 迁 + successPayload）。
+> **状态：complete**——D-SIC-1..3 已实施 + 行为 0 三件套全绿（tsc 0 + vitest 88/88 + 7-diff=0）。A5 核心迁移（PackerContext 扩 + ALS 迁 + successPayload）。
 
 ## 1. D-SIC-1 — PackerContext 扩 optional（形状纪律候选 a 锁定）
 
@@ -87,6 +87,13 @@ successPayload: (ctx: { logger: {...}; graph?: Graph }) => Record<string, unknow
 - **A2/A3（view/style parse-walk）**：独立函数透传链——D-SIC-2 ALS 迁同模式
 - **A5 research（singleton-retire-research）**：D-SR-1..3 细化——D-SIC-1..3 对应
 - **D-PCS-1/D-PCS-6**：PackerContext 形状——D-SIC-1 放宽（graph optional）
+
+## 6b. 实施 deviations（D-SIC-dev1..4 回填）
+
+- **D-SIC-dev1**：ctx.graph 类型 DependencyGraph（非 Graph 接口）——parse-walk 用 addFile/getDirectDependencies/clearOutgoingEdges（Graph 接口无这些方法）。types.ts PackerContext.graph?: DependencyGraph + import DependencyGraph
+- **D-SIC-dev2**：getDependencyGraph() 加显式返回类型 `: DependencyGraph`——TS 推断 `graph?.getInnerGraph() ?? dependencyGraph` 为 DependencyGraph | undefined 导致 `(ctx?.graph ?? getDependencyGraph())!` 报 void（TS quirks）
+- **D-SIC-dev3**：helper 变量 `_graph` 替代内联 `(ctx?.graph ?? getDependencyGraph())!`——内联 `!` 非空断言报 void（TS quirks），helper 变量 `_graph = ctx?.graph ?? getDependencyGraph()` 解决
+- **D-SIC-dev4**：successPayload runtime.ts caller 不传 graph——runtime 无 ctx 访问，fallback ALS（runtime.ts:33 `engine.n({ logger })` 不改——graph undefined → fallback getDependencyGraph()）。A5b 才完全迁（runtime 传 graph）
 
 ## 7. 结论
 

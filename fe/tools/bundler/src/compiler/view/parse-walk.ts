@@ -385,6 +385,7 @@ function isRegisteredWxsModule(modulePath: string): boolean {
 }
 function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map<string, string>, activePaths: Set<string> = new Set(), inheritedTemplatePaths: Set<string> = new Set(), sourceMapRes: Map<string, string> = new Map(), select?: ViewSelectContext, ctx?: PackerContext): Record<string, unknown> | null {
 	const currentPath = module.path
+	const _graph = ctx?.graph ?? getDependencyGraph()
 
 	// Recursive component declarations are valid. Stop only the duplicate edge
 	// on the current traversal path; the runtime keeps the recursive mapping.
@@ -429,12 +430,12 @@ function compileViewTree(module: ViewModule, isComponent = false, scriptRes: Map
 	}
 
 	if (module.usingComponents) {
-		const graphDependencies = getDependencyGraph().getDirectDependencies(module.path, 'component')
+		const graphDependencies = _graph.getDirectDependencies(module.path, 'component')
 		const componentDependencies = graphDependencies.length > 0
 			? graphDependencies
 			: Object.values(module.usingComponents)
 		for (const componentInfo of componentDependencies) {
-			const componentModule = getComponent(componentInfo)
+			const componentModule = (ctx?.component ? ctx.component(componentInfo) : getComponent(componentInfo))
 			if (!componentModule) {
 				continue
 			}
@@ -783,7 +784,7 @@ function replaceConstructor(node: { object: { start: number; end: number }; star
  */
 export function processWxsContent(wxsContent: string, wxsFilePath: string, scriptModule: unknown[], workPath: string, filePath: string, graphOwnerPath = filePath, ctx?: PackerContext): unknown {
 	if (wxsFilePath && graphOwnerPath) {
-		getDependencyGraph().addFile(graphOwnerPath, wxsFilePath, 'view')
+		const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(graphOwnerPath, wxsFilePath, 'view')
 	}
 	let wxsAst
 	try {
@@ -901,13 +902,13 @@ export function transAsses(document: WxmlNode, imageNodes: WxmlNode[], path: str
 			if (!imgSrc.startsWith('http')
 				&& !imgSrc.startsWith('//')
 				&& isCollectableImageAsset(imgSrc)) {
-				getDependencyGraph().addFile(
+				const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(
 					graphOwnerPath,
 					resolveAssetSourcePath(ctx?.workPath ?? getWorkPath(), path, imgSrc),
 					'view',
 				)
 			}
-			setAttr(elem, 'src', collectAssets(ctx?.workPath ?? getWorkPath(), path, imgSrc, ctx?.targetPath ?? getTargetPath(), getAppId()!))
+			setAttr(elem, 'src', collectAssets(ctx?.workPath ?? getWorkPath(), path, imgSrc, ctx?.targetPath ?? getTargetPath(), (ctx?.appId ?? getAppId())!))
 		}
 	}
 }
@@ -1176,7 +1177,7 @@ export function transTagWxs(document: WxmlNode, scriptModule: unknown[], filePat
 				}
 
 				if (wxsFilePath) {
-					getDependencyGraph().addFile(graphOwnerPath, wxsFilePath, 'view')
+					const _graph = ctx?.graph ?? getDependencyGraph(); _graph.addFile(graphOwnerPath, wxsFilePath, 'view')
 					// 为外部 wxs 文件生成唯一的模块名和缓存键
 					const relativePath = stripViewScriptExt(wxsFilePath.replace(workPath, ''))
 					uniqueModuleName = relativePath.replace(/[\/\\@\-]/g, '_').replace(/^_/, '')
