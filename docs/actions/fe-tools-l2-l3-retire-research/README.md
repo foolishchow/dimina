@@ -1,6 +1,6 @@
 # fe-tools-l2-l3-retire-research
 
-- Status: `draft`
+- Status: `ready`
 - Status authority: [Action Status](../STATUS.md)
 - source-audit：[source-audit.md](source-audit.md)（L2+L3 退役门控分析 + 拆分方案）
 - 设计门：[design.draft.md](design.draft.md)（A0-A5 拆分方案 + 根门控）

@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：draft**——拆分方案 A0-A5 **已 review lock**（5 轮 readiness review：R1-R4 全 findings 修正 + R5 收敛——F-R1-1 序列化方案 b 实证 / F-R2-1 签名不一致 / F-R3-1 A0 4 处改造点 / F-R4-1/2 caller 分布 + getPages 门控）。基于 source-audit（L2/L3/compat caller 分布 + 门控链条）。
+> **状态：ready**——拆分方案 A0-A5 **已 review lock**（5 轮 readiness review：R1-R4 全 findings 修正 + R5 收敛——F-R1-1 序列化方案 b 实证 / F-R2-1 签名不一致 / F-R3-1 A0 4 处改造点 / F-R4-1/2 caller 分布 + getPages 门控）。基于 source-audit（L2/L3/compat caller 分布 + 门控链条）。
 
 ## 1. 拆分方案（A0-A5 渐进子 Action）
 
