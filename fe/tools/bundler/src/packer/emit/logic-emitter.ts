@@ -14,7 +14,8 @@
 import { deriveLogicBuckets } from './convergence.ts'
 import { executeTask } from '../worker/executor.ts'
 import { emitEngine } from './emit-engine.ts'
-import { BuildModel } from './build-model.ts'
+import type { Output } from '../types.ts'
+import type { EmitEntry } from './emit.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
 import type { BuildCollaborator, StageChannelContext } from '../types.ts'
@@ -34,8 +35,7 @@ export function createLogicEmitter(): BuildCollaborator<LogicEmitterDeps> {
 			const pages = sctx.pages as PagesInfo | undefined
 			const compileConfigOpts = sctx.compileConfig as { minify: boolean; esTarget: { logic: string } } | undefined
 			if (!pages || !compileConfigOpts) return  // logic stage 未跑（partial-stage）→ skip emit
-			const buildModel = sctx.buildModel as BuildModel
-			const output = (sctx as { output?: { add: (e: unknown) => void } }).output
+			const output = (sctx as { output?: Output }).output
 			const storeInfo = sctx.storeInfo
 			const sourcemap = !!sctx.sourcemap
 			const sourcemapTargetPath = sctx.sourcemapTargetPath as string | undefined
@@ -51,14 +51,14 @@ export function createLogicEmitter(): BuildCollaborator<LogicEmitterDeps> {
 					const { entry } = await executeTask({ engine: emitEngine, input: {
 						entryId: 'logic:' + root, kind: 'logic' as const, modules,
 						transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: root, storeInfo,
-					} }) as { entry: Parameters<typeof buildModel.add>[0] }
-					buildModel.add(entry); output?.add(entry)
+					} }) as { entry: EmitEntry }
+					output?.add(entry)
 				}
 				const { entry } = await executeTask({ engine: emitEngine, input: {
 					entryId: 'logic', kind: 'logic' as const, modules: main,
 					transform, sourcemap, sourcemapTargetPath, filename: 'logic', relPrefix: 'main', storeInfo,
-				} }) as { entry: Parameters<typeof buildModel.add>[0] }
-				buildModel.add(entry); output?.add(entry)
+				} }) as { entry: EmitEntry }
+				output?.add(entry)
 			} catch (error) {
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_ERROR, { stage: 'logic', error })
 				throw error

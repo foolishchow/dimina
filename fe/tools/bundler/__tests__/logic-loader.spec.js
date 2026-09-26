@@ -176,6 +176,6 @@ describe('LoaderRegistryImpl + orchestrator materialize（H2 Phase 2a）', () =>
 				parallel: false, incremental: false, configChanged: false },
 		)
 		expect(result.appId).toBe('test-app')
-		expect(result.buildModel.entries.size).toBeGreaterThan(0)
+		expect(result.entries.length).toBeGreaterThan(0)
 	})
 })

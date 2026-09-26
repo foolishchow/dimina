@@ -11,7 +11,6 @@
  * ctx→sctx 统一（R12-3：原 L23 ctx.storeInfo → sctx.storeInfo）。
  */
 
-import { BuildModel } from '../emit/build-model.ts'
 import { getPagesImpl, buildFixpointCtx } from '../graph/config-fixpoint.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
@@ -33,7 +32,6 @@ export function createConfigCollector(): BuildCollaborator<ConfigCollectorDeps> 
 	return {
 		async run(sctx: StageChannelContext, deps: ConfigCollectorDeps) {
 			const { store, state, lifecycle, loaderRegistry, workPath, fileTypes, invalidatedModules } = deps
-			sctx.buildModel = new BuildModel()
 			sctx.storeInfo = store.load(workPath, { fileTypes, graph: state.graph })
 			sctx.dependencyGraph = store.getDependencyGraph()
 			sctx.cache = state.moduleCache

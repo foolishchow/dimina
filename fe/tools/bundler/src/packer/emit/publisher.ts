@@ -1,43 +1,36 @@
 /**
  * Publisher — 写入编译产物 collaborator（facade-collaborator D-FC-1）。
  *
- * 拥有的逻辑（从 orchestrator.ts 写入产物 task 搬迁）：
- *   materialize（skipMaterialize guard）+ publishToDist（增量/全量）+ BUNDLE_PUBLISHED 事件
+ * 拥有的逻辑：output.publish（DiskOutput 封装 materialize+publishToDist）+ BUNDLE_PUBLISHED 事件。
  *
  * 无状态 collaborator（createPackerOrchestrator 闭包内一次构造复用）。
- * 读 sctx.buildModel（P3 设 + P4/P5 add，materialize 消费）+ ALS getTargetPath（D-FC-4 保留）。
+ * F-R11-1：删 skipMaterialize guard + 删 sctx.storeInfo.pathInfo 读（buildDir/temporaryTargetPath 内化入 DiskOutput.publish）+ 加 output deps。
+ * F-R14-1：output.publish(target, { useAppIdDir, seedPath, appId, incremental: !!seedPath })。
  */
 
-import { materialize } from './build-model.ts'
-import { publishToDist } from './publish.ts'
 import { LIFECYCLE_EVENTS } from '../../shared/lifecycle.ts'
 import type { Lifecycle } from '../../shared/lifecycle.ts'
-import type { BuildCollaborator, StageChannelContext } from '../types.ts'
-import type { BuildModel } from './build-model.ts'
+import type { BuildCollaborator, StageChannelContext, Output } from '../types.ts'
 
 export interface PublisherDeps {
 	targetPath: string
 	useAppIdDir: boolean
 	seedPath?: string
-	skipMaterialize?: boolean
 	appId?: string
 	lifecycle: Lifecycle
+	output?: Output
 }
 
 export function createPublisher(): BuildCollaborator<PublisherDeps> {
 	return {
 		async run(sctx: StageChannelContext, deps: PublisherDeps) {
-			const { targetPath, useAppIdDir, seedPath, skipMaterialize, appId, lifecycle } = deps
-			if (!skipMaterialize) {
-				// B 切法（PC-B2）：build dir 从 sctx.storeInfo 显式读（非 ALS getTargetPath）
-				const buildDir = (sctx.storeInfo as { pathInfo: { targetPath: string } }).pathInfo.targetPath
-				materialize(sctx.buildModel as BuildModel, buildDir)
-			}
-			// H4 Phase 2 (F-H4-2): seedPath（watch/compile-cache 增量）→ 增量 sync publish
-			// （content-diff，无 rm 窗口）；否则全量（one-shot，行为不变，F8 guard）
-			// B 切法（PC-B2/B4c3）：build dir + appId + isTemporary 从 sctx.storeInfo + deps 显式传（非 ALS）
-			const pathInfo = (sctx.storeInfo as { pathInfo: { targetPath: string; temporaryTargetPath?: boolean } }).pathInfo
-			publishToDist(targetPath, useAppIdDir, !!seedPath, pathInfo.targetPath, appId, pathInfo.temporaryTargetPath)
+			const { targetPath, useAppIdDir, seedPath, appId, lifecycle, output } = deps
+			// P-O2 过渡：scratch = sctx.storeInfo.pathInfo.targetPath（per-request TEMP，并发安全）
+			// P-O3 后：DiskOutput 内化 mkdtemp（删 sctx.storeInfo.pathInfo 读，F-R11-1）
+			const scratch = (sctx.storeInfo as { pathInfo: { targetPath: string } }).pathInfo.targetPath
+			// D-O3/F-R11-1：output.publish 封装 materialize+publishToDist（DiskOutput 内 dirty guard + rename/sync）
+			// MemOutput.publish no-op（dev 不写盘）
+			output?.publish(targetPath, { useAppIdDir, scratch, seedPath, appId, incremental: !!seedPath })
 			await lifecycle.emit(LIFECYCLE_EVENTS.BUNDLE_PUBLISHED, { targetPath, useAppIdDir })
 		},
 	}

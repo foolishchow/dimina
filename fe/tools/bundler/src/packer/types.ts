@@ -414,6 +414,8 @@ export interface ModuleResultCache<V = CachedModuleResult> {
 export interface PublishOpts {
 	/** app 子目录（useAppIdDir）。 */
 	useAppIdDir?: boolean
+	/** scratch 路径（per-request TEMP——P-O2 过渡用 sctx.storeInfo.pathInfo.targetPath；P-O3 后 DiskOutput 内化 mkdtemp）。 */
+	scratch?: string
 	/** seed 路径（incremental sync 前提——F-R13-1：scratch 预 seed copy）。 */
 	seedPath?: string
 	/** app id（useAppIdDir 子目录名）。 */

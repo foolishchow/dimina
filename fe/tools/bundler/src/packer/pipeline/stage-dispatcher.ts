@@ -51,7 +51,7 @@ function createStageTask(stage: string, title: string, engine: unknown, lifecycl
 					await runStage(ctx, task, workerOptions, lifecycle)
 				}
 				else {
-					await runCompileStage({ script: stage, engine: engine as RunCompileStageParams['engine'], ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => { ((sctx.buildModel) as { add: (e: unknown) => void } | undefined)?.add(entry); ((sctx as { output?: { add: (e: unknown) => void } }).output)?.add(entry) } })
+					await runCompileStage({ script: stage, engine: engine as RunCompileStageParams['engine'], ctx, task: task as { output: string }, options: workerOptions, lifecycle, onOutput: (entry: unknown) => { ((sctx as { output?: { add: (e: unknown) => void } }).output)?.add(entry) } })
 				}
 				await lifecycle.emit(LIFECYCLE_EVENTS.STAGE_AFTER, {
 					stage,
