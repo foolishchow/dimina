@@ -10,7 +10,7 @@ Status authority: [Action Status](../STATUS.md)
 | V-PCD-4 | R-PCD-1 | grep `buildPackerContextFromOptions` 定义非 0 + readContent/resolveAlias/resolveNpm stub 在内核唯一（非三处重复） | pending |
 | V-PCD-5 | R-PCD-2 | grep `buildPackerContext` 在 env-compute = normalize + 内核（非逐字重复） | pending |
 | V-PCD-6 | R-PCD-3 | grep `toPackerContext` 在 env-compute = 取字段 + 内核（非逐字重复） | pending |
-| V-PCD-7 | R-PCD-4 | grep `buildFixpointCtx` 在 config-fixpoint = 内核 + 包 FixpointCtx（非逐字重复 ctx 构造） | pending |
+| V-PCD-7 | R-PCD-4 | grep `buildFixpointCtx` 在 config-fixpoint = 内核 + 包 FixpointCtx（非逐字重复 ctx 构造）+ grep `as PackerFileTypes` = 0（F-R9-1：buildFixpointCtx 冗余断言去除） | pending |
 | V-PCD-8 | R-PCD-5 | 内核放置无循环依赖（config-fixpoint 不 import env-compute——选项 A；或纯工具层无循环——选项 C） | pending |
 | V-PCD-9 | R-PCD-6 | 字段名映射在内核统一（`templateDirectivePrefixes` → `directivePrefixes`——grep 内核非 0）+ config-collector 反向解构去留 D-PCD-6 lock 后定 | pending |
 | V-PCD-10 | R-PCD-5 | caller public 签名最小改动（buildPackerContext/buildFixpointCtx 签名不变——测试 fixture 依赖） | pending |
