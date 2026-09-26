@@ -15,7 +15,7 @@ env.ts 是 L1（计算）+ L2（ALS 门面）+ L3（worker 桥接）三层混合
 - **fileTypes 规范化**：`normalizeExt`/`normalizeTag`/`mergeUnique`/`normalizeFileTypes`（+ `FileTypesInput` interface export）
 - **path 计算**：`computePathInfo`（workPath → pathInfo，mkdtemp 副作用保留）
 - **PackerContext 构造**：`buildPackerContext`（workPath/targetPath/fileTypes → PackerContext，纯）
-- **storeInfo 纯计算**：`computeStoreInfo`（storeInfo 拆出的纯计算部分——normalizeFileTypes + computePathInfo + graph build/reconcile + pathInfo，**无 compat 写**）。签名 design §3 lock。
+- **storeInfo 纯计算**：`computeStoreInfo`（storeInfo 拆出的纯计算部分——normalizeFileTypes + computePathInfo + NpmResolver + graph build/reconcile + pathInfo，**无 compat 写**）。返回含 npmResolver（F-R6-1——wrapper compat 写喂 parse-walk:363 主线程测试路径）。签名 design §3 lock。
 - **storeInfoCtx**：调 computeStoreInfo → `state.scratch = pathInfo.targetPath!`（orchestrate 链路纯函数，无 compat 写）
 - **buildResetStoreInfoData**：ctx/state → resetStoreInfoData（纯，字段名转换 + configInfo `as ConfigInfo`）
 - **纯工具**：`getAppStyleScopeId`（uuid）、`getContentByPath`（fs.readFileSync）
@@ -26,7 +26,7 @@ env.ts 是 L1（计算）+ L2（ALS 门面）+ L3（worker 桥接）三层混合
 env.ts 退化为：
 - **L2 ALS 门面**：`defaultCompilerContext` singleton + `createCompilerContext`/`getCompilerContext` + `pathInfo`/`configInfo` Proxy + getters（`getTemplateExts`/`getStyleExts`/`getWorkPath`/`getTargetPath`/`getAppId`/`getDependencyGraph`/`getComponent`/`getPageConfigInfo`/`getAppConfigInfo`/`getRuntimeType`/`isMiniGame`/`getNpmResolver`/`getAppName`/`getViewScriptExts`/`getViewScriptTags`/`getTemplateDirectivePrefixes`/`getProjectConfig`）+ `ConfigInfo`/`PathInfo` type
 - **L3 worker 桥接**：`resetStoreInfo`（写 defaultCompilerContext——worker 上下文恢复）
-- **storeInfo wrapper**：调 `env-compute.computeStoreInfo` 取结果 + **compat 写保留**（写 getCompilerContext singleton——backflow，测试 fixture 依赖 ALS getter）。旧签名 `storeInfo(workPath, options)` 不变（105 测试调用点不动）
+- **storeInfo wrapper**：调 `env-compute.computeStoreInfo` 取结果 + **compat 写保留**（写 getCompilerContext singleton——backflow，测试 fixture 依赖 ALS getter）。旧签名 `storeInfo(workPath, options)` 不变（~107 调用点/34 测试文件不动）
 - **re-export L1**：从 env-compute re-export `buildPackerContext`/`storeInfoCtx`/`buildResetStoreInfoData`/`getAppStyleScopeId`/`getContentByPath`（方案 A 最小改动——消费方 import from env.ts 不变）
 
 ### R-EL1-3 — 死代码清理（MUST）

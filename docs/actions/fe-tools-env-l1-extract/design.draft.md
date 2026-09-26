@@ -65,10 +65,14 @@ storeInfo(workPath, options) → {pathInfo, configInfo, compilerOptions, depende
 ```
 
 **拆分**：
-- `computeStoreInfo(workPath, options) → { pathInfo, compilerOptions, graph, configInfo }`（纯计算，无 compat 写；graph 实例返回——wrapper 自取 `graph.toJSON()`（return 值）+ `graph.getInnerGraph()`（compat 写），不冗余返回 dependencyGraph 字段）。内部建 localCtx + `toPackerContext(localCtx)` + graph.build/reconcile。
-- env.ts `storeInfo(workPath, options)` wrapper = `computeStoreInfo(workPath, options)` + compat 写（写 getCompilerContext singleton 6 条）+ return。签名/返回值不变（105 测试 caller 不动）。
+- `computeStoreInfo(workPath, options) → { pathInfo, compilerOptions, graph, configInfo, npmResolver }`（纯计算，无 compat 写；graph 实例返回——wrapper 自取 `graph.toJSON()`（return 值）+ `graph.getInnerGraph()`（compat 写），不冗余返回 dependencyGraph 字段；**npmResolver 返出**（F-R6-1——localCtx.npmResolver = new NpmResolver(workPath)，wrapper compat 写 `context.npmResolver = r.npmResolver` 喂主线程 parse-walk 测试路径：parse-walk.ts:363 getNpmResolver ← 9 测试文件 storeInfo 后主线程直调 logicParseWalk 依赖））。内部建 localCtx + `toPackerContext(localCtx)` + graph.build/reconcile。
+- env.ts `storeInfo(workPath, options)` wrapper = `computeStoreInfo(workPath, options)` + compat 写（写 getCompilerContext singleton 6 条）+ return。签名/返回值不变（~107 调用点/34 测试文件不动）。
 
-**CompilerContext type 处理**：computeStoreInfo 内部用 CompilerContext shape（localCtx）。`toPackerContext(ctx: CompilerContext)` 收 CompilerContext。CompilerContext 是 env.ts 内部 type。**决策**：CompilerContext type 迁 env-compute（computeStoreInfo + toPackerContext 用），不 export（内部）。或 toPackerContext 收 raw 字段（workPath/targetPath/compilerOptions）——但 localCtx 是完整 CompilerContext。**倾向**：CompilerContext type 迁 env-compute internal（不 export），toPackerContext 迁 env-compute internal。
+**CompilerContext type 处理**：computeStoreInfo 内部用 CompilerContext shape（localCtx）。`toPackerContext(ctx: CompilerContext)` 收 CompilerContext。CompilerContext 是 env.ts 内部 type。**决策**：CompilerContext type 迁 env-compute（computeStoreInfo + toPackerContext 用），不 export（内部）。
+
+**迁移细则（F-R4-1——行为 0 纪律）**：computeStoreInfo **逐字搬迁** storeInfo 的 graph 分支逻辑（env.ts:196-209）：
+- `if (options.graph)` 分支内**顺序执行** reconcile → restoreFromSnapshot → reconcile（注释写「State 路径 / 旧路径」但实际两段都跑——storeinfo-collapse 后 7-diff=0 已验证此行为正确）——**不「修正」为二选一**（行为变化）
+- `SC_TRACE` console.error x2（env.ts:201/209——storeinfo-collapse 实施期诊断残留）——**逐字搬迁**（debug-only env-gate 不影响产物；删除属可选独立卫生步，不在本 Action 强制）
 
 ### D-EL1-3 — storeInfoCtx 迁出
 

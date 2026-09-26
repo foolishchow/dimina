@@ -4,7 +4,7 @@ Status authority: [Action Status](../STATUS.md)
 
 | ID | Requirement | Title | Acceptance criterion | Status |
 | --- | --- | --- | --- | --- |
-| A-EL1-1 | R-EL1-1 | env-compute.ts L1 纯模块 | 新建 `src/packer/store/env-compute.ts` 承载常量 + normalizeFileTypes + computePathInfo + buildPackerContext + computeStoreInfo + storeInfoCtx + buildResetStoreInfoData + getAppStyleScopeId + getContentByPath + PathInfo/ConfigInfo type；env-compute 不依赖 env.ts（无循环 import）；tsc 0 | pending |
+| A-EL1-1 | R-EL1-1 | env-compute.ts L1 纯模块 | 新建 `src/packer/store/env-compute.ts` 承载常量 + normalizeFileTypes + computePathInfo + buildPackerContext + computeStoreInfo（返回含 npmResolver——F-R6-1）+ storeInfoCtx + buildResetStoreInfoData + getAppStyleScopeId + getContentByPath + PathInfo/ConfigInfo type；env-compute 不依赖 env.ts（无循环 import）；tsc 0 | pending |
 | A-EL1-2 | R-EL1-2 | env.ts 退化 L2/L3 门面 + re-export | env.ts = L2 ALS 门面（singleton/Proxy/getters/getPages）+ L3 resetStoreInfo + storeInfo wrapper（调 env-compute.computeStoreInfo + compat 写保留）+ re-export L1 + PathInfo/ConfigInfo re-export；消费方 import from env.ts 不变；storeInfo 签名/返回值不变（~107 调用点/34 测试文件不动）；tsc 0 | pending |
 | A-EL1-3 | R-EL1-3 | 死代码清理 | 删 5 死代码函数（storeProjectConfig/storeAppConfig/storePageConfig/createInitialDependencyGraph/storePathInfo）+ toPackerContext export + PageConfig/ComponentConfig re-export + getCompilerContext 改 internal；grep 5 函数 + toPackerContext 在 env.ts caller=0；**getPages 保留 env.ts L2**（测试 21 文件 47 调用点）；env.spec.js 改写 config-fixpoint.readProjectConfig 直测（保留合并覆盖）；tsc 0 | pending |
 | A-EL1-4 | R-EL1-4 | resolveAppAlias 迁出 | resolveAppAlias 迁 env-compute 收 appInfo 参数；env.ts 保留 wrapper（选项 A，读 ALS appInfo）或 parse-walk 改 import（选项 B）；parse-walk 行为不变；tsc 0 | pending |
