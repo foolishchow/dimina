@@ -42,11 +42,11 @@
 
 ## Requirements
 
-- R-SC1 MUST：PackerContext 加 `temporaryTargetPath`（关闭唯一 gap——sctx.storeInfo.pathInfo.temporaryTargetPath）
-- R-SC2 MUST：collaborator 迁读 PackerContext（`sctx.storeInfo.pathInfo.X` → `ctx.X`；`sctx.storeInfo.compilerOptions.X` → `ctx.fileTypes.X`）——全 6 消费方
-- R-SC3 MUST：storeInfo 签名改纯函数（`storeInfo(ctx: PackerContext, state.graph) → void`——build/reconcile graph，无返回值无 compat 写）
-- R-SC4 MUST：删 sctx.storeInfo 字段（StageChannelContext.storeInfo）+ 删 storeInfo 返回值 + 删 compat 写（env.ts L209-219）
-- R-SC5 MUST：worker ALS bridge 保留（resetStoreInfo + getters 不动——阶段 3）
+- R-SC1 MUST：PackerSessionState 加 `scratch`（TEMP mkdtemp per-orchestrate；**PackerContext 不加 temporaryTargetPath**——保持纯 I/O，temporaryTargetPath 是 TEMP 非 FINAL）
+- R-SC2 MUST：collaborator 迁读 `sctx.ctx`（PackerContext）+ `sctx.state.scratch`（`sctx.storeInfo.pathInfo.X` → `sctx.ctx.X`；`sctx.storeInfo.compilerOptions.X` → `sctx.ctx.fileTypes.X`；scratch → `sctx.state.scratch`）——全 6 消费方 + config-collector L36 getDependencyGraph 迁
+- R-SC3 MUST：storeInfo 签名改纯函数（`storeInfo(ctx, graph, state) → void`——3 参数，build/reconcile graph，无返回值无 compat 写）
+- R-SC4 MUST：删 sctx.storeInfo 字段（StageChannelContext.storeInfo）+ 删 storeInfo 返回值 + 删 compat 写（env.ts L209-219 六条）+ project-store.getDependencyGraph/merge/snapshot 退役
+- R-SC5 MUST：worker ALS bridge 保留（resetStoreInfo + getters 不动——阶段 3；resetStoreInfo 数据源从 sctx.ctx+sctx.state 组装，字段名转换）
 - R-SC6 MUST：行为 0（tsc 0 + vitest 88/88 + one-shot 7-diff=0）
 - R-SC7 MUST：non-scope 守（compiler/* 不动 + env.ts ALS 门面不删 + worker 模型不动）
 
@@ -54,17 +54,21 @@
 
 详见 [design.draft.md](design.draft.md)。核心塌缩路径（概念分析 §5）：
 
-1. PackerContext 加 temporaryTargetPath（+ scratch 流——Output 抽象后 opts.scratch 从 ctx.temporaryTargetPath）
-2. PackerContext 流给 collaborator（经 sctx.ctx 或 deps）
-3. collaborator 迁读 PackerContext（全 6 消费方）
-4. storeInfo 改纯函数（PackerContext → state.graph build/reconcile，无 return 无 compat 写）
-5. 删 sctx.storeInfo + storeInfo 返回值 + compat 写
+1. PackerSessionState 加 scratch + orchestrator tasks.run({output, ctx, state}) 注入（scratch 流 + ctx/state 流）
+2. storeInfo 改纯函数 `storeInfo(ctx, graph, state) → void`（算 computePathInfo → state.scratch + build/reconcile graph，无 return 无 compat 写）+ project-store.load 改签名
+3. StageChannelContext 加 ctx? + state?（config-collector 设 sctx.dependencyGraph = state.graph.getInnerGraph()）
+4. collaborator 迁读 sctx.ctx + sctx.state.scratch（全 6 消费方）+ logic-emitter 组装 resetStoreInfoData（字段名转换）
+5. 删 sctx.storeInfo + StageChannelContext.storeInfo + storeInfo 返回值 + compat 写 + project-store.getDependencyGraph 退役
 
 **关键洞察**：compat 写不是独立问题——它是 sctx.storeInfo 冗余投影的副作用。消除 sctx.storeInfo，compat 写自然死。
 
 ## Readiness gaps
 
-**无**（3 待决问题已 lock，详见 [design.draft.md](design.draft.md) §5）。
+**3 项**（design §4 风险，P-SC1 验证条目）：
+
+1. **resolveNpm 等价性**：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`（toPackerContext L263 是 stub）。P-SC1 实证 index.ts buildPackerContext 的 resolveNpm 实现。
+2. **project-store 存废**：getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 薄包。存废决策（倾向保留——ProjectStore interface 改签名）P-SC1 定。
+3. **compilerOptions 字段名转换**：PackerFileTypes.directivePrefixes ≠ normalizeFileTypes.templateDirectivePrefixes——logic-emitter 组装须字段名转换（§5.3 lock）。
 
 ## Closure conditions
 

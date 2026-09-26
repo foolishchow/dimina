@@ -10,42 +10,46 @@ Output 抽象完成后，compat 写的 output-path 消费方全死（createDist/
 
 ## Requirements
 
-### R-SC1 — PackerContext 加 temporaryTargetPath（MUST）
+### R-SC1 — PackerSessionState 加 scratch（MUST）
 
-PackerContext interface 加 `temporaryTargetPath: string`（TEMP 构建目录，computePathInfo mkdtemp per-request）。关闭 sctx.storeInfo.pathInfo.temporaryTargetPath 唯一 gap。
+PackerSessionState（state/session-state.ts L21，OrchestratorState 实现类）加 `scratch: string`（TEMP 构建目录，computePathInfo mkdtemp per-orchestrate，每次覆写）。**PackerContext 不加 temporaryTargetPath**（保持纯 I/O：workPath/targetPath FINAL；temporaryTargetPath 是 TEMP 非 FINAL，加到 PackerContext 违反纯 I/O 定位——design D-SC1/§5.1 lock）。
 
-**scratch 流**：Output 抽象后 publisher/dist-preparer 用 `opts.scratch`（per-request）。塌缩后 scratch = `ctx.temporaryTargetPath`（computePathInfo mkdtemp）。但 PackerContext 是 orchestrate 入参（config-collector 前），temporaryTargetPath 须在 storeInfo 后设——design 待决（ctx 可变？或 scratch 流经 state？或 storeInfo 改先算 pathInfo 再建 ctx？）。
+**scratch 流**：Output 抽象后 publisher/dist-preparer 用 `opts.scratch`（per-request）。塌缩后 scratch = `sctx.state.scratch`（storeInfo 算 computePathInfo → state.scratch）。orchestrator `tasks.run({ output, ctx, state })` 注入 sctx.state（design §5.2 lock）。
 
-### R-SC2 — collaborator 迁读 PackerContext（MUST）
+### R-SC2 — collaborator 迁读 PackerContext + state.scratch（MUST）
 
-全 6 sctx.storeInfo 消费方迁读 PackerContext：
-- `sctx.storeInfo.pathInfo.workPath` → `ctx.workPath`
-- `sctx.storeInfo.pathInfo.targetPath` → `ctx.temporaryTargetPath`（TEMP scratch）或 `ctx.targetPath`（FINAL）
-- `sctx.storeInfo.compilerOptions.templateExts` → `ctx.fileTypes.templateExts`
-- `sctx.storeInfo.compilerOptions.styleExts` → `ctx.fileTypes.styleExts`
-- `sctx.storeInfo.compilerOptions.viewScriptExts` → `ctx.fileTypes.viewScriptExts`
-- `sctx.storeInfo.compilerOptions.viewScriptTags` → `ctx.fileTypes.viewScriptTags`
-- `sctx.storeInfo.compilerOptions.templateDirectivePrefixes` → `ctx.fileTypes.directivePrefixes`
+全 6 sctx.storeInfo 消费方迁读 `sctx.ctx`（PackerContext）+ `sctx.state.scratch`（PackerSessionState）：
+- `sctx.storeInfo.pathInfo.workPath` → `sctx.ctx.workPath`
+- `sctx.storeInfo.pathInfo.targetPath`（scratch TEMP）→ `sctx.state.scratch`
+- `sctx.storeInfo.compilerOptions.templateExts` → `sctx.ctx.fileTypes.templateExts`
+- `sctx.storeInfo.compilerOptions.styleExts` → `sctx.ctx.fileTypes.styleExts`
+- `sctx.storeInfo.compilerOptions.viewScriptExts` → `sctx.ctx.fileTypes.viewScriptExts`
+- `sctx.storeInfo.compilerOptions.viewScriptTags` → `sctx.ctx.fileTypes.viewScriptTags`
+- `sctx.storeInfo.compilerOptions.templateDirectivePrefixes` → `sctx.ctx.fileTypes.directivePrefixes`（字段名变：templateDirectivePrefixes → directivePrefixes）
 
 消费方：config-compiler-collab L29 + stage-dispatcher L85 + npm-builder L294 + publisher L30（scratch）+ dist-preparer L25（scratch）+ logic-emitter L39（storeInfo 透传 emit-engine）+ config-collector L51/L55。
 
-PackerContext 流给 collaborator：经 sctx.ctx（StageChannelContext）或 deps。
+**额外迁项**（design §5.4）：config-collector L36 `sctx.dependencyGraph = store.getDependencyGraph()` → `sctx.dependencyGraph = state.graph.getInnerGraph()`（直接 state.graph，非 ALS——compat 写死后 ALS graph 死）。
 
-### R-SC3 — storeInfo 改纯函数（MUST）
+PackerContext 流给 collaborator：**orchestrator `tasks.run({ output, ctx, state })` 注入** sctx.ctx + sctx.state（design §5.2 lock）。
 
-`storeInfo(ctx: PackerContext, state.graph)` → `void`——build/reconcile graph（config fixpoint），**无返回值无 compat 写**。storeInfo 退化为 graph bootstrap 函数。
+### R-SC3 — storeInfo 改纯函数（3 参数 MUST）
+
+`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath）+ 算 computePathInfo(ctx.workPath) → `state.scratch`，**无返回值无 compat 写**。storeInfo 退化为 graph bootstrap 函数。
 
 - 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）
-- 删 compat 写（env.ts L209-219，写 defaultCompilerContext）
-- 删内部 toPackerContext（localCtx → ctx 直传）
-- project-store.load 改调 storeInfo（无 return，只 mutate state.graph）
+- 删 compat 写（env.ts L209-219，6 条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
+- 删内部 toPackerContext（localCtx → ctx 直传；graph.build 收 PackerContext 不读 targetPath——实证 graph.ts L69）
+- project-store.load 改签名 `load(ctx, opts, state)` → `void`（mutate state.scratch + state.graph，无 return）
+- **resolveNpm 等价性须验**（design §4 风险）：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`（toPackerContext L263 是 stub）
 
 ### R-SC4 — 删 sctx.storeInfo + compat 写（MUST）
 
 - 删 StageChannelContext.storeInfo 字段（types.ts）
 - 删 sctx.storeInfo 赋值（config-collector L35）
 - 删 storeInfo 返回值 + compat 写
-- compat 写自然死（无快照可 dump）——**不需单独迁 getter 消费方**（概念分析 §5 关键洞察）
+- compat 写自然死（无快照可 dump）——**不需单独迁 worker ALS getter**（概念分析 §5 关键洞察；resetStoreInfo/getAppId/getTargetPath 保留，阶段 3）
+- **须迁 project-store.getDependencyGraph**（design §5.4）：compat 写死后 ALS graph undefined，config-collector L36 改 state.graph.getInnerGraph()。project-store.getDependencyGraph/merge/snapshot 退役（无 src/ 消费方）
 
 ### R-SC5 — worker ALS bridge 保留（MUST）
 

@@ -26,12 +26,12 @@ function storeInfo(workPath, options) {
 | config-compiler-collab L29 | pathInfo.workPath/targetPath | ctx.workPath/targetPath |
 | stage-dispatcher L85 | pathInfo + compilerOptions（5 exts） | ctx.workPath/targetPath + ctx.fileTypes（5 exts） |
 | npm-builder L294 | pathInfo + compilerOptions | ctx + ctx.fileTypes |
-| publisher L30 | pathInfo.targetPath（scratch） | ctx.temporaryTargetPath（gap——须加） |
-| dist-preparer L25 | pathInfo.targetPath（scratch） | ctx.temporaryTargetPath（gap） |
+| publisher L30 | pathInfo.targetPath（scratch） | state.scratch（方案 C——PackerContext 不加 temporaryTargetPath） |
+| dist-preparer L25 | pathInfo.targetPath（scratch） | state.scratch（方案 C） |
 | logic-emitter L39 | storeInfo 透传 emit-engine（resetStoreInfo） | resetStoreInfo（worker ALS，阶段 3 保留） |
 | config-collector L51/L55 | pathInfo + compilerOptions | ctx + ctx.fileTypes |
 
-**唯一 gap**：pathInfo.temporaryTargetPath（TEMP scratch）—— PackerContext 无此字段。
+**唯一 gap**：pathInfo.temporaryTargetPath（TEMP scratch）—— PackerContext 无此字段（方案 C：存 state.scratch，非 ctx.temporaryTargetPath）。
 
 ### 1.3 compat 写消费方（Output 抽象后）
 
@@ -42,32 +42,31 @@ function storeInfo(workPath, options) {
 
 ## 2. 塌缩设计
 
-### D-SC1 — OrchestratorState 加 scratch（方案 C lock）
+### D-SC1 — PackerSessionState 加 scratch（方案 C lock）
 
-PackerSessionState 加 `scratch: string`（TEMP mkdtemp per-orchestrate，每次 orchestrate 覆盖）。**PackerContext 不加 temporaryTargetPath**（保持纯 I/O：workPath/targetPath FINAL）。
+PackerSessionState 加 `scratch: string`（TEMP mkdtemp per-orchestrate，每次 orchestrate 覆盖；PackerSessionState 是 OrchestratorState 的实现类——state/session-state.ts L21）。**PackerContext 不加 temporaryTargetPath**（保持纯 I/O：workPath/targetPath FINAL）。
 
 **scratch 流**：storeInfo 算 computePathInfo → `state.scratch = localPathInfo.targetPath`。publisher/dist-preparer 读 `sctx.state.scratch`（非 sctx.storeInfo）。
 
 **修正分析文档**：分析文档 §3/§5 说"PackerContext 加 temporaryTargetPath"，但 temporaryTargetPath 是 TEMP（非 FINAL），加到 PackerContext 违反纯 I/O。**方案 C**——scratch 在 PackerSessionState（per-orchestrate 合法持久），PackerContext 保持纯 I/O。
 
-### D-SC2 — collaborator 迁读 PackerContext + state.scratch（sctx.ctx/sctx.state lock）
+### D-SC2 — collaborator 迁读 PackerContext + state.scratch（sctx.ctx/sctx.state 注入 lock）
 
-- `sctx.storeInfo.pathInfo.workPath` → `ctx.workPath`（sctx.ctx 或 deps）
-- `sctx.storeInfo.pathInfo.targetPath`（scratch TEMP）→ `state.scratch`（OrchestratorState）
-- `sctx.storeInfo.compilerOptions.X` → `ctx.fileTypes.X`
+- `sctx.storeInfo.pathInfo.workPath` → `sctx.ctx.workPath`
+- `sctx.storeInfo.pathInfo.targetPath`（scratch TEMP）→ `sctx.state.scratch`（PackerSessionState）
+- `sctx.storeInfo.compilerOptions.X` → `sctx.ctx.fileTypes.X`（字段名见 R-SC2 映射）
 
-PackerContext 流给 collaborator：sctx.ctx（StageChannelContext 加 ctx?）或 deps 加 ctx。
+PackerContext 流给 collaborator：**orchestrator `tasks.run({ output, ctx, state })` 注入**（listr2 ctx）——见 §5.2。StageChannelContext 加 `ctx?: PackerContext` + `state?: PackerSessionState`。collaborator 读 sctx.ctx + sctx.state（非 config-collector 设——orchestrator 入口注入，config-collector 跑前已存在）。
 
-倾向 **sctx.ctx**（StageChannelContext 加 ctx?: PackerContext）——config-collector 设 sctx.ctx（storeInfo 后建）。collaborator 读 sctx.ctx。
+### D-SC3 — storeInfo 改纯函数（3 参数 lock）
 
-### D-SC3 — storeInfo 改纯函数
+`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath 见 §5.1 实证）+ 算 computePathInfo(ctx.workPath) → `state.scratch`。无返回值无 compat 写。
 
-`storeInfo(ctx: PackerContext, graph: PackerGraph)` → `void`——build/reconcile graph + 设 state.scratch。无返回值无 compat 写。
-
-- project-store.load 改调 storeInfo（无 return，只 mutate graph + 设 state.scratch）
-- 删 storeInfo 返回值
-- 删 compat 写（L209-219）
-- 删内部 toPackerContext（localCtx → ctx 直传）
+- project-store.load 改签名 `load(ctx, opts, state)` → `void`（mutate state.scratch + state.graph，无 return）
+- 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）
+- 删 compat 写（env.ts L209-219，6 条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
+- 删内部 toPackerContext（localCtx → ctx 直传；graph.build L69 收 PackerContext，不读 targetPath——实证可行）
+- **resolveNpm 等价性须验**（§4 风险）：入口 PackerContext.resolveNpm 须等价 localCtx.npmResolver（`new NpmResolver(workPath)`）——toPackerContext L263 是 stub（`(src, _baseFile) => src`）。须实证入口 ctx.resolveNpm 非退化。
 
 **pathInfo 流**：storeInfo 算 computePathInfo → state.scratch = pathInfo.targetPath。ctx.temporaryTargetPath 不加（方案 C）。
 
@@ -78,33 +77,26 @@ PackerContext 流给 collaborator：sctx.ctx（StageChannelContext 加 ctx?）�
 - 删 storeInfo 返回值 + compat 写
 - compat 写自然死
 
-### D-SC5 — worker ALS bridge 保留 + resetStoreInfo 数据源（组装 lock）
+### D-SC5 — worker ALS bridge 保留 + resetStoreInfo 数据源（§5.3 lock）
 
 resetStoreInfo + getters + defaultCompilerContext 保留。compiler/* parse-walk 仍读 ALS getters（阶段 3 迁）。
 
-**logic-emitter L39 storeInfo 透传 emit-engine（resetStoreInfo）**：emit-engine 调 resetStoreInfo(params.storeInfo)。塌缩后 storeInfo 无返回值——resetStoreInfo 须从别处拿 pathInfo/configInfo。可能——resetStoreInfo 收 state.scratch + state.graph.getConfigData()？或保留 storeInfo 算 pathInfo/configInfo 给 resetStoreInfo（不返 sctx.storeInfo，只给 resetStoreInfo）。
-
-**待决**：resetStoreInfo 数据源。storeInfo 塌缩后无返回值，但 resetStoreInfo 须 pathInfo + configInfo。可能 storeInfo 仍算 pathInfo/configInfo（内部），设 state.scratch + state.graph.configInfo，resetStoreInfo 从 state 拿。或 storeInfo 返 pathInfo/configInfo（只给 resetStoreInfo，非 sctx.storeInfo）。
+**logic-emitter L39 storeInfo 透传 emit-engine（resetStoreInfo）**：塌缩后 storeInfo 无返回值，resetStoreInfo 须 pathInfo + configInfo + compilerOptions + dependencyGraph。**§5.3 lock**——logic-emitter 组装 resetStoreInfoData 从 sctx.ctx + sctx.state（字段名转换见 §5.3）。resetStoreInfo 本身不变（阶段 3 保留）。
 
 ### D-SC6 — 行为 0 + non-scope 守
 
 tsc 0 + vitest 88/88 + 7-diff=0。compiler/* 不动 + env.ts ALS 门面不删 + worker 模型不动。
 
-## 3. 塌缩路径（修正方案 C）
+## 3. 塌缩路径（deprecated——见 §6 lock 后版本）
 
-| 步 | 内容 | 效果 |
-|---|---|---|
-| 1 | OrchestratorState 加 scratch（TEMP mkdtemp） | scratch 流 |
-| 2 | storeInfo 改纯函数（算 pathInfo → state.scratch + build/reconcile graph） | 无 return 无 compat 写 |
-| 3 | StageChannelContext 加 ctx?: PackerContext（config-collector 设） | collaborator 读 sctx.ctx |
-| 4 | collaborator 迁读 sctx.ctx + state.scratch（全 6 消费方） | 消 sctx.storeInfo 读者 |
-| 5 | 删 sctx.storeInfo + StageChannelContext.storeInfo + storeInfo 返回值 + compat 写 | compat 写自然死 |
+> §3 是方案 A 修正前残留，已被 §6（方案 lock 后）取代。保留标题以维持序号。
 
 ## 4. 风险
 
-- **resetStoreInfo 数据源**（D-SC5）：storeInfo 塌缩后无返回值，resetStoreInfo 须 pathInfo + configInfo。须 design 探讨。
-- **PackerContext 流时机**（D-SC2）：config-collector 设 sctx.ctx（storeInfo 后）。但 PackerContext 是 orchestrate 入参（config-collector 前）。sctx.ctx 须在 storeInfo 后设——但 collaborator 在 storeInfo 后跑。OK。
-- **行为 0**：sctx.storeInfo 全 6 消费方迁——每步独立验证。
+- **resolveNpm 等价性**（D-SC3）：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`。toPackerContext L263 是 stub。须实证入口 ctx.resolveNpm 实现（index.ts buildPackerContext）——P-SC1 验证条目。
+- **project-store 存废**（§5.4）：getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 薄包。存废决策（删则 config-collector 直调 storeInfo；保留则 ProjectStore interface 改签名 `load(ctx, opts, state) → void`）——P-SC1 定。
+- **行为 0**：sctx.storeInfo 全 6 消费方迁 + getDependencyGraph 迁——每步独立验证。
+- **compilerOptions 字段名转换**（§5.3）：PackerFileTypes.directivePrefixes ≠ normalizeFileTypes.templateDirectivePrefixes——logic-emitter 组装须字段名转换。
 
 ## 5. 方案 lock（3 待决问题解决）
 
@@ -124,11 +116,30 @@ tsc 0 + vitest 88/88 + 7-diff=0。compiler/* 不动 + env.ts ALS 门面不删 + 
 
 **config-collector deps.state**：可删（用 sctx.state）或保留（冗余但无害）。倾向删——统一 sctx.state。
 
-### 5.3 resetStoreInfo 数据源——从 sctx.ctx + sctx.state 组装
+### 5.3 resetStoreInfo 数据源——从 sctx.ctx + sctx.state 组装（字段名转换 lock）
 
-**决策**：logic-emitter 组装 `{ pathInfo: { workPath: sctx.ctx.workPath, targetPath: sctx.state.scratch }, configInfo: sctx.state.graph.getConfigData(), compilerOptions: sctx.ctx.fileTypes, dependencyGraph: sctx.state.graph.getInnerGraph() }` 给 emit-engine → resetStoreInfo。
+**决策**：logic-emitter 组装 resetStoreInfoData 给 emit-engine → resetStoreInfo：
 
-**理由**：storeInfo 塌缩后无返回值，resetStoreInfo 须 pathInfo + configInfo + compilerOptions + dependencyGraph。从 sctx.ctx（workPath/fileTypes）+ sctx.state（scratch/graph）组装。resetStoreInfo 本身不变（阶段 3 保留）。
+```ts
+{
+  pathInfo: { workPath: sctx.ctx.workPath, targetPath: sctx.state.scratch },
+  configInfo: sctx.state.graph.getConfigData(),
+  compilerOptions: {
+    templateExts: sctx.ctx.fileTypes.templateExts,
+    templateDirectivePrefixes: sctx.ctx.fileTypes.directivePrefixes,  // 字段名转换
+    styleExts: sctx.ctx.fileTypes.styleExts,
+    viewScriptExts: sctx.ctx.fileTypes.viewScriptExts,
+    viewScriptTags: sctx.ctx.fileTypes.viewScriptTags,
+  },
+  dependencyGraph: sctx.state.graph.getInnerGraph(),
+}
+```
+
+**理由**：storeInfo 塌缩后无返回值，resetStoreInfo 须 pathInfo + configInfo + compilerOptions + dependencyGraph。从 sctx.ctx（workPath/fileTypes）+ sctx.state（scratch/graph）组装。
+
+**字段名转换**（F-R6-1 修正）：resetStoreInfo opts.compilerOptions 类型是 `ReturnType<typeof normalizeFileTypes>`（字段 `templateDirectivePrefixes`），但 PackerFileTypes 用 `directivePrefixes`。组装时须字段名转换（`directivePrefixes` → `templateDirectivePrefixes`），否则 worker compilerOptions.templateDirectivePrefixes 得 undefined，parse-walk 退化。
+
+**pathInfo**：resetStoreInfo L229-248 只 set context.pathInfo + 读 pathInfo.workPath（npmResolver），不读 temporaryTargetPath。组装 pathInfo `{workPath, targetPath: state.scratch}` 足够（temporaryTargetPath 非必需——worker getTargetPath L401 只读 targetPath）。resetStoreInfo 本身不变（阶段 3 保留）。
 
 ### 5.4 project-store.getDependencyGraph 退役（compat 写死额外影响）
 
@@ -139,6 +150,8 @@ tsc 0 + vitest 88/88 + 7-diff=0。compiler/* 不动 + env.ts ALS 门面不删 + 
 **决策**：config-collector L36 改 `sctx.dependencyGraph = state.graph.getInnerGraph()`（直接 state.graph，非 ALS）。project-store.getDependencyGraph 退役（死代码——可删或保留 stub）。
 
 **project-store.merge/snapshot**：无 src/ 消费方（grep 确认）——可删或保留 stub（非 blocking）。
+
+**project-store 存废决策**：load 改签名后 getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 单调用薄包。**倾向保留**（ProjectStore interface 改签名 `load(ctx, opts, state) → void`，删 getDependencyGraph/merge/snapshot）——维持 config-collector `deps.store` 抽象边界；删 project-store 则 config-collector 直调 storeInfo，deps.store 退役。P-SC1 定（倾向保留——最小改动）。
 
 ## 6. 塌缩路径（方案 lock 后）
 

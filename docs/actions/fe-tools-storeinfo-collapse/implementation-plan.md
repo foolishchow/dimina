@@ -2,36 +2,41 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-## P-SC1 — OrchestratorState 加 scratch + storeInfo 改纯函数
+## P-SC1 — PackerSessionState 加 scratch + storeInfo 改纯函数
 
 **依赖**：无（首发）
 
 **改动**：
-1. OrchestratorState（state/session-state.ts）加 `scratch: string`（TEMP mkdtemp per-orchestrate）
-2. storeInfo 改签名：`storeInfo(ctx: PackerContext, graph: PackerGraph, state: { scratch })` → `void`——算 computePathInfo → state.scratch = pathInfo.targetPath + build/reconcile graph（无返回值无 compat 写）
-3. 删 storeInfo 返回值 + 删 compat 写（env.ts L209-219）+ 删内部 toPackerContext
-4. project-store.load 改调 storeInfo（无 return，mutate graph + state.scratch）
-5. config-collector：sctx.storeInfo 赋值改 storeInfo 调用（无 sctx.storeInfo）
+1. PackerSessionState（state/session-state.ts L21）加 `scratch: string`（TEMP mkdtemp per-orchestrate，每次 orchestrate 覆盖）
+2. storeInfo 改签名：`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——算 computePathInfo(ctx.workPath) → `state.scratch = pathInfo.targetPath` + build/reconcile graph（ctx 直传，删内部 toPackerContext）+ 无返回值无 compat 写
+3. 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）+ 删 compat 写（env.ts L209-219 六条）
+4. ProjectStore interface（project-store.ts L28）改签名 `load(ctx: PackerContext, opts: StoreInfoOptions, state: PackerSessionState)` → `void`（删 getDependencyGraph/merge/snapshot——退役；或保留 stub——倾向删）+ createProjectStore impl 同步
+5. project-store.load 改 `load(ctx, opts, state)` → void（mutate state.scratch + state.graph）
+6. config-collector：删 sctx.storeInfo 赋值（L35）+ sctx.dependencyGraph = state.graph.getInnerGraph()（L36，非 store.getDependencyGraph）
 
-**resetStoreInfo 数据源**（D-SC5 待决）：storeInfo 内部算 pathInfo/configInfo，设 state.scratch + state.graph.configInfo。resetStoreInfo 从 state 拿（state.scratch + state.graph.getConfigData()）？或 storeInfo 返 pathInfo/configInfo 给 resetStoreInfo（非 sctx.storeInfo）。design lock 后定。
+**resolveNpm 等价性验证**（design §4 风险）：入口 PackerContext.resolveNpm 须等价 `new NpmResolver(workPath)`（toPackerContext L263 是 stub）。P-SC1 须实证 index.ts buildPackerContext 的 resolveNpm 实现——若 stub，须修正（ctx.resolveNpm = new NpmResolver(workPath)）。
+
+**project-store 存废**（design §5.4）：倾向保留（ProjectStore interface 改签名 + 删退役方法）——维持 deps.store 抽象边界。P-SC1 定。
 
 **行为 0 验**：tsc 0 + vitest + 7-diff（storeInfo 全局路径→全量 7 项目）
 
-## P-SC2 — StageChannelContext 加 ctx + collaborator 迁读
+## P-SC2 — StageChannelContext 加 ctx + state + collaborator 迁读
 
 **依赖**：P-SC1（storeInfo 纯函数就位）
 
 **改动**：
-1. StageChannelContext 加 `ctx?: PackerContext`（types.ts）
-2. config-collector 设 sctx.ctx（storeInfo 后建 PackerContext 设 sctx.ctx）
+1. StageChannelContext（types.ts）加 `ctx?: PackerContext` + `state?: PackerSessionState`
+2. orchestrator tasks.run({ output, ctx, state })（L297——与 output 同 listr2 ctx 注入）
 3. collaborator 迁读（全 6 消费方）：
-   - config-compiler-collab L29：sctx.storeInfo.pathInfo → sctx.ctx.workPath/targetPath
-   - stage-dispatcher L85：sctx.storeInfo → sctx.ctx + state.scratch
-   - npm-builder L294：sctx.storeInfo → sctx.ctx + state.scratch
-   - publisher L30：sctx.storeInfo.pathInfo.targetPath（scratch）→ state.scratch
-   - dist-preparer L25：sctx.storeInfo.pathInfo.targetPath（scratch）→ state.scratch
-   - logic-emitter L39：storeInfo 透传 emit-engine → resetStoreInfo（D-SC5 lock 后）
-   - config-collector L51/L55：自身读 sctx.storeInfo → sctx.ctx
+   - config-compiler-collab L29：sctx.storeInfo.pathInfo → sctx.ctx.workPath/targetPath + sctx.ctx.fileTypes
+   - stage-dispatcher L85：sctx.storeInfo → sctx.ctx + sctx.state.scratch + sctx.ctx.fileTypes（5 exts）
+   - npm-builder L294：sctx.storeInfo → sctx.ctx + sctx.state.scratch + sctx.ctx.fileTypes
+   - publisher L30：sctx.storeInfo.pathInfo.targetPath（scratch）→ sctx.state.scratch
+   - dist-preparer L25：sctx.storeInfo.pathInfo.targetPath（scratch）→ sctx.state.scratch
+   - logic-emitter L39：storeInfo 透传 emit-engine → 组装 resetStoreInfoData（§5.3 lock：字段名转换 directivePrefixes → templateDirectivePrefixes）
+   - config-collector L51/L55：自身读 sctx.storeInfo → sctx.ctx + sctx.state.scratch
+4. logic-emitter 组装 resetStoreInfoData：`{ pathInfo: {workPath: sctx.ctx.workPath, targetPath: sctx.state.scratch}, configInfo: sctx.state.graph.getConfigData(), compilerOptions: {templateExts, templateDirectivePrefixes: sctx.ctx.fileTypes.directivePrefixes, styleExts, viewScriptExts, viewScriptTags}, dependencyGraph: sctx.state.graph.getInnerGraph()}`（字段名转换——design §5.3）
+5. EmitEntryParams（emit.ts L55）类型演进：storeInfo 字段 → resetStoreInfoData（`Parameters<typeof resetStoreInfo>[0]`）
 
 **行为 0 验**：每 collaborator 迁独立 tsc + vitest + 7-diff
 
@@ -42,13 +47,14 @@ Status authority: [Action Status](../STATUS.md)
 **改动**：
 1. 删 StageChannelContext.storeInfo 字段（types.ts）
 2. 删 sctx.storeInfo 赋值（config-collector）
-3. 删 storeInfo 返回值类型 + compat 写（env.ts L209-219）
+3. 删 storeInfo 返回值类型 + compat 写（env.ts L209-219 六条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
 4. compat 写自然死（无快照可 dump）
-5. grep 验：sctx.storeInfo caller=0 + compat 写 caller=0 + storeInfo return = 0
+5. 删 project-store.getDependencyGraph/merge/snapshot（退役，无 src/ 消费方）
+6. grep 验：sctx.storeInfo caller=0 + compat 写 caller=0 + storeInfo return = 0 + getDependencyGraph caller=0
 
 **行为 0 验**：tsc 0 + vitest 88/88 + 7-diff=0 + grep caller=0
 
-**风险**：compat 写死可能破坏 worker resetStoreInfo（若 resetStoreInfo 依赖 compat 写的 singleton）。须验证 resetStoreInfo 数据源独立（D-SC5）。
+**风险**：compat 写死可能破坏 worker resetStoreInfo（若 resetStoreInfo 依赖 compat 写的 singleton）。须验证 resetStoreInfo 数据源独立（§5.3 lock——logic-emitter 组装，非 ALS singleton）。
 
 ## 行为 0 三件套（每相 gate）
 
