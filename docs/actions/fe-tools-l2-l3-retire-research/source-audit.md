@@ -36,14 +36,14 @@
 
 ## 2. L3 worker 桥接现状
 
-### 2.1 resetStoreInfo caller（3 处 worker 引擎）
+### 2.1 resetStoreInfo caller（4 处 worker 引擎）
 
 | caller | 位置 | 用途 |
 |---|---|---|
 | `emit-engine.ts:12` | emit-worker 引擎 | `resetStoreInfo(params.storeInfo)` 搭建上下文（getWorkPath 等可用） |
-| `view/index.ts`（import） | view worker 引擎 | worker 上下文恢复 |
-| `style/index.ts`（import） | style worker 引擎 | worker 上下文恢复 |
-| `logic/index.ts`（import） | logic worker 引擎 | worker 上下文恢复 |
+| `logic/index.ts:275` | logic worker 引擎 | `resetStoreInfo(m.storeInfo)` worker 上下文恢复 |
+| `view/index.ts:192` | view worker 引擎 | `resetStoreInfo(m.storeInfo)` worker 上下文恢复 |
+| `style/index.ts:57` | style worker 引擎 | `resetStoreInfo(m.storeInfo)` worker 上下文恢复 |
 
 ### 2.2 worker 透传路径（storeInfo ALS 恢复）
 
@@ -55,6 +55,8 @@ worker → resetStoreInfo(storeInfo) → 恢复 defaultCompilerContext singleton
 ```
 
 **关键**：worker 经 `storeInfo`（buildResetStoreInfoData 组装）透传——**ctx 不直传 worker**（PackerContext.readContent 是 function，不可序列化）。
+
+**序列化边界（F-R1-2）**：worker 经 `node:worker_threads`（executor.ts:1 `new Worker`）+ input structuredClone 序列化透传。`ResetStoreInfoOptions`（storeInfo）是纯 data（pathInfo/configInfo/compilerOptions/dependencyGraph——无 function）可序列化 ✓。方案 b 复用此机制（storeInfo → ctx data，worker 重建 PackerContext）。
 
 ## 3. compat 写现状（storeInfo wrapper）
 
@@ -132,7 +134,7 @@ storeInfo wrapper caller=0
 - **b：storeInfo 替代为 ctx data**——buildResetStoreInfoData 改输出 ctx data（workPath/targetPath/fileTypes/configData）+ worker 内重建 readContent + 建 PackerContext。resetStoreInfo 改为 resetContext（建 PackerContext 非 ALS singleton）。
 - **c：ALS 模型改 worker 内 ALS**——worker 自己 ALS（非主线程透传）。但——worker 独立线程 ALS 与主线程 ALS 隔离（现状 resetStoreInfo 就是 worker ALS 恢复）。
 
-**倾向**：方案 b（storeInfo → ctx data，worker 重建 PackerContext）——最小改动透传路径（复用 storeInfo 序列化机制，改输出 ctx data）。
+**锁定**：方案 b（storeInfo → ctx data，worker 重建 PackerContext）——F-R1-1 实证（ResetStoreInfoOptions 纯 data + node:worker_threads 序列化）。复用 storeInfo 序列化机制，最小改动透传路径。
 
 ## 7. 结论
 

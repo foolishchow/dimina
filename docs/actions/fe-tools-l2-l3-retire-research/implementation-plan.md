@@ -29,10 +29,10 @@ Status authority: [Action Status](../STATUS.md)
 ## 验证点
 
 - source-audit 完整（L2/L3/compat 全 caller 分布 + 门控链条）
-- design 拆分方案 lock（A0-A5 scope + 门控 + 依赖 + 序列化方案倾向）
+- design 拆分方案 lock（A0-A5 scope + 门控 + 依赖 + 序列化方案 b 锁定）
 - 无代码实施（research 性质）
 
 ## 风险点
 
 - **A0 scope 评估**：research 须确认 A0 是否须再拆子步骤
-- **序列化方案**：方案 b（storeInfo → ctx data）倾向——readiness review 验可行性
+- **序列化方案**：方案 b（storeInfo → ctx data）锁定——F-R1-1 实证可行性

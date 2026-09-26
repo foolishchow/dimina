@@ -11,7 +11,7 @@ Status authority: [Action Status](../STATUS.md)
 | R-LR-3 | compat 写 audit | 完整 audit storeInfo wrapper caller（112 处——src + __tests__）+ 测试 fixture 依赖 |
 | R-LR-4 | 门控链条分析 | L2 getters 退役 ← compiler/* 迁 PackerContext ← worker ctx 直传 ← PackerContext 序列化（readContent function 不可序列化）——门控链条完整 |
 | R-LR-5 | 拆分方案 A0-A5 | 产出 A0（worker ctx 直传——根门控）/A1（logic parse-walk）/A2（view parse-walk）/A3（style parse-walk）/A4（compat 写退役）/A5（singleton/Proxy 退役）拆分方案——scope + 门控 + 依赖 |
-| R-LR-6 | 根门控 PackerContext 序列化 | A0 根门控分析——readContent function 不可序列化，worker 须重建；方案候选 a/b/c + 倾向 |
+| R-LR-6 | 根门控 PackerContext 序列化 | A0 根门控分析——readContent function 不可序列化，worker 须重建；方案候选 a/b/c + 锁定 |
 | R-LR-7 | 无代码实施 | research 性质——不实施任何代码改动（纯 audit + 方案） |
 
 ## Constraints

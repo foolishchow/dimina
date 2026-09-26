@@ -9,7 +9,7 @@ Status authority: [Action Status](../STATUS.md)
 | V-LR-3 | R-LR-3 | source-audit §3 compat 写 112 caller 分布 | pending |
 | V-LR-4 | R-LR-4 | source-audit §4 门控链条完整（4 层依赖） | pending |
 | V-LR-5 | R-LR-5 | design §1 + source-audit §5 A0-A5 拆分方案（scope + 门控 + 依赖） | pending |
-| V-LR-6 | R-LR-6 | design §2 + source-audit §6 序列化方案候选 a/b/c + 倾向 b | pending |
+| V-LR-6 | R-LR-6 | design §2 + source-audit §6 序列化方案候选 a/b/c + 锁定 b | pending |
 | V-LR-7 | R-LR-7 | 无代码改动（git diff = 0——research 性质） | pending |
 
 ## 不验（research 性质）
