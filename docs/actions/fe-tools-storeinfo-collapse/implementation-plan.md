@@ -8,8 +8,8 @@ Status authority: [Action Status](../STATUS.md)
 
 **改动**：
 1. PackerSessionState（state/session-state.ts L21）加 `scratch: string`（TEMP mkdtemp per-orchestrate，每次 orchestrate 覆盖）
-2. storeInfo 改签名：`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——算 computePathInfo(ctx.workPath) → `state.scratch = pathInfo.targetPath` + build/reconcile graph（ctx 直传，删内部 toPackerContext）+ 无返回值无 compat 写
-3. 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）+ 删 compat 写（env.ts L209-219 六条）
+2. 新增 storeInfoCtx `(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`（env.ts export）——调旧 storeInfo 取 pathInfo → `state.scratch = r.pathInfo.targetPath!`。**旧 storeInfo 保留**（compat 写 backflow）
+3. project-store.load 改签名 `load(ctx, state) → void`（mutate state，无 return）。**compat 写保留 backflow**（旧 storeInfo 不动）
 4. ProjectStore interface（project-store.ts L28）改签名 `load(ctx: PackerContext, opts: StoreInfoOptions, state: PackerSessionState)` → `void`（删 getDependencyGraph/merge/snapshot——退役；或保留 stub——倾向删）+ createProjectStore impl 同步
 5. project-store.load 改 `load(ctx, opts, state)` → void（mutate state.scratch + state.graph）
 6. config-collector：删 sctx.storeInfo 赋值（L35）+ sctx.dependencyGraph = state.graph.getInnerGraph()（L36，非 store.getDependencyGraph）
@@ -49,7 +49,7 @@ Status authority: [Action Status](../STATUS.md)
 1. 删 StageChannelContext.storeInfo 字段（types.ts）
 2. 删 sctx.storeInfo 赋值（config-collector）
 3. 删 storeInfo 返回值类型 + compat 写（env.ts L209-219 六条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
-4. compat 写自然死（无快照可 dump）
+4. compat 写保留 backflow（旧 storeInfo 不动——推迟为后续 initiative）
 5. 删 project-store.getDependencyGraph/merge/snapshot（退役，无 src/ 消费方）
 6. grep 验：sctx.storeInfo caller=0 + compat 写 caller=0 + storeInfo return = 0 + getDependencyGraph caller=0 + **stage-channel storeInfo 透传 caller=0**
 

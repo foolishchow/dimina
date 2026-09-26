@@ -58,25 +58,27 @@ PackerSessionState 加 `scratch: string`（TEMP mkdtemp per-orchestrate，每次
 
 PackerContext 流给 collaborator：**orchestrator `tasks.run({ output, ctx, state })` 注入**（listr2 ctx）——见 §5.2。StageChannelContext 加 `ctx?: PackerContext` + `state?: PackerSessionState`。collaborator 读 sctx.ctx + sctx.state（非 config-collector 设——orchestrator 入口注入，config-collector 跑前已存在）。
 
-### D-SC3 — storeInfo 改纯函数（3 参数 lock）
+### D-SC3 — storeInfoCtx 新纯函数（orchestrate 链路，3 参数 lock）
 
-`storeInfo(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`——build/reconcile graph（ctx 直传，graph.build 不读 targetPath 见 §5.1 实证）+ 算 computePathInfo(ctx.workPath) → `state.scratch = localPathInfo.targetPath!`（类型断言：PathInfo.targetPath?: string，computePathInfo 总设但类型 optional——F-R10-3）。无返回值无 compat 写。
+新增 `storeInfoCtx(ctx: PackerContext, graph: PackerGraph, state: PackerSessionState)` → `void`（env.ts export）——算 `state.scratch = storeInfo(ctx.workPath, {graph}).pathInfo.targetPath!`（调旧 storeInfo 取 pathInfo，设 state.scratch）。**旧 storeInfo 保留**（compat 写 load-bearing，测试 fixture 依赖——concept analysis §5 实证「删则崩」；推迟为后续 initiative，与 D-NS6 R-NS8 backflow 一致）。
 
-- project-store.load 改签名 `load(ctx, opts, state)` → `void`（mutate state.scratch + state.graph，无 return）
-- 删 storeInfo 返回值（`{pathInfo, configInfo, compilerOptions, dependencyGraph}`）
-- 删 compat 写（env.ts L209-219，6 条：pathInfo/compilerOptions/npmResolver/graph/configInfo/dependencyGraph）
-- 删内部 toPackerContext（localCtx → ctx 直传；graph.build L69 收 PackerContext，不读 targetPath——实证可行；graph.build L73 自建 `new NpmResolver(ctx.workPath)`，不读 ctx.resolveNpm——实证安全，§4 resolveNpm 风险已删）
-- **scratch 类型断言**（F-R10-3）：`state.scratch = localPathInfo.targetPath!`（PathInfo.targetPath?: string）
+- project-store.load 改签名 `load(ctx, state)` → `void`（mutate state，无 return）
+- **compat 写保留 backflow**：旧 storeInfo 内 compat 写（env.ts L209-219 六条）不动——design 原 D-SC3「删 compat 写」经实施期实证 REVERT（105 测试调用点依赖 ALS getter）。推迟为后续 initiative。
+- storeInfoCtx 无返回值（orchestrate 链路纯函数，仅设 state.scratch）
+- graph.build L69 收 PackerContext，不读 targetPath——实证可行；graph.build L73 自建 `new NpmResolver(ctx.workPath)`，不读 ctx.resolveNpm——实证安全，§4 resolveNpm 风险已删
+- **scratch 类型断言**（F-R10-3）：`state.scratch = r.pathInfo.targetPath!`（PathInfo.targetPath?: string）
 - **scratch mutability**（F-R10-4）：PackerSessionState.scratch 须 mutable（per-orchestrate 覆盖）—— `scratch: string`（非 readonly）
 
-**pathInfo 流**：storeInfo 算 computePathInfo → state.scratch = pathInfo.targetPath!。ctx.temporaryTargetPath 不加（方案 C）。
+**pathInfo 流**：storeInfoCtx 调旧 storeInfo 算 computePathInfo → state.scratch = pathInfo.targetPath!。ctx.temporaryTargetPath 不加（方案 C）。
 
-### D-SC4 — 删 sctx.storeInfo + StageChannelContext.storeInfo
+### D-SC4 — 删 sctx.storeInfo + StageChannelContext.storeInfo + project-store.getDependencyGraph 退役
 
 - 删 StageChannelContext.storeInfo 字段
 - 删 sctx.storeInfo 赋值（config-collector）
-- 删 storeInfo 返回值 + compat 写
-- compat 写自然死
+- collaborator 全迁 sctx.ctx/sctx.state（不读 sctx.storeInfo）
+- grep `sctx.storeInfo` caller=0（殁骸清）
+- **compat 写保留 backflow**（旧 storeInfo 内 compat 写不动——推迟为后续 initiative）
+- **project-store.getDependencyGraph/merge/snapshot 退役**：config-collector 改 `state.graph.getInnerGraph()`（直接 state.graph，非 ALS）；ProjectStore interface 删三方法。**不依赖 compat 写死**（config-collector 已迁 state.graph，与 compat 写保留并存）
 
 ### D-SC5 — worker ALS bridge 保留 + resetStoreInfo 数据源（§5.3 lock）
 
@@ -168,32 +170,32 @@ function buildResetStoreInfoData(ctx: PackerContext, state: PackerSessionState):
 
 **pathInfo**：resetStoreInfo L229-248 只 set context.pathInfo + 读 pathInfo.workPath（npmResolver），不读 temporaryTargetPath。组装 pathInfo `{workPath, targetPath: state.scratch}` 足够（temporaryTargetPath 非必需——worker getTargetPath L401 只读 targetPath）。resetStoreInfo 本身不变（阶段 3 保留）。
 
-### 5.4 project-store.getDependencyGraph 退役（compat 写死额外影响）
+### 5.4 project-store.getDependencyGraph 退役（与 compat 写保留并存）
 
-**发现**：compat 写 `context.graph = graph`（env.ts L216）喂 `project-store.getDependencyGraph()`（返 ALS graph）。compat 写死后 defaultCompilerContext.graph 不设，getDependencyGraph 返 undefined。
+**发现**：compat 写 `context.graph = graph`（env.ts L216）原喂 `project-store.getDependencyGraph()`（返 ALS graph）。**compat 写保留 backflow**（旧 storeInfo 不动），但 getDependencyGraph 退役仍成立——config-collector 已迁 `state.graph.getInnerGraph()`（直接 state.graph，非 ALS）。
 
-**消费方**：config-collector L36 `sctx.dependencyGraph = store.getDependencyGraph()`（唯一 src/ 消费方；compiler/view/wxml/load 用 env.getDependencyGraph，worker 侧阶段 3）。
+**消费方**：config-collector 原 L36 `sctx.dependencyGraph = store.getDependencyGraph()`（唯一 src/ 消费方；compiler/view/wxml/load 用 env.getDependencyGraph，worker 侧阶段 3）。
 
-**决策**：config-collector L36 改 `sctx.dependencyGraph = state.graph.getInnerGraph()`（直接 state.graph，非 ALS）。project-store.getDependencyGraph 退役（死代码——可删或保留 stub）。
+**决策**：config-collector 改 `sctx.dependencyGraph = state.graph.getInnerGraph()`（直接 state.graph）。project-store.getDependencyGraph 退役（ProjectStore interface 删——无 src/ 消费方）。
 
 **project-store.merge/snapshot**：无 src/ 消费方（grep 确认）——可删或保留 stub（非 blocking）。
 
-**project-store 存废决策**：load 改签名后 getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 单调用薄包。**倾向保留**（ProjectStore interface 改签名 `load(ctx, opts, state) → void`，删 getDependencyGraph/merge/snapshot）——维持 config-collector `deps.store` 抽象边界；删 project-store 则 config-collector 直调 storeInfo，deps.store 退役。P-SC1 定（倾向保留——最小改动）。
+**project-store 存废决策**：load 改签名后 getDependencyGraph/merge/snapshot 全退役，project-store 退化为 storeInfo 单调用薄包。**倾向保留**（ProjectStore interface 改签名 `load(ctx, state) → void`，删 getDependencyGraph/merge/snapshot）——维持 config-collector `deps.store` 抽象边界；删 project-store 则 config-collector 直调 storeInfo，deps.store 退役。P-SC1 定（倾向保留——最小改动）。
 
 ## 6. 塌缩路径（方案 lock 后）
 
 | 步 | 内容 | 效果 |
 |---|---|---|
 | 1 | PackerSessionState 加 scratch + orchestrator tasks.run({output, ctx, state}) 注入 | scratch 流 + ctx/state 流 |
-| 2 | storeInfo 改纯函数 `storeInfo(ctx, graph, state) → void`（算 computePathInfo → state.scratch + build/reconcile graph，无 return 无 compat 写）+ project-store.load 改 `load(ctx, opts, state) → void` | storeInfo 纯化 |
+| 2 | 新增 storeInfoCtx `(ctx, graph, state) → void`（调旧 storeInfo 取 pathInfo → state.scratch；旧 storeInfo 保留，compat 写 backflow）+ project-store.load 改 `load(ctx, state) → void` | orchestrate 链路纯函数 |
 | 3 | StageChannelContext 加 ctx? + state?（config-collector 设 sctx.dependencyGraph = state.graph.getInnerGraph()） | sctx.ctx + sctx.state |
 | 4 | collaborator 迁读 sctx.ctx + sctx.state.scratch（全 6 消费方）+ logic-emitter 组装 resetStoreInfoData | 消 sctx.storeInfo 读者 |
-| 5 | 删 sctx.storeInfo + StageChannelContext.storeInfo + storeInfo 返回值 + compat 写 + project-store.getDependencyGraph 退役 | compat 写自然死 |
+| 5 | 删 sctx.storeInfo + StageChannelContext.storeInfo + project-store.getDependencyGraph 退役（compat 写保留 backflow——推迟为后续 initiative） | sctx.storeInfo 殁骸清 |
 
 ## 7. scope 取舍
 
-采用 **B 塌缩**（概念分析 §7 选项 B）——消 sctx.storeInfo，compat 写自然死。非 A 窄 backflow（打补丁）。
+采用 **B 塌缩**（概念分析 §7 选项 B）——消 sctx.storeInfo。**compat 写保留 backflow**（实施期实证：105 测试调用点依赖 ALS getter，删则崩——与 D-NS6 R-NS8 backflow 一致），推迟为后续 initiative。
 
-**阶段 1**（此 Action scope）：storeInfo 纯化 + 消 sctx.storeInfo + 删 compat 写。
+**阶段 1**（此 Action scope）：storeInfoCtx 新纯函数 + 消 sctx.storeInfo + project-store.getDependencyGraph 退役。**compat 写保留 backflow**（推迟为后续 initiative）。
 **阶段 2**（独立 follow-up）：L1 迁出。
 **阶段 3**（大 initiative）：L2+L3 退役。

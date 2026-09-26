@@ -21,7 +21,7 @@
 
 ## Goal
 
-消除 storeInfo 的矛盾身份与 sctx.storeInfo 冗余投影，使 storeInfo 成为**纯 state.graph mutator**（PackerContext → state.graph build/reconcile，无返回值无 singleton 副作用），concept 从 3 塌缩至 2（**PackerContext + state.graph**）；**compat 写自然死**（无快照可 dump）。worker ALS bridge（resetStoreInfo + getters）保留——阶段 3 范围。
+消除 storeInfo 的矛盾身份与 sctx.storeInfo 冗余投影，使 storeInfoCtx 成为**纯 orchestrate 链路函数**（PackerContext → state.scratch + state.graph，无返回值），concept 从 3 塌缩至 2（**PackerContext + state.graph**）；**compat 写保留 backflow**（旧 storeInfo 不动——测试 fixture 依赖 ALS getter，推迟为后续 initiative）。worker ALS bridge（resetStoreInfo + getters）保留——阶段 3 范围。
 
 ## Non-goals
 
@@ -60,7 +60,7 @@
 4. collaborator 迁读 sctx.ctx + sctx.state.scratch（全 6 消费方）+ logic-emitter 组装 resetStoreInfoData（字段名转换）
 5. 删 sctx.storeInfo + StageChannelContext.storeInfo + storeInfo 返回值 + compat 写 + project-store.getDependencyGraph 退役
 
-**关键洞察**：compat 写不是独立问题——它是 sctx.storeInfo 冗余投影的副作用。消除 sctx.storeInfo，compat 写自然死。
+**关键洞察**：compat 写不是独立问题——它是 sctx.storeInfo 冗余投影的副作用。消除 sctx.storeInfo，**compat 写保留 backflow**（实施期实证：105 测试调用点依赖 ALS getter，推迟为后续 initiative）。
 
 ## Readiness gaps
 
@@ -74,6 +74,6 @@
 
 - 全 MUST Acceptance passed with evidence（A-SC1..N）
 - 行为 0 三件套绿（tsc 0 + vitest 88/88 + 7-diff=0）
-- grep `sctx.storeInfo` caller=0 + `compat 写` caller=0 + `storeInfo.*return` = 0
+- grep `sctx.storeInfo` caller=0（殁骸清）；**compat 写保留 backflow**（旧 storeInfo 不动——推迟为后续 initiative）
 - worker ALS bridge 保留（resetStoreInfo + getters 非 0）
 - backflow：阶段 2（L1 迁出）+ 阶段 3（worker ALS 退役）+ scratch 内化 留 follow-up
