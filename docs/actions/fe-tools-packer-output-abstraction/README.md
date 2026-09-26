@@ -75,7 +75,7 @@ dev server 读:
 ## Design inputs
 
 - 北星 shape：[`types.ts`](../../../fe/tools/bundler/src/packer/types.ts) §4 EmitOptions/EmitBucket + §8 BuildResult（D-NS-3 entries: EmitEntry[]）
-- 现有 output 机制：[`emit/build-model.ts`](../../../fe/tools/bundler/src/packer/emit/build-model.ts)（BuildModel class）+ [`emit/publish.ts`](../../../fe/tools/bundler/src/packer/emit/publish.ts)（createDist/publishToDist）+ [`emit/publisher.ts`](../../../fe/tools/bundler/src/packer/emit/publisher.ts)
+- 现有 output 机制（P-O3 后已拆除，迁入 [`emit/output.ts`](../../../fe/tools/bundler/src/packer/emit/output.ts)）：原 `emit/build-model.ts`（BuildModel class）+ `emit/publish.ts`（createDist/publishToDist）+ [`emit/publisher.ts`](../../../fe/tools/bundler/src/packer/emit/publisher.ts)（output.publish）
 - memfs 决策：[`fe-tools-bundler-emit-memfs`](../_archive/complete/fe-tools-bundler-emit-memfs/README.md) D-MM-1..6（直读 BuildModel + skipMaterialize dev 跳过）
 - H4 dirty tracking：D-PUSH-3（dirtyEntries set + materialize 增量 guard）
 - 架构张力：[`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9 T1/T2/T3
