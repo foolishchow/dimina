@@ -11,7 +11,7 @@ Status authority: [Action Status](../STATUS.md)
 | V-EL1-5 | R-EL1-2 | grep `computeStoreInfo` 在 env-compute.ts export 非 0 + `storeInfo wrapper` 在 env.ts 调 computeStoreInfo + compat 写保留（grep `context\.pathInfo =\|context\.compilerOptions =\|context\.npmResolver =` 在 env.ts storeInfo wrapper 非 0——npmResolver 由 computeStoreInfo 返回喂，F-R6-1） | pending |
 | V-EL1-6 | R-EL1-3 | grep `storeProjectConfig\|storeAppConfig\|storePageConfig\|createInitialDependencyGraph\|storePathInfo\|toPackerContext` 在 env.ts caller=0（死代码清）；`getPages` 在 env.ts 定义保留非 0（F-R1-1/F-R3-1 测试 21 文件 47 调用点）+ grep `export type { PageConfig\|export { getCompilerContext` 在 env.ts = 0（F-R3-2） | pending |
 | V-EL1-7 | R-EL1-1 | grep `normalizeFileTypes\|computePathInfo\|buildPackerContext\|buildResetStoreInfoData\|getAppStyleScopeId\|getContentByPath` + `PathInfo\|ConfigInfo` 在 env-compute.ts export 非 0 + env.ts L1 函数定义 caller=0（全迁或删；getPages/getProjectConfig 等 L2 除外） | pending |
-| V-EL1-8 | R-EL1-4 | grep `resolveAppAlias` 在 env-compute.ts 收 appInfo 参数（`(src.*appInfo)`）+ env.ts wrapper（选项 A）或 parse-walk import env-compute（选项 B） | pending |
+| V-EL1-8 | R-EL1-4 | grep `resolveAppAlias` 在 env-compute.ts 收 appInfo 参数（`(src.*appInfo)`）+ env.ts wrapper 读 ALS appInfo 调 env-compute（选项 A 锁定）+ parse-walk.ts import from env.ts 不变 | pending |
 | V-EL1-9 | R-EL1-6 | grep `resetStoreInfo\|getCompilerContext\|defaultCompilerContext` 在 env.ts 保留（L2/L3 不动）+ `compiler/parse-walk` 不变（compiler/* 不动） | pending |
 | V-EL1-10 | R-EL1-5 | **D-EL1-3 风险验**：storeInfoCtx 迁 env-compute（调 computeStoreInfo 无 compat 写）后 7-diff=0。若 ≠0 fallback：storeInfoCtx 留 env.ts | pending |
 

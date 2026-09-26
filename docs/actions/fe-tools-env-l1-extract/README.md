@@ -1,7 +1,7 @@
 # fe-tools-env-l1-extract
 
 - Action: `fe-tools-env-l1-extract`
-- Status: `draft`
+- Status: `ready`
 - Created: 2026-10-10
 - Status authority: [Action Status](../STATUS.md)
 - 设计门：[design.draft.md](design.draft.md)（**D-EL1-1..N 待 lock**——L1 函数清单 + 迁出策略 + 死代码清理 + toPackerContext/CompilerContext type 处理）
@@ -55,11 +55,13 @@ env.ts 三层混合 → L2/L3 薄门面，L1 纯模块卫生（可独立测试�
 
 ## Readiness gaps
 
-**3 项**（design §4 风险）：
+**原 3 项经 10 轮 readiness review（R1-R10）全解**：
 
-1. **storeInfo 拆 computeStoreInfo + wrapper**：storeInfo 是 L1+L2 混合（计算 + compat 写）。迁 L1 须拆纯计算部分（computeStoreInfo）+ env.ts wrapper（compat 写）。compat 写调 getCompilerContext（L2 singleton）——wrapper 留 env.ts。须确认 computeStoreInfo 签名（收 PackerContext? workPath? options?）。
-2. **toPackerContext / CompilerContext type**：toPackerContext 收 CompilerContext（env.ts 内部 type）。无外部 caller。迁 env-compute 须 export CompilerContext type 或改 toPackerContext 收 raw 字段，或内部化（仅 computeStoreInfo 用，不 export）。须设计决策。
-3. **死代码清理测试影响**：storeProjectConfig 等 5 函数仅 env.spec 测。删须改 env.spec（测 config-fixpoint 直接，或删薄壳测试）。须确认 env.spec 覆盖 config-fixpoint.readProjectConfig 逻辑（薄壳透传）。
+1. ~~storeInfo 拆 computeStoreInfo + wrapper~~ **已解**（D-EL1-2 lock）：computeStoreInfo `(workPath, options) → {pathInfo, compilerOptions, graph, configInfo, npmResolver}`（npmResolver 返出喂 wrapper compat 写——F-R6-1，9 测试文件主线程 parse-walk 路径）；迁移细则 F-R4-1（SC_TRACE x2 + 顺序双段逐字搬迁）。
+2. ~~toPackerContext / CompilerContext type~~ **已解**（D-EL1-2 lock）：CompilerContext type + toPackerContext 均 internal 迁 env-compute（不 export）。
+3. ~~死代码清理测试影响~~ **已解**（F-R1-5/F-R3-1）：getPages 保留 env.ts L2（21 文件 47 调用点）；env.spec.js 改写 config-fixpoint.readProjectConfig 直测（保留合并覆盖——config-fixpoint 无自有测试）。
+
+**当前唯一 open 项（实施期验证，非设计 gap）**：D-EL1-3 storeInfoCtx 去 compat 写的 7-diff 终验 + vitest 88 files 覆盖（F-R7-1 test-then-orchestrate 模式在内）；fallback = storeInfoCtx 留 env.ts。
 
 ## Closure conditions
 

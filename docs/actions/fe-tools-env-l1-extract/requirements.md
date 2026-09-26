@@ -50,7 +50,7 @@ env.ts 退化为：
 
 `resolveAppAlias`（logic/parse-walk.ts:312 唯一 src/ caller）从 ALS 读 configInfo.appInfo。迁 env-compute 收 appInfo 参数：
 - `resolveAppAlias(src, appInfo)`（纯函数，调 config-fixpoint.resolveAppAliasImpl）
-- env.ts 保留 re-export（parse-walk import from env.ts 不变）或 parse-walk 改 import env-compute（design §3 lock）
+- env.ts 保留 wrapper（选项 A 锁定——读 ALS appInfo + 调 env-compute，parse-walk import/调用均不变）
 
 ### R-EL1-5 — 行为 0（MUST）
 

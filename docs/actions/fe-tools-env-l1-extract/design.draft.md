@@ -2,7 +2,7 @@
 
 Status authority: [Action Status](../STATUS.md)
 
-> **状态：draft**——D-EL1-1..N 待 review lock。基于 env.ts 现状 source-audit + storeinfo-collapse backflow。
+> **状态：draft**——D-EL1-1..6 **已 review lock**（10 轮 readiness review：R1-R10，16+ findings 全修正——含 F-R4-1 迁移细则 / F-R6-1 npmResolver / F-R9-1 选项 A 锁定）。基于 env.ts 现状 source-audit + storeinfo-collapse backflow。
 
 ## 1. env.ts 三层现状（source-audit）
 
@@ -93,11 +93,7 @@ resolveAppAlias(src, appInfo) → string | null
 ```
 env.ts re-export（parse-walk import from env.ts 不变）——但 resolveAppAlias 签名变（加 appInfo 参数）。parse-walk.ts:312 caller 须改：`resolveAppAlias(specifier)` → `resolveAppAlias(specifier, getAppConfigInfo())`？——但 parse-walk 读 ALS getAppConfigInfo。**矛盾**：parse-walk 仍读 ALS（阶段 3 迁）。所以 resolveAppAlias 迁 env-compute 收 appInfo，但 caller parse-walk 仍从 ALS 读 appInfo 传入。env.ts 保留 wrapper `resolveAppAlias(src) = env-compute.resolveAppAlias(src, getCompilerContext().configInfo.appInfo)`？或 parse-walk 改读 ALS appInfo 传 env-compute。
 
-**决策**（design lock 待定）：
-- 选项 A：env.ts 保留 resolveAppAlias wrapper（读 ALS appInfo + 调 env-compute）——parse-walk import 不变
-- 选项 B：parse-walk 改 import env-compute + 读 ALS getAppConfigInfo 传参
-
-**倾向 A**（最小改动，parse-walk 不动）。
+**决策（F-R9-1 收敛——选项 A 锁定）**：env.ts 保留 resolveAppAlias wrapper（读 ALS `configInfo.appInfo` + 调 env-compute.resolveAppAlias）——parse-walk.ts:312 `resolveAppAlias(specifier)` 单参调用与 import from env.ts **均不变**（最小改动）。env-compute 版双参 `(src, appInfo)` 纯函数；env.ts wrapper import alias（`import { resolveAppAlias as resolveAppAliasCompute } from './env-compute.ts'`）。选项 B（parse-walk 改 import + 传参）**否决**——compiler/* 不动（R-EL1-6 non-scope 守）。
 
 ### D-EL1-5 — 死代码清理（F-R1-1/F-R1-2 修正后）
 
@@ -149,7 +145,7 @@ src/packer/store/env.ts
 ## 4. 风险
 
 1. **storeInfoCtx 去 compat 写**（D-EL1-3）：storeInfoCtx 之前调 storeInfo（compat 写），改调 computeStoreInfo（无 compat 写）。orchestrate 链路行为是否变？storeinfo-collapse 说 compat 写副作用不影响 orchestrate——但须 7-diff 实证。**若 7-diff≠0**：storeInfoCtx 保留调 storeInfo（compat 写）不迁 env-compute，或 env-compute.storeInfoCtx 调 storeInfo wrapper（循环？）。**fallback**：storeInfoCtx 留 env.ts（不迁）。
-2. **CompilerContext type 归属**（D-EL1-2）：computeStoreInfo 用 CompilerContext shape。迁 env-compute 须迁 type 或改 toPackerContext 收 raw。**倾向**：CompilerContext internal 迁 env-compute。
+2. **CompilerContext type 归属**（D-EL1-2——**已锁定**）：CompilerContext type internal 迁 env-compute（computeStoreInfo + toPackerContext 用，不 export）；toPackerContext 同迁 internal。
 3. **resolveAppAlias 签名变**（D-EL1-4）：加 appInfo 参数。env.ts wrapper 选项 A 最小改动。**风险**：parse-walk 调 env.ts wrapper（读 ALS）——行为不变。
 4. **env.spec 死代码测试**（D-EL1-5）：删 storeProjectConfig 须改 env.spec。config-fixpoint.readProjectConfig 逻辑是否被 env.spec 间接覆盖？须确认 config-fixpoint 自有测试。
 
