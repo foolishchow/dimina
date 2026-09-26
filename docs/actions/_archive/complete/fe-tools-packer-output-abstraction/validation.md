@@ -1,6 +1,6 @@
 # Validation — fe-tools-packer-output-abstraction
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 | ID | Req | Validation | Status |
 | --- | --- | --- | --- |

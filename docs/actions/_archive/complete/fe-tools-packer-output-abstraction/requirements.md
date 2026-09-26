@@ -1,12 +1,12 @@
 # Requirements — fe-tools-packer-output-abstraction
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 ## 背景
 
 packer 产物输出路径因无统一 Output 抽象，分裂为 memory（BuildModel + getArtifact）与 disk（materialize + publishToDist + createDist）两套平行机制，skipMaterialize 是 mode 开关。targetPath 双语义（FINAL 发布 vs TEMP scratch）缠在 PackerContext + storeInfo + ALS singleton 三处。compat 写的 output-path 角色（getTargetPath 喂 createDist/materialize/publishToDist）是 P-NS6 backflow 的主要消费方。
 
-详见 [README](README.md) Background + [`docs/fe-tools/2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9。
+详见 [README](README.md) Background + [`docs/fe-tools/2026-10-10-packer-architecture-analysis.md`](../../../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9。
 
 ## R-O1 — Output interface 抽象
 

@@ -2,7 +2,7 @@
 
 Status: **implemented（P-O1-O3 全实施；D-O1..7 + D-OL1..4 locked；A-O1-O8 implemented + V-O1-O14 pass；行为 0 三件套绿）**
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 | ID | Req | Title | Acceptance criterion | Status |
 | --- | --- | --- | --- | --- |

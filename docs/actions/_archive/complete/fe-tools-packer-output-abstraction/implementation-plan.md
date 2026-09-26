@@ -1,6 +1,6 @@
 # Implementation Plan — fe-tools-packer-output-abstraction
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
 > P-O1..3 分相，每相独立 commit + 行为 0 gate。依赖序：P-O1 → P-O2 → P-O3（殁骸拆除须在 2 impl 都接入后）。
 

@@ -1,13 +1,13 @@
 # fe-tools-packer-output-abstraction
 
 - Action: `fe-tools-packer-output-abstraction`
-- Status: `in_progress`
+- Status: `complete`
 - Created: 2026-10-10
-- Status authority: [Action Status](../STATUS.md)
-- 设计门：[design.draft.md](design.draft.md)（**D-O1..7 + D-OL1..4 locked**——19 轮 review findings 全修正，F-R38-1 修正后收敛临界）
+- Status authority: [Action Status](../../../STATUS.md)
+- 设计门：[design.draft.md](design.draft.md)（**D-O1..7 + D-OL1..4 locked**——19 轮 review findings 全修正，outputMode 信号 lock + import 链完整 + whitelist 归属显式）
 - 实施计划：[implementation-plan.md](implementation-plan.md)（P-O1..3 分相）
 - 验证：[validation.md](validation.md)
-- 背景：[`docs/fe-tools/2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) + [`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md)
+- 背景：[`docs/fe-tools/2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) + [`2026-10-10-packer-architecture-analysis.md`](../../../../fe-tools/2026-10-10-packer-architecture-analysis.md)
 
 ## Background
 
@@ -29,7 +29,7 @@ dev server 读:
 3. **compat 写 load-bearing 的 output 角色**——storeInfo compat 写 dump pathInfo 到 defaultCompilerContext，喂 getTargetPath() → createDist/materialize/publishToDist。这是 P-NS6 audit 揭示的 backflow 的主要消费方。
 4. **memfs（dev）是特殊路径**——D-MM-1 直读 BuildModel + skipMaterialize 跳过 materialize，是 mode-specific 分支，非统一 Output impl。
 
-详见 [`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9 张力 T1/T2/T3 + [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md)。
+详见 [`2026-10-10-packer-architecture-analysis.md`](../../../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9 张力 T1/T2/T3 + [`2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md)。
 
 ## Goal
 
@@ -74,11 +74,11 @@ dev server 读:
 
 ## Design inputs
 
-- 北星 shape：[`types.ts`](../../../fe/tools/bundler/src/packer/types.ts) §4 EmitOptions/EmitBucket + §8 BuildResult（D-NS-3 entries: EmitEntry[]）
-- 现有 output 机制（P-O3 后已拆除，迁入 [`emit/output.ts`](../../../fe/tools/bundler/src/packer/emit/output.ts)）：原 `emit/build-model.ts`（BuildModel class）+ `emit/publish.ts`（createDist/publishToDist）+ [`emit/publisher.ts`](../../../fe/tools/bundler/src/packer/emit/publisher.ts)（output.publish）
-- memfs 决策：[`fe-tools-bundler-emit-memfs`](../_archive/complete/fe-tools-bundler-emit-memfs/README.md) D-MM-1..6（直读 BuildModel + skipMaterialize dev 跳过）
+- 北星 shape：[`types.ts`](../../../../../fe/tools/bundler/src/packer/types.ts) §4 EmitOptions/EmitBucket + §8 BuildResult（D-NS-3 entries: EmitEntry[]）
+- 现有 output 机制（P-O3 后已拆除，迁入 [`emit/output.ts`](../../../../../fe/tools/bundler/src/packer/emit/output.ts)）：原 `emit/build-model.ts`（BuildModel class）+ `emit/publish.ts`（createDist/publishToDist）+ [`emit/publisher.ts`](../../../../../fe/tools/bundler/src/packer/emit/publisher.ts)（output.publish）
+- memfs 决策：[`fe-tools-bundler-emit-memfs`](../fe-tools-bundler-emit-memfs/README.md) D-MM-1..6（直读 BuildModel + skipMaterialize dev 跳过）
 - H4 dirty tracking：D-PUSH-3（dirtyEntries set + materialize 增量 guard）
-- 架构张力：[`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9 T1/T2/T3
+- 架构张力：[`2026-10-10-packer-architecture-analysis.md`](../../../../fe-tools/2026-10-10-packer-architecture-analysis.md) §9 T1/T2/T3
 
 ## Deliverables
 

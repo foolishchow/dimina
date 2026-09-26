@@ -1,8 +1,8 @@
 # Design Draft — fe-tools-packer-output-abstraction
 
-Status authority: [Action Status](../STATUS.md)
+Status authority: [Action Status](../../../STATUS.md)
 
-> **D-O1..7 + D-OL1..4 locked**（19 轮 review findings 全修正：F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14 + F-R18-1/2/3 + F-R19-4 round 18-19 + F-R22-1/2/3 round 22 + F-R26-1/2/3 round 26 + F-R30-1 round 30 + F-R34-1 round 34 + F-R38-1 round 38）。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) + [`2026-10-10-packer-architecture-analysis.md`](../../fe-tools/2026-10-10-packer-architecture-analysis.md) 讨论。
+> **D-O1..7 + D-OL1..4 locked**（19 轮 review findings 全修正：F1-F12 round 1-3 + F-R4-1/2/3 + F-R5-1/2 round 4-6 + F-R7-1/2/3 + F-R8-1 + F-R9-2 round 7-9 + F-R10-1/2 + F-R11-1/2 round 10-12 + F-R13-1/2/3 + F-R14-1/2 round 13-14 + F-R18-1/2/3 + F-R19-4 round 18-19 + F-R22-1/2/3 round 22 + F-R26-1/2/3 round 26 + F-R30-1 round 30 + F-R34-1 round 34 + F-R38-1 round 38）。本文档基于 [`2026-10-10-storeinfo-concept-analysis.md`](../../../../fe-tools/2026-10-10-storeinfo-concept-analysis.md) + [`2026-10-10-packer-architecture-analysis.md`](../../../../fe-tools/2026-10-10-packer-architecture-analysis.md) 讨论。
 
 ## §1 现状 output 机制（4 概念缠结）
 
