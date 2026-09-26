@@ -26,6 +26,8 @@ A5（singleton/Proxy 退役——L2 本体）
 - **解锁**：A1/A2/A3 worker 路径
 - **改造点 4 处**（F-R3-1——resetStoreInfo caller）：emit-engine.ts:12 + logic/index.ts:275 + view/index.ts:192 + style/index.ts:57——方案 b 改为 `buildPackerContext(storeInfo data)` + 透传 parse-walk ctx
 - **scope 评估**：A0 单一改造（storeInfo→ctx data + 重建 PackerContext）——不须拆子步骤（4 处 caller 同构改造 + defineEngine 透传统一）
+- **defineEngine compile 透传路径**（F-R8-1）：`compile: (opts: CompileOptions)` 收 msg（含 storeInfo data）→ worker 引擎解构 `m.storeInfo` → 方案 b 改 `buildPackerContext(storeInfo data)` 建 PackerContext → 透传 parse-walk ctx 参数（替代 ALS getter 读）
+- **successPayload ALS 依赖**（F-R8-2）：defineEngine L19 `successPayload: () => ({ dependencyGraph: getDependencyGraph().toJSON() })`——worker 完成后读 ALS getter。A0 须改 successPayload 收 ctx 或改读 ctx（非 ALS）
 
 ### D-LR-2 — A1/A2/A3 parse-walk 迁移（并行，门控 A0）
 
@@ -37,6 +39,9 @@ A5（singleton/Proxy 退役——L2 本体）
 - **A1 logic**：3 文件（parse-walk + index + registry-impl），6-7 getters。路径：registry-impl:33（主线程 _ctx 可用）+ logic/index.ts:211（worker——须 A0）+ logic-loader.spec:53（测试直调）
 - **A2 view**：~5 文件（parse-walk + index + wxml/compile + load/paths + load/template），8 getters。路径：view/index.ts:126/137 compileML（worker——须 A0）
 - **A3 style**：2 文件（parse-walk + index），7 getters。路径：style/index.ts:30 + parse-walk.ts:270 递归（worker——须 A0）。style 用 `buildCompileCss`（非 styleParseWalk）
+- **测试 fixture 直调**（F-R9-1）：仅 A1 logicParseWalk 1 处（logic-loader.spec:53）须改——A2 viewParseWalk / A3 buildCompileCss 无测试直调（不须改测试）
+- **getter 调用点改动量**（F-R9-2）：logic/parse-walk 15 处 / view/parse-walk 16 处 / style/parse-walk 15 处——A1-A3 各 ~15-16 处 ctx 替代（scope 参考）
+- **并行性**：A1-A3 共享 getWorkPath 但 ctx 透传独立——无冲突，A0 完成后可并行
 
 ### D-LR-3 — A4 compat 写退役（门控 A1-A3）
 
@@ -87,8 +92,8 @@ registry-impl Loader.load 路径（主线程）可独立迁移（_ctx 已在契�
 
 ## 3. 风险
 
-1. **A0 scope 大**——worker 序列化 + PackerContext 重建，可能须拆 A0 子步骤
-2. **parse-walk 签名改**——logicParseWalk/viewParseWalk/styleParseWalk 加 ctx 参数——测试 fixture 直调（logic-loader.spec:53 等）须同步改
+1. **A0 scope 中-大**——worker 序列化 + PackerContext 重建（R3 F-R3-1 评估：单一改造，**不须拆子步骤**——4 处 caller 同构 + defineEngine 透传统一）
+2. **parse-walk 签名改**——logicParseWalk/viewParseWalk/buildCompileCss 加 ctx 参数——测试 fixture 直调仅 A1 logicParseWalk 1 处（logic-loader.spec:53）须改（A2/A3 无测试直调——F-R9-1）
 3. **A4 测试 fixture 大量**（112 caller）——迁移工作量
 4. **A5 须 caller=0**——A1-A4 全完成后才可删 singleton/Proxy
 
