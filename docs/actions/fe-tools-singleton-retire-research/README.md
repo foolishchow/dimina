@@ -1,6 +1,6 @@
 # fe-tools-singleton-retire-research
 
-- Status: `draft`
+- Status: `ready`
 - Type: research（无代码改动——产出 source-audit + A5 实施拆分规划）
 - Parent: fe-tools-l2-l3-retire-research（D-LR-4 A5 细化）+ fe-tools-compat-write-retire-research（D-CWR-1..6 细化）
 - Gates: A0+A1（worker-ctx-direct）+ A2（view-parse-walk-migrate）+ A3（style-parse-walk-migrate）+ A4（compat-write-retire-research）全 complete
@@ -26,11 +26,11 @@ L2/L3 退役第五步（A5）。A4 D-CWR-1..6 规划了 A5 迁移顺序，但留
 ## 产出
 
 - source-audit（graph 可变单例 worker 透传 + 形状纪律候选 a/b/c 决策 + ALS 残留 31 处 + 107 测试 + 22 getPages）
-- design.draft（A5 实施拆分规划 D-SR-1..N）
+- design.draft（A5 实施拆分规划 D-SR-1..6 已 review lock）
 
 ## 设计门
 
-[design.draft.md](design.draft.md)（**D-SR-1..N 待 readiness review lock**——A5 singleton/Proxy 退役实施拆分）
+[design.draft.md](design.draft.md)（**D-SR-1..6 已 review lock**——R1-R4 全 findings fix + R5 收敛）
 
 ## 文档
 

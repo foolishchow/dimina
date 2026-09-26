@@ -4,12 +4,16 @@
 
 **parse-walk 内 graph 写入**（12 处——addFile/addDependency/getDirectDependencies）：
 
-| 子系统 | addFile | addDependency | getDirectDependencies | 合计 |
-|---|---|---|---|---|
-| logic/parse-walk | 1 | 4 | 0 | 5 |
-| view/parse-walk | 1 | 0 | 1 | 2（+ 其他 2）|
-| style/parse-walk | 2 | 0 | 1 | 3 |
-| **合计** | 4 | 4 | 2 | **12 处 graph 写入** |
+| 子系统 | addFile | addDependency | getDirectDependencies | clearOutgoingEdges | toJSON | 合计 |
+|---|---|---|---|---|---|---|
+| logic/parse-walk | 1 | 4 | 0 | 0 | 0 | 5 |
+| view/parse-walk | 1 | 0 | 1 | 0 | 0 | 4（含其他 2）|
+| style/parse-walk | 2 | 0 | 1 | 0 | 0 | 3 |
+| logic/index | 1 | 0 | 2 | 1 | 1 | 5 |
+| view/index | 0 | 0 | 0 | 0 | 1 | 1 |
+| **合计** | 5 | 4 | 4 | 1 | 2 | **18 处 getDependencyGraph 调用**（14 写入 + 4 读）|
+
+**写入 14 处**（F-R1-1 修正）：parse-walk 12（addFile 4 + addDependency 4 + getDirectDependencies 2 + 其他 2）+ logic index 2（addFile L126 + clearOutgoingEdges L128）。
 
 **graph 跨线程机制**（已实施）：
 
@@ -66,7 +70,7 @@
 
 **A5 迁移**：successPayload 改读 ctx.graph.toJSON()（非 ALS getDependencyGraph）。
 
-## 6. worker resetStoreInfo 4 处 + __tests__ 107 caller + getPages 22 caller
+## 6. worker resetStoreInfo 4 处 + __tests__ 107 caller + getPages 21 caller
 
 （同 A4 source-audit §4/§2/§3——不重复）
 
@@ -78,7 +82,7 @@
 2. **parse-walk ALS 残留 31 处迁 ctx 读**（D-SR-2）：getDependencyGraph→ctx.graph + getComponent→ctx.component + getAppId→ctx.appId + getNpmResolver→ctx.resolveNpm + resolveAppAlias→ctx.resolveAlias + getAppConfigInfo→ctx.configInfo + isMiniGame→ctx.configInfo?.isMiniGame
 3. **successPayload 3 处改 ctx.graph**（D-SR-3）：logicSuccessPayload/viewSuccessPayload/defineEngine 默认
 4. **worker resetStoreInfo 4 处退役**（D-SR-4）：ctx.graph 必传——resetStoreInfo 不再 load-bearing
-5. **__tests__ 107 caller + getPages 22 caller 迁移**（D-SR-5）
+5. **__tests__ 107 caller + getPages 21 caller 迁移**（D-SR-5）
 6. **storeInfo wrapper 重构 + env.ts singleton 删**（D-SR-6）
 
 **scope**：大（PackerContext 扩 + 31 ALS 迁 + 3 successPayload + 4 resetStoreInfo + 107 测试 + 22 getPages + env.ts 重构）
