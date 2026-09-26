@@ -62,15 +62,17 @@ export async function logicParseWalk(
 	ctx: PackerContext,  // D-WCD-2: 第 8 参
 ): Promise<LogicParseWalkResult> {
 	// 方案 b 部分迁移（F-R1-1/R1-2 精确归类）：
-	// ctx 读 4 getter：getWorkPath→ctx.workPath（×7）/ getTargetPath→ctx.targetPath（×1）/ resolveAppAlias→ctx.resolveAlias（×1）
+	// ctx 读 3 getter（F-R8-2 修正）：getWorkPath→ctx.workPath（×7）/ getTargetPath→ctx.targetPath（×1）
 	//   getContentByPath（registry-impl 路径，非 parse-walk）→ctx.readContent
-	// 保留 ALS 6 getter：getDependencyGraph（×5——ctx 无 graph）/ getAppId（×1——ctx 无 appId）/ getNpmResolver（×1——F-R1-1 返回 NpmResolver 实例非 function，ctx.resolveNpm 签名不匹配）
+	// 保留 ALS 7 getter：getDependencyGraph（×5——ctx 无 graph）/ getAppId（×1——ctx 无 appId）/ getNpmResolver（×1——F-R1-1 返回 NpmResolver 实例非 function）/ resolveAppAlias（×1——**F-R8-2 ctx.resolveAlias stub 返 null ≠ ALS 实际解析，行为 0 破坏**）
+	//   getContentByPath（registry-impl 路径，非 parse-walk）→ctx.readContent
+	// 保留 ALS 7 getter（F-R8-2 +resolveAppAlias）：getDependencyGraph（×5——ctx 无 graph）/ getAppId（×1——ctx 无 appId）/ getNpmResolver（×1——F-R1-1 返回 NpmResolver 实例非 function）/ resolveAppAlias（×1——F-R8-2 ctx.resolveAlias stub 返 null ≠ ALS 实际解析）
 }
 ```
 
 - **getter 调用点 count**（F-R1-3）：16 处（getWorkPath ×7 + getDependencyGraph ×5 + getAppId ×1 + getTargetPath ×1 + resolveAppAlias ×1 + getNpmResolver ×1）——非 15
-- **ctx 读 4 getter**（F-R1-2）：getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / resolveAppAlias→ctx.resolveAlias / getContentByPath→ctx.readContent（registry-impl 路径）
-- **保留 ALS 6 getter**（F-R1-1/R1-2）：getDependencyGraph（ctx 无 graph）/ getAppId（ctx 无 appId）/ getNpmResolver（返回 NpmResolver 实例——ctx.resolveNpm function 签名不匹配）/ getAppConfigInfo / getComponent / isMiniGame（logic/index.ts 路径——ctx 无 configInfo/component）
+- **ctx 读 3 getter**（F-R1-2 + F-R8-2 修正）：getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / getContentByPath→ctx.readContent（registry-impl 路径）
+- **保留 ALS 7 getter**（F-R1-1/R1-2 + F-R8-2）：getDependencyGraph（ctx 无 graph）/ getAppId（ctx 无 appId）/ getNpmResolver（返回 NpmResolver 实例——ctx.resolveNpm function 签名不匹配）/ **resolveAppAlias（F-R8-2：ctx.resolveAlias stub 返 null ≠ ALS resolveAppAliasImpl 实际解析——行为 0 破坏点）**/ getAppConfigInfo / getComponent / isMiniGame（logic/index.ts 路径——ctx 无 configInfo/component）
 - **fileTypes 不读**：logic/parse-walk 无 fileTypes getter 调用（fileTypes 在 normalize/compile-config 层，非 parse-walk）
 - **调用点 ctx 来源差异**（F-R2-3）：logic/index:211（worker——compile 建 ctx）+ registry-impl:33（主线程——orchestrate 传 ctx）——见 D-WCD-4 ctx 来源双路径
 
@@ -78,6 +80,7 @@ export async function logicParseWalk(
 
 - logic/index.ts:211 logicParseWalk 调用传 ctx（compile 建的 ctx）
 - **compileJS/buildJSByPath 透传链**（F-R4-1）：logicCompile:274 建 ctx → compileJS(pages, root, ..., ctx, options) → buildJSByPath(packageName, module, ..., ctx, options) → logicParseWalk(..., ctx)——ctx 须透传两层
+- **8 处调用点 count**（F-R8-1）：compileJS 2 处（L286 mainPages + L289 subPages）+ buildJSByPath 6 处（L55/L59 from compileJS + L100/L108/L190/L228 递归）= 8 处改签名传 ctx；registry-impl 直调 logicParseWalk（非经 compileJS——1 处）
 - **ctx 透传方式 lock**（F-R4-2）：ctx 加为 compileJS/buildJSByPath 必传参数（options 前末尾——CompileJSOptions 内嵌不合适，ctx 非可选 PackerContext）
 - logic/index.ts 内部 getter 改 ctx 读：getWorkPath→ctx.workPath（×2）/ getContentByPath→ctx.readContent（×1）
 - **保留 ALS**（F-R1-2）：getDependencyGraph（×3——ctx 无 graph）/ getAppConfigInfo（×2——ctx 无 configInfo）/ getComponent（×2——ctx 无 component store）/ isMiniGame（×1——ctx 无 isMiniGame）
@@ -103,6 +106,7 @@ async load(input: LoadInput, ctx: PackerContext): Promise<LoadedModule> {  // _c
 - _ctx → ctx（Loader.load 契约已有——F-R2-2 主线程 ctx 来源）
 - **ctx 来源**（F-R2-2）：主线程路径 ctx = orchestrate 传 ctx（buildPackerContext from env-compute，env-compute:211）；worker 路径 ctx = compile 入口建（buildPackerContextFromOptions from storeInfo data，D-WCD-1）
 - getContentByPath → ctx.readContent
+- **行为等价确认**（F-R9-1）：getContentByPath(env-compute:319) = `fs.readFileSync(path, 'utf-8')` = ctx.readContent(config-fixpoint)——字节等价 ✓
 - logicParseWalk 传 ctx
 
 ### ctx 来源双路径（F-R2-2/R2-3）
@@ -139,14 +143,16 @@ logicParseWalk(source, modulePath, 'pages/index', null, null, undefined, options
 **PackerContext 形状**（types.ts）：workPath / targetPath / readContent / resolveAlias / resolveNpm(function) / fileTypes。无 graph / appId / configInfo / component / isMiniGame / NpmResolver。
 
 **方案 b 部分迁移锁定**（F-R1-1/R1-2 精确归类）：
-- **ctx 读 4 getter**：getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / resolveAppAlias→ctx.resolveAlias / getContentByPath→ctx.readContent
-- **保留 ALS 6 getter**：getDependencyGraph（ctx 无 graph）/ getAppId（ctx 无 appId）/ getNpmResolver（**F-R1-1**：返回 NpmResolver 实例，ctx.resolveNpm 是 function 签名不匹配）/ getAppConfigInfo（ctx 无 configInfo）/ getComponent（ctx 无 component store）/ isMiniGame（ctx 无 isMiniGame）
-- **A5 统一迁**：保留 ALS 的 6 getter 在 A5 singleton/Proxy 退役时统一迁（须扩 PackerContext 或 ctx 加 graph/configInfo optional）
+- **ctx 读 3 getter**（F-R8-2 修正）：getWorkPath→ctx.workPath / getTargetPath→ctx.targetPath / getContentByPath→ctx.readContent
+- **保留 ALS 7 getter**（F-R8-2 修正 +resolveAppAlias）：getDependencyGraph（ctx 无 graph）/ getAppId（ctx 无 appId）/ getNpmResolver（**F-R1-1**：返回 NpmResolver 实例，ctx.resolveNpm 是 function 签名不匹配）/ **resolveAppAlias（F-R8-2：ctx.resolveAlias stub `(_src) => null` ≠ ALS resolveAppAliasImpl 实际解析——行为 0 破坏点，须保留 ALS）**/ getAppConfigInfo（ctx 无 configInfo）/ getComponent（ctx 无 component store）/ isMiniGame（ctx 无 isMiniGame）
+- **A5 统一迁**：保留 ALS 的 7 getter 在 A5 singleton/Proxy 退役时统一迁（须扩 PackerContext 或 ctx 加 graph/configInfo optional）
+- **resolveAppAlias A5 实体化路径**（F-R9-2）：env-compute:310 `resolveAppAliasImpl(src, appInfo)`——双参，appInfo 从 ALS singleton 读。A5 退役须实体化 ctx.resolveAlias 为 `resolveAppAliasImpl(src, appInfo)`——appInfo 须加入 ctx（ctx 加 `appInfo?: Record<string, unknown>` optional）or ctx.resolveAlias 闭包 appInfo
 - **fileTypes 不读**：logic/parse-walk + logic/index 无 fileTypes getter（fileTypes 在 normalize/compile-config 层）
 
 ## 5. 风险
 
-1. **PackerContext 无 graph 字段**（§4 lock——方案 b 部分迁移：ctx 读 4 getter + 保留 ALS 6 getter）
+1. **PackerContext 无 graph 字段**（§4 lock——方案 b 部分迁移：ctx 读 3 getter + 保留 ALS 7 getter）
+5. **resolveAppAlias 行为 0 破坏点**（F-R8-2）：ctx.resolveAlias stub `(_src) => null` ≠ ALS resolveAppAliasImpl 实际解析——**resolveAppAlias 保留 ALS**（A5 统一迁须实体化 ctx.resolveAlias）
 2. **ALS compat 边界**（D-WCD-6）——logic 迁 ctx 后 ALS 写冗余？或保留 view/style compat
 3. **successPayload ctx 来源**——compile 建 ctx 透传 successPayload
 4. **测试 fixture**——logic-loader.spec:53 须建 ctx（buildPackerContext）

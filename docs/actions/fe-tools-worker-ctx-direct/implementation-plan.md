@@ -7,7 +7,7 @@ Status authority: [Action Status](../STATUS.md)
 ### P-WCD-1 — logicParseWalk 加 ctx 参数 + 内部 getter 改 ctx 读（A 批）
 
 1. logic/parse-walk.ts logicParseWalk 第 8 参加 ctx: PackerContext
-2. logic/parse-walk.ts 16 处 getter 改 ctx 读（方案 b 部分迁移——ctx 读 4 getter（getWorkPath/getTargetPath/resolveAppAlias/getContentByPath→ctx.readContent）；保留 ALS 6 getter（getDependencyGraph/getAppId/getNpmResolver/getAppConfigInfo/getComponent/isMiniGame——F-R1-1/R1-2）——PackerContext 无 graph 字段）
+2. logic/parse-walk.ts 16 处 getter 改 ctx 读（方案 b 部分迁移——ctx 读 3 getter（F-R8-2 修正：getWorkPath/getTargetPath/getContentByPath→ctx.readContent）；保留 ALS 7 getter（F-R8-2 +resolveAppAlias：getDependencyGraph/getAppId/getNpmResolver/resolveAppAlias/getAppConfigInfo/getComponent/isMiniGame——F-R1-1/R1-2）——PackerContext 无 graph 字段）
 3. tsc 0
 
 ### P-WCD-2 — worker 引擎 compile 建 PackerContext + compileJS/buildJSByPath 透传 + logic/index 路径改 ctx（B 批）

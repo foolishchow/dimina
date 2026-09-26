@@ -5,7 +5,7 @@ Status authority: [Action Status](../STATUS.md)
 | ID | Requirement | Title | Acceptance criterion | Status |
 | --- | --- | --- | --- | --- |
 | A-WCD-1 | R-WCD-1 | worker ctx 直传机制（A0） | logic/index.ts compile 入口建 PackerContext（from storeInfo data——buildPackerContextFromOptions）+ defineEngine 透传 + ALS compat 保留（resetStoreInfo 仍调）；tsc 0 | pending |
-| A-WCD-2 | R-WCD-2 | logicParseWalk 加 ctx 参数（A1） | logicParseWalk 第 8 参加 ctx: PackerContext + 16 处 getter 部分改 ctx 读（ctx 读 4 getter（getWorkPath/getTargetPath/resolveAppAlias/getContentByPath→ctx.readContent）；保留 ALS 6 getter（getDependencyGraph/getAppId/getNpmResolver/getAppConfigInfo/getComponent/isMiniGame——F-R1-1/R1-2）——方案 b）；tsc 0 | pending |
+| A-WCD-2 | R-WCD-2 | logicParseWalk 加 ctx 参数（A1） | logicParseWalk 第 8 参加 ctx: PackerContext + 16 处 getter 部分改 ctx 读（ctx 读 3 getter（F-R8-2 修正：getWorkPath/getTargetPath/getContentByPath→ctx.readContent）；保留 ALS 7 getter（F-R8-2 +resolveAppAlias：getDependencyGraph/getAppId/getNpmResolver/resolveAppAlias/getAppConfigInfo/getComponent/isMiniGame——F-R1-1/R1-2）——方案 b）；tsc 0 | pending |
 | A-WCD-3 | R-WCD-3 | logic/index.ts worker 路径改 ctx | logic/index.ts:211 logicParseWalk 传 ctx + 内部 getter 部分改 ctx（workPath/targetPath/readContent；getDependencyGraph/getAppConfigInfo/getComponent/isMiniGame 保留 ALS）；tsc 0 | pending |
 | A-WCD-4 | R-WCD-4 | registry-impl 主线程路径改 _ctx | registry-impl.ts _ctx → ctx + getContentByPath → ctx.readContent + logicParseWalk 传 ctx；tsc 0 | pending |
 | A-WCD-5 | R-WCD-5 | successPayload 保留 ALS（不改——F-R2-1） | logic/index.ts successPayload 保留 ALS（getDependencyGraph 仍 ALS——A5 统一迁，F-R2-1）；tsc 0 | pending |
