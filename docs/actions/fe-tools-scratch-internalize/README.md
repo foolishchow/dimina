@@ -39,7 +39,7 @@ mkdtemp 归属正位：Output（I/O 层）拥有 TEMP 目录生命周期；store
 ## Design inputs
 
 - storeInfo 塌缩 backflow：[`fe-tools-storeinfo-collapse`](../_archive/complete/fe-tools-storeinfo-collapse/README.md) Non-goals（scratch 内化）
-- env-l1 backflow：[`fe-tools-env-l1-extract`](../_archive/fe-tools-env-l1-extract/README.md) Non-goals（scratch 内化）
+- env-l1 backflow：[`fe-tools-env-l1-extract`](../_archive/complete/fe-tools-env-l1-extract/README.md) Non-goals（scratch 内化）
 - Output 抽象：[`fe-tools-packer-output-abstraction`](../_archive/complete/fe-tools-packer-output-abstraction/README.md)（DiskOutput 封装 scratch→final；D-O1..7 + D-OL1..4）
 - env-compute 现状：`computePathInfo`（mkdtemp）+ `storeInfoCtx`（设 state.scratch）+ `computeStoreInfo`
 - types.ts:419 注释（「后续 DiskOutput 内化 mkdtemp」）
