@@ -69,7 +69,7 @@ export function clearStyleCaches() {
  * enhanceCSS，字节恒等（发现与编译交织与否不影响：enhanceCSS 只写 'style' 边，
  * 展开只读 'component' 边，无干扰）。
  */
-function styleLoad(module: StyleModule, compiledPaths: Set<string>): StyleModule[] {
+function styleLoad(module: StyleModule, compiledPaths: Set<string>, ctx?: PackerContext): StyleModule[] {
 	const loadedModules: StyleModule[] = []
 	const pendingModules = [module]
 
@@ -88,12 +88,12 @@ function styleLoad(module: StyleModule, compiledPaths: Set<string>): StyleModule
 
 		// Preserve the original depth-first, declaration-order traversal while
 		// using an explicit stack instead of the JavaScript call stack.
-		const graphDependencies = getDependencyGraph().getDirectDependencies(currentPath, 'component')
+		const graphDependencies = (ctx?.graph ?? getDependencyGraph()).getDirectDependencies(currentPath, 'component')
 		const componentPaths: string[] = graphDependencies.length > 0
 			? graphDependencies
 			: Object.values(currentModule.usingComponents || {})
 		for (let index = componentPaths.length - 1; index >= 0; index--) {
-			const componentModule = getComponent(componentPaths[index]!) as StyleModule | null
+			const componentModule = (ctx?.component ? ctx.component(componentPaths[index]!) as unknown : getComponent(componentPaths[index]!)) as StyleModule | null
 			if (componentModule) {
 				pendingModules.push(componentModule as StyleModule)
 			}
@@ -133,7 +133,7 @@ function styleEmit(chunks: StyleCompileResult[], options: StyleOptions): StyleCo
  * 字节恒等于原 monolithic while 循环（发现/编译解交织安全——见 styleLoad 注释）。
  */
 export async function buildCompileCss(module: StyleModule, compiledPaths: Set<string> = new Set(), options: StyleOptions = {}, ctx?: PackerContext): Promise<StyleCompileResult> {
-	const loadedModules = styleLoad(module, compiledPaths)
+	const loadedModules = styleLoad(module, compiledPaths, ctx)
 	const chunks = await styleCompile(loadedModules, options, ctx)
 	return styleEmit(chunks, options)
 }
